@@ -1,0 +1,15 @@
+# Agent/tooling logs
+.agent/
+
+# Godot
+.godot/
+/android/
+
+# Build outputs
+/build/
+
+# OS / editors
+.DS_Store
+*.swp
+.vscode/
+.idea/
