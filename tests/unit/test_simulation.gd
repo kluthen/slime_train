@@ -7,7 +7,7 @@ func test_starts_at_tick_zero_with_its_seed() -> void:
 	var sim := Simulation.new(77)
 	assert_eq(sim.tick, 0)
 	assert_eq(sim.rng.seed_value, 77)
-	assert_eq(sim.slimes, [])
+	assert_eq(sim.slimes.slime_count, 0, "no slimes yet")
 
 
 func test_step_advances_one_tick() -> void:
@@ -100,3 +100,37 @@ func test_seed_input_and_time_change_the_hash() -> void:
 	assert_ne(base.state_hash(), other_seed.state_hash())
 	assert_ne(base.state_hash(), other_time.state_hash())
 	assert_ne(base.state_hash(), other_input.state_hash())
+
+
+func test_the_slimes_move_with_the_simulation() -> void:
+	var sim := Simulation.new(3)
+	var slime := sim.slimes.create(0, 1, Vector2.ZERO)
+	sim.run(30)
+	assert_gt(sim.slimes.centre_of(slime).y, 50.0, "the slime fell for half a second")
+
+
+func test_the_slimes_are_in_the_dump_and_the_hash() -> void:
+	var sim := Simulation.new(3)
+	sim.slimes.create(2, 3, Vector2(10, 20), SlimeBodies.SLEEPER)
+	var dump := sim.dump()
+	assert_eq(dump["slimes"].size(), 1)
+	assert_eq(dump["slimes"][0]["species"], 2)
+	assert_eq(dump["slimes"][0]["size"], 3)
+	assert_eq(dump["slimes"][0]["state"], "sleeper")
+	assert_has(dump, "next_slime_id")
+	var before := sim.state_hash()
+	sim.step()
+	assert_ne(sim.state_hash(), before, "a falling slime changes the hash")
+
+
+func test_same_seed_and_slimes_give_the_same_hash() -> void:
+	var hashes := []
+	for i in 2:
+		var sim := Simulation.new(8)
+		sim.slimes.terrain = TerrainSegments.new([PackedVector2Array([
+				Vector2(-1000, 0), Vector2(1000, 0), Vector2(1000, 100), Vector2(-1000, 100)])])
+		for k in 5:
+			sim.slimes.create(k, 1 + k % 3, Vector2(-400 + 200 * k, -40))
+		sim.run(300)
+		hashes.append(sim.state_hash())
+	assert_eq(hashes[0], hashes[1])

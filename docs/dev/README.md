@@ -45,6 +45,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `src/sim/` | The simulation core: pure logic, with no scene dependencies, so it can be unit tested |
 | `src/test_mode_guard.gd` | The one check that keeps test mode out of release builds |
 | `src/test_mode/` | Test mode: scripted input, time control, the fixture stub, the on-screen marker |
+| `src/slimes/` | Slime drawing (`SlimeRenderer` and its shaders), the terrain hand-off to the simulation (`SlimeWorld`) and the slime demo scene |
 | `src/components/` | Reusable level components, configured in the editor (see "Levels and components") |
 | `levels/<id>/` | One folder per level, with its scenes. `levels/test/level.tscn` is the test level |
 | `tests/unit/` | Unit tests, mostly on `src/sim/` |
@@ -53,6 +54,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `tests/gut_post_run.gd` | The GUT hook that makes a broken suite fail (see below) |
 | `tools/test.sh` | The one entry point for the test suite |
 | `tools/greybox_test_level.gd` | Generates the test level's greybox scene (see "Levels and components") |
+| `tools/bench_slimes.gd` | Times the slime tick (see "Slimes") |
 | `docs/dev/img/` | Screenshots used by these notes (`docs/.gdignore` keeps Godot from importing anything under `docs/`) |
 | `spikes/` | Throwaway prototypes. Nothing else depends on them |
 | `addons/gut/` | The GUT test framework, vendored |
@@ -413,6 +415,158 @@ first starting where `s1.loop` ends (behind gate 1), then its slide
 (`kind = return`, `gate_id = "s2.gate"`) ending at the start of the loop;
 place its things with `s2.` IDs; extend the tests' expected IDs.
 
+## Slimes
+
+The slime bodies are `SlimeBodies` (`src/sim/slime_bodies.gd`), owned by the
+`Simulation` (`simulation.slimes`) and advanced once per tick, after the
+queued input. `SlimeRenderer` (`src/slimes/`) draws them; it only reads them.
+Species and their colours are `Species` (`src/sim/species.gd`).
+
+![The slime demo: six species in three sizes, blend renderer](img/slimes-demo.png)
+
+### Layout
+
+Struct of arrays (D94). Per point: `pos`, `prev` (Verlet: velocity is
+`pos - prev`) and `rest_off` (offset on the rest circle). Per slime:
+`id`, `first` and `npts` (its slice of the point arrays), `size`, `species`,
+`state`, `held`, `supported`, `hop_timer`, `heading`, and the ring's rest
+radius, area and edge length. Rings have 12, 15 and 18 points for sizes 1, 2
+and 3; the ring radius is `21 * sqrt(size)` px, and the drawn body adds
+`EDGE` (3 px) all round, so a size-1 slime looks 24 px in radius.
+
+Slimes are kept in ascending id order with their point slices back to back.
+`remove`, `merge` and `split` compact every array (no holes, order kept), so
+a slime's index can change but its id never does; ids are never reused.
+Callers hold ids; `index_of(id)` is a binary search. `topology_version`
+changes whenever the set of slimes or their point counts change (the
+renderer rebuilds its index arrays then).
+
+The interface (create, remove, tick, merge, split, hop, the accessors,
+dump) is small and plain so the tick can move to a GDExtension without the
+callers changing.
+
+### Solver
+
+Verlet with position-based constraints, 2 substeps x 1 iteration at 60 Hz
+(D94). Each substep: integrate (gravity 1400 px/s², air drag 5 %/s,
+internal damping), then slime-slime contacts, ring constraints, terrain
+contacts. The pair list comes from a uniform grid on the slime centres,
+built on the first substep only (cells at least as big as the largest pair
+reach, so each slime checks its own cell and its neighbours).
+
+- **Ring constraints:** edge springs (stiffness 0.8), area (0.6) and shape
+  matching toward the rest circle (0.3). The edge springs are solved
+  Jacobi-style (all corrections computed, then applied): a sequential pass
+  made rings slowly rotate and drift sideways.
+- **Point 0 at the bottom.** A ring with an odd point count resting on an
+  edge is unstable and rolls to stand on a point; starting every ring on a
+  point keeps rings mirror-symmetric and still at rest.
+- **Internal damping 0.2:** each substep pulls every point's velocity 20 %
+  toward its slime's mean velocity. It kills internal jiggle without slowing
+  the slime; at 0.1 a size-3 slime propelled itself along the floor.
+- **Air drag is per second,** not per substep like the spike's (0.996 per
+  substep, about 38 %/s), so a velocity set with `set_velocity` or a hop
+  carries as expected.
+- **Slime-slime contacts** push points out along the other ring's radial
+  profile (the spike's method), with friction (0.3) on the sliding part, so
+  slimes can pile up. Two rings within `TOUCH_SKIN` (2 px) count as
+  touching (`touching`, `touching_pairs`); a slime resting on another's top
+  is `supported`.
+
+### Terrain contact (O78)
+
+The simulation never reads nodes. At level load, `SlimeWorld.terrain_from`
+gathers every `Terrain` piece with collision (its baked polygon, in level
+coordinates) and builds a `TerrainSegments` (`src/sim/terrain_segments.gd`):
+the polygons as segment arrays with outward normals, plus a CSR grid
+(32 px cells) listing, per cell, the segments within `MARGIN` (16 px) of it.
+Each ring point asks its cell for the nearest segment:
+
+- a point inside a piece is pushed out to the surface plus `terrain_skin`
+  (`EDGE`, so the drawn body rests on the ground instead of overlapping it);
+- a point outside but within the skin is pushed out along the direction from
+  the nearest point (rounded convex corners);
+- friction (0.4) takes from the tangential velocity and the inward normal
+  velocity is zeroed;
+- a surface whose normal points up by more than 0.3 marks the slime
+  `supported` (it may hop).
+
+Limits: a point deeper than `MARGIN` inside a piece is not seen, so terrain
+pieces must be thicker than about 32 px, and pieces must not overlap or
+share edges (a point between two could be pushed into the other). At the
+speeds capped by `max_speed` (1200 px/s, 10 px per substep) points never
+get that deep.
+
+The terrain is baked once per level load in `main.gd` and shared by every
+fresh simulation (`_new_simulation`).
+
+### Hops
+
+A train slime hops on its own timer: when `hop_timer` runs out and the slime
+is `supported`, it hops forward along its `heading` and draws its next
+interval from its own stream, `rng.derive("slime:<id>")`. Intervals are
+1.5-3 s (specs/tuning.md), 15 % longer per size above 1; take-off speed is
+620 px/s, 12 % faster per size, with a ±10 % random strength. A size-1 hop
+rises about 114 px and covers about 224 px; a size-3 hop 176 px and 336 px.
+`hop(id, dir, strength)` is the direct form (switches, taps later); it
+refuses a slime that isn't supported or whose state doesn't hop.
+`set_hop_held` pauses the timer (a queued slime at a gate, later).
+
+### Merge and split
+
+`merge(a, b)` keeps the lower id, adds the sizes (refused above
+`MAX_SIZE`, or across species), and reshapes the survivor into a fresh
+ring at the size-weighted centre, with the size-weighted velocity. Whether
+two slimes have touched long enough to fuse is the caller's decision (a
+later chunk); `touching_pairs()` is what it reads. `split(id)` reshapes the
+slime into size 1 and creates size-1 slimes for the rest, 52 px apart
+(size 2: side by side; size 3: a triangle), each with the same state,
+heading, hold and velocity. Both bump `topology_version`.
+
+### Renderer
+
+`SlimeRenderer` builds one triangle mesh each frame (a fan per ring plus a
+6 px skirt where the field fades to 0) and draws it through the
+`RenderingServer`. Two modes:
+
+- **Blend** (default): the spike's technique. The fields go into two
+  `SubViewport`s at half the screen's resolution (`field_scale`), one
+  species per colour channel (A-C, D-F); a full-screen composite thresholds
+  them, so same-species slimes that touch melt into one blob and different
+  species meet at a seam. The viewports follow the camera
+  (`canvas_transform`) every frame.
+- **Direct** (fallback): one mesh, each ring drawn on its own in its species
+  colour. It is the default headless (`default_mode()`), and the demo
+  toggles it with D.
+
+It draws the last tick's state; there is no interpolation between ticks.
+
+### Demo and bench
+
+```sh
+godot --path . src/slimes/demo.tscn              # D: blend/direct, Space: pause
+godot --path . src/slimes/demo.tscn -- --draw=direct --seed=7
+godot --headless -s res://tools/bench_slimes.gd  # -- --count=200 --ticks=600
+```
+
+The bench drops 200 slimes into a 1152 px box, settles them for 180 ticks,
+then times 600 ticks of `SlimeBodies.tick`, headless (same machine as the
+spike: Ryzen 5 PRO 8640HS, Godot 4.7.2):
+
+| Case | Points | Still, ms/tick | Moving, ms/tick |
+|---|---|---|---|
+| 200 × size 1 | 2400 | 9.99 | 9.84 (857 hops) |
+| 200, 60/25/15 % sizes 1/2/3 | 2730 | 14.68 | 15.22 (806 hops) |
+| Spike, GDScript, 12 points, flat floor | 2400 | 8.75 | 8.08 |
+| Spike, native estimate | | ~0.35-0.41 | |
+
+Split of a mixed still tick (per substep call): slime contacts 3.8 ms, ring
+constraints 1.7 ms, pair grid 1.1 ms, integrate 0.7 ms, terrain 0.6 ms.
+Heavier than the spike: terrain segments instead of a flat floor, friction,
+touch tracking and a denser pile. In GDScript the tick alone is most of a
+60 Hz frame at 200 slimes: fine for development and a handful of slimes,
+but the full count needs the native tick (spike 1's conclusion).
+
 ## Technical choices
 
 ### Chunk 0: tooling and project setup
@@ -487,6 +641,24 @@ place its things with `s2.` IDs; extend the tests' expected IDs.
 - **The greybox is generated** from point tables by a tool script: laying
   out 60-odd nodes by hand is slow and hard to check, and the tables are
   easy to review against the design. It remains a normal scene.
+
+### Chunk 5: slime body
+
+- **Struct of arrays, Verlet, 2 substeps x 1 iteration, grid on centres**
+  (D94), with a plain interface so the tick can go native later. 12/15/18
+  ring points for sizes 1/2/3.
+- **Terrain as baked segments** (O78): the simulation tests ring points
+  against the terrain's baked polygons through a CSR grid, not against
+  Godot physics, so it stays pure and deterministic.
+- **Jacobi edge springs, point 0 at the bottom, internal damping 0.2, air
+  drag per second:** each fixes a drift or self-propulsion seen in testing
+  (see "Slimes", "Solver").
+- **One stream per slime** (`slime:<id>`) for hop timing and strength, so
+  adding a slime doesn't shift the others' hops.
+- **Blend renderer with a direct fallback** (D94), Compatibility renderer.
+  Headless runs draw direct.
+- **Measured tick cost** is in "Slimes", "Demo and bench": GDScript is
+  10-15 ms per tick for 200 slimes.
 
 ### Chunk 2: spike: vector look
 

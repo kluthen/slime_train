@@ -13,6 +13,10 @@ extends Node2D
 ## camera on the start basin and hands the level's plain data to the
 ## simulation. The test level is named by path too: it never ships (D91).
 ## A release build has no level yet (the real first level comes later).
+##
+## The level's collision terrain is baked once into TerrainSegments and
+## shared by every simulation started on it; a SlimeRenderer draws the
+## current simulation's slimes.
 # @spec-link [[req_test_level_and_test_mode]]
 
 const TEST_LEVEL_SCENE := "res://levels/test/level.tscn"
@@ -30,19 +34,27 @@ var simulation: Simulation
 var level: Level = null
 ## A plain camera on the start basin. The camera rails come with chunk 13.
 var camera: Camera2D = null
+## Draws the current simulation's slimes (DIRECT when headless).
+var slime_renderer: SlimeRenderer = null
 ## The running TestMode, or null. Loosely typed on purpose (see above).
 var test_mode: RefCounted = null
 ## Replaced by tests to check the release path.
 var test_mode_guard := TestModeGuard.for_this_build()
 
 var _clock := FixedStep.new()
+## The level's collision terrain for the slimes, or null without a level.
+var _terrain: TerrainSegments = null
 
 
 func _ready() -> void:
 	print("Slime Train booted (Godot %s)." % Engine.get_version_info().string)
 	if test_mode_guard.allows():
 		_load_level(TEST_LEVEL_SCENE)
-	simulation = _new_simulation(Rng.random_seed())
+	slime_renderer = SlimeRenderer.new()
+	slime_renderer.name = "Slimes"
+	slime_renderer.draw_mode = SlimeRenderer.default_mode()
+	add_child(slime_renderer)
+	_use_simulation(_new_simulation(Rng.random_seed()))
 	var user_args := OS.get_cmdline_user_args()
 	if TestModeGuard.requested(user_args):
 		var errors := start_test_mode_from_args(user_args)
@@ -101,7 +113,7 @@ func enable_test_mode(config: Dictionary) -> PackedStringArray:
 	if test_mode != null:
 		test_mode.detach()
 	test_mode = candidate
-	simulation = _new_simulation(candidate.seed_value)
+	_use_simulation(_new_simulation(candidate.seed_value))
 	_clock.reset()
 	test_mode.attach(self)
 	return PackedStringArray()
@@ -132,6 +144,7 @@ func start_test_mode_from_args(user_args: PackedStringArray) -> PackedStringArra
 func _load_level(path: String) -> void:
 	level = load(path).instantiate()
 	add_child(level)
+	_terrain = SlimeWorld.terrain_from(level)
 	camera = Camera2D.new()
 	camera.name = "Camera"
 	camera.position = level.start_position() + CAMERA_OFFSET
@@ -140,9 +153,18 @@ func _load_level(path: String) -> void:
 	camera.make_current()
 
 
-## A fresh simulation from `seed_value`, holding the level's plain data.
+## A fresh simulation from `seed_value`, holding the level's plain data and
+## its collision terrain.
 func _new_simulation(seed_value: int) -> Simulation:
 	var fresh := Simulation.new(seed_value)
 	if level != null:
 		fresh.level = level.data
+	fresh.slimes.terrain = _terrain
 	return fresh
+
+
+## Makes `fresh` the running simulation, and the one drawn.
+func _use_simulation(fresh: Simulation) -> void:
+	simulation = fresh
+	if slime_renderer != null:
+		slime_renderer.bodies = fresh.slimes

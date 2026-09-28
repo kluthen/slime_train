@@ -10,9 +10,11 @@ extends RefCounted
 ## while `tick` is T is stamped with T.
 ##
 ## For now the state is the tick counter, the master Rng, the level played
-## (its ID and version), an empty slime list and a record of the input
-## received. Later chunks fill it in; each piece of
-## state they add must appear in dump().
+## (its ID and version), the slimes' soft bodies (SlimeBodies) and a record of
+## the input received. Later chunks fill it in; each piece of state they add
+## must appear in dump().
+##
+## Tick order: queued input, then the slime bodies (hops, then the solver).
 
 ## Simulation ticks per second. Tuning durations (3 s of contact to fuse, 10 s
 ## before left alone, and so on) are counted in ticks at this rate.
@@ -35,8 +37,9 @@ var rng: Rng
 ## game root once the level scene has loaded. Its geometry is static; only its
 ## ID and version go into dump().
 var level: LevelData = null
-## Placeholder: the slimes. Filled from chunk 5 on.
-var slimes: Array = []
+## The slimes' soft bodies. Their per-slime random streams derive from `rng`.
+## The game root gives them the level's terrain (TerrainSegments).
+var slimes: SlimeBodies
 ## Placeholder until chunk 11: the last tilt received, in degrees.
 var tilt_degrees := 0.0
 ## Placeholder until chunk 7: the fingers down, finger index -> screen position.
@@ -50,6 +53,7 @@ var _pending_input: Array[Dictionary] = []
 
 func _init(master_seed: int) -> void:
 	rng = Rng.new(master_seed)
+	slimes = SlimeBodies.new(rng)
 
 
 ## A finger touching the screen at `at` (screen pixels). `finger` 0 is the
@@ -82,6 +86,7 @@ func step() -> void:
 	for event in _pending_input:
 		_apply_input(event)
 	_pending_input.clear()
+	slimes.tick(TICK_SECONDS)
 	tick += 1
 
 
@@ -103,7 +108,8 @@ func dump() -> Dictionary:
 		"seed": str(rng.seed_value),
 		"rng_state": str(rng.state),
 		"level": level.header() if level != null else null,
-		"slimes": slimes.duplicate(true),
+		"slimes": slimes.dump(),
+		"next_slime_id": slimes.next_id,
 		"input": {
 			"tilt_degrees": tilt_degrees,
 			"fingers_down": fingers,

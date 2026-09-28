@@ -25,8 +25,12 @@ and tilt, time control, a fixture stub; debug builds only) and a headless
 end-to-end runner comparing state hashes. Chunk 4 (level scaffolding) adds
 the reusable level components and a greybox of the test level's first
 section, Meadow, which a debug build loads with a plain camera on the start
-basin. The objects are placeholders with no behaviour yet: there are no
-slimes and no gameplay yet.
+basin. Chunk 5 (slime body) adds the slimes' soft bodies: six species in
+three sizes, the four states, automatic hops on each slime's own seeded
+timer, merge and split operations, contact with the level's terrain, and a
+blend renderer (with a direct fallback), shown in the demo scene
+`src/slimes/demo.tscn`. The level's objects are still placeholders with no
+behaviour, and nothing places slimes in the level or plays yet.
 UX design (`ui_ux/`) has an inventory and open questions, no design yet.
 
 ## Direction so far
