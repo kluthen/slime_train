@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v13
+Status: draft v14
 
 ## One-liner
 
@@ -91,6 +91,8 @@ save (D43). Save-file versioning is O20.
 - **Level rule:** the loop can be travelled with no input at all.
 - **Tapping** the screen **calls** nearby slimes toward that point (D46).
   Hold-and-drag isn't used for the call. Its radius and duration are O21.
+  Taps on objects, on the edge buttons, or at the top of the screen (parent
+  access) don't call (D15, D33, D57).
 - Every awake slime in range answers the call, train slimes included, and
   answering makes it free. (proposed: this follows from D13. At the start the
   only awake slime is on the loop, so train slimes have to answer or no
@@ -146,7 +148,13 @@ survives the app being killed.
   one-time setup at first launch. If it's forgotten, the phone's own screen
   lock lets the parent set a new one. With no screen lock, clearing the app's
   data is the last resort. There is no external service (D55).
-- Open: O6 (background behaviour, and the parent's other options).
+- The session counts in **real time**. Time spent in the background or on a
+  phone call is used up, and the parent can make up for it by waking the
+  slimes early (D56).
+- **Parent access** (D57): a tap at the top of the screen reveals the parent
+  buttons (wake early, leave, settings). Every button asks for the code. A tap
+  there doesn't call (proposed).
+- Later (v4, D58): the parent can turn the code off entirely.
 
 ### Bedtime (D28)
 

@@ -7,7 +7,6 @@ Each entry has a stable ID. Once resolved, an entry moves to `decisions.md`.
 | ID | Question | Where |
 |---|---|---|
 | O4 | Idle camera: which train slime it picks, how the child takes back control (proposed: any touch), and what the cue 10 s beforehand looks like with no text (proposed: a slow, gentle zoom-out). (The 45 s delay is settled: D32.) | concept |
-| O6 | Session details: does the 15 min keep counting while the app is in the background (proposed: yes, in real time)? Besides letting the child play again (D44), what can the parent do behind the gate (leave the app, delete a save, settings)? (Length, cooldown and sunrise are settled: D29, D44.) | concept |
 | O14 | Godot risks to test with prototypes: Android audio latency, 30–50 slimes on a low-end phone, tilt input, running end-to-end tests on Linux without a screen, and a vector rendering approach. | tech-direction |
 | O15 | Personas: the child (3–5) and the parent. The personas document is not written yet. | — |
 | O20 | Save-file versioning: what happens to a level's save when an update changes that level (proposed: the save records the level version, and an incompatible save is reset)? (One save per level is settled: D43.) | tech-direction |

@@ -4,11 +4,11 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 | Document | Purpose | Status |
 |---|---|---|
-| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v13 |
+| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v14 |
 | `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v6 |
 | `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v5 |
 | `tech-direction.md` | Engine, level authoring, slime simulation, saving, session lock implementation | draft v4 |
-| `versions/` | Scope per version (v1, v2, v3…) plus `timeline.md` for features with no version yet (D52) | live |
+| `versions/` | Scope per version (v1–v4…) plus `timeline.md` for features with no version yet (D52) | live |
 | `open-questions.md` | Register of unresolved decisions (O1…) | live |
 | `decisions.md` | Append-only decisions log (D1…) | live |
 
@@ -55,6 +55,9 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 - Parent code: set during a one-time setup at first launch, recovered through the phone's own screen lock, no external service (D55).
 
+- Sessions count in real time; interruptions use up time, and the parent can wake the slimes early (D56).
+- Parent access: a tap at the top of the screen reveals the parent buttons, and every one asks for the code (D57). Turning the code off comes in v4 (D58).
+
 ## Where to resume
 
-Next: O6 (does the session keep counting in the background, and the parent menu). After that: personas (O15), then a dedicated session on the first level's design (O22).
+Next: O4 (idle camera details). Then personas (O15), save versioning (O20), and a dedicated session on the first level's design (O22).

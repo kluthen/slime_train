@@ -46,7 +46,8 @@ Items are settled unless tagged (proposed). The decision IDs point to
 - The idle camera takes over after 45 s and locks onto a train slime (D32).
 
 **Session and parents**
-- A fixed 15 min session. It starts at the first tap (D29, D44).
+- A fixed 15 min session. It starts at the first tap and counts in real time,
+  including while the app is in the background (D29, D44, D56).
 - Bedtime: in the last minute the light turns to dusk and hops slow down (there
   is no sound in v1). Then the slimes fall asleep (D28).
 - After bedtime, a 10 min cooldown, or the parent code, leads to **sunrise**:
@@ -56,6 +57,9 @@ Items are settled unless tagged (proposed). The decision IDs point to
 - The parent gate is a 6-digit code, chosen during a one-time setup at first
   launch. It is recovered through the phone's own screen lock, with no external
   service (D30, D55). Screen pinning is best effort (D1).
+- A tap at the top of the screen reveals the parent buttons: wake early, leave,
+  settings (change the code, delete a level's save). Every button asks for the
+  code (D57).
 - Progress is saved every 15 s and when the app goes to the background. There
   is one save per level, and the user can delete a level's save (D7, D12,
   D43).
@@ -72,4 +76,4 @@ Items are settled unless tagged (proposed). The decision IDs point to
 
 ## Open for v1
 
-O4, O6, O14, O15, O20, O21, O22 (see `../../open-questions.md`).
+O4, O14, O15, O20, O21, O22 (see `../../open-questions.md`).

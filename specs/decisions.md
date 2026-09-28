@@ -426,3 +426,29 @@ Resolves O34.
   code. There is no perfect solution.
 - **No external service.** There is no website, account or server behind
   this.
+
+## D56 — Sessions count in real time (2026-09-28)
+Resolves O6.
+- A session lasts 15 minutes of real time from the first tap, whether the app
+  is visible or not.
+- Sending the app to the background, a phone call and so on use up session
+  time. That is accepted.
+- If needed, the parent makes up for it by waking the slimes early (D44).
+
+## D57 — Parent access from the top of the screen (2026-09-28)
+- A tap at the **top of the screen** reveals the parent buttons: settings,
+  leave the app, and so on.
+- Pressing **any** of those buttons asks for the parent code first.
+- (proposed) The parent actions are: **wake early** (ends bedtime or the
+  cooldown), **leave** (ends screen pinning), and **settings**, which holds
+  changing the code and deleting a level's save.
+- (proposed) A tap at the top reveals the buttons and doesn't call. That makes
+  the top of the screen a fourth tap zone, after objects, the edge buttons and
+  the call (D15, D33, D46).
+- How the buttons look and how long they stay is interface design (UX).
+
+## D58 — Option to turn the parent code off, in v4 (2026-09-28)
+- The parent may choose to have **no code** at all, for example to play
+  themselves. The code is then never asked for, and waking early takes just a
+  tap. This can be changed in the settings.
+- Assigned to **v4**.
