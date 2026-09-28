@@ -12,7 +12,7 @@ Research: `../docs/research/` (verbatim reports with sources).
 | `level-design.md` | Rules every level must follow; the checklist for level design sessions | draft v6 |
 | `levels/` | One folder per level (D76): `test/` (the test level, draft v2), `01/` (the real first level, not started) | live |
 | `versions/v1/master-spec.md` | The v1 master spec, consolidated early (D76), plus `access-model.md` | consolidated |
-| `versions/v1/build-plan.md` | v1 split into 23 build chunks ordered for testing, each tied to the master spec's Definition of done and the test level's fixtures | draft v2 (proposed) |
+| `versions/v1/build-plan.md` | v1 split into 23 build chunks ordered for testing, each tied to the master spec's Definition of done and the test level's fixtures | draft v3 (proposed) |
 | `personas.md` | Who the game is for: P1 the newcomer (3), P2 the watching sibling (2), P3 the early player (4), P4 the parent; goal IDs | draft v5 |
 | `tuning.md` | Every number left to prototypes, with its starting value | live |
 | `open-questions.md` | Register of unresolved decisions (O1…) | live |

@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v2 (proposed; waiting for the user's review)
+Status: draft v3 (proposed; waiting for the user's review)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -28,11 +28,51 @@ spec's Definition of done criteria (§9). Fixture names come from
 6. **Placeholder interface.** The parent screens get working placeholder UI.
    Their real design comes from the UX track (`ui_ux/`), which has not
    started.
-7. Each chunk ends with its tests green and a short demo on the test level
-   (or a test scene before the test level exists).
+7. Each chunk goes through the six-step workflow below: ATD preflight,
+   tests red to green, implement, verify, documents, ATD stewardship.
 
 Sizes are relative: **S** is small, **M** is a few days of focused work,
 **L** is large and a candidate to split further when it starts.
+
+## Workflow for every chunk
+
+Every build chunk (all except the two spikes) goes through the same six steps,
+in this order. A chunk isn't finished until step 6 is done.
+
+1. **ATD preflight.** The documentalist finds the atoms that govern the
+   chunk's area, starting from the chunk's "Atoms" line. It checks that the
+   change is grounded in them and flags conflicts or missing coverage. A
+   missing or conflicting atom stops the chunk until it is resolved. If the
+   gap is in the spec itself, it goes back to spec-writer. The chunk's
+   technical decisions (structure, data formats, libraries) are recorded as
+   architecture atoms before code is written.
+2. **Tests first, red to green.** Write the tests for the chunk's "Done when"
+   criteria first, and see them fail for the right reason. Unit tests go
+   where the logic is pure. Scripted scenario tests through test mode, on
+   the test level or a test scene, cover behaviour. A fixture that doesn't
+   exist yet is created here.
+3. **Implement** until the tests pass. Don't change a test to make it pass
+   unless the test itself was wrong, and say so when that happens.
+4. **Verify.** The chunk's "Done when" criteria hold. The whole suite is
+   green, with no regression in earlier chunks. The run is repeatable (same
+   seed, same result), and a debug run shows the behaviour on screen.
+5. **Documents.** Keep the project documentation current: the README, how
+   to run the tests, how a level component is configured in the editor, the
+   fixture list. A place where the code had to differ from the spec is
+   reported to spec-writer, not fixed silently in either one.
+6. **ATD stewardship.** The documentalist checks that every atom the chunk
+   touched has `@spec-link` tags on the code that implements it and
+   `@test-link` tags on the tests that verify it. It confirms the atoms still
+   describe what the code does, and advances their status only with the
+   user's agreement.
+
+**Spikes (chunks 1 and 2) are the exception.** They are throwaway code, so
+they skip the test-first step and the link tags. Their preflight is a
+read of the atoms. They end by recording their outcome (the numbers, the
+approach chosen) with the documentalist as an architecture decision.
+
+**Chunk 0** follows the workflow in a small way: its test is the trivial
+one, seen red then green, which proves the runner reports failures.
 
 ## Overview
 
@@ -79,6 +119,7 @@ parallel with the camera and objects work.
 - A folder layout for components, levels, the simulation core, and tests.
 - A test framework picked by the implementer, runnable headless from the
   command line.
+- **Atoms (preflight start):** none yet (tooling). Run the preflight anyway: it should find `domain_architecture_rationale` and `req_test_level_and_test_mode`.
 - **Done when:** `godot --headless` runs one trivial test and returns a
   non-zero exit code when it fails.
 
@@ -88,6 +129,7 @@ parallel with the camera and objects work.
   screen: still (piled) and moving.
 - Measure on the desktop first, then on the reference phone, and on a floor
   phone once one is bought.
+- **Atoms (preflight start):** `domain_architecture_rationale`, `req_platform_and_performance_targets`, `rule_max_200_slimes_per_level` (read only: a spike links nothing).
 - **Done when:** the numbers are written down, with a go/no-go for the
   approach and the renderer. A no-go comes back to spec-writer before
   chunk 5 starts.
@@ -96,6 +138,7 @@ parallel with the camera and objects work.
 
 - Godot turns SVGs into images at import. Compare polygons and lines drawn in
   code against a vector plugin for crisp curves when zoomed.
+- **Atoms (preflight start):** `domain_architecture_rationale` (read only: a spike links nothing).
 - **Done when:** the approach is chosen and recorded as an architecture
   decision.
 
@@ -109,6 +152,7 @@ parallel with the camera and objects work.
 - A way to dump the simulation state (or a hash of it) for comparisons.
 - The headless end-to-end runner. This also settles the risk of running
   end-to-end tests on Linux without a screen.
+- **Atoms (preflight start):** `req_test_level_and_test_mode`, `domain_architecture_rationale`.
 - **Done when:** the same script and seed run twice give the same state
   hash, and test mode is absent from a release export.
 
@@ -120,6 +164,7 @@ parallel with the camera and objects work.
 - The shared rule format that components use ("when this basket is full,
   open that gate"), at least as an interface.
 - Section 1 (Meadow) of the test level as a greybox with placeholder art.
+- **Atoms (preflight start):** `req_loop_and_world`, `req_interactive_objects_general`, `req_level_design_rules` and its rules (`rule_no_dead_ends`, `rule_exploration_branch_has_route_back`, `rule_gravity_leads_back_to_loop`, `rule_start_carries_split_zone`, `rule_sleepers_never_on_loop`, `rule_first_sleeper_near_first_awake_slime`), `rule_released_level_stable_with_migration`.
 - **Done when:** a test loads the level and finds the loop, the route back and
   every stable ID of section 1.
 
@@ -129,6 +174,7 @@ parallel with the camera and objects work.
   colours (differing in lightness too), hopping as the only movement, and
   hop cadence from the seeded generator.
 - Fusion and splitting as ring operations, exposed for later chunks.
+- **Atoms (preflight start):** `req_slime_states`, `req_hopping_behavior`, `req_species_and_colour`, `rule_max_size_three`, `rule_first_section_species_count`.
 - **Done when:** unit tests cover ring creation, merging and splitting, and a
   demo scene shows slimes of each size and species hopping.
 
@@ -139,6 +185,7 @@ parallel with the camera and objects work.
 - The split zone at the start of the loop. The return route is part of the
   loop in section 1 (the placeholder slide).
 - The game wakes the first slime.
+- **Atoms (preflight start):** `req_loop_and_world`, `req_hopping_behavior`, `rule_split_zone_only_splitter`, `rule_start_carries_split_zone`, `rule_loop_travelable_with_no_input`, `rule_all_sizes_travel_loop_v1`.
 - **Done when:** with no input on the Meadow, the train loops for a full
   simulated session and no slime is lost [DoD 1, section 1 only], and
   every slime entering the split zone leaves as base slimes [DoD 7].
@@ -151,6 +198,7 @@ parallel with the camera and objects work.
 - The call: the radius, train slimes answering, the three phases of a free
   slime (answering, unsure, heading back by the route back), and rejoining
   the train.
+- **Atoms (preflight start):** `req_controls_tap_zones`, `req_call_mechanic`, `req_slime_states`, `rule_exploration_branch_has_route_back`.
 - **Done when:** scripted taps satisfy [DoD 3, 4, 15, 17].
 
 ### 8. Save format and fixtures (M)
@@ -159,6 +207,7 @@ parallel with the camera and objects work.
   the object states (empty for now), with the level version and stable IDs.
 - Autosave every 15 s and when the app goes to the background.
 - Fixture loading in test mode. The fixtures are save files.
+- **Atoms (preflight start):** `req_persistence_and_saves`, `rule_saves_never_wiped`, `req_test_level_and_test_mode`.
 - **Done when:** a kill-and-reload test restores the slimes, and test mode
   loads a hand-made fixture.
 
@@ -168,6 +217,7 @@ parallel with the camera and objects work.
   sleeper is a call centred on it.
 - The first-play hint: a wordless pulse near the first sleeper after about
   10 s with no call, shown on the first play only.
+- **Atoms (preflight start):** `req_waking_sleepers`, `rule_first_sleeper_near_first_awake_slime`, `user_story_newcomer_p1`. No requirement atom covers the first-play hint yet, so the preflight should flag it and the documentalist adds one.
 - **Done when:** [DoD 2, 16] pass, starting from `fresh`.
 
 ### 10. Fusion and bumping (M)
@@ -175,6 +225,7 @@ parallel with the camera and objects work.
 - Same-species contact for 3 s fuses. A hop that breaks contact resets the
   count. A fusion above size 3 bumps instead. The dip in the loop nudges
   fusion.
+- **Atoms (preflight start):** `rule_fusion_contact_time`, `rule_max_size_three`, `rule_dip_may_nudge_fusion`.
 - **Done when:** [DoD 6] passes, including `bump` (2 + 2 and 3 + 1).
 
 ### 11. Tilt, desktop and injected (S)
@@ -183,6 +234,7 @@ parallel with the camera and objects work.
   is taken at session start, and lying flat counts as neutral. Only free
   slimes feel it.
 - The input is injected on desktop here. The real sensor comes in chunk 20.
+- **Atoms (preflight start):** `req_controls_tap_zones` (tilt), `req_slime_states`, `rule_tilt_never_required`.
 - **Done when:** [DoD 8] passes with scripted tilt.
 
 ### 12. Camera: rails, edge buttons, call drag (M)
@@ -191,6 +243,7 @@ parallel with the camera and objects work.
   means forward along the loop.
 - The edge buttons (hidden at bedtime, once chunk 17 exists).
 - The call pulls the camera slowly toward the call point.
+- **Atoms (preflight start):** `req_camera_rails_and_framing`, `req_controls_tap_zones`, `rule_return_route_per_section`.
 - **Done when:** the edge buttons move the camera along the loop in both
   directions, round the frontier turn, and the child has no zoom control.
 
@@ -203,6 +256,7 @@ parallel with the camera and objects work.
 - One shared zoom for idle and screensaver mode. Framing zones are ignored
   while either follows a slime, and resume on touch if the camera's centre
   is still in a zone.
+- **Atoms (preflight start):** `req_camera_rails_and_framing`, `req_idle_camera_and_screensaver_zoom`, `rule_framing_zone_wherever_wider_view_needed`.
 - **Done when:** [DoD 18, 19] pass on the Meadow's framing zones. The minimum
   zoom is still an open point: log what the Meadow's zones show.
 
@@ -218,6 +272,7 @@ parallel with the camera and objects work.
 - **Open point:** where a basket releases its slimes is part of the basket's
   own design, which isn't planned yet. Build the test level's assumption (one
   outlet onto the onward route) behind a property, so it can change.
+- **Atoms (preflight start):** `req_switch_basket_gate_set`, `req_interactive_objects_general`, `rule_gate_opens_via_switch_basket_set`, `rule_frontier_set_inert_after_gate_open`, `rule_signpost_at_every_fork`, `rule_return_route_per_section`, `rule_return_route_may_carry_exploration`, `rule_tilt_never_required`.
 - **Done when:** [DoD 9, 11, 12, 13, 14] pass, with `s1-basket-5of6` and
   `s1-optout`, while the basket is on screen.
 
@@ -231,6 +286,7 @@ parallel with the camera and objects work.
 - Baskets count weight off screen. Fusion and waking happen on screen only.
 - Cheaper states: sleepers don't simulate, slimes in a full basket are
   simplified, and zoomed-out slimes use fewer points.
+- **Atoms (preflight start):** `req_offscreen_simulation`, `rule_left_alone_and_lost`, `req_switch_basket_gate_set` (off-screen filling).
 - **Done when:** [DoD 5, 10] pass, with `s2-cave-return`, `lost` and
   `s2-basket-offscreen`. Needs section 2 in greybox, pulled forward from
   chunk 16.
@@ -240,6 +296,7 @@ parallel with the camera and objects work.
 - Caves and the Big bowl in greybox, all frontier sets, all framing zones, and
   the full population of 200 slimes.
 - The level rules checklist run against the test level.
+- **Atoms (preflight start):** `req_level_design_rules` and all 20 rule atoms, `req_scope_one_level_four_sections`, `rule_max_200_slimes_per_level`.
 - **Done when:** [DoD 1] holds for the whole level, and `gate1-open`,
   `stress-still` and `stress-moving` load. The stress fixtures give desktop
   performance numbers.
@@ -251,6 +308,7 @@ parallel with the camera and objects work.
   saves, taps are inert but still ripple, the edge buttons hide), and sunrise
   after 10 minutes.
 - Timers stored with both the wall clock and the monotonic clock.
+- **Atoms (preflight start):** `req_session_lifecycle`, `req_actor_roles_and_permissions`, `req_denial_and_stepup_behavior`.
 - **Done when:** [DoD 20, 21, 22] pass on desktop with time skipping (the
   "wake early" path waits for chunk 18), with `wind-down`, `bedtime` and
   `sunrise`.
@@ -265,6 +323,7 @@ parallel with the camera and objects work.
   closes by itself. Nothing pauses.
 - The code is stored locally, never in plain text.
 - The rules follow `access-model.md`.
+- **Atoms (preflight start):** `req_parent_gate_and_access`, `req_actor_roles_and_permissions`, `req_denial_and_stepup_behavior`, `req_persistence_and_saves` (deleting a save).
 - **Done when:** [DoD 23, 24, 29] pass on desktop. The "forgot the code?"
   path is stubbed until chunk 20.
 
@@ -274,6 +333,7 @@ parallel with the camera and objects work.
 - A slime in mid-air on load: grounded, or put back at the start of its jump,
   or lost.
 - Save migration by level version: displaced slimes count as lost.
+- **Atoms (preflight start):** `req_persistence_and_saves`, `rule_saves_never_wiped`, `rule_released_level_stable_with_migration`.
 - **Done when:** [DoD 28] passes, including a kill during a write, with
   `midair` and `old-version`.
 
@@ -288,6 +348,7 @@ parallel with the camera and objects work.
   credential.
 - Real tilt from the sensor.
 - No network permission in the manifest.
+- **Atoms (preflight start):** `req_screen_pinning`, `req_parent_gate_and_access` (forgotten code), `req_session_lifecycle` (lifecycle), `rule_no_network_connection`, `req_platform_and_performance_targets`.
 - **Done when:** [DoD 25, 26, 27] pass on the emulator, and tilt feels right on
   the reference phone.
 
@@ -295,6 +356,7 @@ parallel with the camera and objects work.
 
 - Every fixture in the test level's list has at least one scripted
   end-to-end test, and the suite runs headless on the Linux build.
+- **Atoms (preflight start):** `req_test_level_and_test_mode`, plus every atom whose behaviour a fixture covers.
 - **Done when:** [DoD 31] passes, and the suite is repeatable (same seed, same
   result).
 
@@ -302,6 +364,7 @@ parallel with the camera and objects work.
 
 - `stress-still` and `stress-moving`, plus normal play, on the reference
   phone and the floor phone.
+- **Atoms (preflight start):** `req_platform_and_performance_targets`, `rule_max_200_slimes_per_level`.
 - **Done when:** [DoD 30] holds. If the floor phone can't hold 200 slimes, the
   floor rises. The 200 cap stays.
 
@@ -332,8 +395,8 @@ finished (see the master spec's Known gaps, item 6):
 
 ## Before starting
 
-- Put the Godot 4.7.2 binary on a stable path, for example a `godot` symlink
-  in `~/.local/bin`, so agents and scripts call `godot` and not a versioned
-  path in `~/work/`.
+- Godot 4.7.2 is reachable as `godot` (a symlink in `~/.local/bin`). The
+  project skeleton is committed, without the 3D physics setting. Its other
+  settings are adjusted to the spec in chunk 0.
 - A floor phone (Galaxy A14 class) has to be bought before spike 1 can finish
   and before chunk 22.
