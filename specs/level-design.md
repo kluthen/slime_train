@@ -9,8 +9,10 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
 ## The loop
 
 1. **The loop can be travelled with no input at all** (D19).
-2. **A slime of any size can travel the loop.** Different sizes may take
-   different forks (D26).
+2. **A slime of any size can travel the loop.** From v2, different sizes may
+   take different forks through a size filter (D26, D89). In v1 every size
+   takes the same way; size matters off the loop, where bigger free slimes
+   jump higher.
 3. **No dead ends.** Every branch joins the loop again, and a slime on a
    branch is still part of the train (D18).
 4. The **start of the loop carries a split zone**, where fused slimes split

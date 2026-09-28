@@ -37,7 +37,7 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
 
 | Section | Screens | Species | Areas |
 |---|---|---|---|
-| S1 "Meadow" | 0–8 | A, B, C | start basin, hills, fusion dip, size filter, the tree, frontier set 1 |
+| S1 "Meadow" | 0–8 | A, B, C | start basin, hills, fusion dip, high step, the tree, frontier set 1 |
 | S2 "Caves" | 8–13 | adds D | descent, parade, second dip, the cave branch, frontier set 2 |
 | S3 "Big bowl" | 13–16.5 | adds E | entry ramp, the bowl, the high rim, frontier set 3 |
 
@@ -65,16 +65,13 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
 - Exercises: fusion on its own, fusion reset by a hop, and bumping when a
   fusion would go past size 3 (for example 3 + 1) (D49).
 
-**1.4 Size filter (3.5–4.5).**
-- The loop forks. The **upper branch** starts with a step that only a size-3
-  slime can hop up. The **lower branch** runs underneath for every size.
-  Both branches join again at 4.5 (rules 2, 3, D26).
-- A **signpost** at the fork points along the lower branch, which is the main
-  stream. The rails follow the lower branch (rule 6, D33, D47).
-- A framing zone shows both branches at once (rule 19).
-- The fork is a **size filter** (D88): size 3 takes the upper branch, and the
-  terrain matches. Whether the size filter is in v1 is O61; if it moves to
-  v2, this fork becomes a plain fork that every size takes the same way.
+**1.4 High step (3.5–4.5).**
+- No fork: filters are v2 (D89), and every size travels the loop the same way
+  (rule 2).
+- Beside the loop, a **ledge** stands on a step that only a called size-3 slime
+  can hop up. Its far side slopes back down to the loop at 4.5 (its route
+  back, rules 7, 8). Nothing lives up there: it tests jump height by size.
+- A framing zone shows the loop and the ledge at once (rule 19).
 
 **1.5 The tree (4.5–5.8).** An exploration branch.
 - A **lower platform** high above the loop, holding 6 sleepers (A, B and C, 2
@@ -211,7 +208,7 @@ outlet.
 
 | ID | Screens | Shows | Tests |
 |---|---|---|---|
-| `s1.frame.size-filter` | 3.5–4.5 | both branches of the fork | framing on a fork |
+| `s1.frame.high-step` | 3.5–4.5 | the loop and the ledge | framing beside the loop |
 | `s1.frame.tree` | 4.5–5.5 | the loop and the tree's lower platform | zoom out and shift up; the exit delay |
 | `s2.frame.parade` | 9–10 | the parade, slightly wider | combining with the idle and screensaver zoom-out |
 | `s2.frame.gate` | 12.2–13 | gate 2, the slide entrance and the basket pit | reward waiting for view |
@@ -260,7 +257,7 @@ The quotas leave plenty of room:
 - **Examples:**
   - `start.split-zone`, `start.first-slime`
   - `s1.sleeper.01` … `s1.sleeper.29`
-  - `s1.switch`, `s1.basket`, `s1.gate`, `s1.slide`, `s1.signpost.size-filter`
+  - `s1.switch`, `s1.basket`, `s1.gate`, `s1.slide`
   - `s1.branch.tree`, `s1.route-back.tree`, `s1.frame.tree`
 - IDs belong to placed things. How a fused slime keeps an identity in the
   save is up to the save format (tech-direction).
@@ -283,7 +280,7 @@ The quotas leave plenty of room:
 | Size = weight, filling baskets by weight | each basket |
 | Split zone at the loop start | 1.1, whenever a slide returns fused slimes |
 | Train with no slots; a lone slime keeps going | the whole loop |
-| Signpost at every fork; the rails follow the main stream | 1.4, each frontier switch |
+| Signpost at every fork; the rails follow the main stream | each frontier switch |
 | Frontier set: switch, basket, gate, the loop growing, the slide replaced | 1.6, 2.5 |
 | Basket filling off screen; reward waiting for view | 2.5 |
 | Opting out by flipping the switch back | 1.6, 2.5 |
@@ -337,11 +334,11 @@ spot a free slime can reach leads back to the loop (rule 7).
 | Rule | How this level meets it |
 |---|---|
 | 1 Travelled with no input | the loop and slides need no input; the frontier switches default to onward |
-| 2 Any size | lower branch at 1.4; the bowl walls are hoppable at size 1 |
-| 3 No dead ends | both size-filter branches join again; the tree and cave branches rejoin through their routes back; every slide returns to the start |
+| 2 Any size | no filters in v1: every size takes the same loop; the bowl walls are hoppable at size 1 |
+| 3 No dead ends | the tree and cave branches rejoin through their routes back; every slide returns to the start |
 | 4 Split zone at the start | 1.1 |
 | 5 Fusion dips | 1.3, 2.3 |
-| 6 Signpost at every fork | 1.4, and each frontier switch |
+| 6 Signpost at every fork | each frontier switch (the only forks in v1) |
 | 7 Gravity leads back | bumps and shelves slope toward the loop; the bough and the rim drop onto a platform or into the bowl |
 | 8 Route back per branch | the tree: far slope; the cave: tunnel; the bowl shelves and rim: falling into the bowl |
 | 9 Hints visible | sleepers peek into the view at every branch; framing zones at the tree |

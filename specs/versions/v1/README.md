@@ -46,7 +46,8 @@ Items are settled unless tagged (proposed). The decision IDs point to
 - (proposed) Plain signposts at forks, which only show directions (D47).
 - Once its gate opens, a frontier set is inert for good (D86). Completing the
   level brings a one-time celebration; the world stays open (D77).
-- Size filter: whether it is in v1 is O61 (D88).
+- No filters in v1: the only fork in the loop is the frontier switch, and every
+  size travels the loop the same way (D89).
 
 **Controls and camera**
 - Tap-to-call. Every tap shows a ripple, and on the very first play a wordless
@@ -99,4 +100,4 @@ Items are settled unless tagged (proposed). The decision IDs point to
 
 ## Open for v1
 
-O14, O22, O61, O62, O65, O66 (see `../../open-questions.md`).
+O14, O22, O62, O65, O66 (see `../../open-questions.md`).

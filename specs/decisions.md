@@ -712,3 +712,11 @@ Resolves O59.
 Partly resolves O61; the version question stays open (O61).
 - A fork that sends slimes down a branch **by size** is a filter, like the
   species filter, but by size. "Filter" now covers both.
+
+## D89 — Filters are v2 (2026-09-28)
+Resolves O61.
+- Both filters, by **species** and by **size** (D88), come in **v2**.
+- In v1, the only fork in the loop is the frontier switch, and every size
+  travels the loop the same way. Size still matters in v1 through basket
+  weight, and through bigger free slimes jumping higher off the loop.
+- The level rule "different sizes may take different forks" applies from v2.

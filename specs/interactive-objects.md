@@ -82,8 +82,7 @@ v2, since it is tapped)
 ### Filter (D47, D88)
 A kind of fork that sends slimes down a branch by **species** ("all blue
 slimes go this way") or by **size** ("size 3 goes up here"). It usually has a
-signpost next to it. It isn't tapped. Whether the size filter is in v1 is
-O61.
+signpost next to it. It isn't tapped. Both filters are v2 (D89).
 
 ### Species-fusion device (D25, later)
 Presence-activated. Fuses slimes of the right species inside its area into a

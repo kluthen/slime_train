@@ -97,8 +97,8 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 - Screensaver and idle share one zoom and ignore framing zones; framing resumes when control comes back (D80).
 - Species: colour only in v1; texture, styling and other palettes later (D81). 60 fps reference, 30 fps floor (D82).
 - Wrong code: shake, clear, a 30 s wait after 5 wrong tries; prompt and settings close by themselves (D83). Pinning declined: the game still works (D84). Pinning asked at every launch; setup recommends "Ask for PIN before unpinning" (D85).
-- A frontier set is inert once its gate opens (D86). A level's folder stores its design requirements and discussion (D87). Size forks are a size filter (D88).
+- A frontier set is inert once its gate opens (D86). A level's folder stores its design requirements and discussion (D87). Size forks are a size filter (D88); both filters are v2, so v1's only fork is the frontier switch (D89).
 
 ## Where to resume
 
-The v1 master spec and access model are consolidated early and kept in step with the drafts. Open and answerable in conversation: O61 (is the size filter in v1?), O66 (edge buttons on a return route). Deferred to a planned design: O62 (basket outlet, with the basket's own design). For prototypes: O14, O65 (minimum zoom). For the first level's design: O22. Parked: O12, O13. The master spec's (proposed) defaults still await the user's batch confirmation. Handoffs (ux-writer, documentalist, coding-leader) wait for the user's go-ahead.
+The v1 master spec and access model are consolidated early and kept in step with the drafts. Open and answerable in conversation: O66 (edge buttons on a return route). Deferred to a planned design: O62 (basket outlet, with the basket's own design). For prototypes: O14, O65 (minimum zoom). For the first level's design: O22. Parked: O12, O13. The master spec's (proposed) defaults still await the user's batch confirmation. Handoffs (ux-writer, documentalist, coding-leader) wait for the user's go-ahead.

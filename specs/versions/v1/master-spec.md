@@ -99,7 +99,7 @@ would add to P1.G1 and P1.G2) comes in a later version.
 | Item | Where it goes |
 |---|---|
 | Sound of any kind (effects, species voices, music) | v3 |
-| Every other interactive object: bending pathways, other split zones, tilt objects, reveal zones, species filters, switches and baskets outside the frontier set | v2 |
+| Every other interactive object: bending pathways, other split zones, tilt objects, reveal zones, filters (forks sorting slimes by species or by size), switches and baskets outside the frontier set | v2 |
 | Large signposts that let the child choose which branch the camera follows | v2 (proposed) |
 | Turning the parent code off | v4 |
 | A parent-chosen session length and cooldown | later, no version yet |
@@ -293,10 +293,9 @@ state is saved. A tap on an object operates it; a tap anywhere else is a call.
   into base slimes.
 - **Signpost** (proposed). Stands at every fork of the loop and shows which
   way the loop goes. Not interactive.
-- **Size filter.** A fork that sends slimes down a branch by size (for
-  example "size 3 goes up here"), marked by a signpost. It isn't tapped.
-  Whether it is in v1 is still open (see Known gaps). The species filter is
-  a later version.
+- **No filters in v1.** The only fork in the loop is the frontier switch, so
+  every size travels the loop the same way. Size matters through basket
+  weight, and off the loop, where bigger free slimes jump higher.
 - The switch plus basket is the **only** way to open a gate in v1.
 - (proposed) The components share one rule format ("when this basket is full,
   open that gate"). Its design is left to implementation.
@@ -434,7 +433,9 @@ bedtime --parent code, or 10 min--> sunrise → screensaver mode
 Every level, the test level included, follows these rules.
 
 1. The loop can be travelled with no input at all.
-2. A slime of any size can travel the loop; sizes may take different forks.
+2. A slime of any size can travel the loop. (From the next version, sizes may
+   take different forks through a size filter; in v1 every size takes the
+   same way.)
 3. No dead ends: every branch joins the loop again.
 4. The start of the loop carries a split zone.
 5. A dip in the loop may nudge same-species slimes into fusing.
@@ -663,28 +664,24 @@ Still undecided.
 2. **How each section's return route works** (a slide, wind, a conveyor…).
    Decided with the first level's design. The test level uses underground
    slides as placeholders.
-3. **Whether the size filter is in v1.** Filters were planned for a later
-   version, but "sizes may take different forks" and the test level need it.
-   Proposed: the size filter is in v1, as a property of a fork in the loop
-   with a signpost marking it; the species filter stays in a later version.
-4. **Where a basket releases its slimes,** after firing and after an opt-out.
+3. **Where a basket releases its slimes,** after firing and after an opt-out.
    It belongs to the basket object's own design, which is still to be
    planned. The test level assumes one outlet onto the onward route.
-5. **Which way the edge buttons move the camera on a return route,** which
+4. **Which way the edge buttons move the camera on a return route,** which
    runs right to left on screen, and where the loop turns back at the
    frontier. Proposed: the right button always moves forward along the loop
    and the left button backward, whatever the direction on screen; the
    camera follows the rail round the turn.
-6. **A minimum zoom.** A big framing zone may shrink slimes too far to tap or
+5. **A minimum zoom.** A big framing zone may shrink slimes too far to tap or
    see. It only matters during play, since the idle camera and screensaver
    mode ignore framing zones. No proposal yet; to find with the prototype.
-7. **Technical risks to check with prototypes before building for real:**
+6. **Technical risks to check with prototypes before building for real:**
    200 slimes on the floor phone (many on one screen), tilt input, running
    end-to-end tests on Linux without a screen, and the vector rendering
    approach (Godot turns SVGs into images at import, so crisp curves need
    polygons and lines or a plugin). A floor phone has to be bought for this.
    Android audio latency matters only from the version that adds sound.
-8. **Items tagged (proposed) in this document** are the spec writer's
+7. **Items tagged (proposed) in this document** are the spec writer's
    defaults, not yet confirmed by the owner. The main ones: train slimes
    answering calls; the call radius; the top-of-screen zone not calling;
    generous hit areas; the switch staying flipped; the basket's reward
