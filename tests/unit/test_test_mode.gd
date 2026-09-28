@@ -1,6 +1,9 @@
 extends GutTest
-## TestMode configuration: the run settings (seed, time scale, fixture,
-## input script), the command-line flags, and the fixture stub.
+## TestMode configuration: the run settings (seed, time scale, fixture or
+## save to load, autosave, input script), the command-line flags, and loading
+## the test level's fixtures.
+
+# @test-link [[req_test_level_and_test_mode]]
 
 const TMP_CONFIG := "user://test_mode_config_test.json"
 
@@ -64,13 +67,44 @@ func test_fixture_names_resolve_under_the_test_level() -> void:
 	assert_eq(TestMode.fixture_path("s1-basket-5of6"), "res://levels/test/fixtures/s1-basket-5of6.json")
 
 
-func test_fixture_loading_is_a_stub_until_chunk_8() -> void:
-	var result := TestMode.load_fixture("fresh")
+func test_fixtures_load_from_the_test_level() -> void:
+	var fresh := TestMode.load_fixture("fresh")
+	assert_true(fresh["ok"], str(fresh["error"]))
+	assert_eq(fresh["save"], {}, "fresh has no save: the level starts as new")
+	var bump := TestMode.load_fixture("bump")
+	assert_true(bump["ok"], str(bump["error"]))
+	assert_eq(bump["path"], "res://levels/test/fixtures/bump.json")
+	assert_false(bump["save"].is_empty())
+	assert_eq(typeof(bump["camera"]), TYPE_VECTOR2, "the sidecar's camera")
+	var tm := TestMode.from_config({"seed": 1, "fixture": "bump"})
+	assert_eq(tm.errors, PackedStringArray())
+	assert_eq(tm.save_data, bump["save"])
+	assert_eq(tm.camera, bump["camera"])
+
+
+func test_an_unknown_fixture_is_reported() -> void:
+	var result := TestMode.load_fixture("no-such-fixture")
 	assert_false(result["ok"])
-	assert_eq(result["path"], "res://levels/test/fixtures/fresh.json")
-	assert_string_contains(result["error"], "not implemented")
-	var tm := TestMode.from_config({"seed": 1, "fixture": "fresh"})
-	assert_true(_has_error(tm.errors, "not implemented"))
+	assert_string_contains(result["error"], "no-such-fixture.fixture.json")
+	assert_true(_has_error(TestMode.from_config({"seed": 1, "fixture": "no-such-fixture"}).errors, "no-such-fixture"))
+
+
+func test_a_save_file_can_be_loaded_instead_of_a_fixture() -> void:
+	assert_true(_has_error(TestMode.from_config({"seed": 1, "load": "user://no/such/save.json"}).errors, "no/such/save.json"))
+	assert_true(_has_error(TestMode.from_config({"seed": 1, "load": "user://x.json", "fixture": "fresh"}).errors,
+			"not both"))
+	var file := FileAccess.open(TMP_CONFIG, FileAccess.WRITE)
+	file.store_string(JSON.stringify({"format": 1, "level": {"id": "test", "version": 1}, "slimes": []}))
+	file.close()
+	var tm := TestMode.from_config({"seed": 1, "load": TMP_CONFIG})
+	assert_eq(tm.errors, PackedStringArray())
+	assert_eq(tm.save_data["level"]["id"], "test")
+
+
+func test_autosave_is_off_unless_asked() -> void:
+	assert_false(TestMode.from_config({"seed": 1}).autosave)
+	assert_true(TestMode.from_config({"seed": 1, "autosave": true}).autosave)
+	assert_true(_has_error(TestMode.from_config({"seed": 1, "autosave": "yes"}).errors, "autosave"))
 
 
 func test_bad_fixture_names_are_refused() -> void:
@@ -105,6 +139,19 @@ func test_command_line_flags() -> void:
 	assert_eq(parsed["config"]["time_scale"], 2.5)
 	assert_eq(parsed["run_ticks"], 300)
 	assert_true(parsed["print_state"])
+	assert_eq(parsed["save_path"], "")
+
+
+func test_command_line_save_and_load() -> void:
+	var parsed := TestMode.config_from_args(PackedStringArray([
+		"--test-mode", "--seed=1", "--load=/tmp/a.json", "--run-ticks=10", "--save=/tmp/b.json",
+	]))
+	assert_eq(parsed["errors"], PackedStringArray())
+	assert_eq(parsed["config"]["load"], "/tmp/a.json")
+	assert_eq(parsed["save_path"], "/tmp/b.json")
+	assert_true(_has_error(TestMode.config_from_args(PackedStringArray(["--save="]))["errors"], "--save"))
+	assert_true(_has_error(TestMode.config_from_args(PackedStringArray(["--save=/tmp/b.json"]))["errors"],
+			"--run-ticks"))
 
 
 func test_command_line_seed_overrides_the_script_file() -> void:

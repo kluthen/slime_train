@@ -499,6 +499,62 @@ func split(slime_id: int) -> PackedInt32Array:
 	return parts
 
 
+# --- Saves ------------------------------------------------------------------
+
+## create() with a given id, for loading a save: `slime_id` must be at least
+## next_id (slimes are created in ascending id order). Returns the id, or -1.
+func create_with_id(slime_id: int, slime_species: int, slime_size: int, at: Vector2,
+		slime_state := STATE_TRAIN) -> int:
+	if slime_id < next_id:
+		push_error("SlimeBodies: id %d is taken or out of order (next is %d)" % [slime_id, next_id])
+		return -1
+	var kept := next_id
+	next_id = slime_id
+	var made := create(slime_species, slime_size, at, slime_state)
+	if made < 0:
+		next_id = kept
+	return made
+
+
+## Everything a save needs to put the slime's body back exactly: the points
+## and their previous positions (so the velocities), the solver's centre, the
+## hop timer, the heading, held and supported, and its stream's state.
+## Empty for a missing slime.
+func body_of(slime_id: int) -> Dictionary:
+	var s := index_of(slime_id)
+	if s < 0:
+		return {}
+	var f := first[s]
+	var n := npts[s]
+	return {"points": pos.slice(f, f + n), "previous": prev.slice(f, f + n), "centre": centre[s],
+			"hop_timer": hop_timer[s], "heading": heading[s], "held": held[s] != 0,
+			"supported": supported[s] != 0, "rng_state": _streams[s].state}
+
+
+## Puts back a body from body_of(). False (and nothing changes) when the
+## slime is missing or the point counts don't match its size.
+func set_body(slime_id: int, body: Dictionary) -> bool:
+	var s := index_of(slime_id)
+	if s < 0:
+		return false
+	var points: PackedVector2Array = body["points"]
+	var previous: PackedVector2Array = body["previous"]
+	var n := npts[s]
+	if points.size() != n or previous.size() != n:
+		return false
+	var f := first[s]
+	for k in n:
+		pos[f + k] = points[k]
+		prev[f + k] = previous[k]
+	centre[s] = body["centre"]
+	hop_timer[s] = body["hop_timer"]
+	heading[s] = body["heading"]
+	held[s] = 1 if body["held"] else 0
+	supported[s] = 1 if body["supported"] else 0
+	_streams[s].state = body["rng_state"]
+	return true
+
+
 # --- Ticking ----------------------------------------------------------------
 
 ## Advances every body by `dt` seconds (the simulation's fixed tick).

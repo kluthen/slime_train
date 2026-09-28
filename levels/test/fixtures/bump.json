@@ -1,0 +1,62 @@
+{
+	"format": 1,
+	"gates": {},
+	"level": {
+		"id": "test",
+		"version": 1
+	},
+	"objects": {},
+	"slimes": [
+		{
+			"centre": [
+				345.6,
+				476.0
+			],
+			"id": "start.first-slime",
+			"members": [
+				"start.first-slime"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "train",
+			"train": {
+				"distance": 0.0
+			}
+		},
+		{
+			"centre": [
+				3400.38,
+				195.8
+			],
+			"id": "s1.sleeper.04",
+			"members": [
+				"s1.sleeper.04",
+				"s1.sleeper.07",
+				"s1.sleeper.10"
+			],
+			"size": 3,
+			"species": "C",
+			"state": "train",
+			"train": {
+				"distance": 3337.64
+			}
+		},
+		{
+			"centre": [
+				3511.62,
+				202.47
+			],
+			"id": "s1.sleeper.14",
+			"members": [
+				"s1.sleeper.14",
+				"s1.sleeper.15"
+			],
+			"size": 2,
+			"species": "C",
+			"state": "train",
+			"train": {
+				"distance": 3449.29
+			}
+		}
+	]
+}

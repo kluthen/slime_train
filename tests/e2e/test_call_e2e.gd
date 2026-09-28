@@ -34,10 +34,10 @@ func _boot(config := {}) -> Node:
 	return game
 
 
-## Points the camera so the screen's middle shows level point `centre`.
+## Points the camera so the screen's middle shows level point `centre`
+## (the simulation's camera: the scene's Camera2D only shows it).
 func _aim_camera(game: Node, centre: Vector2, zoom: float) -> void:
-	game.camera.zoom = Vector2(zoom, zoom)
-	game.camera.position = centre - game.camera.offset
+	game.simulation.camera.place(centre, zoom)
 	game.sync_view()
 	assert_lt(game.simulation.view.centre.distance_to(centre), 1.0,
 			"the camera's limits leave the view where it was aimed")

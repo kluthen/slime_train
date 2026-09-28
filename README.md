@@ -21,7 +21,7 @@ limits play to 15 minutes at most, and the session ends with a gentle
 (tooling and project setup) and chunk 3 (test backbone) are done: the project
 settings, the code layout and the headless test runner, plus one seeded
 random generator, a fixed 60-tick simulation step, test mode (scripted taps
-and tilt, time control, a fixture stub; debug builds only) and a headless
+and tilt, time control, named fixtures; debug builds only) and a headless
 end-to-end runner comparing state hashes. Chunk 4 (level scaffolding) adds
 the reusable level components and a greybox of the test level's first
 section, Meadow, which a debug build loads with a plain camera on the start
@@ -39,9 +39,18 @@ on every tap, the first touch winning, and the call: tapping open ground
 (or a sleeper) pulls the awake slimes in range off the train; they hop to
 the point, linger unsure, then head back (by a branch's route back when
 there is one) and rejoin the train. The other level objects are still
-placeholders with no behaviour. Chunk 11 (tilt) turns free slimes' gravity
+placeholders with no behaviour. Chunk 8 (save format and fixtures) saves
+the game: one JSON file per level (`user://saves/<level id>.json`) holding
+every slime with its stable identity, species, size, state and progress, so
+a killed game reloads exactly where it was; it autosaves every 15 s, when
+the app goes to the background and on quitting, and never deletes or
+overwrites a save it can't use. Test mode starts from a save or a named
+fixture (`fresh`, `bump`). Chunk 11 (tilt) turns free slimes' gravity
 with the phone's tilt (up to 45°, a 10° dead zone around neutral, lying flat
 counts as neutral), injected by test mode until the real sensor (chunk 20).
+Chunk 12 (camera) puts the camera on rails along the loop, moved by the
+edge buttons (a step per press, a steady pace while held) and pulled toward
+a call for its 8 s before gliding back; no input changes the zoom.
 UX design (`ui_ux/`) has an inventory and open questions, no design yet.
 
 ## Direction so far

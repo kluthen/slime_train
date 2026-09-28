@@ -36,13 +36,21 @@ extends RefCounted
 ## bodies tick its way down goes to the slime bodies, where only free slimes
 ## feel it.
 ##
+## Saves (chunk 8): to_save() captures the whole state as plain JSON data and
+## from_save() rebuilds it (SaveData has the format). A reloaded save has the
+## saved state hash and carries on tick for tick. `identities` says which
+## placed slimes each slime is made of (SlimeIdentities, D72): the stable
+## part of a save. `object_states` and `gate_states` hold the interactive
+## objects' and gates' state by stable ID (chunk 14; empty until then).
+##
 ## Tick order: queued input (taps dispatched, calls answered, tilt read); the
 ## train steers (aims the coming hops, carries the slimes on a slide); the free
 ## slimes steer; the slime bodies (free slimes fall the way the tilt says;
 ## hops, then the solver); the free slimes'
 ## hops are paced and every hop turns its slime; the split zones split (train
 ## and free slimes inherit); the free slimes change phase or rejoin the
-## train; the train follows (progress, lost slimes); spent ripples go.
+## train; the train follows (progress, lost slimes); the camera moves
+## (Camera: rails, edge buttons, call drag); spent ripples go.
 
 ## Simulation ticks per second. Tuning durations (3 s of contact to fuse, 10 s
 ## before left alone, and so on) are counted in ticks at this rate.
@@ -97,6 +105,10 @@ var input_log: Array[Dictionary] = []
 ## What the player sees: the scene layer copies its camera here before every
 ## tick; tests set it. Taps are dispatched through it.
 var view := ScreenView.new()
+## The camera: on the loop's rails, moved by the edge buttons, pulled by a
+## call (Camera). The scene layer makes `view` and its Camera2D show it.
+# @spec-link [[req_camera_rails_and_framing]]
+var camera := Camera.new()
 ## The free slimes and the last call.
 # @spec-link [[req_call_mechanic]]
 var free_slimes: FreeSlimes
@@ -109,6 +121,14 @@ var taps: Array[Dictionary] = []
 ## The way each slime looks: slime id -> unit vector. Set toward a tap for the
 ## awake slimes in range, and along every hop. Slimes without one look right.
 var facing: Dictionary = {}
+## Which placed base slimes each slime is made of (stable IDs, for saves).
+# @spec-link [[req_persistence_and_saves]]
+var identities := SlimeIdentities.new()
+## The interactive objects' state by stable ID, as plain data (chunk 14).
+# @spec-link [[req_interactive_objects_general]]
+var object_states: Dictionary = {}
+## The gates' state by stable ID, as plain data (chunk 14).
+var gate_states: Dictionary = {}
 
 var _pending_input: Array[Dictionary] = []
 
@@ -165,9 +185,12 @@ func load_level(data: LevelData) -> void:
 		train = Train.new(data.loop)
 		train.bounds = Train.bounds_for(slimes.terrain, data.loop)
 	split_zones = SplitZones.new(data.split_zones)
+	camera.start(data.loop, train.open_gates if train != null else [], data.first_slime.get("position"))
 	if tick == 0 and slimes.slime_count == 0 and not data.first_slime.is_empty():
 		var at: Vector2 = data.first_slime["position"]
 		var first := slimes.create(Species.from_letter(data.first_slime["species"]), 1, at, SlimeBodies.TRAIN)
+		if str(data.first_slime.get("id", "")) != "":
+			identities.assign(first, PackedStringArray([data.first_slime["id"]]))
 		if train != null:
 			train.track(first, data.loop.closest(at, train.open_gates)["distance"])
 
@@ -202,12 +225,14 @@ func step() -> void:
 	free_slimes.paced(slimes)
 	_face_hops()
 	for parts in split_zones.apply(slimes):
+		identities.split(parts)
 		if train != null:
 			train.inherit(parts)
 		free_slimes.inherit(parts, tick)
 	free_slimes.follow(slimes, tick, level, gates)
 	if train != null:
 		train.follow(slimes, tick)
+	camera.step(level.loop if level != null else null, gates, TICK_SECONDS, tick)
 	_tidy()
 	tick += 1
 
@@ -216,6 +241,34 @@ func step() -> void:
 func run(ticks: int) -> void:
 	for i in ticks:
 		step()
+
+
+## Fuses slimes `a` and `b` (SlimeBodies.merge) and merges their identities.
+## Returns the fused slime's id (the lower), or -1 when they can't fuse. The
+## hook for fusion (chunk 10).
+# @spec-link [[req_persistence_and_saves]]
+func fuse(a: int, b: int) -> int:
+	var kept := slimes.merge(a, b)
+	if kept < 0:
+		return -1
+	identities.merge(a, b)
+	return kept
+
+
+## The whole state as a save: plain JSON data (SaveData has the format).
+# @spec-link [[req_persistence_and_saves]]
+func to_save() -> Dictionary:
+	return SaveData.capture(self)
+
+
+## The simulation saved in `save`, on `level_data` with its baked `terrain`,
+## or null when the save doesn't fit (SaveData.problems). `fallback_seed`
+## seeds a hand-made save that has none. The fingers down are not saved: the
+## reloaded simulation has none.
+# @spec-link [[req_persistence_and_saves]]
+static func from_save(save: Dictionary, level_data: LevelData, terrain: TerrainSegments = null,
+		fallback_seed := 0) -> Simulation:
+	return SaveData.restore(save, level_data, terrain, fallback_seed)
 
 
 ## The whole state as plain data, for StateHash and, from chunk 8, saves.
@@ -237,10 +290,14 @@ func dump() -> Dictionary:
 		"level": level.header() if level != null else null,
 		"slimes": slimes.dump(),
 		"next_slime_id": slimes.next_id,
+		"identities": identities.dump(),
+		"objects": object_states.duplicate(true),
+		"gates": gate_states.duplicate(true),
 		"train": train.dump() if train != null else null,
 		"free_slimes": free_slimes.dump(),
 		"facing": facings,
 		"view": view.dump(),
+		"camera": camera.dump(),
 		"ripples": ripples.duplicate(true),
 		"taps": taps.duplicate(true),
 		"input": {
@@ -274,6 +331,7 @@ func _apply_input(event: Dictionary) -> void:
 				_tap(finger, event["at"])
 		INPUT_TOUCH_UP:
 			fingers_down.erase(event["finger"])
+			camera.release(event["finger"])
 			if event["finger"] == active_finger:
 				active_finger = -1
 		INPUT_TILT:
@@ -293,6 +351,8 @@ func _apply_input(event: Dictionary) -> void:
 func _tap(finger: int, at: Vector2) -> void:
 	var targets: Dictionary = level.tap_targets if level != null else {}
 	var hit := TapDispatcher.dispatch(at, view, targets)
+	if hit["zone"] == TapDispatcher.ZONE_EDGE:
+		camera.press(hit["side"], finger)
 	var world: Vector2 = hit["world"]
 	ripples.append({"at": world.snapped(Vector2(0.01, 0.01)), "tick": tick})
 	var radius := call_radius()
@@ -306,6 +366,7 @@ func _tap(finger: int, at: Vector2) -> void:
 	var answered := PackedInt32Array()
 	if hit["call"]:
 		answered = free_slimes.answer_call(hit["call_point"], tick, slimes, radius)
+		camera.follow_call(hit["call_point"], tick)
 	taps.append({"tick": tick, "finger": finger, "screen": at,
 			"world": world.snapped(Vector2(0.01, 0.01)), "zone": hit["zone"], "side": hit["side"],
 			"object": hit["object"], "kind": hit["kind"], "call": hit["call"],
@@ -329,3 +390,4 @@ func _tidy() -> void:
 	for slime_id in facing.keys():
 		if not slimes.has(slime_id):
 			facing.erase(slime_id)
+	identities.tidy(slimes)

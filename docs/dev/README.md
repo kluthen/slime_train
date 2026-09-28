@@ -44,11 +44,13 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `src/main.tscn` | The main scene, the game root: owns the simulation and drives its fixed step |
 | `src/sim/` | The simulation core: pure logic, with no scene dependencies, so it can be unit tested |
 | `src/test_mode_guard.gd` | The one check that keeps test mode out of release builds |
-| `src/test_mode/` | Test mode: scripted input, time control, the fixture stub, the on-screen marker |
+| `src/test_mode/` | Test mode: scripted input, time control, fixtures and saves to start from, the on-screen marker |
+| `src/save/` | The save files (`SaveStore`: one per level, never wiped) and autosave timing (`Autosave`); the save format itself is `src/sim/save_data.gd` (see "Saves and fixtures") |
 | `src/taps/` | Tap feedback drawing (`TapFeedback`: the ripples and the slimes' eye dots); the tap logic itself is in `src/sim/` (see "Taps and the call") |
 | `src/slimes/` | Slime drawing (`SlimeRenderer` and its shaders), the terrain hand-off to the simulation (`SlimeWorld`) and the slime demo scene |
 | `src/components/` | Reusable level components, configured in the editor (see "Levels and components") |
 | `levels/<id>/` | One folder per level, with its scenes. `levels/test/level.tscn` is the test level |
+| `levels/test/fixtures/` | The test level's fixtures: saves test mode starts from by name (see "Saves and fixtures") |
 | `tests/unit/` | Unit tests, mostly on `src/sim/` |
 | `tests/e2e/` | End-to-end tests: boot the game scene headless and drive it through test mode |
 | `tests/e2e/scripts/` | Test-mode run files (JSON) used by the end-to-end tests |
@@ -56,6 +58,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `tools/test.sh` | The one entry point for the test suite |
 | `tools/greybox_test_level.gd` | Generates the test level's greybox scene (see "Levels and components") |
 | `tools/bench_slimes.gd` | Times the slime tick (see "Slimes") |
+| `tools/make_fixture.gd` | Writes the test level's fixtures (see "Saves and fixtures") |
 | `docs/dev/img/` | Screenshots used by these notes (`docs/.gdignore` keeps Godot from importing anything under `docs/`) |
 | `spikes/` | Throwaway prototypes. Nothing else depends on them |
 | `export_presets.cfg` | The Android export presets (see "Android export (debug)"); `build/` (gitignored) receives the APKs |
@@ -90,7 +93,9 @@ along the loop, see "Train"), the level's split zones, the free slimes and
 the last call (`FreeSlimes`), the view, the ripples, the last 16 taps, the
 slimes' facings (see "Taps and the call"), and a record of the input
 received (the fingers down, the finger whose touch counts, the last tilt,
-the last 64 input events). Each later chunk adds
+the last 64 input events), which placed slimes each slime is made of
+(`identities`) and the objects' and gates' state by stable ID (empty until
+chunk 14). Each later chunk adds
 its state there and **must add it to `dump()`**, or the state hash won't see
 it.
 
@@ -133,7 +138,7 @@ the suite if one appears.
 level, no whitespace, floats at full precision, vectors as `[x, y]`) and
 `simulation.state_hash()` is its SHA-256. Equal hashes mean equal states.
 64-bit values (the seed, the generator state) are strings in the dump so
-they survive a JSON round trip (saves, chunk 8). Hashes are compared on one
+they survive a JSON round trip (see "Saves and fixtures"). Hashes are compared on one
 platform: floating-point results may differ between x86 and ARM.
 
 ### Test mode
@@ -166,10 +171,15 @@ A run is one dictionary, in GDScript or in a JSON file:
 - `time_scale` (0 to 64, default 1): simulated seconds per real second for
   the frame clock. `0` holds the clock, so only `run_ticks()` advances the
   simulation; end-to-end tests use that.
-- `fixture`: a fixture name from `specs/levels/test/README.md`, resolved to
-  `levels/test/fixtures/<name>.json`. **A stub until chunk 8:** it checks
-  the name and reports "not implemented", which makes the run fail to start.
-  The `.json` extension is provisional; chunk 8 settles the save format.
+- `fixture`: a fixture name from `specs/levels/test/README.md`: the run
+  starts from `levels/test/fixtures/<name>.json` (see "Saves and
+  fixtures"). An unknown name is an error naming the missing sidecar.
+- `load`: a save file (`user://...` or a file path) to start from instead;
+  not both `fixture` and `load`. A save's own seed wins over `seed`; a
+  hand-made save without one plays on `seed`.
+- `autosave` (default false): autosave during the run. Off, a run never
+  writes a save; `game.save_now()` saves on demand either way (to the
+  game's `save_store`, which a test sets before adding the game).
 - `block_real_input` (default true): ignore the real mouse and touches.
 - `screen_size` (`[width, height]`, default `[1152, 648]`): the screen size
   the simulation's view uses to dispatch taps (a headless window reports a
@@ -183,8 +193,9 @@ A run is one dictionary, in GDScript or in a JSON file:
   in a key or a missing value is an error naming the step.
 
 The game root takes a run with `enable_test_mode(config)`, which returns the
-errors (empty when test mode is on) and starts a fresh simulation from the
-seed. Then `game.test_mode.run_ticks(n)` runs n ticks at once (skipping
+errors (empty when test mode is on) and starts a simulation from the seed:
+fresh, or from the fixture's or `load`'s save (checked against the level
+first). Then `game.test_mode.run_ticks(n)` runs n ticks at once (skipping
 time) and `run_until(tick)` runs up to a tick.
 
 From the command line (a debug build):
@@ -196,8 +207,10 @@ godot --headless -- --test-mode --test-script=res://tests/e2e/scripts/backbone.j
 
 Flags: `--test-script=PATH` (res:// or a file path), `--seed=N`,
 `--time-scale=X`, `--fixture=NAME` (these override the file),
-`--run-ticks=N` (run N ticks at once, print the hash, quit) and
-`--print-state` (also print the state as JSON). A run that can't start
+`--load=PATH` (start from a save), `--run-ticks=N` (run N ticks at once,
+print the hash, quit), `--print-state` (also print the state as JSON) and
+`--save=PATH` (with `--run-ticks`: then save to PATH, for kill-and-reload
+across processes). A run that can't start
 quits with code 1. Without `--run-ticks`, in a window, the game plays the
 script in real time (scaled) with a pink "TEST MODE" banner and a ring on
 every finger down. To record a debug run without a screen, use Godot's movie
@@ -842,6 +855,215 @@ the very same world as no tilt, so the no-input session test
 (`test_train_session_e2e.gd`) also shows the level is travelled with tilt at
 neutral (no level requires tilt).
 
+## Camera
+
+Master spec §5.6, tap zone 2 of §5.5, DoD 18 (in part). `Camera`
+(`src/sim/camera.gd`) is pure logic owned by the simulation
+(`simulation.camera`): where the view is decides where taps land and how far
+the call reaches, so it is deterministic and scriptable like the rest. It
+steps after the train in `Simulation.step()`. This replaces "The view" of
+chunk 7 above: `camera_centre()`, the Camera2D's limit clamp and
+`CAMERA_OFFSET` are gone.
+
+**Rails.** On the rails the camera's place is `distance`, px along the
+current loop (`LoopData.current_segments` for the open gates), return
+routes included: each section's slide has its own rail. Its point is
+`loop.position_at(distance) + RAIL_OFFSET` (0, -120: the view shows more
+above the route than under it; one constant, a framing zone's `offset` will
+adjust places in chunk 13). **Forward is increasing distance** whatever the
+direction on screen: forward along a slide, which runs right to left, moves
+the view left, round the frontier turn and back toward the start; the rail
+wraps at the loop's end like the train. When a gate opens and the loop
+changes, the camera finds the nearest point on the new loop and doesn't
+jump. `Simulation.load_level()` starts it on the rail point nearest the
+first slime (the loop's start without one).
+
+**Edge buttons** (O70's proposed behaviour, D95). A tap in an edge button
+zone (`TapDispatcher`, first touch only) calls `camera.press(side, finger)`;
+the finger lifting calls `release`. Right is forward, left backward; an
+edge button never calls. A press sets the distance left to go
+(`rail_left`) to at least `STEP` (a third of a screen, 384 px) that way; a
+press the other way turns back. While the finger stays down the goal stays
+a `STEP` ahead, so the camera moves at a steady `PACE` (¾ screen/s,
+864 px/s). After the finger lifts it closes on the goal at `EASE` (5) times
+the distance left per second, never faster than `PACE` nor slower than
+`SETTLE` (30 px/s), so it eases to a stop without a final jump. A short tap
+moves exactly one `STEP`.
+
+**Call drag.** A call (`hit["call"]` in `_tap`) calls
+`camera.follow_call(point, tick)`: the camera leaves the rails and moves
+toward the call point at `DRAG_PACE` (a fifth of a screen a second,
+230.4 px/s, "slow and steady"), for `DRAG_SECONDS` (the call's 8 s,
+counted in ticks as `FreeSlimes` counts it) or until a new call replaces
+the point. Then (`RETURN`) it glides back at the same pace to the rail
+point nearest where it stopped, and is on the rails again. The return is a
+tuning value the spec leaves open: this is the reading taken. An edge press
+while off the rails puts the camera straight back on the rails at the
+nearest point (`rail_gap` holds the difference, closed at `CATCH_UP`,
+1 screen/s, so the view doesn't jump) and the press moves it on from there.
+`camera.place(centre, zoom)` puts it off the rails for tests (it glides
+back the same way); it isn't an input.
+
+**Zoom and bounds.** `zoom` is the camera's (1.0); no input changes it
+(DoD 18). Framing zones and the idle zoom set it in chunk 13. The only
+level bound is the old left edge, kept in the simulation:
+`view_centre()` holds the view's centre so the view never shows left of
+x = 0 (`LEVEL_LEFT`); the camera itself may sit nearer (the start basin's
+first rail point is at x 345.6).
+
+**The scene.** `main.gd`'s `sync_view()`, before and after every tick,
+calls `simulation.camera.apply_to(simulation.view, size)` and sets the
+Camera2D's position and zoom from the view: the Camera2D only mirrors the
+simulation, with no limits. `EdgeButtons` (`src/taps/edge_buttons.gd`, on a
+`Hud` CanvasLayer) draws a translucent placeholder arrow in each button's
+rectangle, hidden when `camera.edge_buttons_visible` is false (default true;
+bedtime hides them in chunk 17). The camera's whole state is in the dump
+(`camera`), and `Camera.dump()` / `restore()` give it to saves.
+
+![Holding the right edge button: the camera has moved from the start basin to the hills](img/chunk12-camera.png)
+
+The screenshot is from a debug run with a display: a real left-button press
+at the right button's centre, held 1.5 s, carried the camera from distance
+0 to 1677.9 px along the loop, the Camera2D following.
+
+**Tests.** `tests/unit/test_camera.gd` on a synthetic loop (a 3000 px rail
+out, a slide back underneath, 6800 px): starting on the nearest rail point,
+one step per short press, at least one step per press, the left button
+wrapping onto the return route, a steady pace while held then easing,
+turning back, forward moving the view left on a right-to-left rail,
+rounding the frontier to the start, a gate opening without a jump, the
+drag's pace and 8 s, the glide back, a new call restarting the drag, an
+edge press off the rails without a jump, the zoom never changing, the
+buttons shown by default, the view's left edge, determinism and restore;
+and through the simulation, an edge tap moving the camera and never
+calling, hold and release, a second finger doing nothing, a call dragging,
+and the camera in the dump. `tests/e2e/test_camera_e2e.gd` on the test
+level: a right hold goes through section 1 up to the frontier turn, back
+along slide 1 (the view moving left) and into the start basin; a left hold
+goes the other way; a call by the tree drags the camera for 8 s and it
+comes back to the rails by the tree; the Camera2D mirrors the simulation at
+zoom 1; a scripted run gives the same hash twice. `test_call_e2e.gd` aims
+the camera with `camera.place()` now, not by moving the Camera2D.
+
+**Choices.** The camera lives in the simulation, not the scene, so taps and
+scripted runs see the same view. The view is set in `sync_view()`, not
+inside `Simulation.step()`, so unit tests that set `sim.view` by hand keep
+working. The drag and the return share one pace. A per-segment rail offset
+was left out: framing zones cover it.
+
+## Saves and fixtures
+
+Master spec §6.4 and D72 (`req_persistence_and_saves`,
+`rule_saves_never_wiped`). The format is `SaveData`
+(`src/sim/save_data.gd`, pure logic); `Simulation.to_save()` and
+`Simulation.from_save(save, level_data, terrain, fallback_seed)` wrap it. A
+reloaded save has the saved state hash and stays equal to the run that
+never stopped, tick for tick (`tests/unit/test_save_data.gd`).
+
+### What a save holds
+
+One JSON object, keys sorted, tab-indented:
+
+| Key | What |
+|---|---|
+| `format` | 1. A newer format is refused, never read half-way |
+| `level` | `{"id", "version"}`. Another id or version is refused (migration: chunk 19) |
+| `sim` | `tick`, `seed` and `rng_state` (strings: 64-bit), `next_slime_id`. Optional |
+| `slimes` | Every slime, in runtime id order (at least one): `id` (its stable ID, below), `members`, `runtime_id`, `species` (a letter), `size`, `state` (`train`, `free`, `sleeper`, `bedtime_asleep`), `centre`, `velocity`, then `train` (distance, laps, slide, lost-watch mark) or `free` (phase, since, point, route back, stream state), and `body` (points, previous points, the solver's centre, hop timer, heading, held, supported, stream state) |
+| `train` | The open gates and the lost-slime log |
+| `call` | The last call (point, tick), or null |
+| `objects`, `gates` | Stable ID to state, `{}` until chunk 14 |
+| `transient` | The view, the camera, the ripples, the last taps, the facings, the input log and the tilt (reading, neutral, flat). Optional |
+
+Not saved: the fingers on the screen and input not yet consumed (a
+restarted game has no finger down: a held edge button is let go), and what
+each tick recomputes (hop aims, touching pairs, rest shapes).
+
+**Exact reals.** Godot's JSON parser doesn't always read a 17-digit double
+back to the same double (about one in seven), so every real goes through
+`SaveData.exact()`: a plain number when it reads back the same, else
+`"f64:<16 hex digits>"`, its IEEE bytes. Body points are base64 of their
+coordinates as little-endian doubles. JSON reads every number as a float;
+the loader turns whole numbers back into ints where the state has ints.
+
+**Hand-made saves** (fixtures) may leave out `sim`, `runtime_id`, `body`,
+`train`, `free.rng_state` and `transient`: the run's seed and tick 0, ids 1,
+2, ... in list order, a rest ring at the centre, the loop's closest point,
+a fresh stream, an empty view. `SaveData.readable()` cuts a save down to
+that form. `SaveData.problems(save, level)` lists what makes a save
+unusable, without pushing errors.
+
+### Stable identity (D72)
+
+Runtime ids change with every fusion and split; a save names slimes by the
+placed base slimes they are made of (`SlimeIdentities`,
+`src/sim/slime_identities.gd`). A slime's `members` are those stable IDs,
+sorted; its `id` in the save is the first member.
+
+- A placed slime has one member: the first slime `start.first-slime` (named
+  by `load_level()` from the level's FirstSlime marker), a woken sleeper its
+  own ID (chunk 9).
+- A fusion (`Simulation.fuse(a, b)`, the hook for chunk 10) gives the union
+  to the lower runtime id, the one `SlimeBodies.merge` keeps.
+- A split gives the members out in sorted order: part 0 (the original id)
+  the first, part k the k-th. Members beyond the part count stay with part
+  0; parts beyond the member count get none (a slime a test spawned has
+  none).
+
+### Files and autosave
+
+`SaveStore` (`src/save/save_store.gd`) keeps one file per level,
+`user://saves/<level id>.json` (on Linux,
+`~/.local/share/godot/app_userdata/Slime Train/saves/`). A test gives it
+another directory. The game (`src/main.gd`) reads it at start in normal
+play: a usable save is resumed, a missing file means a fresh start (the
+first slime woken).
+
+It never wipes a save (`rule_saves_never_wiped`):
+
+- no code under `src/` can delete a file (a lint test in
+  `tests/unit/test_save_store.gd`; the one rename allowed is SaveStore's);
+- a save with no slimes, or with a NaN, is refused and the old file kept;
+- a write goes to `<file>.new`, is read back, then renamed over the old
+  file: a write that fails leaves the old file;
+- a file it can't read, or a save of another level version, is left as it
+  is: the game starts fresh, prints why, and writes nothing over it for the
+  session (`SaveStore.block`). A backup copy and migration come with chunk
+  19.
+
+`Autosave` (`src/save/autosave.gd`) saves every 15 s of wall time, and on
+`NOTIFICATION_APPLICATION_PAUSED` (Android and iOS leaving the
+foreground), `NOTIFICATION_APPLICATION_FOCUS_OUT`,
+`NOTIFICATION_WM_CLOSE_REQUEST` and `NOTIFICATION_WM_GO_BACK_REQUEST`
+(Android's back button), and when the game root leaves the tree
+(quitting). Only the main scene gets the default store; a game a test adds
+without one never writes. Test mode turns autosave off unless its run says
+`"autosave": true`.
+
+To see it: `godot --headless --path . --quit-after 300` writes
+`user://saves/test.json`; run it again and the game carries on from there.
+
+### Fixtures
+
+A fixture is a named starting point for test mode (`"fixture": "bump"`),
+in `levels/test/fixtures/`: a sidecar `<name>.fixture.json`,
+`{"description", "save" (true when there is a save), "camera" (optional
+[x, y]: the camera starts on its rails nearest that level point)}`, and the
+save `<name>.json` in the hand-made form above.
+
+| Fixture | State |
+|---|---|
+| `fresh` | No save: the level as new, the first slime at its marker |
+| `bump` | A size-3 (`s1.sleeper.04`, `.07`, `.10`) and a size-2 (`.14`, `.15`, the dip hollow's pair) train slime of species C, about 40 px apart on the fusion dip's floor, and the first slime; the camera on the dip |
+| `s1-basket-5of6` | Not made yet: it needs the baskets (chunk 14) |
+
+To make or remake them: `godot --headless -s res://tools/make_fixture.gd`
+(all) or `... -- bump` (one). Each fixture is a builder function in the
+tool that sets up a simulation on the test level and saves it; the tool
+looks the stable IDs up in the level scene and checks the save loads back.
+To add one, add an entry to `FIXTURES` and its builder. Fixtures follow
+the level: when it changes (chunk 9 adds the sleepers), run the tool again.
+
 ## Android export (debug)
 
 `export_presets.cfg` holds two Android presets, both debug-signed APKs with
@@ -995,6 +1217,31 @@ adb logcat -v time -s godot:*
   Headless runs draw direct.
 - **Measured tick cost** is in "Slimes", "Demo and bench": GDScript is
   10-15 ms per tick for 200 slimes.
+
+### Chunk 8: save format and fixtures
+
+- **The whole state, exactly.** A save holds everything in the hash (body
+  points and previous points, streams, timers, the view, the camera, the
+  ripples, the taps, the input log, the tilt), not just the spec's
+  essentials, so a reload is equal by hash and not merely close. Reals that
+  JSON can't carry exactly go as their bytes.
+- **The saved tilt neutral is kept on load.** `load_level()` takes a new
+  neutral, then the save's tilt state is put back, so the reloaded state
+  equals the saved one. Taking a neutral when a session resumes belongs to
+  sessions (chunk 17, D95).
+- **The view follows the screen.** A save restores the view, but the game
+  re-syncs it to its window every tick: a resumed game on another screen
+  size has another view (and hash) at once.
+- **Unusable saves block writing.** An unreadable file or a save of
+  another level version is kept untouched and nothing is written over it in
+  that session; the player plays fresh. The other choice (refuse to start)
+  seemed worse. Chunk 19 adds the backup copy and migration.
+- **Writes go through a side file and a rename** now, rather than chunk
+  19's full scheme, so a failed write can't cut a save short.
+- **Fixtures are generated**, by a tool that looks the stable IDs up in the
+  level, rather than typed in; their saves are the readable hand-made form.
+- **Object and gate states are plain JSON** keyed by stable ID; chunk 14
+  gives them their types (JSON reads numbers back as floats).
 
 ### Chunk 7: taps and the call
 

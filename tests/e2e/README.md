@@ -22,3 +22,18 @@ pattern; `scripts/` holds the JSON run files. How to write one:
   tree's high bough gives up after 8 s and heads back directly from the
   ground, by the tree's route back from the platform; a run with taps is
   deterministic.
+- `test_camera_e2e.gd` checks the camera on the test level: holding the
+  right edge button goes round the loop (section 1, slide 1, the start
+  basin), the left one the other way, a call by the tree drags it and it
+  comes back to the rails, and a scripted run is repeatable.
+- `test_save_e2e.gd` checks saves through the game scene [DoD 28, partly]:
+  a scripted run with a call, saved and reloaded by a new game, has the same
+  slimes and hash and carries on tick for tick like the run never stopped,
+  also across two Godot processes (`--save`, `--load`); a fresh start
+  without a save; autosave every interval, on going to the background, off
+  in test mode unless asked; an unreadable save or one of another level
+  version starts fresh and is never written over.
+- `test_fixtures_e2e.gd` loads the test level's fixtures: `bump` has a
+  size-3 and a size-2 slime of one species a little apart on the fusion
+  dip's floor with the camera on them, `fresh` is the level as new, and
+  every fixture in `levels/test/fixtures/` loads.

@@ -106,12 +106,11 @@ func test_time_scale_speeds_up_the_frame_clock() -> void:
 	assert_eq(paused.simulation.tick, 0)
 
 
-func test_fixture_loading_reports_not_implemented() -> void:
+func test_an_unknown_fixture_is_reported() -> void:
 	var game := _boot()
-	var errors: PackedStringArray = game.enable_test_mode(_config({"fixture": "fresh"}))
+	var errors: PackedStringArray = game.enable_test_mode(_config({"fixture": "no-such-fixture"}))
 	assert_eq(errors.size(), 1)
-	assert_string_contains(errors[0], "levels/test/fixtures/fresh.json")
-	assert_string_contains(errors[0], "not implemented")
+	assert_string_contains(errors[0], "levels/test/fixtures/no-such-fixture.fixture.json")
 	assert_null(game.test_mode)
 
 

@@ -283,6 +283,27 @@ func follow(bodies: SlimeBodies, tick: int, level: LevelData, open_gates: Array)
 					_records.erase(slime_id)
 
 
+## Slime `slime_id`'s record, for saves: {"phase", "since", "point",
+## "route", "rng_state" (its stream's state)}, or {} when it isn't free.
+func record_of(slime_id: int) -> Dictionary:
+	if not _records.has(slime_id):
+		return {}
+	var record: Dictionary = _records[slime_id]
+	return {"phase": record["phase"], "since": record["since"], "point": record["point"],
+			"route": record["route"], "rng_state": (record["stream"] as Rng).state}
+
+
+## Puts back a free slime's record from a save (record_of). Without a
+## "rng_state" its stream starts fresh, as if it had become free at "since".
+func restore_record(slime_id: int, record: Dictionary) -> void:
+	var since: int = record.get("since", 0)
+	var stream := _master.derive("free:%d:%d" % [slime_id, since])
+	if record.has("rng_state"):
+		stream.state = record["rng_state"]
+	_records[slime_id] = {"phase": record.get("phase", HEADING_BACK), "since": since,
+			"point": record.get("point", Vector2.ZERO), "route": record.get("route", ""), "stream": stream}
+
+
 ## The free slimes and the last call as plain data, for Simulation.dump().
 func dump() -> Dictionary:
 	var slimes := []

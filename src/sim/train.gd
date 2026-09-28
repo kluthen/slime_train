@@ -461,6 +461,22 @@ func follow(bodies: SlimeBodies, tick: int) -> void:
 		advance(slime_id, centre, tick)
 
 
+## Slime `slime_id`'s record, exactly (for saves): {"distance", "laps",
+## "on_slide", "mark", "marked_at", "lost"}, or {} when it isn't followed.
+func record_of(slime_id: int) -> Dictionary:
+	return _records[slime_id].duplicate() if _records.has(slime_id) else {}
+
+
+## Follows slime `slime_id` from a saved record (record_of). Missing fields
+## take track()'s values.
+func restore_record(slime_id: int, record: Dictionary) -> void:
+	track(slime_id, record.get("distance", 0.0))
+	var mine: Dictionary = _records[slime_id]
+	for key in ["laps", "on_slide", "mark", "marked_at", "lost"]:
+		if record.has(key):
+			mine[key] = record[key]
+
+
 ## The train's state as plain data, for Simulation.dump().
 func dump() -> Dictionary:
 	var slimes := []
