@@ -1,6 +1,9 @@
 # Interactive objects
 
-Status: draft v2
+Status: draft v4
+
+**Versions (D50):** interactive objects come in v2, except the frontier gate,
+which is in v1 (what it includes is O46).
 
 Every interactive object is a reusable, programmed component configured
 through its properties in the Godot editor (D6). Its state is part of the
@@ -12,7 +15,7 @@ saved state (D7).
 |---|---|
 | tap | the child taps the object; most objects work this way |
 | tilt | the phone's tilt drives it, always, even when that affects the train a little (D19) |
-| presence | the **weight** of slimes on or in it drives it, possibly only a specific type (D16) |
+| presence | the **weight** of slimes on or in it drives it, possibly only a specific species (D16) |
 
 **Weight** = the number of base slimes a slime is made of. A fused slime
 weighs more (D16). Each object's thresholds are set when that object is
@@ -51,8 +54,21 @@ A walkway that bends under load. Activation: presence.
   trickle takes the other. The call can **hold** slimes on it (piling up
   weight) or **hurry** them across (so it stays straight).
 
-### Defusing spot (precursor)
-Instantly splits slimes back into base slimes. Not specified yet.
+### Defusing spot (precursor, D38)
+A split object or zone. It instantly splits slimes back into base slimes.
+(proposed) The start of the loop carries one (D23). Not specified in detail yet.
+
+### Signpost (D47)
+Stands at every fork in the loop and shows which way the loop goes. Not
+interactive. (proposed: in v1)
+
+### Large signpost (D47)
+A larger signpost. Tapping it chooses which branch the camera follows. (proposed:
+v2, since it is tapped)
+
+### Filter (D47)
+A kind of fork that sends slimes down a branch by species ("all blue slimes go
+this way"). It usually has a signpost next to it.
 
 ### Species-fusion device (D25, later)
 Presence-activated. Fuses slimes of the right species inside its area into a
@@ -60,5 +76,6 @@ new species. Not in the first iterations.
 
 ## Open points
 
-- O27: rules for the branches that forks create.
+- Branch rules are settled (D18). Frontier gates open only through the
+  switch-plus-basket pattern in the first release (D35).
 - The shared rule schema ("when X, fire Y") is yet to be designed (tech-direction).

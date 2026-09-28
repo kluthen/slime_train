@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v1
+Status: draft v3
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 
@@ -34,13 +34,33 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
   operations on those rings. (proposed; no engine provides this out of the
   box, see research)
 
+## Saving (D7, D12, D43)
+
+- One save file per level. The user can delete one level's save. Versioning
+  across level updates is O20.
+
+## Slime navigation
+
+- A heading-back slime follows the route back that is built into every
+  exploration branch as part of the level (D41, D51). That route is authored
+  level data, like the loop, so there is no general pathfinding. (proposed:
+  drawn as a path in the Godot editor)
+
 ## Session lock (D1)
 
 - `startLockTask()` screen pinning through a small Godot Android plugin, plus
   an in-app parent gate and a timer stored on disk (wall clock plus the
   monotonic clock). There is no device-owner kiosk mode.
+- The same stored clocks enforce the 10 min cooldown after bedtime (D29).
+  Changing the device clock can defeat it, which is acceptable under D1.
 
 ## Deferred
+
+- Sound in general comes around v3 (D50). v1 has no audio.
+- Music generator (D42, O12): it is currently a JS app, and porting it to
+  Godot is a project of its own.
+- Paid levels (D31): Play Billing plus Play Asset Delivery, when the second
+  level arrives.
 
 - Procedural world generation: a possible later iteration (O13). Godot scenes
   can be built at runtime, so D6 doesn't rule it out.

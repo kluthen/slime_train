@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v9
+Status: draft v11
 
 ## One-liner
 
@@ -17,8 +17,16 @@ The slimes stand in for LocoRoco.
 - **Watching is playing.** The world keeps moving and stays pleasant to look
   at without any input. Input adds to it; it is never required to keep
   things alive.
-- **Idle camera.** When nobody has touched the game for a while, the camera
-  takes over and follows a slime's movement. The exact behaviour is O4.
+- **Idle camera** (D32). After 45 s with no input, the camera takes over and
+  locks onto a train slime. A slight cue may come 10 s beforehand. What's
+  still open is O4.
+- **Manual camera** (D33). The child moves the camera along the loop, like on
+  rails, using left and right buttons at the screen edges. At forks,
+  signposts show the directions, and by default the camera follows the main
+  stream. A call drags the camera toward the call point at a slow, steady
+  pace. That is how the child looks off the loop: there is no joystick
+  (D45). Plain signposts at forks show which way the loop goes, and larger
+  signposts let the child pick which branch the camera follows (D47).
 - **Simple, curved, high-contrast, low detail.** Theming (desert, forest,
   rivers…) may come later as palette and decoration changes only.
 
@@ -37,8 +45,8 @@ The slimes stand in for LocoRoco.
 
 - The **train** follows the **current loop**, a drawn route. Physics only
   handles the squish and the bumps.
-- Opening a gate changes the loop so it takes in the new area. Whether it
-  grows or is replaced is O17.
+- Opening a gate makes the loop grow to take in the new area. Only the way
+  back to the start is replaced (D9).
 - Attracting slimes away from the loop makes them **free**: they are driven
   by physics alone.
 - A free slime makes its way back to the loop by physics and rejoins the
@@ -60,15 +68,18 @@ Tapping a sleeper calls nearby awake slimes toward it. One of them touching it
 wakes it, and the woken slime, being free, in time rejoins the train. Slime
 states, movement, size, species and fusion are in `slimes.md`.
 - **Level rule:** from anywhere a free slime can reach, following gravity down
-  leads back to the loop.
+  leads back to the loop. Every exploration branch has its own route back
+  (D51), and hints that there is something to explore are visible from the
+  loop (D45).
 
 ## Persistence (D7)
 
 Progress carries over between sessions. The saved state holds each slime's
-type, size and position, plus the state of every interactive object. It is
+species, size and position, plus the state of every interactive object. It is
 saved every 15 s and whenever the app goes to the background. On load, a slime
 saved in mid-air is placed on the ground or at its jump start, or declared lost
-(D12). Save-file versioning is O20.
+(D12). Each level has its own save file, and the user can delete one level's
+save (D43). Save-file versioning is O20.
 
 ## Controls
 
@@ -78,8 +89,8 @@ saved in mid-air is placed on the ground or at its jump start, or declared lost
   now **only free slimes** feel tilt. Tilt objects always respond to it, and
   can affect the train only indirectly and slightly.
 - **Level rule:** the loop can be travelled with no input at all.
-- Touching the screen **calls** nearby slimes toward that point. Tap-to-call
-  or hold-and-drag is decided by playtesting (O21).
+- **Tapping** the screen **calls** nearby slimes toward that point (D46).
+  Hold-and-drag isn't used for the call. Its radius and duration are O21.
 - Every awake slime in range answers the call, train slimes included, and
   answering makes it free. (proposed: this follows from D13. At the start the
   only awake slime is on the loop, so train slimes have to answer or no
@@ -90,6 +101,23 @@ saved in mid-air is placed on the ground or at its jump start, or declared lost
 See `interactive-objects.md`. Most are operated by tapping them; a few are
 driven by tilt or by the slimes on them (D15). The standard frontier-gate
 pattern is a switch plus a basket (D14).
+
+## First release (D34, D35, D36)
+
+- **One level of 4 sections**, moderately sized. The theme is very basic and
+  close to Cocoreccho!: black "stone" and black "plants" form the ground.
+  There are few kinds of interaction. Its aim is for the child to discover the
+  game's mechanics.
+- Pacing: a lap takes a slime a few minutes, but the slimes are spread along
+  the loop. Moving the camera along the loop keeps showing travelling slimes.
+- The only way to open a frontier gate is the switch-plus-basket pattern (O46
+  asks whether it ships in v1 as is).
+- **No failure states.** The worst case is a lost slime, teleported back to the
+  start of the loop.
+- 6 species (D48). No sound (D50). Interactive objects come in v2, except the
+  frontier gate (D50, O46). The full v1 scope is in `versions/v1/README.md`.
+- Business model (D31): the base game is paid (about $3–5), and new levels
+  come later as paid unlocks (about $2).
 
 ## Candidate actions (from precursor, each still to be specified)
 
@@ -103,15 +131,28 @@ defusing spots, waking by contact.
 A session is limited to at most 15 minutes, and leaving the app requires an
 adult-only operation. This is **best effort, a courtesy to parents and not a
 guarantee** (D1): Android screen pinning, our own parent gate, and a timer that
-survives the app being killed. Timer settings are O6; the parent gate is O7.
+survives the app being killed.
+
+- A session lasts a fixed **15 min** (D29). Letting the parent choose the length
+  comes later.
+- Bedtime ends either when the parent enters the code or after **10 real-time
+  minutes** (D29, D44). The long delay is on purpose: it nudges the child to put
+  the phone down.
+- **Sunrise:** the slimes wake up and the world runs in **screensaver mode**,
+  with no session. A new session begins only at the **first tap** (D44).
+  Details are O45.
+- The parent gate is a **6-digit code** (D30). Setting and recovering the code
+  is O34.
+- Open: O6 (background behaviour, and the parent's other options).
 
 ### Bedtime (D28)
 
-- In the **last minute** the light drifts toward dusk, the music softens, and
-  slimes hop more slowly. No text, no countdown.
+- In the **last minute** the light drifts toward dusk and slimes hop more
+  slowly. The music softens too, once there is sound (v3, D50). No text, no
+  countdown.
 - At **bedtime**, slimes fall asleep where they are, the game saves, and calls
-  stop doing anything. Only the **parent gate** moves things forward; there is
-  no cooldown that lets the child start again alone.
+  stop doing anything. Bedtime ends with the parent code or after the cooldown
+  (D44).
 - Bedtime sleep is not the same as being a sleeper. At the next session the
   game wakes every bedtime-asleep slime, and play carries on where it was.
 
@@ -131,12 +172,17 @@ survives the app being killed. Timer settings are O6; the parent gate is O7.
 | left alone | a free slime off screen for more than 10 s |
 | lost | a left-alone slime not back on the loop after 1 min; teleported to the loop start |
 | free slime | an awake slime attracted away from the loop, driven by physics alone until it rejoins |
-| session | one timed play period (at most 15 min) |
+| session | one timed play period (15 min for now) |
+| level | a whole world with its own loop, sections and save file; the first release ships one (proposed) |
+| signpost | a sign at a fork showing which way the loop goes; a larger one lets the child pick the camera's branch (proposed) |
+| filter | a fork that sends slimes down a branch by species; usually has a signpost next to it (proposed) |
+| screensaver mode | the world running with no session, after sunrise and before the first tap (proposed) |
+| sunrise | the end of bedtime: slimes wake up and screensaver mode begins (proposed) |
 | species | a kind of slime; only the same species fuse (replaces the precursor's "type") |
-| call | a tap (or hold, see O21) that draws nearby awake slimes toward a point |
+| call | a tap that draws nearby awake slimes toward a point (D46) |
 | unsure | a free slime just after a call ends, lingering near the call point (proposed) |
 | heading back | a free slime making for the loop (proposed) |
 | size | the number of base slimes a slime is made of; equals its weight |
 | section | the part of the world opened by one gate (proposed) |
-| parent gate | the adult-only operation required to leave, change settings, or continue after bedtime |
-| bedtime | the end of a session: slimes fall asleep and only the parent gate moves things forward; not the same as a sleeper |
+| parent gate | the 6-digit code an adult enters to leave, change settings, or end bedtime early |
+| bedtime | the end of a session: slimes fall asleep until sunrise (parent code or 10 min); not the same as a sleeper |

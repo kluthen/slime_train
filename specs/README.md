@@ -4,10 +4,11 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 | Document | Purpose | Status |
 |---|---|---|
-| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v9 |
-| `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v3 |
-| `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v2 |
-| `tech-direction.md` | Engine, level authoring, slime simulation, session lock implementation | draft v1 |
+| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v11 |
+| `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v5 |
+| `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v4 |
+| `tech-direction.md` | Engine, level authoring, slime simulation, saving, session lock implementation | draft v3 |
+| `versions/` | Scope per version (v1, v2, v3…) plus `timeline.md` for features with no version yet (D52) | live |
 | `open-questions.md` | Register of unresolved decisions (O1…) | live |
 | `decisions.md` | Append-only decisions log (D1…) | live |
 
@@ -15,7 +16,7 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 - An "interactive screensaver" for ages 3–5 on Android. Watching the train is the core.
 - Priorities: train and sleepers, then exploring, then fusion opening new paths.
-- The idle camera follows a slime.
+- Idle camera: after 45 s it locks onto a train slime (D32). Manual camera: it runs on rails along the loop, moved with buttons at the left and right edges; signposts at forks; a call drags the camera toward it (D33).
 - Godot 4. No custom level editor: Godot scenes plus reusable components.
 - The session lock is best effort (pinning, parent gate, stored timer).
 - Hybrid path (D8): the train follows the current loop; attracted slimes go free under physics and make their way back.
@@ -25,7 +26,7 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 - Free slimes: off screen > 10 s means left alone; still not back after 1 min means lost, and teleported to the start (D10).
 - The train has no slots: it's whoever is on the loop (D11).
 - Sleepers wake only on contact with an awake slime. Tapping a sleeper calls slimes to it (D13).
-- The call: tap-to-call vs hold-and-drag, decided by a playtest prototype (O21).
+- The call is tap-to-call; hold-and-drag is kept for a possible freeform camera later (D46).
 - Switch = redirects the flow; gate = the barrier onto a new area. Frontier pattern: flip the switch, fill the basket, the gate opens (D14).
 - Most objects are operated by tapping; some by tilt or by the slimes on them. A tap on an object operates it; anywhere else it calls (D15).
 - Presence objects respond to weight, which is the number of base slimes in a slime (D16).
@@ -38,6 +39,17 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 - Free slime after a call: unsure for up to about 15 s near the call point, then heads back to the loop. Physics always applies (D27).
 - The session ends with a gentle bedtime: a dusk wind-down in the last minute, then slimes fall asleep, and only the parent gate moves things forward (D28).
 
+- Session: a fixed 15 min, then a 10 min cooldown. Parent gate: a 6-digit code (D29, D30).
+- Business direction: a paid base game (about $3–5), later levels about $2 each (D31).
+- First release: one level of 4 sections with a basic black-on-black Cocoreccho!-like theme. Switch plus basket is the only frontier-gate pattern. No failure states (D34–D36).
+- Fusion after 3 s of contact, a hop resets it; maximum size 3; specific objects or zones split slimes; species differ by colour and voice (D37–D40).
+- A heading-back slime goes mostly downhill but knows the shortest way (D41). Music generator deferred (D42). One save file per level (D43).
+
+- Bedtime ends with the parent code or after 10 min. Then comes sunrise: the world runs in screensaver mode until the first tap starts a session (D44).
+- The rails camera plus the call is how the child explores. Hints must be visible from the loop, and every exploration branch has its own route back (D45, D51).
+- Signposts at every fork; larger signposts steer the camera; filters send slimes by species (D47). 6 species in v1 (D48). No fusion over the maximum size (D49).
+- Versions (D50, D52): v1 has no sound and only the frontier gate as an object. Objects come in v2, sound around v3. Features with no version yet are in `versions/timeline.md`.
+
 ## Where to resume
 
-Next session: the session and parent topics, meaning timer settings (O6) and parent gate design (O7). Then the idle camera (O4) and failure states (O9). After that, the personas document (O15) and first-release scope (O8, O24).
+Most pressing: O46 (which objects v1 really needs), then O45 (screensaver mode details), O34 (the parent code), O6. After that: personas (O15), then a dedicated session on the first level's design (O22).

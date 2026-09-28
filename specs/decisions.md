@@ -214,3 +214,180 @@ Resolves O5.
 - Bedtime sleep is a **different state** from being a sleeper. At the start of
   the next session the game wakes every bedtime-asleep slime, and they carry
   on where they were. Sleepers still wake only on contact (D13).
+
+## D29 — Fixed 15 min sessions with a 10 min cooldown (2026-09-28)
+Partly resolves O6.
+- For now every session lasts **15 min**, and that is fixed.
+- After bedtime, a new session **can't begin until 10 real-time minutes have
+  passed**.
+- A later version lets the parent choose the session length.
+- How this cooldown fits with D28's "only the parent gate moves things
+  forward" is open (O35).
+
+## D30 — The parent gate is a 6-digit code (2026-09-28)
+Resolves O7.
+- To get past the parent gate, the adult enters a 6-digit code.
+- Accepted risk (D1): a child who has watched a parent type the code may learn
+  it.
+- Who sets the code, and how it is recovered if forgotten, is O34.
+
+## D31 — Business model direction (2026-09-28)
+Resolves O16.
+- The base game is paid, about **$3–5**. Each new level comes later as a paid
+  unlock, about **$2**. (Prices are indicative.)
+- Context: the user hopes for about $160–200 of revenue a month. That is a
+  business goal, not a spec requirement.
+- (proposed) Purchases go behind the parent gate (D30).
+
+## D32 — Idle camera timing (2026-09-28)
+Partly resolves O4.
+- After **45 s** with no input, the idle camera takes over. It picks a train
+  slime and locks onto it.
+- A slight cue may come 10 s beforehand. What it looks like is still open
+  (O4).
+
+## D33 — The manual camera runs on rails along the loop (2026-09-28)
+- The child moves the camera **along the loop** using **left and right
+  buttons** at the edges of the screen.
+- At a fork, **signposts** show the directions. By default the camera follows
+  the main stream.
+- A **call** drags the camera toward the call point at a slow, steady pace.
+- Open follow-ups: O36 (signposts), O37 (seeing areas off the loop), O38 (the
+  edge buttons and the call).
+
+## D34 — First-release scope: one level of 4 sections (2026-09-28)
+Resolves O8 and O24.
+- The first release ships **one level**, moderately sized: **4 sections**.
+- The theme is very basic and stays close to Cocoreccho!: black "stone" and
+  black "plants" form the ground. There are few kinds of interaction.
+- Its aim is for the child to discover the game's mechanics.
+- Pacing: a lap takes a slime a few minutes, but the slimes are spread along
+  the loop. Moving the camera along the loop keeps showing travelling slimes,
+  and exploring can start anywhere.
+- How slimes are sent back from an unopened frontier gate (O22) will be settled
+  in a dedicated session on the first level's design.
+
+## D35 — Switch plus basket is the only frontier-gate pattern for now (2026-09-28)
+Resolves O23.
+- In the first release, the switch-plus-basket pattern (D14) is the only way to
+  open a frontier gate.
+- Later levels may add other ways, for example switches hidden along forks and
+  reachable only by certain species.
+
+## D36 — No failure states (2026-09-28)
+Resolves O9.
+- Nothing can go wrong. The worst case is a lost slime, which is teleported
+  back to the start of the loop (D10).
+
+## D37 — Fusion timing, for now (2026-09-28)
+Resolves O10 until tuning.
+- Two slimes fuse after **3 s** of continuous contact.
+- A hop that breaks contact resets that count.
+- A slime covered by other slimes doesn't hop.
+- The value will be tuned through experiments. When a slime decides to hop is
+  O40.
+
+## D38 — Specific objects and zones split slimes (2026-09-28)
+Resolves O29.
+- Splitting happens only at specific **split objects or zones**. The
+  precursor's "defusing spot" is one of them.
+- (proposed) The start of the loop carries one. That is how D23 happens in
+  the world.
+
+## D39 — Maximum size 3, for now (2026-09-28)
+Resolves O30.
+- A slime's size is at most **3**. It may become 5 later.
+- What happens when a fusion would go over the maximum is O39.
+
+## D40 — Species differ by colour and voice (2026-09-28)
+Resolves O31.
+- In the first release, species differ by **colour** and by **voice**. For
+  now a voice is closer to a kind of instrument.
+- Behaviour quirks per species may come later.
+
+## D41 — How a free slime heads back (2026-09-28)
+Resolves O33.
+- A free slime heading back hops **mostly downhill**, but it **knows the
+  shortest way to the loop**.
+- How it knows that way is O44.
+
+## D42 — The music generator is deferred (2026-09-28)
+Parks O12.
+- The music generator waits for a later stage. It is currently a JS app, and
+  porting it to Godot is a project in its own right.
+- What the first release sounds like without it is O41.
+
+## D43 — One save file per level (2026-09-28)
+Partly resolves O20.
+- Each level has its own save file.
+- The user can delete the save of a specific level. (proposed: behind the
+  parent gate)
+- What happens to a save when an update changes its level is still open (O20).
+
+## D44 — Sunrise: how bedtime ends (2026-09-28)
+Resolves O35. Supersedes D28's line "only the parent gate moves things
+forward".
+- Bedtime ends in one of two ways. Either the **parent enters the code** and
+  lets the child play again straight away, or **10 minutes pass** (D29).
+- The long default delay is on purpose: it nudges the child to put the phone
+  down and do something else.
+- **Sunrise:** when bedtime ends, the bedtime-asleep slimes wake up and carry
+  on with their lives in **screensaver mode**. This is the world running with
+  no session.
+- **A session begins only at the first tap on the screen.** The 15 min timer
+  starts then.
+
+## D45 — Exploring with a rails camera (2026-09-28)
+Resolves O37.
+- The camera stays on rails along the loop. A call dragging the camera is the
+  way to look off the loop, so there is no joystick, which is hard to use at
+  this age.
+- **Level rule:** hints that there is something to explore must be visible
+  from the loop.
+- How fast the camera drags toward a call, and when it goes back, will be tuned
+  with a working prototype.
+
+## D46 — The call is tap-to-call (2026-09-28)
+Resolves O38 and the choice in O21.
+- The call is tap-to-call. Hold-and-drag is dropped as a way to call.
+- If the camera ever moves freely later, it would use hold-and-drag, and that
+  would replace the edge buttons.
+- How the edge buttons look and respond is interface design, for the UX
+  design later.
+
+## D47 — Signposts and filters are two objects (2026-09-28)
+Resolves O36.
+- A **signpost** stands at every fork in the loop. It shows which way the loop
+  goes.
+- A **larger signpost** also lets the player choose which branch the camera
+  follows.
+- A **filter** is a kind of fork that sends slimes down a branch by species
+  ("all blue slimes go this way"). It usually has a signpost next to it.
+
+## D48 — Six species in the first release (2026-09-28)
+Resolves O42.
+- 3 species in the first section plus one per section, over 4 sections, gives
+  6 species. That is accepted.
+
+## D49 — No fusion over the maximum size (2026-09-28)
+Resolves O39.
+- If two slimes would fuse past the maximum size (2 + 2, or 3 + 2, with a
+  maximum of 3), they don't fuse. They just bump.
+
+## D50 — Version split for sound and objects (2026-09-28)
+Resolves O41.
+- **v1 has no sound at all.** Sound, including species voices (D40), comes
+  around **v3**.
+- **Interactive objects come in v2**, except the frontier gate, which is in v1.
+  What exactly the v1 frontier gate includes is O46.
+
+## D51 — Each exploration area has its own way back (2026-09-28)
+Resolves O44.
+- **Level rule:** every exploration branch includes its own route back to the
+  loop. The level designer builds it into the level.
+- A slime heading back follows that route (D41).
+
+## D52 — Features are tracked by version (2026-09-28)
+- Each version's scope lives in `versions/<version>/README.md`.
+- Features that don't have a version yet go in `versions/timeline.md`.
+- Features can be moved to a later version at any time. A move is logged here.
