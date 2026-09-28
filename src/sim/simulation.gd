@@ -37,10 +37,14 @@ extends RefCounted
 ## one is a call centred on its body. The first-play hint (`hint`) shows next
 ## to the first sleeper 10 s after the world shows, until the first call.
 ##
-## Tilt (Tilt, `phone_tilt`): the tilt event feeds it, load_level() takes
-## its neutral (placeholder for the session start, chunk 17), and before the
-## bodies tick its way down goes to the slime bodies, where only free slimes
-## feel it.
+## Tilt (Tilt, `phone_tilt`): the tilt event feeds it, a session's start
+## (or its resuming) takes its neutral (Session), and before the bodies tick
+## its way down goes to the slime bodies, where only free slimes feel it.
+##
+## Sessions (chunk 17, Session): right after the input, the session counts
+## the clock reading the scene layer fed it (session.read_clock()) and moves
+## through screensaver mode, session, wind-down, bedtime and sunrise. The
+## simulation never reads a clock itself.
 ##
 ## Saves (chunk 8): to_save() captures the whole state as plain JSON data and
 ## from_save() rebuilds it (SaveData has the format). A reloaded save has the
@@ -50,7 +54,7 @@ extends RefCounted
 ## objects' and gates' state by stable ID (chunk 14; empty until then).
 ##
 ## Tick order: queued input (taps dispatched, calls answered, tilt read); the
-## train steers (aims the coming hops, carries the slimes on a slide); the free
+## session advances (clocks, phases, bedtime and sunrise); the train steers (aims the coming hops, carries the slimes on a slide); the free
 ## slimes steer; the slime bodies (free slimes fall the way the tilt says;
 ## hops, then the solver); the free slimes'
 ## hops are paced and every hop turns its slime; the split zones split (train
@@ -118,9 +122,10 @@ var view := ScreenView.new()
 # @spec-link [[req_camera_rails_and_framing]]
 var camera := Camera.new()
 ## Screensaver mode: the camera starts on the idle camera (Camera.watch()).
-## False in the core, as in a session; the game root turns it on until
-## sessions (chunk 17) drive it. A mode set from outside, like input: not in
-## dump() nor saves (the camera's dump has what it did).
+## False in the core, as in a session. With sessions on (Session.enabled) or
+## a session running, the session sets it every tick; otherwise tests set it.
+## A mode, like input: not in dump() nor saves (the camera's dump has what
+## it did, the session's its phase).
 # @spec-link [[req_idle_camera_and_screensaver_zoom]]
 var screensaver := false
 ## The free slimes and the last call.
@@ -146,10 +151,18 @@ var fusion := Fusion.new()
 var object_states: Dictionary = {}
 ## The gates' state by stable ID, as plain data (chunk 14).
 var gate_states: Dictionary = {}
+## The frontier sets: switches, baskets, gates and the level's one-time
+## celebration, on object_states and gate_states (FrontierSets; chunk 14).
+# @spec-link [[req_switch_basket_gate_set]]
+var frontier := FrontierSets.new()
 ## The first-play hint: due until the first call; shows 10 s after the world
 ## shows (Hint). The game calls hint.world_shown() when it shows the world.
 # @spec-link [[req_first_play_hint]]
 var hint := Hint.new()
+## Screensaver mode, the session, wind-down, bedtime and sunrise, on the
+## clock readings the scene layer feeds it (Session; chunk 17).
+# @spec-link [[req_session_lifecycle]]
+var session := Session.new()
 
 var _pending_input: Array[Dictionary] = []
 
@@ -197,9 +210,6 @@ func push_input(event: Dictionary) -> void:
 # @spec-link [[req_waking_sleepers]]
 func load_level(data: LevelData) -> void:
 	level = data
-	# Placeholder until sessions (chunk 17): neutral is taken when a level
-	# starts, fresh or resumed.
-	phone_tilt.take_neutral_now()
 	train = null
 	split_zones = SplitZones.new()
 	if data == null:
@@ -222,6 +232,7 @@ func load_level(data: LevelData) -> void:
 		Sleepers.place(self, data)
 	hint.place(data)
 	hint.world_shown(tick)
+	frontier.start(self)
 
 
 ## Puts a train slime of `slime_species` and `slime_size` on the loop,
@@ -245,6 +256,7 @@ func step() -> void:
 	for event in _pending_input:
 		_apply_input(event)
 	_pending_input.clear()
+	session.advance(self)
 	var gates: Array = train.open_gates if train != null else []
 	if train != null:
 		train.steer(slimes, TICK_SECONDS)
@@ -260,6 +272,8 @@ func step() -> void:
 			train.inherit(parts)
 		free_slimes.inherit(parts, tick)
 	fusion.step(self)
+	frontier.step(self)
+	gates = train.open_gates if train != null else []
 	free_slimes.follow(slimes, tick, level, gates)
 	if train != null:
 		train.follow(slimes, tick)
@@ -333,6 +347,8 @@ func dump() -> Dictionary:
 		"view": view.dump(),
 		"camera": camera.dump(),
 		"hint": hint.dump(),
+		"frontier": frontier.dump(),
+		"session": session.dump(),
 		"ripples": ripples.duplicate(true),
 		"taps": taps.duplicate(true),
 		"input": {
@@ -385,10 +401,20 @@ func _apply_input(event: Dictionary) -> void:
 # @spec-link [[req_controls_tap_zones]]
 # @spec-link [[req_call_mechanic]]
 func _tap(finger: int, at: Vector2) -> void:
-	var targets := Sleepers.tap_targets(self)
-	var hit := TapDispatcher.dispatch(at, view, targets)
+	# At bedtime taps only ripple: no object, no edge button (hidden), no call.
+	var bedtime := session.phase == Session.BEDTIME
+	var targets := {} if bedtime else Sleepers.tap_targets(self)
+	var hit := TapDispatcher.dispatch(at, view, targets, camera.edge_buttons_visible)
+	if bedtime:
+		hit["call"] = false
+	elif hit["zone"] in [TapDispatcher.ZONE_GROUND, TapDispatcher.ZONE_OBJECT] and session.can_start():
+		# Only a tap that reaches the world starts a session (O69), and it
+		# does its normal job too.
+		session.start(self)
 	if hit["zone"] == TapDispatcher.ZONE_EDGE:
 		camera.press(hit["side"], finger)
+	if hit["kind"] == TapDispatcher.KIND_SWITCH:
+		frontier.tap_switch(self, hit["object"])
 	var world: Vector2 = hit["world"]
 	ripples.append({"at": world.snapped(Vector2(0.01, 0.01)), "tick": tick})
 	var radius := call_radius()

@@ -60,7 +60,9 @@ static func edge_button_rect(side: int, screen_size: Vector2) -> Rect2:
 ## "side" (-1 or 1 for an edge button, else 0), "object" (the stable ID, or
 ## ""), "kind" (the object's kind, or ""), "call" (whether it calls),
 ## "call_point" (level pixels: the tap, or the sleeper's centre)}.
-static func dispatch(at: Vector2, view: ScreenView, tap_targets: Dictionary) -> Dictionary:
+## `edge_buttons`: whether the edge buttons show; hidden (at bedtime) they
+## are no zone, and a tap there lands on what is under it.
+static func dispatch(at: Vector2, view: ScreenView, tap_targets: Dictionary, edge_buttons := true) -> Dictionary:
 	var world := view.screen_to_world(at)
 	var result := {"zone": ZONE_GROUND, "world": world, "side": 0, "object": "", "kind": "",
 			"call": true, "call_point": world}
@@ -69,7 +71,7 @@ static func dispatch(at: Vector2, view: ScreenView, tap_targets: Dictionary) -> 
 		result["call"] = false
 		return result
 	for side in [-1, 1]:
-		if edge_button_rect(side, view.screen_size).has_point(at):
+		if edge_buttons and edge_button_rect(side, view.screen_size).has_point(at):
 			result["zone"] = ZONE_EDGE
 			result["side"] = side
 			result["call"] = false

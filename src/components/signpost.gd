@@ -3,8 +3,10 @@ class_name Signpost
 extends Node2D
 ## A signpost (master spec §5.4, D47, rule 6): stands at a fork of the loop
 ## (in v1, each frontier switch) and shows which way the loop goes. Not
-## interactive. Placeholder: a labelled post until the art.
+## interactive. Placeholder: a labelled post until the art; the game draws
+## its arrow the way its switch sends the flow (FrontierView).
 # @spec-link [[req_interactive_objects_general]]
+# @spec-link [[rule_signpost_at_every_fork]]
 
 const COLOR := Color(0.8, 0.65, 0.4)
 

@@ -9,11 +9,12 @@ extends RefCounted
 ##   {"tick": 31, "do": "touch_down", "at": [900, 500], "finger": 1}
 ##   {"tick": 40, "do": "touch_up", "finger": 1}
 ##   {"tick": 60, "do": "tilt", "degrees": 20}
+##   {"tick": 90, "do": "skip", "seconds": 600}
 ##
 ## - "tick": the simulation tick the step happens on (a whole number >= 0).
 ##   Its events are consumed by the step that advances that tick.
-## - "do": tap (a touch down and up on the same tick), touch_down, touch_up or
-##   tilt.
+## - "do": tap (a touch down and up on the same tick), touch_down, touch_up,
+##   tilt or skip.
 ## - "at": a screen position in viewport pixels, [x, y] or a Vector2. Needed
 ##   for tap and touch_down; optional for touch_up (the finger lifts where it
 ##   was).
@@ -22,6 +23,9 @@ extends RefCounted
 ##   screen-right; see Tilt).
 ## - "flat": optional for tilt, true when the phone lies flat (counts as
 ##   neutral); false by default.
+## - skip: "seconds" (a number > 0) of real time pass before that tick, as if
+##   the app sat in the background: the session's clocks jump (TestClock),
+##   the simulation doesn't run. It feeds no input event.
 ##
 ## Steps may come in any order; steps on the same tick keep their order.
 ## Mistakes (a typo in a key, a missing position) are reported in `errors`
@@ -32,12 +36,15 @@ const ACTIONS := {
 	"touch_down": ["tick", "do", "at", "finger"],
 	"touch_up": ["tick", "do", "at", "finger"],
 	"tilt": ["tick", "do", "degrees", "flat"],
+	"skip": ["tick", "do", "seconds"],
 }
 
 ## What is wrong with the script, one line per problem. Empty when valid.
 var errors := PackedStringArray()
 ## The last tick with an event, or -1 for an empty script.
 var last_tick := -1
+## The skips: tick -> milliseconds of real time passing before it.
+var skips := {}
 
 var _events := {}  # tick -> Array of Simulation input events
 
@@ -62,7 +69,7 @@ func _parse_step(index: int, step: Variant) -> void:
 	var count_before := errors.size()
 	var action: Variant = step.get("do")
 	if not ACTIONS.has(action):
-		_error(index, "unknown action '%s' (expected tap, touch_down, touch_up or tilt)" % [action])
+		_error(index, "unknown action '%s' (expected tap, touch_down, touch_up, tilt or skip)" % [action])
 		return
 	for key in step:
 		if key not in ACTIONS[action]:
@@ -85,7 +92,14 @@ func _parse_step(index: int, step: Variant) -> void:
 			_error(index, "'degrees' must be a number")
 		if typeof(step.get("flat", false)) != TYPE_BOOL:
 			_error(index, "'flat' must be true or false")
+	var seconds: Variant = step.get("seconds")
+	if action == "skip" and (typeof(seconds) not in [TYPE_INT, TYPE_FLOAT] or seconds <= 0):
+		_error(index, "'seconds' must be a number above 0")
 	if errors.size() > count_before:
+		return
+	if action == "skip":
+		skips[tick] = skips.get(tick, 0) + roundi(float(seconds) * 1000.0)
+		last_tick = maxi(last_tick, tick)
 		return
 	var events: Array = _events.get_or_add(tick, [])
 	match action:

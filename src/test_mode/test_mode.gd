@@ -20,7 +20,20 @@ extends RefCounted
 ##     "block_real_input": true,   # optional; ignore the real mouse and touch
 ##     "screen_size": [1152, 648], # optional: the screen the taps are on
 ##     "steps": [ ... ],           # optional: the input script (TestModeScript)
+##     "sessions": false,          # optional: sessions on, as in normal play
+##     "clock": {"away": 0, "restarted": false},  # optional: see below
 ##   }
+##
+## Sessions (Session, chunk 17). A run plays untimed, as in an endless
+## session, unless "sessions" is true: then it opens in screensaver mode like
+## normal play, and a tap that reaches the world starts a session. A save
+## with a session or bedtime running counts down either way. The session's
+## clocks are test mode's (TestClock), never the real ones: they run with
+## the ticks, from the save's last reading when it has one. Skipping time:
+## a "skip" step (TestModeScript) lets real time pass before a tick, and
+## "clock" says what happened before the run starts: "away" seconds passed,
+## and "restarted" (the app was killed or the phone restarted: a new
+## monotonic epoch).
 ##
 ## "screen_size" is the one place a run sets the screen's size, in viewport
 ## pixels (the project's 1152 x 648 by default): the game hands it to the
@@ -51,7 +64,7 @@ const FIXTURE_EXTENSION := ".json"
 const SIDECAR_EXTENSION := ".fixture.json"
 const MAX_TIME_SCALE := 64.0
 const CONFIG_KEYS := ["seed", "time_scale", "fixture", "load", "autosave", "block_real_input", "screen_size",
-		"steps"]
+		"steps", "sessions", "clock"]
 const OVERLAY_SCRIPT := preload("res://src/test_mode/test_mode_overlay.gd")
 
 ## What is wrong with the configuration. Empty when it is valid.
@@ -74,6 +87,11 @@ var autosave := false
 ## The screen the taps are on, viewport pixels (see the class doc).
 var screen_size := ScreenView.DEFAULT_SIZE
 var input_script: TestModeScript = TestModeScript.parse([])
+## Whether the run has sessions (see the class doc).
+# @spec-link [[req_session_lifecycle]]
+var sessions := false
+## The session's clocks in this run (see the class doc).
+var clock := TestClock.new()
 ## The game root this test mode drives, once attached.
 var game: Node = null
 ## The on-screen banner and finger markers, once attached.
@@ -139,7 +157,35 @@ static func from_config(config: Dictionary) -> TestMode:
 			tm.errors.append("'load': no save at %s" % load_path)
 		else:
 			tm.errors.append("'load': %s" % loaded["error"])
+	var sessions: Variant = config.get("sessions", false)
+	if typeof(sessions) != TYPE_BOOL:
+		tm.errors.append("'sessions' must be true or false")
+	else:
+		tm.sessions = sessions
+	var setting: Variant = config.get("clock", {})
+	if not _clock_setting_ok(setting):
+		tm.errors.append("'clock' must be {\"away\": seconds >= 0, \"restarted\": true or false}")
+	else:
+		var saved_sim: Variant = tm.save_data.get("sim", {})
+		var start: Variant = TestModeScript._whole_number(saved_sim.get("tick", 0)) if saved_sim is Dictionary else 0
+		tm.clock = TestClock.for_run(tm.save_data.get("session"), start if start != null else 0, setting,
+				tm.input_script.skips)
 	return tm
+
+
+static func _clock_setting_ok(setting: Variant) -> bool:
+	if typeof(setting) != TYPE_DICTIONARY:
+		return false
+	for key in setting:
+		if key not in ["away", "restarted"]:
+			return false
+	var away: Variant = setting.get("away", 0)
+	return typeof(away) in [TYPE_INT, TYPE_FLOAT] and away >= 0 and typeof(setting.get("restarted", false)) == TYPE_BOOL
+
+
+## The session's clocks before `tick`'s step (TestClock).
+func clock_at(tick: int) -> Dictionary:
+	return clock.reading_at(tick)
 
 
 ## `value` as a screen size ([w, h] or a Vector2, both above 0), or null.

@@ -15,7 +15,7 @@ extends RefCounted
 ##       "id": "s1.sleeper.02" or null,     # stable ID: the first member
 ##       "members": ["s1.sleeper.02", ...], # SlimeIdentities
 ##       "runtime_id": 4,                   # optional (all or none)
-##       "species": "C", "size": 2, "state": "train" | "free" | "sleeper" | "bedtime_asleep",
+##       "species": "C", "size": 2, "state": "train" | "free" | "sleeper" | "bedtime_asleep" | "in_basket",
 ##       "centre": [x, y], "velocity": [x, y],
 ##       "train": {"distance", "laps", "on_slide", "mark", "marked_at", "lost"},  # optional
 ##       "free": {"phase", "since", "point", "route", "rng_state"},             # optional
@@ -26,14 +26,29 @@ extends RefCounted
 ##     "call": null or {"point", "tick"},
 ##     "objects": {}, "gates": {},          # stable ID -> state (chunk 14)
 ##     "hint_done": true,                   # optional: the first call happened
+##     "celebration_done": true,            # optional: the celebration played (chunk 14)
+##     "session": {"phase", "elapsed_ms", "anchor", "clock", "sunrise_tick"},  # optional (Session)
 ##     "transient": {"view", "camera", "ripples", "taps", "facing", "input_log",
-##                   "tilt", "fusion", "hint"},                          # optional
+##                   "tilt", "fusion", "hint", "frontier"},              # optional
 ##   }
+##
+## The frontier sets (FrontierSets, chunk 14): "objects" holds each switch's
+## {"flipped", "trapdoor_shut"} and each basket's {"phase", "weight",
+## "since", "next_release"}; "gates" each gate's {"open", "entrance_closed"};
+## the slimes resting in a basket are in state "in_basket". The level's
+## celebration: "celebration_done" is its done mark (absent: false), never
+## reset but by deleting the save; "transient.frontier" keeps
+## {"celebration_since"}, so a reload during it plays the rest, not all again.
 ##
 ## The first-play hint (Hint): "hint_done" is the level's done mark (absent:
 ## false, the hint is due, as on a fresh save); "transient.hint" keeps its
 ## count ({"since", "bedtime"}) so a reload is exact. The game restarts the
 ## count when it shows the reloaded world (Hint.world_shown).
+##
+## The session (Session, chunk 17): its phase and timer, stored with both
+## clocks ("anchor": {"wall_ms", "mono_ms", "elapsed_ms"}, "clock": the last
+## reading {"wall_ms", "mono_ms", "epoch", "tick"}; {} in screensaver mode),
+## so a killed app resumes where it was (D95). Absent: screensaver mode.
 ##
 ## Exactness. JSON numbers are doubles printed to 17 digits, and Godot's
 ## parser doesn't always read those back to the same double. So every real
@@ -88,6 +103,8 @@ static func capture(sim: Simulation) -> Dictionary:
 		"objects": sim.object_states.duplicate(true),
 		"gates": sim.gate_states.duplicate(true),
 		"hint_done": sim.hint.done,
+		"celebration_done": sim.frontier.celebration_done,
+		"session": sim.session.dump(),
 		"transient": _transient(sim),
 	}
 
@@ -150,6 +167,7 @@ static func _transient(sim: Simulation) -> Dictionary:
 		"fusion": sim.fusion.dump(),
 		"camera": _exact_values(sim.camera.dump()),
 		"hint": {"since": sim.hint.since, "bedtime": sim.hint.bedtime},
+		"frontier": {"celebration_since": sim.frontier.celebration_since},
 		"tilt": {"degrees": exact(sim.phone_tilt.degrees), "neutral": exact(sim.phone_tilt.neutral),
 				"flat": sim.phone_tilt.flat},
 	}
@@ -237,6 +255,42 @@ static func problems(save: Variant, level_data: LevelData) -> PackedStringArray:
 			out.append("'%s' must be a dictionary or null" % key)
 	if save.has("hint_done") and typeof(save["hint_done"]) != TYPE_BOOL:
 		out.append("'hint_done' must be true or false")
+	if save.has("celebration_done") and typeof(save["celebration_done"]) != TYPE_BOOL:
+		out.append("'celebration_done' must be true or false")
+	if save.has("session"):
+		out.append_array(_session_problems(save["session"]))
+	return out
+
+
+## What is wrong with a save's "session" (see the class doc).
+# @spec-link [[req_session_lifecycle]]
+static func _session_problems(session: Variant) -> PackedStringArray:
+	var out := PackedStringArray()
+	if typeof(session) != TYPE_DICTIONARY:
+		return PackedStringArray(["'session' must be a dictionary"])
+	if str(session.get("phase", "")) not in Session.PHASES:
+		out.append("'session.phase' must be one of %s" % ", ".join(Session.PHASES))
+	var elapsed: Variant = _whole(session.get("elapsed_ms", 0))
+	if elapsed == null or elapsed < 0:
+		out.append("'session.elapsed_ms' must be a whole number >= 0")
+	if _whole(session.get("sunrise_tick", -1)) == null:
+		out.append("'session.sunrise_tick' must be a whole number")
+	var parts := {"anchor": ["wall_ms", "mono_ms", "elapsed_ms"], "clock": ["wall_ms", "mono_ms", "tick"]}
+	for part in parts:
+		var value: Variant = session.get(part, {})
+		if typeof(value) != TYPE_DICTIONARY:
+			out.append("'session.%s' must be a dictionary" % part)
+			continue
+		if value.is_empty():
+			continue
+		for key in parts[part]:
+			if _whole(value.get(key)) == null:
+				out.append("'session.%s.%s' must be a whole number" % [part, key])
+		if part == "clock" and typeof(value.get("epoch")) != TYPE_STRING:
+			out.append("'session.clock.epoch' must be a string")
+	var timed := str(session.get("phase", "")) != Session.SCREENSAVER
+	if timed and out.is_empty() and (session.get("anchor", {}).is_empty() != session.get("clock", {}).is_empty()):
+		out.append("'session.anchor' and 'session.clock' come together")
 	return out
 
 
@@ -340,11 +394,30 @@ static func restore(save: Dictionary, level_data: LevelData, terrain: TerrainSeg
 		sim.free_slimes.call_tick = _whole(last_call["tick"])
 	sim.object_states = save.get("objects", {}).duplicate(true)
 	sim.gate_states = save.get("gates", {}).duplicate(true)
+	sim.frontier.celebration_done = save.get("celebration_done", false)
+	sim.frontier.start(sim)
 	var transient: Variant = save.get("transient")
 	if transient is Dictionary:
 		_restore_transient(sim, transient)
+	if save.get("session") is Dictionary:
+		_restore_session(sim, save["session"])
 	sim.hint.update(sim.tick)
 	return sim
+
+
+## The session, its whole numbers back to ints (Session.restore).
+# @spec-link [[req_session_lifecycle]]
+static func _restore_session(sim: Simulation, session: Dictionary) -> void:
+	var data := {"phase": str(session.get("phase", Session.SCREENSAVER)),
+			"elapsed_ms": _whole(session.get("elapsed_ms", 0)),
+			"sunrise_tick": _whole(session.get("sunrise_tick", -1)), "anchor": {}, "clock": {}}
+	for part in ["anchor", "clock"]:
+		var saved: Dictionary = session.get(part, {})
+		var out := {}
+		for key in saved:
+			out[key] = str(saved[key]) if key == "epoch" else _whole(saved[key])
+		data[part] = out
+	sim.session.restore(sim, data)
 
 
 static func _restore_progress(sim: Simulation, slime_id: int, slime: Dictionary) -> void:
@@ -374,9 +447,8 @@ static func _restore_progress(sim: Simulation, slime_id: int, slime: Dictionary)
 
 
 static func _restore_transient(sim: Simulation, transient: Dictionary) -> void:
-	# After load_level, which takes the tilt's neutral: the saved neutral wins,
-	# so the reloaded state is the saved one. Taking a new neutral when a
-	# session resumes is the session's job (chunk 17, D95).
+	# The saved neutral, so the reloaded state is the saved one. Taking a new
+	# neutral when a session resumes is the session's job (Session, D95).
 	if transient.get("tilt") is Dictionary:
 		var tilt: Dictionary = transient["tilt"]
 		sim.phone_tilt.restore({"degrees": real(tilt.get("degrees", 0.0)),
@@ -389,6 +461,8 @@ static func _restore_transient(sim: Simulation, transient: Dictionary) -> void:
 	if transient.get("hint") is Dictionary:
 		sim.hint.since = _whole(transient["hint"].get("since", sim.tick))
 		sim.hint.bedtime = bool(transient["hint"].get("bedtime", false))
+	if transient.get("frontier") is Dictionary:
+		sim.frontier.celebration_since = _whole(transient["frontier"].get("celebration_since", -1))
 	if transient.get("view") is Dictionary:
 		var view: Dictionary = transient["view"]
 		sim.view.set_to(vector_from(view["centre"]), real(view["zoom"]), vector_from(view["screen_size"]))
@@ -492,9 +566,20 @@ static func readable(save: Dictionary) -> Dictionary:
 			out["free"] = {"phase": slime["free"]["phase"], "since": 0,
 					"point": _rounded(vector_from(slime["free"]["point"])), "route": slime["free"]["route"]}
 		slimes.append(out)
-	return {"format": save["format"], "level": save["level"], "slimes": slimes,
+	var out := {"format": save["format"], "level": save["level"], "slimes": slimes,
 			"objects": save.get("objects", {}), "gates": save.get("gates", {}),
 			"hint_done": save.get("hint_done", false)}
+	# The celebration's mark only once it played (absent: false).
+	if save.get("celebration_done", false):
+		out["celebration_done"] = true
+	# A running session or bedtime stays (its clock's tick is the tick the
+	# readable save starts on: 0); screensaver mode is the default.
+	var session: Variant = save.get("session")
+	if session is Dictionary and session.get("phase", Session.SCREENSAVER) != Session.SCREENSAVER:
+		out["session"] = session.duplicate(true)
+		if not out["session"].get("clock", {}).is_empty():
+			out["session"]["clock"]["tick"] = 0
+	return out
 
 
 static func _rounded(v: Vector2) -> Array:

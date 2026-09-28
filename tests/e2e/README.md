@@ -42,3 +42,24 @@ pattern; `scripts/` holds the JSON run files. How to write one:
   10 s; two base slimes put on the dip's rim fuse within 20 s (the dip
   nudges fusion), the run is repeatable and the fused slime hops on; 2 + 2
   and 3 + 1 on the dip meet and keep their sizes.
+- `test_session_e2e.gd` checks sessions on the test level [DoD 20, 21,
+  22], with test mode's clocks and `skip` steps: only a world tap starts a
+  session (not the parent band, not an edge button) and bedtime comes 15
+  minutes later; a killed session resumes where it was, in test mode and in
+  normal play; from `wind-down` the light goes to dusk, then bedtime puts
+  the slimes to sleep, saves, hides the edge buttons and a tap only
+  ripples; from `sunrise` the slimes wake into screensaver mode and the next
+  tap starts a session; the runs are repeatable, also in a child process.
+- `test_frontier_e2e.gd` checks frontier set 1 on the test level, the
+  basket on screen [DoD 9, 10, 11, 13, 14]: from `s1-basket-5of6` the
+  basket fills, fires, opens gate 1 and lets its slimes go; a full basket
+  off screen waits until it comes into view; from `s1-optout` flipping the
+  switch back empties the basket (no tilt); once the gate is open the
+  switch and the basket do nothing; the celebration plays once and a
+  reload doesn't replay it; the run has the same hash in a child process.
+- `test_frontier_level.gd` checks the test level's frontier set against
+  the level rules: a signpost at every fork, not tappable; the trapdoor on
+  the loop over the basket (no tilt needed); the outlet on the onward
+  route; the gate on section 2's route and its lid over slide 1's
+  entrance; a return route per section; every route back still ends on
+  the loop with gate 1 open.

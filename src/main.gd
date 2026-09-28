@@ -17,9 +17,13 @@ extends Node2D
 ## shared by every simulation started on it; a SlimeRenderer draws the
 ## current simulation's slimes and a TapFeedback their ripples and eyes.
 ## The camera is the simulation's (Camera: rails, edge buttons, call drag,
-## framing zones, idle camera). Normal play starts in screensaver mode (the
-## idle camera) until sessions (chunk 17) drive it; test mode plays as in a
-## session. sync_view() makes the simulation's view and the scene's Camera2D show it,
+## framing zones, idle camera). Normal play has sessions (Session, chunk 17):
+## it opens in screensaver mode (the idle camera), or where its session or
+## bedtime was; before every tick the game hands the session the real clocks
+## (SessionClock), saves when bedtime begins, and SessionScreen shows the
+## dusk and keeps the screen on during a session. Test mode plays untimed,
+## as in a session, unless its run turns sessions on; its clocks are test
+## mode's. sync_view() makes the simulation's view and the scene's Camera2D show it,
 ## before and after every tick. EdgeButtons draws the edge buttons on a HUD
 ## layer.
 ##
@@ -60,8 +64,17 @@ var camera: Camera2D = null
 var slime_renderer: SlimeRenderer = null
 ## Draws the tap ripples and the slimes' facing, above the slimes.
 var tap_feedback: TapFeedback = null
+## Draws the frontier sets' state and the celebration (chunk 14).
+# @spec-link [[req_switch_basket_gate_set]]
+var frontier_view: FrontierView = null
 ## Draws the edge buttons, in screen pixels on the HUD layer.
 var edge_buttons: EdgeButtons = null
+## Tints the world toward dusk and keeps the screen on during a session.
+var session_screen: SessionScreen = null
+## The real clocks the session counts on in normal play. Loosely typed so
+## tests can hand it anything with a now() (see SessionClock).
+# @spec-link [[req_session_lifecycle]]
+var session_clock: RefCounted = SessionClock.new()
 ## The running TestMode, or null. Loosely typed on purpose (see above).
 var test_mode: RefCounted = null
 ## Replaced by tests to check the release path.
@@ -96,6 +109,9 @@ func _ready() -> void:
 	slime_renderer.name = "Slimes"
 	slime_renderer.draw_mode = SlimeRenderer.default_mode()
 	add_child(slime_renderer)
+	frontier_view = FrontierView.new()
+	frontier_view.name = "Frontier"
+	add_child(frontier_view)
 	tap_feedback = TapFeedback.new()
 	tap_feedback.name = "TapFeedback"
 	add_child(tap_feedback)
@@ -105,6 +121,9 @@ func _ready() -> void:
 	edge_buttons = EdgeButtons.new()
 	edge_buttons.name = "EdgeButtons"
 	hud.add_child(edge_buttons)
+	session_screen = SessionScreen.new()
+	session_screen.name = "SessionScreen"
+	add_child(session_screen)
 	_use_simulation(_new_simulation(Rng.random_seed()))
 	var user_args := OS.get_cmdline_user_args()
 	if TestModeGuard.requested(user_args):
@@ -118,7 +137,7 @@ func _ready() -> void:
 			return
 	if test_mode == null:
 		_resume_play()
-		simulation.screensaver = true
+		simulation.session.open(simulation)
 
 
 func _process(delta: float) -> void:
@@ -134,6 +153,9 @@ func _process(delta: float) -> void:
 
 ## Going to the background (Autosave.is_background) saves at once.
 func _notification(what: int) -> void:
+	# Back from the background: a running session takes the tilt's neutral again (D95).
+	if what == NOTIFICATION_APPLICATION_RESUMED and simulation != null:
+		simulation.session.reopened()
 	if autosave.enabled and Autosave.is_background(what):
 		var error := save_now()
 		if error != "":
@@ -168,14 +190,25 @@ func _unhandled_input(event: InputEvent) -> void:
 			simulation.push_input(Simulation.touch_up(0, event.position))
 
 
-## Runs one simulation tick, first giving it the view and feeding it the
-## input test mode scripted for that tick.
+## Runs one simulation tick, first giving it the view, the clocks (test
+## mode's, else the real ones) and the input test mode scripted for that
+## tick. When bedtime begins the game saves (if it autosaves).
+# @spec-link [[req_session_lifecycle]]
 func step_simulation() -> void:
 	sync_view()
 	if test_mode != null:
+		simulation.session.read_clock(test_mode.clock_at(simulation.tick))
 		for event in test_mode.inputs_for_tick(simulation.tick):
 			simulation.push_input(event)
+	else:
+		simulation.session.read_clock(session_clock.now())
 	simulation.step()
+	if simulation.session.save_due:
+		simulation.session.save_due = false
+		if autosave.enabled:
+			var error := save_now()
+			if error != "":
+				printerr("Bedtime save: ", error)
 	sync_view()
 
 
@@ -229,6 +262,8 @@ func enable_test_mode(config: Dictionary) -> PackedStringArray:
 		fresh = Simulation.from_save(candidate.save_data, level.data, _terrain, candidate.seed_value)
 	if candidate.camera != null and level != null and level.data.loop != null:
 		fresh.camera.start(level.data.loop, fresh.train.open_gates if fresh.train != null else [], candidate.camera)
+	if candidate.sessions:
+		fresh.session.open(fresh)
 	if test_mode != null:
 		test_mode.detach()
 	test_mode = candidate
@@ -329,6 +364,10 @@ func _use_simulation(fresh: Simulation) -> void:
 		slime_renderer.bodies = fresh.slimes
 	if tap_feedback != null:
 		tap_feedback.simulation = fresh
+	if frontier_view != null:
+		frontier_view.simulation = fresh
 	if edge_buttons != null:
 		edge_buttons.simulation = fresh
+	if session_screen != null:
+		session_screen.simulation = fresh
 	sync_view()

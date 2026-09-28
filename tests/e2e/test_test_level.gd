@@ -32,6 +32,8 @@ func after_all() -> void:
 func _expected_section_1_ids() -> PackedStringArray:
 	var ids := PackedStringArray([
 		"start.loop", "s1.loop", "s1.slide",
+		# Section 2's stub (chunk 14): where gate 1 leads.
+		"s2.loop", "s2.slide",
 		"start.split-zone", "start.first-slime",
 		"s1.switch", "s1.basket", "s1.gate", "s1.signpost",
 		"s1.branch.tree", "s1.route-back.tree", "s1.frame.tree",

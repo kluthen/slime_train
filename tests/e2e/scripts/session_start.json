@@ -1,0 +1,11 @@
+{
+	"seed": 4242,
+	"sessions": true,
+	"steps": [
+		{"tick": 30, "do": "tap", "at": [576, 20]},
+		{"tick": 60, "do": "tap", "at": [1104, 324]},
+		{"tick": 90, "do": "tap", "at": [576, 400]},
+		{"tick": 150, "do": "skip", "seconds": 900},
+		{"tick": 200, "do": "tap", "at": [576, 400]}
+	]
+}

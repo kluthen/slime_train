@@ -44,14 +44,15 @@ const CRUST_REST := [
 	[7.25, 300], [7.0, 320], [5.0, 350], [3.0, 375], [1.5, 385], [0.78, 352],
 ]
 ## The bedrock: the level's left wall, the start basin's floor, the slide
-## tunnel's floor rising to the chute, and the ground past gate 1. Just
-## inside the tunnel's mouth, under the lip, its floor has a hump that slopes
-## down into the basin, so a slime that falls short of the lip rolls back out
-## instead of getting lost in the tunnel.
+## tunnel's floor running on under the pillar to section 2's shaft, the
+## ground past the shaft and the level's right wall (a stub of section 2,
+## chunk 14). Just inside the tunnel's mouth, under the lip, its floor has a
+## hump that slopes down into the basin, so a slime that falls short of the
+## lip rolls back out instead of getting lost in the tunnel.
 const BEDROCK := [
 	[0.0, -800], [0.08, -800], [0.1, 200], [0.14, 440], [0.2, 500], [0.62, 500], [0.78, 462],
-	[1.5, 495], [3.0, 485], [5.0, 460], [7.0, 430], [7.3, 390], [7.5, 150],
-	[7.66, 30], [7.66, -100], [8.0, -100], [8.0, 1200], [0.0, 1200],
+	[1.5, 495], [3.0, 485], [5.0, 460], [7.0, 430], [7.3, 390], [8.0, 375], [8.5, 360],
+	[8.66, 300], [8.66, -100], [8.9, -100], [8.9, -800], [9.0, -800], [9.0, 1200], [0.0, 1200],
 ]
 ## Floating greybox pieces: name -> outline.
 const PIECES := {
@@ -62,7 +63,8 @@ const PIECES := {
 	"TreePlatform": [[4.9, -360], [5.5, -360], [5.5, -320], [4.9, -320]],
 	"TreeBough": [[5.3, -640], [5.48, -640], [5.48, -615], [5.3, -615]],
 	"TreeBack": [[5.5, -360], [5.85, -230], [5.85, -200], [5.5, -330]],
-	"Bridge": [[6.5, -100], [7.29, -100], [7.29, -75], [6.5, -75]],
+	# The chute's far wall and the ground past gate 1, over the tunnel.
+	"Pillar": [[7.66, -100], [8.5, -100], [8.5, 180], [7.6, 180], [7.5, 150], [7.66, 30]],
 	"LedgeB": [[6.2, -320], [6.4, -320], [6.4, -295], [6.2, -295]],
 	"LedgeC": [[6.5, -360], [6.75, -360], [6.75, -335], [6.5, -335]],
 }
@@ -88,6 +90,19 @@ const SLIDE := [
 	[7.6, -124], [7.54, 0], [7.43, 150], [7.31, 300], [7.0, 406], [5.0, 436],
 	[3.0, 461], [1.5, 471], [0.78, 438], [0.62, 476], [0.3, 476],
 ]
+## Section 2 (a stub, chunk 14: section 2 proper is chunks 15 and 16): on
+## from the slide entrance over the pillar and gate 1, then its return route
+## down the shaft and back along the tunnel to slide 1's tail.
+const S2_LOOP := [[7.6, -124], [8.0, -124], [8.4, -124], [8.58, -124]]
+const S2_SLIDE := [
+	[8.58, -124], [8.58, 120], [8.5, 320], [8.3, 345], [8.0, 351], [7.3, 366], [7.0, 406],
+]
+## Frontier set 1's doors (chunk 14), level boxes [x0, y0, x1, y1] (x in
+## screens): the switch's trapdoor over basket 1's pit (solid while the flow
+## goes onward), and gate 1's lid over slide 1's entrance (shut once the gate
+## is open).
+const TRAPDOOR := [6.5, -100, 7.29, -75]
+const ENTRANCE_LID := [7.49, -100, 7.67, -68]
 const ROUTE_BACK_HIGH_STEP := [
 	[3.8, -354], [4.15, -354], [4.41, -234], [4.5, -194], [4.56, -120], [4.58, -76],
 ]
@@ -163,6 +178,13 @@ func _build() -> Level:
 	_set_route(s1_slide, "s1.slide", SLIDE)
 	s1_slide.kind = LoopData.RETURN
 	s1_slide.gate_id = "s1.gate"
+	var s2_loop: LoopSegment = _add(level, loop, "loop_segment", "S2Loop")
+	_set_route(s2_loop, "s2.loop", S2_LOOP, 2)
+	var s2_slide: LoopSegment = _add(level, loop, "loop_segment", "S2Slide")
+	var s2_return: Array = S2_SLIDE.duplicate()
+	s2_return.append_array(SLIDE.slice(5))
+	_set_route(s2_slide, "s2.slide", s2_return, 2)
+	s2_slide.kind = LoopData.RETURN
 
 	var start := _group(level, level, "Start")
 	var split_zone: SplitZone = _add(level, start, "split_zone", "SplitZone")
@@ -210,18 +232,27 @@ func _build() -> Level:
 	switch.basket_id = "s1.basket"
 	switch.position = _at(6.47, -124)
 	switch.size = Vector2(80, 80)
+	switch.trapdoor = _box_from(switch.position, TRAPDOOR)
 	var basket: Basket = _add(level, frontier, "basket", "Basket")
 	basket.stable_id = "s1.basket"
 	basket.quota = 6
 	basket.on_full_object = "s1.gate"
 	basket.on_full_action = "open"
-	basket.position = _at(6.95, 20)
-	basket.size = Vector2(560, 150)
+	# The pit under the trapdoor, from its rim down to its floor.
+	basket.position = _at(6.895, 0)
+	basket.size = Vector2(0.81 * S, 200)
 	var gate: Gate = _add(level, frontier, "gate", "Gate")
 	gate.stable_id = "s1.gate"
 	gate.position = _at(7.8, -180)
 	gate.size = Vector2(40, 160)
+	gate.entrance_lid = _box_from(gate.position, ENTRANCE_LID)
 	return level
+
+
+## A level box [x0, y0, x1, y1] (x in screens) relative to `origin`.
+func _box_from(origin: Vector2, box: Array) -> Rect2:
+	var from := _at(box[0], box[1])
+	return Rect2(from - origin, _at(box[2], box[3]) - from)
 
 
 func _at(x_screens: float, y: float) -> Vector2:
@@ -259,9 +290,9 @@ func _terrain(level: Level, parent: Node, node_name: String, outline: Array) -> 
 	return piece
 
 
-func _set_route(segment: LoopSegment, id: String, points: Array) -> void:
+func _set_route(segment: LoopSegment, id: String, points: Array, section := 1) -> void:
 	segment.stable_id = id
-	segment.section = 1
+	segment.section = section
 	segment.curve = _curve(points)
 
 

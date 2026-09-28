@@ -32,13 +32,18 @@ const STATE_SLEEPER := 0
 const STATE_TRAIN := 1
 const STATE_FREE := 2
 const STATE_BEDTIME_ASLEEP := 3
+## Resting in a basket (FrontierSets, chunk 14): it doesn't hop, nor ride
+## the train, nor follow a call; it falls and settles like any body.
+# @spec-link [[req_switch_basket_gate_set]]
+const STATE_IN_BASKET := 4
 ## Short names for the states.
 const SLEEPER := STATE_SLEEPER
 const TRAIN := STATE_TRAIN
 const FREE := STATE_FREE
 const BEDTIME_ASLEEP := STATE_BEDTIME_ASLEEP
+const IN_BASKET := STATE_IN_BASKET
 ## The state names, as dump() writes them.
-const STATE_NAMES: PackedStringArray = ["sleeper", "train", "free", "bedtime_asleep"]
+const STATE_NAMES: PackedStringArray = ["sleeper", "train", "free", "bedtime_asleep", "in_basket"]
 
 const MAX_SIZE := 3
 ## Ring points per size (index 0 unused).
@@ -95,8 +100,18 @@ var terrain_skin := EDGE
 var max_speed := 1200.0
 ## Whether tick() hops slimes on their own timers. Off, only hop() hops.
 var auto_hops := true
+## How fast the hop timers run (1: normal). The Simulation sets it every tick
+## from the session (Session.hop_rate(): slower hops in the wind-down), so it
+## isn't in dump().
+# @spec-link [[req_session_lifecycle]]
+var hop_rate := 1.0
 ## The static terrain (built once per level and shared), or null for none.
 var terrain: TerrainSegments = null
+## Extra solid pieces solved like the terrain, after it: the frontier sets'
+## doors that are shut (a switch's trapdoor, a closed gate), set every tick
+## by FrontierSets from the object states, so not in dump().
+# @spec-link [[req_switch_basket_gate_set]]
+var doors: Array[TerrainSegments] = []
 
 # Per point.
 var pos := PackedVector2Array()
@@ -110,8 +125,8 @@ var first := PackedInt32Array()
 var npts := PackedInt32Array()
 var size := PackedInt32Array()
 var species := PackedInt32Array()
-## Each slime's state: STATE_SLEEPER, STATE_TRAIN, STATE_FREE or
-## STATE_BEDTIME_ASLEEP.
+## Each slime's state: STATE_SLEEPER, STATE_TRAIN, STATE_FREE,
+## STATE_BEDTIME_ASLEEP or STATE_IN_BASKET.
 # @spec-link [[req_slime_states]]
 var state := PackedInt32Array()
 ## 1 while the slime is held still (covered by others, resting in a full
@@ -653,7 +668,7 @@ func _auto_hops(dt: float) -> void:
 	for s in slime_count:
 		if not _can_hop_at(s):
 			continue
-		var t := hop_timer[s] - dt
+		var t := hop_timer[s] - dt * hop_rate
 		if t > 0.0:
 			hop_timer[s] = t
 			continue
@@ -1045,13 +1060,19 @@ func _solve_rings() -> void:
 ## or closer than `terrain_skin` to it, goes to `terrain_skin` off the nearest
 ## surface point; its velocity loses the part going into the surface and
 ## `terrain_friction` of the part along it. A point pushed out by a surface
-## facing up supports its slime.
+## facing up supports its slime. The shut doors are solved the same way,
+## after the terrain.
 func _solve_terrain() -> void:
-	if terrain == null or terrain.is_empty():
-		return
+	if terrain != null and not terrain.is_empty():
+		_solve_against(terrain)
+	for door in doors:
+		if door != null and not door.is_empty():
+			_solve_against(door)
+
+
+func _solve_against(tf: TerrainSegments) -> void:
 	var p := pos
 	var o := prev
-	var tf := terrain
 	var sa := tf.seg_a
 	var sdir := tf.seg_d
 	var sil := tf.seg_inv_len2

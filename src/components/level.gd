@@ -108,9 +108,19 @@ func build() -> PackedStringArray:
 			data.first_slime = {"id": id, "species": node.species, "position": position_of(node)}
 		elif node is Sleeper:
 			data.add_sleeper(id, node.species, position_of(node))
+		elif node is Switch:
+			data.add_switch(id, box_of(node, node.size), node.basket_id, rect_of(node, node.trapdoor))
+		elif node is Basket:
+			data.add_basket(id, box_of(node, node.size), node.quota, _outlet_of(node))
+		elif node is Gate:
+			data.add_gate(id, box_of(node, node.size), rect_of(node, node.entrance_lid))
+		elif node is Signpost:
+			data.add_signpost(id, position_of(node), node.switch_id)
 		if node.has_method("tap_target"):
 			var target: Dictionary = node.tap_target()
 			data.add_tap_target(id, target["kind"], box_of(node, target["size"]))
+	for rule in all_rules():
+		data.rules.append(rule.to_dict())
 	load_errors = errors
 	return errors
 
@@ -163,6 +173,29 @@ func box_of(node: Node, size: Vector2) -> Rect2:
 	for corner in [Vector2(half.x, -half.y), half, Vector2(-half.x, half.y)]:
 		box = box.expand(to_level * corner)
 	return box
+
+
+## The level-coordinate bounds of `local`, a box in `node`'s local space
+## (a switch's trapdoor, a gate's lid). An empty box stays empty.
+func rect_of(node: Node, local: Rect2) -> Rect2:
+	if not local.has_area():
+		return Rect2()
+	var to_level := transform_of(node)
+	var box := Rect2(to_level * local.position, Vector2.ZERO)
+	for corner in [Vector2(local.end.x, local.position.y), local.end, Vector2(local.position.x, local.end.y)]:
+		box = box.expand(to_level * corner)
+	return box
+
+
+## Where basket `basket` releases its slimes (its `outlet` property), in
+## level pixels: a point, or the onward route before the slide entrance
+## (FrontierSets.onward_outlet).
+# @spec-link [[req_switch_basket_gate_set]]
+func _outlet_of(basket: Basket) -> Vector2:
+	if basket.outlet == "point":
+		return transform_of(basket) * basket.outlet_point
+	return FrontierSets.onward_outlet(data.loop, basket.on_full_object, basket.outlet_before,
+			position_of(basket))
 
 
 ## Where the game starts the view: the first slime's spawn, or the start of

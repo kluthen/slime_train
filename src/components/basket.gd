@@ -3,9 +3,20 @@ class_name Basket
 extends Area2D
 ## A basket (master spec §5.4): collects slimes until their weight reaches
 ## its quota, then fires its target (on_full_object / on_full_action, a rule
-## in the shared format, see Rule). Placeholder: no counting or firing yet
-## (chunk 14).
+## in the shared format, see Rule). Its box is where the slimes rest: a slime
+## whose centre is inside is in the basket. It shows the weight it still
+## needs as slime outlines; when full, the reward waits until it is in view,
+## then it fires and releases its slimes through its outlet. The behaviour is
+## FrontierSets' (src/sim/frontier_sets.gd); this node only configures it.
+##
+## Where it releases its slimes (after firing, and after an opt-out) belongs
+## to the basket's own design, not settled yet (Known gap 3, O62): it is the
+## `outlet` property, so it can change. "onward_route" (the default, the test
+## level's assumption) drops them onto the onward route `outlet_before` px
+## before the slide entrance its target gate retires; "point" drops them at
+## `outlet_point`.
 # @spec-link [[req_interactive_objects_general]]
+# @spec-link [[req_switch_basket_gate_set]]
 
 const COLOR := Color(1.0, 1.0, 1.0)
 
@@ -28,6 +39,13 @@ const COLOR := Color(1.0, 1.0, 1.0)
 @export var on_full_object := ""
 ## ...and the action asked of it.
 @export var on_full_action := "open"
+## Where it releases its slimes: "onward_route" or "point" (see above).
+@export_enum("onward_route", "point") var outlet := "onward_route"
+## For "onward_route": how far before the slide entrance, in px along the
+## loop.
+@export var outlet_before := 200.0
+## For "point": where, relative to the basket's position, in level pixels.
+@export var outlet_point := Vector2.ZERO
 
 func _init() -> void:
 	add_to_group(Level.THINGS_GROUP)

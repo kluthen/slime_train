@@ -1,0 +1,8 @@
+{
+	"seed": 4242,
+	"sessions": true,
+	"fixture": "sunrise",
+	"steps": [
+		{"tick": 400, "do": "tap", "at": [576, 400]}
+	]
+}

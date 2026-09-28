@@ -4,9 +4,17 @@ extends Area2D
 ## A switch (master spec §5.4): stands at the fork just before the frontier
 ## gate. By default the flow carries on (toward the return route while the
 ## gate is closed); tapped, it flips and sends the flow into its basket.
-## Placeholder: no behaviour yet (chunk 14). A tap on it (its box plus
-## TapDispatcher.OBJECT_HIT_MARGIN) doesn't call.
+## It stays flipped until tapped again; flipped back before the basket is
+## full, the basket lets its slimes go (opting out). Once its basket is full
+## it does nothing any more. A tap on it (its box plus
+## TapDispatcher.OBJECT_HIT_MARGIN) doesn't call. The behaviour is
+## FrontierSets' (src/sim/frontier_sets.gd); this node only configures it.
+##
+## How it sends the flow: `trapdoor`, a box of the onward path that is solid
+## while the switch sends the flow onward and opens, dropping the slimes that
+## walk onto it into the basket, while it is flipped.
 # @spec-link [[req_interactive_objects_general]]
+# @spec-link [[req_switch_basket_gate_set]]
 
 const COLOR := Color(1.0, 0.6, 0.2)
 
@@ -22,6 +30,12 @@ const COLOR := Color(1.0, 0.6, 0.2)
 		_resize()
 ## The basket it sends the flow into when flipped.
 @export var basket_id := ""
+## The trapdoor: a box relative to the switch's position, in level pixels
+## (solid while the flow goes onward, open while flipped). Empty: none.
+@export var trapdoor := Rect2():
+	set(value):
+		trapdoor = value
+		queue_redraw()
 
 func _init() -> void:
 	add_to_group(Level.THINGS_GROUP)
@@ -33,6 +47,8 @@ func _ready() -> void:
 
 func _draw() -> void:
 	PlaceholderArt.draw_box(self, size, COLOR, stable_id)
+	if Engine.is_editor_hint() and trapdoor.has_area():
+		draw_rect(trapdoor, COLOR, false, 2.0)
 
 
 ## Whether `offset` (from its position) is inside its box.

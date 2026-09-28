@@ -23,6 +23,22 @@
 			"trapdoor_shut": true
 		}
 	},
+	"session": {
+		"anchor": {
+			"elapsed_ms": 900000,
+			"mono_ms": 0,
+			"wall_ms": 1800000000000
+		},
+		"clock": {
+			"epoch": "test",
+			"mono_ms": 0,
+			"tick": 0,
+			"wall_ms": 1800000000000
+		},
+		"elapsed_ms": 900000,
+		"phase": "bedtime",
+		"sunrise_tick": -1
+	},
 	"slimes": [
 		{
 			"centre": [
@@ -35,7 +51,7 @@
 			],
 			"size": 1,
 			"species": "A",
-			"state": "train",
+			"state": "bedtime_asleep",
 			"train": {
 				"distance": 0.0
 			}
@@ -81,6 +97,19 @@
 		},
 		{
 			"centre": [
+				1624.32,
+				-188.0
+			],
+			"id": "s1.sleeper.04",
+			"members": [
+				"s1.sleeper.04"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
 				1716.48,
 				-200.0
 			],
@@ -107,6 +136,19 @@
 		},
 		{
 			"centre": [
+				2004.48,
+				-188.0
+			],
+			"id": "s1.sleeper.07",
+			"members": [
+				"s1.sleeper.07"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
 				2200.32,
 				-188.0
 			],
@@ -129,6 +171,19 @@
 			],
 			"size": 1,
 			"species": "B",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				2488.32,
+				-200.0
+			],
+			"id": "s1.sleeper.10",
+			"members": [
+				"s1.sleeper.10"
+			],
+			"size": 1,
+			"species": "C",
 			"state": "sleeper"
 		},
 		{
@@ -165,6 +220,32 @@
 			"id": "s1.sleeper.13",
 			"members": [
 				"s1.sleeper.13"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				3847.6800000000003,
+				-174.0
+			],
+			"id": "s1.sleeper.14",
+			"members": [
+				"s1.sleeper.14"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				3939.84,
+				-174.0
+			],
+			"id": "s1.sleeper.15",
+			"members": [
+				"s1.sleeper.15"
 			],
 			"size": 1,
 			"species": "C",
@@ -351,41 +432,6 @@
 			"size": 1,
 			"species": "C",
 			"state": "sleeper"
-		},
-		{
-			"centre": [
-				3400.38,
-				195.8
-			],
-			"id": "s1.sleeper.04",
-			"members": [
-				"s1.sleeper.04",
-				"s1.sleeper.07",
-				"s1.sleeper.10"
-			],
-			"size": 3,
-			"species": "C",
-			"state": "train",
-			"train": {
-				"distance": 3337.64
-			}
-		},
-		{
-			"centre": [
-				3511.62,
-				202.47
-			],
-			"id": "s1.sleeper.14",
-			"members": [
-				"s1.sleeper.14",
-				"s1.sleeper.15"
-			],
-			"size": 2,
-			"species": "C",
-			"state": "train",
-			"train": {
-				"distance": 3449.29
-			}
 		}
 	]
 }

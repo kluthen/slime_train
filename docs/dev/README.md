@@ -45,7 +45,9 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `src/sim/` | The simulation core: pure logic, with no scene dependencies, so it can be unit tested |
 | `src/test_mode_guard.gd` | The one check that keeps test mode out of release builds |
 | `src/test_mode/` | Test mode: scripted input, time control, fixtures and saves to start from, the on-screen marker |
-| `src/save/` | The save files (`SaveStore`: one per level, never wiped) and autosave timing (`Autosave`); the save format itself is `src/sim/save_data.gd` (see "Saves and fixtures") |
+| `src/save/` | The save files (`SaveStore`: one per level, never wiped), autosave timing (`Autosave`) and the real clocks sessions count on (`SessionClock`); the save format itself is `src/sim/save_data.gd` (see "Saves and fixtures") |
+| `src/session/` | The session's screen effects (`SessionScreen`: the dusk tint, keeping the screen on); the session logic itself is `src/sim/session.gd` (see "Sessions (chunk 17)") |
+| `src/frontier/` | Frontier set drawing (`FrontierView`: doors, arrows, the basket's outlines, the celebration); the logic itself is `src/sim/frontier_sets.gd` (see "Frontier sets (chunk 14)") |
 | `src/taps/` | Tap feedback drawing (`TapFeedback`: the ripples and the slimes' eye dots); the tap logic itself is in `src/sim/` (see "Taps and the call") |
 | `src/slimes/` | Slime drawing (`SlimeRenderer` and its shaders), the terrain hand-off to the simulation (`SlimeWorld`) and the slime demo scene |
 | `src/components/` | Reusable level components, configured in the editor (see "Levels and components") |
@@ -177,6 +179,15 @@ A run is one dictionary, in GDScript or in a JSON file:
 - `load`: a save file (`user://...` or a file path) to start from instead;
   not both `fixture` and `load`. A save's own seed wins over `seed`; a
   hand-made save without one plays on `seed`.
+- `sessions` (default false): sessions on, as in normal play: the run
+  opens in screensaver mode and a tap that reaches the world starts a
+  session (see "Sessions (chunk 17)"). Off, the run plays untimed, as in an
+  endless session; a fixture or save with a session or bedtime running
+  counts down either way.
+- `clock` (`{"away": seconds, "restarted": bool}`, default `{}`): what
+  happened to the real clocks before the run starts: `away` seconds passed,
+  and `restarted` (the app was killed or the phone restarted: a new
+  monotonic epoch). Only meaningful with a save or fixture.
 - `autosave` (default false): autosave during the run. Off, a run never
   writes a save; `game.save_now()` saves on demand either way (to the
   game's `save_store`, which a test sets before adding the game).
@@ -188,7 +199,10 @@ A run is one dictionary, in GDScript or in a JSON file:
 - `steps`: the input script (`src/test_mode/test_mode_script.gd`). `tick` is
   the tick the step happens on: its events are consumed by the step that
   advances that tick. `do` is `tap` (down and up on the same tick),
-  `touch_down`, `touch_up` or `tilt`. `at` is a viewport position; `finger`
+  `touch_down`, `touch_up`, `tilt` or `skip` (`{"tick": 150, "do": "skip",
+  "seconds": 900}`: that much real time passes before the tick, as if the
+  app sat in the background; the simulation doesn't run meanwhile, only the
+  session's clocks jump). `at` is a viewport position; `finger`
   is 0 by default, 1 for a second finger. Steps may come in any order. A typo
   in a key or a missing value is an error naming the step.
 
@@ -353,20 +367,21 @@ no state a save would need.
 | `SplitZone` | `Area2D` | `stable_id`, `size` | At the start of the loop (rule 4). `SplitZones` in the simulation splits every slime inside it (see "Train") |
 | `FirstSlime` | `Node2D` | `stable_id` (`start.first-slime`), `species` | Where the first awake slime starts: the game wakes it there in a fresh game (see "Train") |
 | `Sleeper` | `Node2D` | `stable_id`, `species` (A to E) | Always size 1 |
-| `Switch` | `Area2D` | `stable_id`, `size`, `basket_id` | |
-| `Basket` | `Area2D` | `stable_id`, `size`, `quota` (weight), `on_full_object`, `on_full_action` | Holds its rule (below) |
-| `Gate` | `Node2D` | `stable_id`, `size` | Accepts the action `open` |
-| `Signpost` | `Node2D` | `stable_id`, `switch_id` | |
+| `Switch` | `Area2D` | `stable_id`, `size`, `basket_id`, `trapdoor` (a box relative to the switch) | Tappable. Its trapdoor is solid while the flow goes onward, open while flipped (see "Frontier sets (chunk 14)") |
+| `Basket` | `Area2D` | `stable_id`, `size`, `quota` (weight), `on_full_object`, `on_full_action`, `outlet` (`onward_route` or `point`), `outlet_before` (px), `outlet_point` | Holds its rule (below). Its box is where caught slimes rest |
+| `Gate` | `Node2D` | `stable_id`, `size`, `entrance_lid` (a box relative to the gate) | Accepts the action `open`. Its box is solid while closed; its lid shuts the old slide entrance once open |
+| `Signpost` | `Node2D` | `stable_id`, `switch_id` | Not interactive: the game draws its arrow the way its switch sends the flow |
 | `FramingZone` | `Area2D` | `stable_id`, `size`, `zoom`, `offset` | `zoom` as `Camera2D.zoom`: below 1 shows more (0.7 is a zoom-out); `offset` in px, negative y is up |
 
 `size` is a box centred on the node's position. The `Area2D`s make their
 rectangle collision shape at load; the `Path2D`s draw their curve. Nodes a
 component makes at load (terrain bakes, shapes) have no owner, so they are
 never saved into the level scene. The split zone splits and the first
-slime is woken (chunk 6, see "Train"). **No behaviour yet** for the others:
-the switch, the basket's counting, the gate opening and the camera reading
-the framing zones come in later chunks; the level places them, gives them
-IDs and checks the references.
+slime is woken (chunk 6, see "Train"). The camera reads the framing zones
+(chunk 13, see "Camera"); the switch, the basket and the gate work through
+`FrontierSets` and the signpost is drawn by `FrontierView` (chunk 14, see
+"Frontier sets (chunk 14)"). The level places them, gives them IDs and
+checks the references.
 
 ### The rule format
 
@@ -384,7 +399,9 @@ that triggers a rule holds it: a `Basket` builds its rule from
 emits with `rule_events()` (`Basket`: `full`) and the actions it accepts with
 `rule_actions()` (`Gate`: `open`). At load every rule is checked: both
 objects exist, the "when" object emits the event and the "then" object
-accepts the action. Executing rules comes with chunk 14.
+accepts the action. `Level.build()` copies every rule into
+`LevelData.rules`; `FrontierSets` runs a basket's rules when it fires
+(chunk 14).
 
 ### The loop as data
 
@@ -439,6 +456,19 @@ tables in the generator say where):
 - the chute into slide 1 is wider at the top (the near wall starts at 7.5,
   was 7.56) and its far wall is upright down to y = 30, so a slime falling
   in isn't thrown back up onto the ledge.
+
+Chunk 14 built frontier set 1 into it:
+
+- basket 1's pit is open at the top, under switch 1's trapdoor (6.5 to
+  7.29, y -100 to -75): the old crust bridge over it is gone; the basket's
+  box is 0.81 screens wide, 200 px deep, centred at 6.895;
+- the "Pillar" (7.66 to 8.5) replaces the bedrock's far wall of the chute:
+  its top carries the loop on to gate 1 (at 8.58); gate 1's lid (7.49 to
+  7.67, y -100 to -68) covers slide 1's entrance once the gate is open;
+- a stub of section 2: `s2.loop` (section 2, outgoing, 7.6 to 8.58 at
+  y = -124, through the gate) and `s2.slide` (its return route, no gate,
+  down the shaft past 8.66 and back along slide 1's tunnel), so opening
+  gate 1 has a loop to grow into. Section 2's real terrain replaces them.
 
 The scene is generated by `tools/greybox_test_level.gd` from tables of
 points (x in screens, y in px):
@@ -821,9 +851,10 @@ threshold under which the phone is flat) is chunk 20's.
 **Neutral.** Readings count from `neutral`, the hold when the session
 started: `take_neutral_now()` takes the last reading (0°, the screen's down,
 if the phone lies flat or nothing was read yet); `set_neutral(angle)` sets
-it. Placeholder until sessions (chunk 17): `Simulation.load_level()` takes
-it, so every fresh or resumed level starts at neutral (D95's proposed
-clause). Angles wrap at ±180°.
+it. The session takes it (chunk 17, D95): when a session starts, and again
+when a running session comes back after the app was in the background or
+killed (see "Sessions (chunk 17)"). Loading a level no longer takes it (the
+chunk 11 placeholder is gone). Angles wrap at ±180°.
 
 **Dead zone and cap.** Relative to neutral, a tilt within
 `DEAD_ZONE_DEGREES` (10) leaves gravity plain down (exactly `Vector2.DOWN`,
@@ -1048,9 +1079,10 @@ steers free slimes, it doesn't take the camera.
   Turning it on starts the idle camera at once, at `IDLE_ZOOM`, with no cue.
   A touch takes the camera back as above; it idles again after the usual
   45 s. The core default is false (a session, and test mode and the unit
-  tests play as in one); `main.gd` turns it on in normal play after the
-  save is loaded, until sessions (chunk 17) drive it. It is a mode set
-  from outside, so it is not in `Simulation.dump()` nor in saves; the
+  tests play as in one). Once sessions are open (`session.open()`: normal
+  play, or a test-mode run with `"sessions": true`), the session sets it
+  every tick: on in screensaver mode, off during a session and at bedtime
+  (see "Sessions (chunk 17)"). It is a mode set from outside, so it is not in `Simulation.dump()` nor in saves; the
   camera's own dump records what it did (`screensaver` as last seen,
   `quiet`, `cue_from`, `follow_id`, `follow_species`, `follow_point`,
   `frame_zone`, `frame_shift`, `zone_hold`).
@@ -1347,6 +1379,266 @@ longer simulate.
   - the e2e counts expect 1 + the level's sleepers at load;
   - the `bump` fixture expects 3 awake slimes.
 
+## Frontier sets (chunk 14)
+
+Master spec §5.4, DoD 9-14 (`req_switch_basket_gate_set`,
+`req_interactive_objects_general`, `rule_gate_opens_via_switch_basket_set`,
+`rule_frontier_set_inert_after_gate_open`, `rule_signpost_at_every_fork`,
+`req_level_completion_celebration`). `FrontierSets`
+(`src/sim/frontier_sets.gd`, pure logic) is `simulation.frontier`;
+`FrontierView` (`src/frontier/frontier_view.gd`, the node `Frontier` under
+main) draws it. Its class doc is the reference; in short:
+
+**Data flow.** The components (`Switch`, `Basket`, `Gate`, `Signpost`)
+only configure: `Level.build()` turns them into `LevelData.switches`,
+`baskets`, `gates`, `signposts` and `rules` (level pixels). At load (and on
+a save restore) `frontier.start(sim)` fills `sim.object_states` and
+`sim.gate_states` with each object's state, syncs the train's open gates
+and builds the doors. Each tick, after fusion, `frontier.step(sim)`:
+
+1. catches every train or free slime whose centre is inside a basket's box
+   (state `in_basket`: no hopping, no train, no call; it falls and settles);
+2. weighs each basket (a size-3 slime weighs 3) and moves it through its
+   phases: `filling` (collecting while its switch is flipped) -> `full` at
+   its quota -> `reward` once its box's centre is in the view, for
+   `REWARD_SECONDS` -> `fired`: its rules run (its gate opens) and, when
+   every basket of the level has fired, the celebration plays, once per
+   save;
+3. lets a basket that isn't holding (fired, or its switch flipped back)
+   release its slimes, lowest id first, one every `RELEASE_SECONDS`, at its
+   outlet when there is room; the slime is moved there at rest and rides
+   the train again;
+4. sets the doors: a flipped switch's trapdoor is open, a closed gate's box
+   is solid, an open gate's lid shuts the old slide entrance; a door only
+   shuts once no slime is in its way. The shut ones go to
+   `SlimeBodies.doors`, solved like the terrain.
+
+Then `sim.gates` follows the train's open gates. A tap on a switch
+(`Simulation._tap`, `KIND_SWITCH`) calls `frontier.tap_switch()`: it flips
+only while the basket is `filling`, so the set is locked once full and inert
+for good once fired. At bedtime taps reach no object (chunk 17), so the
+switch can't be flipped then.
+
+**Opening a gate** adds it to the train's open gates: the loop grows
+(`LoopData.current_segments`: the section's return route is replaced by the
+next section's segments). Train slimes on the outgoing part keep their
+distance; those still on the old return route are put the same distance
+from the new loop's end, and every progress mark restarts.
+
+**Editor configuration.** In the level scene:
+
+- `Switch`: at the fork, before the gate; `basket_id` its basket;
+  `trapdoor` a box (relative to the switch) of the loop's ground over the
+  basket, solid while the flow goes onward, open while flipped. Tappable
+  (its box plus the tap margin).
+- `Basket`: its box is where caught slimes rest (the pit under the
+  trapdoor); `quota` the weight that fills it; `on_full_object` its gate,
+  `on_full_action` `open`; the outlet (below).
+- `Gate`: its box blocks the loop while closed (put it across the next
+  section's outgoing route); `entrance_lid` a box (relative to the gate)
+  over the old slide entrance, solid once the gate is open. The section's
+  return `LoopSegment` names it in `gate_id`.
+- `Signpost`: next to its switch (`switch_id`), one at every fork; not
+  interactive. The game draws its arrow the way its switch sends the flow.
+
+**The outlet** (Known gap 3, O62: not settled by the spec) is a basket
+property. `onward_route` (the default): on the onward route, `outlet_before`
+px (200) along the loop before the start of the return route its gate
+retires (`FrontierSets.onward_outlet`); a level with no such route falls
+back to the outgoing route's point nearest the basket. `point`:
+`outlet_point`, relative to the basket. Released slimes land there and ride
+on through the open gate.
+
+**Saved.** `objects` (switches and baskets) and `gates` hold the states
+above by stable ID, and `celebration_done` the celebration's mark; the
+celebration's start tick is transient (`transient.frontier`), so a reload
+never replays it. A save holding states of objects the level doesn't have
+keeps them as they are.
+
+**Placeholder art** (`FrontierView`, z 5): the shut trapdoors, closed gate
+boxes and shut lids as blocks; the switch's and signpost's arrows (down
+into the basket when flipped, else along the loop); the basket's quota as
+slime outlines filled by weight, pulsing during the reward; rings for the
+celebration.
+
+**Tuning** (constants in `FrontierSets`): `REWARD_SECONDS` 2.0,
+`RELEASE_SECONDS` 0.3, `CELEBRATION_SECONDS` 4.0, `OUTLET_CLEARANCE` 8 px
+(the outlet is free when no slime is closer than the two radii plus this),
+`DOOR_CLEARANCE` `SlimeBodies.EDGE` (3 px); the basket's `outlet_before`
+200 px.
+
+**Fixtures.** `s1-basket-5of6` (basket 1 at 5 of 6, the first slime about
+to drop in) and `s1-optout` (basket 1 at 3 of 6, to flip back), both with
+the camera on the basket (see "Fixtures").
+
+**Test mode.** To watch a set fire:
+
+```json
+{"seed": 14, "fixture": "s1-basket-5of6", "time_scale": 1.0}
+```
+
+The first slime drops through the open trapdoor, the outlines fill to 6,
+the reward pulses (2 s), gate 1 opens, the lid shuts slide 1's entrance and
+the six slimes are let out one by one at the outlet, then ride section 2's
+stub and back down to the start; the celebration plays. To opt out, start
+from `s1-optout` and tap the switch (a `tap` step at its screen position): the basket
+lets its slime go and its outlines empty. With `--save=` under a scratch
+directory, a reload after the celebration shows no celebration.
+
+**Tests.** `tests/unit/test_frontier_sets.gd` (on a synthetic level: the
+outlet, catching and weighing, the reward waiting for the view, firing and
+the loop remap, release pacing and clearance, opting out, the lock and
+inertness, the doors, the celebration once, saves, same seed same hash),
+`tests/e2e/test_frontier_e2e.gd` (the game scene on the fixtures, basket on
+screen: DoD 9, 10, 11, 13, 14, and a child process with the same hash) and
+`tests/e2e/test_frontier_level.gd` (the test level's set against the level
+rules: a signpost at every fork, the trapdoor over the basket, the outlet
+on the onward route, the gate and its lid, a return route per section,
+every branch still reachable with the gate open).
+
+**Known gaps.** What a basket does at bedtime is undecided: slimes in a
+basket stay `in_basket` and a fired basket keeps releasing. The section 2
+segments are a stub.
+
+## Sessions (chunk 17)
+
+Master spec §5.7, DoD 20-22, D95 (`req_session_lifecycle`), with O68
+(reopening resumes where it was) and O69 (only a tap that reaches the world
+starts a session) built to their proposed defaults. `Session`
+(`src/sim/session.gd`, pure logic) is `simulation.session`; the scene layer
+hands it the clocks and shows its effects.
+
+**The state machine.** Phases are strings (`Session.PHASES`):
+
+```
+screensaver --world tap--> session --14:00--> wind_down --15:00--> bedtime --25:00--> screensaver
+```
+
+One timer, `elapsed_ms`, counts real milliseconds since the session
+started: `WIND_DOWN_MS` (840 000), `BEDTIME_MS` (900 000), `SUNRISE_MS`
+(1 500 000: bedtime plus the 10-minute cooldown). Sunrise is the transition
+`sunrise(sim, cue)` back to screensaver mode (chunk 18's wake early will call
+it too). `advance()` runs once a tick, after the input and before the
+slimes move; its checks are sequential, so a long gap goes through every
+phase it passed, each with its effects. A sunrise more than
+`SUNRISE_CUE_LATE_MS` (1 s) late shows no cue (`sunrise_tick` = -1): a
+cooldown that ran out while the app was closed lands in screensaver mode
+without replaying sunrise.
+
+**Who starts a session.** `Simulation._tap()`: a tap whose zone is open
+ground or an object starts one when `session.can_start()` (sessions open,
+screensaver mode), and still does its usual job (a call, a sleeper call).
+The parent band and the edge buttons never do (the edge button still
+presses). `start()` takes the tilt's neutral.
+
+**Sessions open or not.** `session.enabled` is a mode set from outside and
+not in the dump, like `screensaver`: `main.gd` calls `session.open(sim)` in
+normal play after loading the save, and test mode does when its run says
+`"sessions": true`. Open, the session sets `simulation.screensaver` every
+tick (on only in screensaver mode). Not open (the unit tests, test mode by
+default) the game plays untimed, as in an endless session, and
+`screensaver` is left to whoever set it; a restored session or bedtime
+still counts down.
+
+**The clock rule.** The simulation never reads a clock (a unit test lints
+`src/sim/` for it). Before every tick `main.gd` calls
+`session.read_clock(reading)`, a `Session.reading(wall_ms, mono_ms,
+epoch)`: in normal play `SessionClock.now()` (`src/save/session_clock.gd`:
+Unix time, `Time.get_ticks_usec()`, and an epoch naming this process), in
+test mode `test_mode.clock_at(tick)`. Without a new reading time stands
+still. The session keeps `anchor` `{wall_ms, mono_ms, elapsed_ms}` (where
+counting last started over) and `clock` `{wall_ms, mono_ms, epoch, tick}`
+(the last reading counted):
+- same epoch: `elapsed = anchor.elapsed + max(mono - anchor.mono, wall -
+  anchor.wall)`. The monotonic clock ignores the player setting the wall
+  clock back; the wall clock covers a phone asleep, which may pause the
+  monotonic one. Counting from the anchor, not step by step, keeps the two
+  from adding jitter.
+- a new epoch (the app was killed or the phone restarted): the time away is
+  the wall clock's gap, `max(0, wall - clock.wall)`; the anchor starts over
+  there, and a session or wind-down takes the tilt's neutral again.
+- `elapsed_ms` never decreases.
+Coming back from the background (`NOTIFICATION_APPLICATION_RESUMED`) calls
+`session.reopened()`: the next step takes the neutral again during a
+session or wind-down.
+
+**Effects.**
+- Wind-down: `dusk(tick)` ramps 0 to 1 over the minute; `hop_rate(tick)`
+  slows the hop timers from 1 to `WIND_DOWN_HOP_RATE` (0.5), through
+  `SlimeBodies.hop_rate` (set every tick, not dumped; at 1.0 the arithmetic
+  is unchanged, so no earlier hash moved).
+- Bedtime (`_bedtime`): train and free slimes become bedtime-asleep where
+  they are, hops let go; sleepers and slimes in a basket are left alone.
+  The edge buttons hide (`camera.edge_buttons_visible`, a held one lets
+  go), `hint.bedtime` is set, and `session.save_due` asks the game root to
+  save (it does when autosave is on). Taps at bedtime still ripple and the
+  parent band stays, but they hit no object, no edge button and never call.
+- Sunrise (`_wake`): a bedtime-asleep slime within `FreeSlimes.REJOIN_DISTANCE`
+  (plus its extra radius) of the loop is the train again (the train adopts
+  it; its lap count starts over), any other is free and heads back. The
+  edge buttons show, the hint may show again, screensaver mode is on, and
+  `dusk()` fades from 1 to 0 over `SUNRISE_SECONDS` (3 s) when there is a
+  cue.
+- `SessionScreen` (`src/session/session_screen.gd`, a `CanvasModulate` on
+  the game root, so the HUD isn't tinted) lerps white to `DUSK_COLOUR` by
+  `dusk()`, and keeps the screen on during a session or wind-down only
+  (`DisplayServer.screen_set_keep_on`; skipped headless). `DUSK_COLOUR` is
+  a placeholder until the ui_ux tree settles the dusk.
+
+**Saves.** `SaveData` writes `session` (`session.dump()`: `phase`,
+`elapsed_ms`, `anchor`, `clock`, `sunrise_tick`, all whole numbers and
+strings) and checks it (a known phase, whole numbers, `anchor` and `clock`
+together). Restoring puts back what it implies (at bedtime: edge buttons
+hidden, the hint's bedtime); the first step after a reload counts the time
+away by the rule above, so a killed session or bedtime resumes where it
+was. `enabled`, `save_due`, the pending reading and `reopened` stay out of
+the dump, so a normal-play reload still has the saved hash.
+
+**Test mode's clocks and skipping time.** `TestClock`
+(`src/test_mode/test_clock.gd`) is a pure function of the tick: both clocks
+run 1000/60 ms a tick from a base (the save's `session.clock` and its tick,
+else wall 1 800 000 000 000 ms, mono 0, epoch `"test"` at tick 0), plus the
+script's `skip` steps on the run's start tick or later (a reloaded run
+doesn't count again the skips before its save). The run's `"clock"`
+setting says what happened before it starts: `"away"` seconds pass on both
+clocks, `"restarted": true` gives a new epoch and a monotonic clock from 0.
+So a scripted session reaches bedtime with `{"tick": 150, "do": "skip",
+"seconds": 900}`, and a kill-and-reopen is a save then a run with `"load"`
+and `"clock": {"away": 60, "restarted": true}`. `Session.jump(sim, ms)`
+sets the timer directly (tools and tests).
+
+**Fixtures.** `wind-down` (14:50), `bedtime` (15:00) and `sunrise` (9:55
+into the cooldown), made by `tools/make_fixture.gd` from the fresh level:
+a session started on the default test clock and jumped with
+`Session.jump()`. Run them with `"sessions": true`
+(`tests/e2e/scripts/session_sunrise.json` does).
+
+**Tests.**
+- `tests/unit/test_session.gd` (28 tests): untimed by default, opening,
+  which taps start a session and the neutral, the phase thresholds, dusk and
+  the hop rate, bedtime's effects and inert taps, waking near and far from
+  the loop, the clock rule (wall set back, monotonic lagging, never
+  backwards, restarts with and without a gap, reopening), catching up with
+  and without a cue, save round trips and checks, the readable form,
+  `TestClock`, `skip` parsing, test mode's settings, and the no-clock lint.
+- `tests/e2e/test_session_e2e.gd` (8 tests) on the test level: DoD 20
+  (parent band and edge button don't start a session, a world tap does,
+  bedtime 15 minutes later; resume after a kill in test mode and in normal
+  play with a stand-in `session_clock`, which also saves at bedtime), DoD
+  21 (from `wind-down`: dusk, slower hops, the tint, then bedtime asleep,
+  saved, buttons hidden, a tap only ripples), the `bedtime` fixture, DoD 22
+  (from `sunrise`: sunrise 5 s in, screensaver mode, everyone awake, the
+  next tap starts a session), repeatable in process and in a child process.
+- Wake early (DoD 22's parent part) is chunk 18's.
+
+**Choices.** One timer through all phases, rather than a timer per phase,
+keeps catching up one comparison per limit. The clock rule trusts the
+larger of the two clocks inside an epoch and the wall clock across one; a
+player who moves the wall clock forward while the app is closed shortens
+the cooldown (accepted: the monotonic clock can't survive a restart).
+Bedtime-asleep slimes stay simulated (gravity, contacts) rather than
+becoming walls, as chunk 9 already settled for that state.
+
 ## Saves and fixtures
 
 Master spec §6.4 and D72 (`req_persistence_and_saves`,
@@ -1365,11 +1657,13 @@ One JSON object, keys sorted, tab-indented:
 | `format` | 1. A newer format is refused, never read half-way |
 | `level` | `{"id", "version"}`. Another id or version is refused (migration: chunk 19) |
 | `sim` | `tick`, `seed` and `rng_state` (strings: 64-bit), `next_slime_id`. Optional |
-| `slimes` | Every slime, in runtime id order (at least one): `id` (its stable ID, below), `members`, `runtime_id`, `species` (a letter), `size`, `state` (`train`, `free`, `sleeper`, `bedtime_asleep`), `centre`, `velocity`, then `train` (distance, laps, slide, lost-watch mark) or `free` (phase, since, point, route back, stream state), and `body` (points, previous points, the solver's centre, hop timer, heading, held, supported, stream state) |
+| `slimes` | Every slime, in runtime id order (at least one): `id` (its stable ID, below), `members`, `runtime_id`, `species` (a letter), `size`, `state` (`train`, `free`, `sleeper`, `bedtime_asleep`, `in_basket`), `centre`, `velocity`, then `train` (distance, laps, slide, lost-watch mark) or `free` (phase, since, point, route back, stream state), and `body` (points, previous points, the solver's centre, hop timer, heading, held, supported, stream state) |
 | `train` | The open gates and the lost-slime log |
 | `call` | The last call (point, tick), or null |
-| `objects`, `gates` | Stable ID to state, `{}` until chunk 14 |
-| `transient` | The view, the camera, the ripples, the last taps, the facings, the input log, the tilt (reading, neutral, flat) and the fusion contact counts. Optional |
+| `objects`, `gates` | Stable ID to state (chunk 14): a switch `{"flipped", "trapdoor_shut"}`, a basket `{"phase", "weight", "since", "next_release"}`, a gate `{"open", "entrance_closed"}` (see "Frontier sets (chunk 14)") |
+| `celebration_done` | `true` once the level's celebration has played; left out (false) before. Optional |
+| `transient` | The view, the camera, the ripples, the last taps, the facings, the input log, the tilt (reading, neutral, flat), the fusion contact counts and the celebration's start tick (`frontier`). Optional |
+| `session` | The session (chunk 17): `phase`, `elapsed_ms`, `anchor` and `clock` (the clock readings it counts from; see "Sessions (chunk 17)"), `sunrise_tick`. Optional: none is screensaver mode |
 
 Not saved: the fingers on the screen and input not yet consumed (a
 restarted game has no finger down: a held edge button is let go), and what
@@ -1386,7 +1680,8 @@ the loader turns whole numbers back into ints where the state has ints.
 `train`, `free.rng_state` and `transient`: the run's seed and tick 0, ids 1,
 2, ... in list order, a rest ring at the centre, the loop's closest point,
 a fresh stream, an empty view. `SaveData.readable()` cuts a save down to
-that form. `SaveData.problems(save, level)` lists what makes a save
+that form; it keeps a running session (its last clock reading moved to tick
+0, where the readable save starts) and drops one in screensaver mode. `SaveData.problems(save, level)` lists what makes a save
 unusable, without pushing errors.
 
 ### Stable identity (D72)
@@ -1451,7 +1746,11 @@ save `<name>.json` in the hand-made form above.
 |---|---|
 | `fresh` | No save: the level as new, the first slime at its marker, every sleeper asleep at its own, the hint due |
 | `bump` | A size-3 (`s1.sleeper.04`, `.07`, `.10`) and a size-2 (`.14`, `.15`, the dip hollow's pair) train slime of species C, about 40 px apart on the fusion dip's floor (those five sleepers' bodies gone, the other sleepers asleep), and the first slime; the camera on the dip |
-| `s1-basket-5of6` | Not made yet: it needs the baskets (chunk 14) |
+| `s1-basket-5of6` | Switch 1 flipped (its trapdoor open), basket 1 at 5 of 6: a size-3 C and a size-2 B resting in it, made of the five ledge sleepers above the switch; the first slime on the loop just before the switch, so it drops in and the basket fills, fires and opens gate 1; the camera on the basket |
+| `s1-optout` | Switch 1 flipped, basket 1 at 3 of 6: a size-3 C resting in it (the three C ledge sleepers; the B ones asleep), the first slime at its marker; tap the switch to opt out; the camera on the basket |
+| `wind-down` | The fresh level 14:50 into a session (the wind-down on, bedtime 10 s in), on test mode's default clocks. Run it with `"sessions": true` |
+| `bedtime` | The fresh level with bedtime just reached: every awake slime asleep, the edge buttons hidden, the 10-minute cooldown starting |
+| `sunrise` | The fresh level at bedtime, 9:55 into the cooldown: sunrise 5 s in |
 
 To make or remake them: `godot --headless -s res://tools/make_fixture.gd`
 (all) or `... -- bump` (one). Each fixture is a builder function in the

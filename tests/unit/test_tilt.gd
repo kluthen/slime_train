@@ -1,7 +1,7 @@
 extends GutTest
 ## Tilt (src/sim/tilt.gd) and how the slimes feel it (master spec §5.5, DoD 8):
 ## the dead zone of about 10° around neutral, the ±45° cap, neutral taken at
-## level start (the placeholder for the session start), lying flat counting
+## the session start (Session; chunk 17), lying flat counting
 ## as neutral, the sign of the way down, and only free slimes feeling it
 ## (SlimeBodies: train slimes, sleepers and bedtime-asleep slimes keep plain
 ## gravity). Also the tilt event through the Simulation, and the state dump.
@@ -132,12 +132,14 @@ func test_the_tilt_is_in_the_dump() -> void:
 	assert_ne(sim.state_hash(), other.state_hash(), "the neutral is state")
 
 
-func test_loading_a_level_takes_neutral() -> void:
-	# Placeholder for the session start (chunk 17).
+func test_the_session_start_takes_neutral() -> void:
+	# Chunk 17 replaced the level-load placeholder with the session start.
 	var sim := Simulation.new(1)
 	sim.push_input(Simulation.tilt(20.0))
 	sim.step()
 	sim.load_level(null)
+	assert_eq(sim.phone_tilt.neutral, 0.0, "loading a level no longer takes it")
+	sim.session.start(sim)
 	assert_eq(sim.phone_tilt.neutral, 20.0)
 	sim.step()
 	assert_eq(sim.slimes.free_down, Vector2.DOWN, "held as at the start: plain down")

@@ -55,13 +55,16 @@ func test_create_refuses_a_bad_species_or_size() -> void:
 	assert_eq(bodies.slime_count, 0)
 
 
-func test_the_four_states() -> void:
+## Every state, "in_basket" included (chunk 14: resting in a basket).
+func test_the_five_states() -> void:
 	var bodies := _bodies()
 	var slime := bodies.create(0, 1, Vector2.ZERO)
-	for state in [SlimeBodies.SLEEPER, SlimeBodies.TRAIN, SlimeBodies.FREE, SlimeBodies.BEDTIME_ASLEEP]:
+	for state in [SlimeBodies.SLEEPER, SlimeBodies.TRAIN, SlimeBodies.FREE, SlimeBodies.BEDTIME_ASLEEP,
+			SlimeBodies.IN_BASKET]:
 		bodies.set_state(slime, state)
 		assert_eq(bodies.state_of(slime), state)
-	assert_eq(SlimeBodies.STATE_NAMES, PackedStringArray(["sleeper", "train", "free", "bedtime_asleep"]))
+	assert_eq(SlimeBodies.STATE_NAMES,
+			PackedStringArray(["sleeper", "train", "free", "bedtime_asleep", "in_basket"]))
 
 
 func test_ids_are_ascending_and_never_reused() -> void:

@@ -2,8 +2,9 @@ class_name LevelData
 extends RefCounted
 ## A level as plain data for the simulation core: its ID and version, the
 ## loop, the exploration branches and their routes back, the split zones, the
-## framing zones, the tap targets, the first awake slime's spot and the
-## sleepers.
+## framing zones, the tap targets, the first awake slime's spot, the
+## sleepers, and the frontier sets (switches, baskets, gates, signposts) with
+## the level's rules.
 ## Built at load by the Level component
 ## (src/components/level.gd); nothing here refers to a scene node.
 # @spec-link [[req_loop_and_world]]
@@ -53,6 +54,27 @@ var first_slime: Dictionary = {}
 ## resting on its ledge)}. Simulation.load_level puts them in a fresh game.
 # @spec-link [[req_waking_sleepers]]
 var sleepers: Dictionary = {}
+## The frontier sets (FrontierSets, chunk 14), in level pixels. Switches:
+## stable ID -> {"box" (Rect2), "basket" (its basket's stable ID),
+## "trapdoor" (Rect2: the piece of the onward path that opens into the
+## basket while the switch is flipped; an empty rect for none)}.
+# @spec-link [[req_switch_basket_gate_set]]
+var switches: Dictionary = {}
+## Baskets: stable ID -> {"box" (Rect2: a slime whose centre is inside is
+## in the basket), "quota" (the weight that fills it), "outlet" (Vector2:
+## where it releases its slimes, a base slime's centre)}.
+var baskets: Dictionary = {}
+## Gates: stable ID -> {"box" (Rect2: solid while closed), "lid" (Rect2:
+## the old slide entrance, shut once the gate is open; empty for none)}.
+var gates: Dictionary = {}
+## Signposts: stable ID -> {"position" (Vector2), "switch" (the switch it
+## explains)}. Not interactive.
+# @spec-link [[rule_signpost_at_every_fork]]
+var signposts: Dictionary = {}
+## Every rule of the level, in the shared format (Rule.to_dict), in the
+## order Level.all_rules() gives.
+# @spec-link [[req_interactive_objects_general]]
+var rules: Array[Dictionary] = []
 
 
 func _init(id := "", version := 0) -> void:
@@ -86,6 +108,29 @@ func add_framing_zone(id: String, box: Rect2, zoom: float, offset: Vector2, exit
 ## centred at `position` (level pixels).
 func add_sleeper(id: String, species: String, position: Vector2) -> void:
 	sleepers[id] = {"species": species, "position": position}
+
+
+## Adds a switch covering `box`, sending the flow into basket `basket` when
+## flipped by opening its `trapdoor` (level pixels; empty: none).
+func add_switch(id: String, box: Rect2, basket: String, trapdoor := Rect2()) -> void:
+	switches[id] = {"box": box, "basket": basket, "trapdoor": trapdoor}
+
+
+## Adds a basket: `box` holds the slimes in it, `quota` is the weight that
+## fills it, `outlet` where it releases them (level pixels).
+func add_basket(id: String, box: Rect2, quota: int, outlet: Vector2) -> void:
+	baskets[id] = {"box": box, "quota": quota, "outlet": outlet}
+
+
+## Adds a gate blocking `box` while closed; `lid` shuts the old slide
+## entrance once it is open (empty: none).
+func add_gate(id: String, box: Rect2, lid := Rect2()) -> void:
+	gates[id] = {"box": box, "lid": lid}
+
+
+## Adds a signpost at `position`, explaining switch `switch`.
+func add_signpost(id: String, position: Vector2, switch: String) -> void:
+	signposts[id] = {"position": position, "switch": switch}
 
 
 ## Adds something a tap can land on: `kind` is a TapDispatcher.KIND_*, `box`
