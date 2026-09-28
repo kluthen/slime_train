@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v5
+Status: draft v6
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 
@@ -44,7 +44,7 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
 - The camera runs on rails along the loop. Zoom and framing are computed from
   the camera's position and the mode (screensaver mode is about 10–20% wider).
 - (proposed) Framing zones are a reusable level component with properties for
-  zoom, position and how strongly they hold the camera. They are authored like
+  zoom, position and the delay before the camera leaves (D61). They are authored like
   any other component, with no per-level scripts (D6).
 
 ## Slime navigation

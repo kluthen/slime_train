@@ -46,8 +46,9 @@ Items are settled unless tagged (proposed). The decision IDs point to
 - The idle camera takes over after 45 s and follows the train slime nearest
   the middle of the view, with a slow zoom-out as the cue (D32, D59).
 - Automatic framing: the player never controls the zoom. Framing zones set the
-  zoom and position, and the edge buttons have to push to leave them.
-  Screensaver mode is about 10–20% wider (D60).
+  zoom and position, and leaving one takes a slightly longer delay than usual.
+  Screensaver mode and the idle camera are about 10–20% wider (D60, D61,
+  D62).
 
 **Session and parents**
 - A fixed 15 min session. It starts at the first tap and counts in real time,
@@ -80,4 +81,4 @@ Items are settled unless tagged (proposed). The decision IDs point to
 
 ## Open for v1
 
-O14, O15, O20, O21, O22, O47 (see `../../open-questions.md`).
+O14, O15, O20, O21, O22, O40 (see `../../open-questions.md`).

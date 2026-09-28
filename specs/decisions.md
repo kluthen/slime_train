@@ -477,3 +477,16 @@ Resolves O4.
 - (proposed) Level designers mark these areas as **framing zones**. A framing
   zone is a reusable level component (D6) with properties for zoom, position
   and how strongly it holds the camera. It ships in v1.
+
+## D61 — Leaving a framing zone: a slightly longer delay (2026-09-28)
+Amends D60.
+- Instead of pushing, the resistance when leaving a framing zone may simply be
+  a **slightly longer delay than usual** before the camera moves out when an
+  edge button is pressed.
+- To be tested in a prototype.
+
+## D62 — The in-session idle camera also zooms out (2026-09-28)
+Resolves O47.
+- The idle camera during a session uses screensaver mode's wider zoom.
+- The cue 10 s before is simply the start of that zoom-out. The first touch
+  zooms back in.

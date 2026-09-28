@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v15
+Status: draft v16
 
 ## One-liner
 
@@ -24,10 +24,11 @@ The slimes stand in for LocoRoco.
   also does its normal job.
 - **Automatic framing** (D60). The player never controls the zoom. Where the
   camera is decides the zoom, and sometimes the position. An area that needs a
-  wider view pulls the camera gently into place, and the edge buttons have to
-  push to leave it, like a dip. Screensaver mode is about 10–20% more zoomed
-  out than normal play. Whether the in-session idle camera also zooms out is
-  O47.
+  wider view pulls the camera gently into place, and leaving it through the
+  edge buttons takes a slightly longer delay than usual, to be tested (D61).
+  Screensaver mode and the in-session idle camera are both about 10–20% more
+  zoomed out than normal play. The idle cue is the start of that zoom-out
+  (D62). Numbers to tune are in `tuning.md`.
 - **Manual camera** (D33). The child moves the camera along the loop, like on
   rails, using left and right buttons at the screen edges. At forks,
   signposts show the directions, and by default the camera follows the main

@@ -4,11 +4,12 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 | Document | Purpose | Status |
 |---|---|---|
-| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v15 |
+| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v16 |
 | `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v6 |
 | `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v5 |
-| `tech-direction.md` | Engine, level authoring, slime simulation, saving, session lock implementation | draft v5 |
+| `tech-direction.md` | Engine, level authoring, slime simulation, saving, session lock implementation | draft v6 |
 | `versions/` | Scope per version (v1–v4…) plus `timeline.md` for features with no version yet (D52) | live |
+| `tuning.md` | Every number left to prototypes, with its starting value | live |
 | `open-questions.md` | Register of unresolved decisions (O1…) | live |
 | `decisions.md` | Append-only decisions log (D1…) | live |
 
@@ -61,6 +62,8 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 - Idle camera: the slime nearest the middle of the view, a zoom-out as the cue, any touch takes back control (D59).
 - Automatic framing: the player never controls the zoom. Framing zones pull the camera into place, and screensaver mode is about 10–20% wider (D60).
 
+- Leaving a framing zone takes a slightly longer delay (to be tested). The in-session idle camera zooms out like screensaver mode (D61, D62).
+
 ## Where to resume
 
-Next: O47 (does the in-session idle camera zoom out too), then personas (O15), save versioning (O20), and a dedicated session on the first level's design (O22).
+Next: personas (O15). Then save versioning (O20), how long a call lasts (O21), the hop decision (O40), and a dedicated session on the first level's design (O22).
