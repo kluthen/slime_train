@@ -757,3 +757,14 @@ Resolves O66. Refines D33 and D79.
     blending shader, sleepers not simulated until touched, routes back drawn
     as editor paths, framing zones as a level component, one shared rule
     format for components, and the test-environments table.
+
+## D92 — The declared-intent contract binds v1, with three guarantees (2026-09-28)
+
+- The contract in the declared intent (ATD) binds **v1 only**. Later versions
+  may revise it.
+- Its first guarantees are the three rules the documentalist proposed:
+  **saves are never wiped**, **no network connection**, and **no in-app
+  purchases**. Paid levels and billing come with later versions, whose
+  contracts can change the last two.
+- Why: the user said the contract only binds v1, so rules that are true for
+  v1 can be guaranteed even if a later version changes them.
