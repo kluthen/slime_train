@@ -264,6 +264,9 @@ minute of a session every slime hops more slowly.
   route back is near, it is lost.
 - **Fusion and waking happen only on screen.**
 - **Baskets** keep counting weight off screen and can fill there.
+- On screen too, a **resting pile** stops simulating, contacts included,
+  until something disturbs it. This is the first fallback for performance
+  (section 6).
 - Sleepers don't simulate until something touches them, slimes in
   a full basket use a simplified state, and slimes on screen may use fewer
   points when zoomed out.
@@ -593,7 +596,10 @@ Every level, the test level included, follows these rules.
   and debug Android builds, loads fixture saves, speeds up or skips time, and
   injects taps and tilt from a script.
 
-This is a new project; there is no existing code base to fit into.
+The code base is the one built under this plan (`build-plan.md`), in
+GDScript on Godot 4.7; new work fits into it. Its layout, how to run the
+tests, and the technical choices made while building are in the project's
+`docs/dev/README.md`.
 
 ## 7. Target phones and test environments
 
@@ -780,6 +786,9 @@ Still undecided.
 4. **A minimum zoom.** A big framing zone may shrink slimes too far to tap or
    see. It only matters during play, since the idle camera and screensaver
    mode ignore framing zones. No proposal yet; to find with the prototype.
+   Measured on the reference phone (6.5 inch, 1080 × 2400): a size-1 slime
+   is about 5.0 mm across at zoom 1, 4.3 mm at 0.85 and 3.5 mm at 0.7 (the
+   test level's two framing zones).
 5. **Technical risks to check with prototypes before building for real.**
    Checked on the desktop: the vector look (curves baked into polygons and
    lines; imported SVGs blur when zoomed), soft slimes at 200 with the

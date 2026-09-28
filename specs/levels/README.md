@@ -8,5 +8,5 @@ must follow are in `../level-design.md`.
 
 | Folder | Level | Status |
 |---|---|---|
-| [`test/`](test/README.md) | The test level: exercises the v1 gameplay; the testing ground for implementation. Never shipped (D91). | draft v2 |
+| [`test/`](test/README.md) | The test level: exercises the v1 gameplay; the testing ground for implementation. Never shipped (D91). | draft v3 |
 | `01/` | The real first level (v1): 4 sections, a basic black-on-black theme. Designed later. | not started |

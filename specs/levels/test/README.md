@@ -1,6 +1,6 @@
 # Test level
 
-Status: draft v2
+Status: draft v3
 
 A compact level that puts nearly every v1 gameplay item in one place (D76).
 It is the testing ground while the game is built, and the level the
@@ -313,7 +313,7 @@ Named save states that tests load through test mode (tech-direction).
 | `gate1-open` | S2 reachable, 20 slimes awake, slide 1 closed | starting from S2 |
 | `s2-basket-offscreen` | camera at switch 2, basket 2 at 14, slimes heading into it | filling off screen, then the reward on approach |
 | `s2-cave-return` | 3 free slimes starting down the cave's route back, camera away | projection, respawn, left alone and rejoining |
-| `bump` | size-2 and size-3 slimes of one species meeting in a dip | 2 + 2 and 3 + 1 bumping |
+| `bump` | two size-2, one size-3 and one size-1 slime of species C on the fusion dip's floor (1.3), so both bumps can happen. (A 3 + 2 pair, as first built in chunk 8, can produce neither; chunk 16's fixture pass regenerates it.) | 2 + 2 and 3 + 1 bumping; the end-to-end test asserts both bumps |
 | `stress-still` | 200 awake base slimes, 60 in basket 3 and the rest piled in the bowl | the worst still case on one screen (O14, O57) |
 | `stress-moving` | 200 train slimes spread through the bowl | the worst moving case; beyond what normal play produces, so a measurement, not a target (D96) |
 | `lost` | a free slime placed off screen, outside any area's route back | left alone at 10 s, then lost at 1 min and teleported to the start |

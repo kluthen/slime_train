@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v6 (proposed; waiting for the user's review)
+Status: draft v7 (proposed; waiting for the user's review)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -85,10 +85,11 @@ technology, not business behaviour:
 
 ## Progress
 
-- **Done:** 0, 2, 3, 4, 5, 6; 1 on the desktop and the reference phone (the
-  floor phone waits for its purchase).
-- **In progress:** 7.
-- **Next:** 8. (5N is a contingency, run only if chunk 22 fails, D96.)
+- **Done:** 0 to 13; 1 on the desktop and the reference phone (the floor
+  phone waits for its purchase).
+- **In progress:** 14 and 17 (started 2026-09-28).
+- **Next:** 15, 16, 18. (5N is a contingency, run only if chunk 22 fails,
+  D96.)
 
 ## Overview
 
@@ -319,10 +320,14 @@ parallel with the camera and objects work.
 - Caves and the Big bowl in greybox, all frontier sets, all framing zones, and
   the full population of 200 slimes.
 - The level rules checklist run against the test level.
+- The fixture pass also regenerates `bump` with the slimes the test level
+  now lists (two size-2, one size-3, one size-1), so that both bumps can
+  happen.
 - **Atoms (preflight start):** `req_level_design_rules` and all 20 rule atoms, `req_scope_one_level_four_sections`, `rule_max_200_slimes_per_level`.
 - **Done when:** [DoD 1] holds for the whole level, and `gate1-open`,
   `stress-still` and `stress-moving` load. The stress fixtures give desktop
-  performance numbers.
+  performance numbers. The end-to-end test from `bump` asserts both bumps
+  (2 + 2 and 3 + 1).
 
 ### 17. Session, wind-down, bedtime, sunrise (M)
 
