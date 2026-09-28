@@ -62,7 +62,8 @@ The slimes stand in for LocoRoco.
 - A section's **return route**, from its unopened frontier gate back to the
   start, is part of the loop. It has its own camera rail, and it may carry
   exploration opportunities, which opening later gates must never make
-  unreachable (D79). Which way the edge buttons move on it is O66.
+  unreachable (D79). The right edge button always moves the camera forward along the
+  loop and the left one backward, whatever the direction on screen (D90).
 - Attracting slimes away from the loop makes them **free**: they are driven
   by physics alone.
 - A free slime makes its way back to the loop by physics and rejoins the

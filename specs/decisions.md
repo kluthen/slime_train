@@ -720,3 +720,12 @@ Resolves O61.
   travels the loop the same way. Size still matters in v1 through basket
   weight, and through bigger free slimes jumping higher off the loop.
 - The level rule "different sizes may take different forks" applies from v2.
+
+## D90 — Edge buttons on the rails (2026-09-28)
+Resolves O66. Refines D33 and D79.
+- The **right** edge button always moves the camera **forward** along the
+  loop, and the **left** button **backward**, whatever the direction on
+  screen.
+- On a return route, which runs right to left on screen, "forward" carries the
+  camera round the turn at the frontier and back toward the start. Holding
+  one button long enough goes all the way round the loop.

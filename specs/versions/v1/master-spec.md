@@ -327,7 +327,10 @@ The screen has four tap zones, checked in this order:
 
 - **Landscape, locked.** The game is a side view.
 - **Rails.** The camera moves along the loop, return routes included, driven
-  by the edge buttons. At a fork it follows the main stream by default.
+  by the edge buttons. The right button always moves it **forward** along the
+  loop and the left one **backward**, whatever the direction on screen. On a
+  return route, forward carries the camera round the turn at the frontier and
+  back toward the start. At a fork it follows the main stream by default.
 - **Call drag.** A call pulls the camera toward the call point at a slow,
   steady pace. This is how the child looks off the loop; there is no
   joystick. When and how the camera returns to the rails is a tuning value.
@@ -667,21 +670,16 @@ Still undecided.
 3. **Where a basket releases its slimes,** after firing and after an opt-out.
    It belongs to the basket object's own design, which is still to be
    planned. The test level assumes one outlet onto the onward route.
-4. **Which way the edge buttons move the camera on a return route,** which
-   runs right to left on screen, and where the loop turns back at the
-   frontier. Proposed: the right button always moves forward along the loop
-   and the left button backward, whatever the direction on screen; the
-   camera follows the rail round the turn.
-5. **A minimum zoom.** A big framing zone may shrink slimes too far to tap or
+4. **A minimum zoom.** A big framing zone may shrink slimes too far to tap or
    see. It only matters during play, since the idle camera and screensaver
    mode ignore framing zones. No proposal yet; to find with the prototype.
-6. **Technical risks to check with prototypes before building for real:**
+5. **Technical risks to check with prototypes before building for real:**
    200 slimes on the floor phone (many on one screen), tilt input, running
    end-to-end tests on Linux without a screen, and the vector rendering
    approach (Godot turns SVGs into images at import, so crisp curves need
    polygons and lines or a plugin). A floor phone has to be bought for this.
    Android audio latency matters only from the version that adds sound.
-7. **Items tagged (proposed) in this document** are the spec writer's
+6. **Items tagged (proposed) in this document** are the spec writer's
    defaults, not yet confirmed by the owner. The main ones: train slimes
    answering calls; the call radius; the top-of-screen zone not calling;
    generous hit areas; the switch staying flipped; the basket's reward

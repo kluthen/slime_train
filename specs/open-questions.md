@@ -10,7 +10,6 @@ Each entry has a stable ID. Once resolved, an entry moves to `decisions.md`.
 | O22 | Return to the start: how are slimes herded back from an unopened frontier gate (wind, slide, conveyor…)? Every new section needs its own return route. For the first level's design session (D34). | concept |
 | O62 | Basket outlet: where a basket releases its slimes after firing, and when emptied by opting out. Part of the basket object's own design, which needs to be planned (not yet). The test level assumes one outlet onto the onward route. | interactive-objects |
 | O65 | Minimum zoom: a big framing zone may shrink slimes too far to tap or see. Only matters during play, since idle and screensaver mode ignore framing zones (D80). No proposal yet; to find with the prototype. | tuning |
-| O66 | Edge buttons on a return route: it runs right to left on screen, and the loop turns back at the frontier. (proposed: the right button always moves the camera **forward** along the loop and the left button backward, whatever the direction on screen; the camera follows the rail round the turn) | concept |
 
 ## Parked (deferred on purpose; revisit later)
 

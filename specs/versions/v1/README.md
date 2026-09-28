@@ -100,4 +100,4 @@ Items are settled unless tagged (proposed). The decision IDs point to
 
 ## Open for v1
 
-O14, O22, O62, O65, O66 (see `../../open-questions.md`).
+O14, O22, O62, O65 (see `../../open-questions.md`).

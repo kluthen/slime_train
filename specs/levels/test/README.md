@@ -27,8 +27,8 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
   - The slides are a **placeholder for testing only**. They do **not** settle
     how the real level brings slimes back to the start (O22).
 - **Camera rails** follow the whole loop: the outgoing surface route and each
-  slide, which has its own rail (D79). Which way the edge buttons move on a
-  slide is O66.
+  slide, which has its own rail (D79). The right edge button moves forward
+  along the loop, round the turn and back along a slide (D90).
 - **Species** are labelled A to E, with placeholder colours: A red, B blue,
   C yellow, D green, E purple. Species differ by colour only (D81).
 - Every sleeper is size 1. The level holds exactly **200 base slimes** (D67).
@@ -361,5 +361,4 @@ spot a free slime can reach leads back to the loop (rule 7).
 - **The real first level:** its size (4 sections, 6 species), pacing, theme
   and tuning. The test level is deliberately compact, and has 3 sections and 5
   species.
-- **O66:** which way the edge buttons move the camera on a slide.
 - **O62:** the basket outlet is assumed, pending the basket's own design.
