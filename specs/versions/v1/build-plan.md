@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v3 (proposed; waiting for the user's review)
+Status: draft v4 (proposed; waiting for the user's review)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -36,16 +36,17 @@ Sizes are relative: **S** is small, **M** is a few days of focused work,
 
 ## Workflow for every chunk
 
-Every build chunk (all except the two spikes) goes through the same six steps,
+Every build chunk goes through the same six steps,
 in this order. A chunk isn't finished until step 6 is done.
 
 1. **ATD preflight.** The documentalist finds the atoms that govern the
    chunk's area, starting from the chunk's "Atoms" line. It checks that the
    change is grounded in them and flags conflicts or missing coverage. A
    missing or conflicting atom stops the chunk until it is resolved. If the
-   gap is in the spec itself, it goes back to spec-writer. The chunk's
-   technical decisions (structure, data formats, libraries) are recorded as
-   architecture atoms before code is written.
+   gap is in the spec itself, it goes back to spec-writer. ATD covers
+   business behaviour only. Technical choices (structure, data formats,
+   libraries, tooling) don't go through it: they are recorded in the project
+   documentation in step 5.
 2. **Tests first, red to green.** Write the tests for the chunk's "Done when"
    criteria first, and see them fail for the right reason. Unit tests go
    where the logic is pure. Scripted scenario tests through test mode, on
@@ -56,23 +57,29 @@ in this order. A chunk isn't finished until step 6 is done.
 4. **Verify.** The chunk's "Done when" criteria hold. The whole suite is
    green, with no regression in earlier chunks. The run is repeatable (same
    seed, same result), and a debug run shows the behaviour on screen.
-5. **Documents.** Keep the project documentation current: the README, how
-   to run the tests, how a level component is configured in the editor, the
+5. **Documents.** Keep the project documentation current: the README, the
+   technical choices made in the chunk and why, how to run the tests, how a level component is configured in the editor, the
    fixture list. A place where the code had to differ from the spec is
    reported to spec-writer, not fixed silently in either one.
-6. **ATD stewardship.** The documentalist checks that every atom the chunk
+6. **ATD stewardship.** For the business behaviour the chunk built, the
+   documentalist checks that every atom the chunk
    touched has `@spec-link` tags on the code that implements it and
    `@test-link` tags on the tests that verify it. It confirms the atoms still
    describe what the code does, and advances their status only with the
    user's agreement.
 
-**Spikes (chunks 1 and 2) are the exception.** They are throwaway code, so
-they skip the test-first step and the link tags. Their preflight is a
-read of the atoms. They end by recording their outcome (the numbers, the
-approach chosen) with the documentalist as an architecture decision.
-
-**Chunk 0** follows the workflow in a small way: its test is the trivial
-one, seen red then green, which proves the runner reports failures.
+**Technical chunks skip the ATD steps (1 and 6).** They build tooling or
+technology, not business behaviour:
+- chunk 0 (tooling), chunk 3 (test backbone) and chunk 21 (the end-to-end
+  suite) still go test first. Chunk 0's only test is a trivial one, seen red
+  then green, which proves the runner reports failures.
+- The spikes (chunks 1 and 2) are throwaway code, so they also skip the
+  test-first step. They end by writing their outcome (the numbers, the
+  approach chosen) into the project documentation, and into
+  `../../tech-direction.md` through spec-writer when it changes the
+  spec's technical direction.
+- Chunk 22 (performance) checks a business target, the frame rates promised
+  on the reference and floor phones, so it keeps both ATD steps.
 
 ## Overview
 
@@ -119,7 +126,6 @@ parallel with the camera and objects work.
 - A folder layout for components, levels, the simulation core, and tests.
 - A test framework picked by the implementer, runnable headless from the
   command line.
-- **Atoms (preflight start):** none yet (tooling). Run the preflight anyway: it should find `domain_architecture_rationale` and `req_test_level_and_test_mode`.
 - **Done when:** `godot --headless` runs one trivial test and returns a
   non-zero exit code when it fails.
 
@@ -129,7 +135,7 @@ parallel with the camera and objects work.
   screen: still (piled) and moving.
 - Measure on the desktop first, then on the reference phone, and on a floor
   phone once one is bought.
-- **Atoms (preflight start):** `domain_architecture_rationale`, `req_platform_and_performance_targets`, `rule_max_200_slimes_per_level` (read only: a spike links nothing).
+- **Background reading:** the performance targets and the 200-slime cap in the master spec (no ATD step: technical).
 - **Done when:** the numbers are written down, with a go/no-go for the
   approach and the renderer. A no-go comes back to spec-writer before
   chunk 5 starts.
@@ -138,9 +144,7 @@ parallel with the camera and objects work.
 
 - Godot turns SVGs into images at import. Compare polygons and lines drawn in
   code against a vector plugin for crisp curves when zoomed.
-- **Atoms (preflight start):** `domain_architecture_rationale` (read only: a spike links nothing).
-- **Done when:** the approach is chosen and recorded as an architecture
-  decision.
+- **Done when:** the approach is chosen and written down with its reasons.
 
 ### 3. Test backbone (M)
 
@@ -152,7 +156,6 @@ parallel with the camera and objects work.
 - A way to dump the simulation state (or a hash of it) for comparisons.
 - The headless end-to-end runner. This also settles the risk of running
   end-to-end tests on Linux without a screen.
-- **Atoms (preflight start):** `req_test_level_and_test_mode`, `domain_architecture_rationale`.
 - **Done when:** the same script and seed run twice give the same state
   hash, and test mode is absent from a release export.
 
@@ -356,7 +359,6 @@ parallel with the camera and objects work.
 
 - Every fixture in the test level's list has at least one scripted
   end-to-end test, and the suite runs headless on the Linux build.
-- **Atoms (preflight start):** `req_test_level_and_test_mode`, plus every atom whose behaviour a fixture covers.
 - **Done when:** [DoD 31] passes, and the suite is repeatable (same seed, same
   result).
 
