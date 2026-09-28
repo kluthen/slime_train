@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v3
+Status: draft v4
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 
@@ -51,6 +51,12 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
 - `startLockTask()` screen pinning through a small Godot Android plugin, plus
   an in-app parent gate and a timer stored on disk (wall clock plus the
   monotonic clock). There is no device-owner kiosk mode.
+- Recovering the parent code uses Android's device-credential prompt
+  (BiometricPrompt, which also accepts the PIN or pattern). There is no server
+  (D55).
+- (proposed) More broadly, the app runs **fully offline**, with no account and
+  no backend. D55 settles this for the parent code; paid unlocks will go
+  through Google Play only (D31).
 - The same stored clocks enforce the 10 min cooldown after bedtime (D29).
   Changing the device clock can defeat it, which is acceptable under D1.
 

@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v12
+Status: draft v13
 
 ## One-liner
 
@@ -142,8 +142,10 @@ survives the app being killed.
   Opening the app from scratch also starts in screensaver mode. The phone's
   usual screen timeout applies there, and the screen stays on during a
   session (D53).
-- The parent gate is a **6-digit code** (D30). Setting and recovering the code
-  is O34.
+- The parent gate is a **6-digit code** (D30). The parent sets it during a
+  one-time setup at first launch. If it's forgotten, the phone's own screen
+  lock lets the parent set a new one. With no screen lock, clearing the app's
+  data is the last resort. There is no external service (D55).
 - Open: O6 (background behaviour, and the parent's other options).
 
 ### Bedtime (D28)

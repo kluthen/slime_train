@@ -53,7 +53,9 @@ Items are settled unless tagged (proposed). The decision IDs point to
   the slimes wake and the world runs in screensaver mode (D44). Opening the app
   from scratch also starts in screensaver mode. The phone's usual screen
   timeout applies there, while the screen stays on during a session (D53).
-- The parent gate is a 6-digit code (D30). Screen pinning is best effort (D1).
+- The parent gate is a 6-digit code, chosen during a one-time setup at first
+  launch. It is recovered through the phone's own screen lock, with no external
+  service (D30, D55). Screen pinning is best effort (D1).
 - Progress is saved every 15 s and when the app goes to the background. There
   is one save per level, and the user can delete a level's save (D7, D12,
   D43).
@@ -70,4 +72,4 @@ Items are settled unless tagged (proposed). The decision IDs point to
 
 ## Open for v1
 
-O4, O6, O14, O15, O20, O21, O22, O34 (see `../../open-questions.md`).
+O4, O6, O14, O15, O20, O21, O22 (see `../../open-questions.md`).

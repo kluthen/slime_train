@@ -408,3 +408,21 @@ Resolves O46. Refines D50.
 - Every other object moves to v2: bending pathways, filters, large signposts,
   tilt objects, reveal zones, and other split zones or defusing spots.
 - Plain signposts are not interactive and stay in v1 (proposed, D47).
+
+## D55 — Setting and recovering the parent code (2026-09-28)
+Resolves O34.
+- **First launch:** a one-time setup screen for the parent appears before the
+  first screensaver mode. The parent chooses the 6-digit code, typing it twice,
+  and the screen explains screen pinning. After that, the app always opens
+  into screensaver mode (D53).
+- **Changing the code:** behind the parent gate.
+- **Forgotten code:** "forgot the code?" hands off to the phone's own screen
+  lock (PIN, pattern or fingerprint, through Android's system prompt). If that
+  succeeds, the parent sets a new code.
+- **No screen lock on the phone:** the only way out is clearing the app's data
+  in Android settings, which erases all progress. The setup screen says so
+  plainly.
+- Accepted limitation (D1): a child who knows the phone's PIN can reset the
+  code. There is no perfect solution.
+- **No external service.** There is no website, account or server behind
+  this.
