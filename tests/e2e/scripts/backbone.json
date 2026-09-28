@@ -1,0 +1,13 @@
+{
+	"seed": 20260928,
+	"steps": [
+		{"tick": 10, "do": "tap", "at": [400, 300]},
+		{"tick": 30, "do": "touch_down", "at": [200, 200]},
+		{"tick": 31, "do": "touch_down", "at": [900, 500], "finger": 1},
+		{"tick": 40, "do": "touch_up", "finger": 1},
+		{"tick": 45, "do": "touch_up", "at": [210, 205]},
+		{"tick": 60, "do": "tilt", "degrees": 20},
+		{"tick": 120, "do": "tilt", "degrees": -5.5},
+		{"tick": 500, "do": "tap", "at": [640, 360]}
+	]
+}

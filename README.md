@@ -18,8 +18,11 @@ limits play to 15 minutes at most, and the session ends with a gentle
 
 **Building v1.** The v1 master spec is in
 `specs/versions/v1/master-spec.md`, with the build plan next to it. Chunk 0
-(tooling and project setup) is done: the Godot project settings, the code
-layout and a headless test runner are in place. There is no game code yet.
+(tooling and project setup) and chunk 3 (test backbone) are done: the project
+settings, the code layout and the headless test runner, plus one seeded
+random generator, a fixed 60-tick simulation step, test mode (scripted taps
+and tilt, time control, a fixture stub; debug builds only) and a headless
+end-to-end runner comparing state hashes. There is no gameplay code yet.
 UX design (`ui_ux/`) has an inventory and open questions, no design yet.
 
 ## Direction so far
