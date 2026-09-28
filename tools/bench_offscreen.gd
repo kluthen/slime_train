@@ -21,6 +21,7 @@ extends SceneTree
 ##               offscreen=on   physics only near the view (chunk 15)
 ## The rest=on / low=on / offscreen=on cases only run when the code has
 ## them (the same script measured the code before chunk 15).
+# @spec-link [[req_platform_and_performance_targets]]
 
 const TICK := 1.0 / 60.0
 const SETTLE_TICKS := 600
