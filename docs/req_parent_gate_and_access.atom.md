@@ -13,6 +13,7 @@ dependents:
   - [[req_actor_roles_and_permissions]]
   - [[req_screen_pinning]]
   - [[rule_no_network_connection]]
+  - [[rule_parent_code_not_stored_plaintext]]
 ---
 
 # Parent gate and parent access
