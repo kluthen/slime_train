@@ -1,4 +1,24 @@
 {
+  "supported_extensions": {
+    ".c": true,
+    ".cpp": true,
+    ".cs": true,
+    ".gd": true,
+    ".go": true,
+    ".h": true,
+    ".hpp": true,
+    ".java": true,
+    ".js": true,
+    ".kt": true,
+    ".php": true,
+    ".py": true,
+    ".rb": true,
+    ".rs": true,
+    ".scala": true,
+    ".swift": true,
+    ".ts": true,
+    ".vue": true
+  },
   "docs_path": "docs/",
   "diff_similarity_threshold": 0.85,
   "bloating_factor": {
