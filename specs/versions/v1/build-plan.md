@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v7 (proposed; waiting for the user's review)
+Status: draft v8 (proposed; waiting for the user's review)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -85,10 +85,12 @@ technology, not business behaviour:
 
 ## Progress
 
-- **Done:** 0 to 13; 1 on the desktop and the reference phone (the floor
-  phone waits for its purchase).
-- **In progress:** 14 and 17 (started 2026-09-28).
-- **Next:** 15, 16, 18. (5N is a contingency, run only if chunk 22 fails,
+- **Done:** 0 to 14 and 17; 1 on the desktop and the reference phone (the
+  floor phone waits for its purchase). Chunks 14 and 17 raised O82 to O86
+  (the session in the level's save, baskets at bedtime, the switch locked
+  once the basket is full, the gate's lid, a state for slimes in a basket).
+- **In progress:** 15 (started the evening of 2026-09-28).
+- **Next:** 16, 18. (5N is a contingency, run only if chunk 22 fails,
   D96.)
 
 ## Overview
@@ -352,6 +354,9 @@ parallel with the camera and objects work.
 - The code is stored locally, never in plain text.
 - The rules follow `access-model.md`.
 - **Atoms (preflight start):** `req_parent_gate_and_access`, `req_actor_roles_and_permissions`, `req_denial_and_stepup_behavior`, `req_persistence_and_saves` (deleting a save).
+- **Open point (O82):** the build keeps the session in the level's save.
+  Deleting that save must keep the running session (and write it into the
+  fresh save), or deleting the save escapes bedtime.
 - **Done when:** [DoD 23, 24, 29] pass on desktop. The "forgot the code?"
   path is stubbed until chunk 20.
 

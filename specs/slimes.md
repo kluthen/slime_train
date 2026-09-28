@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v11
+Status: draft v12
 
 ## States
 
@@ -8,8 +8,9 @@ Status: draft v11
 |---|---|
 | sleeper | asleep, not moving. Wakes **only** when a free slime touches it, on screen (D13, D70). Never on the loop. The game wakes the very first slime. |
 | train slime | awake and following the loop (D8, D11). Ignores tilt (D19). |
-| bedtime-asleep | asleep because the session ended (D28). The game wakes it at the next session. Not a sleeper. |
+| bedtime-asleep | asleep because the session ended (D28). The game wakes it at sunrise (D44): near the loop it is a train slime again, anywhere else a free slime heading back (the distance is in `tuning.md`). Not a sleeper. |
 | free slime | awake and away from the loop after answering a call. Physics always applies and it feels tilt (D8, D19). Can become left alone or lost (D10). Goes through the phases below. |
+| in a basket (proposed, O86) | caught by a basket's box (built as `in_basket`, chunk 14). Doesn't hop, isn't the train and doesn't answer calls, in any basket, filling or full; it falls and settles in the pile. Leaves only when the basket releases it, and rides the train again. What it does at bedtime is O83. |
 
 ## Free slime phases (D27)
 

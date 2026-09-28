@@ -185,6 +185,7 @@ One term per concept, used everywhere in the code and documents.
 | train slime | Awake, following the loop. Ignores tilt. |
 | free slime | Awake, away from the loop after answering a call. Driven by physics alone and feels tilt. |
 | bedtime-asleep | Asleep because the session ended. Not a sleeper: the game wakes it at sunrise and play carries on. |
+| in a basket (proposed) | Caught by a basket. Doesn't hop, isn't part of the train and doesn't answer calls; it settles in the pile until the basket releases it, then rides the train again. |
 
 **The call and free slimes**
 
@@ -812,3 +813,20 @@ Still undecided.
    asked and the back gesture without pinning (5.9), and deleting the running
    level's save (5.10). The language (English and French) is the least
    certain of them.
+7. **Points the build raised on the frontier set and the session**
+   (chunks 14 and 17), each with a proposal pending the user's approval:
+   - **Where the session timers live.** The build keeps the session in the
+     level's save, which 5.10 says it isn't part of. Proposed: keep it there
+     while v1 has one level, and make deleting the save keep the running
+     session, so deleting can't dodge bedtime.
+   - **Baskets at bedtime.** As built, slimes in a basket stay awake and a
+     basket keeps releasing during bedtime. Proposed: releases (and a due
+     reward) wait for sunrise, and the slimes in a basket sleep in place.
+   - **The switch locks once the basket is full,** through the reward, not
+     only once the gate opens. Proposed: keep; there is no opting out of a
+     full basket.
+   - **A gate's lid on the old return route.** The build shuts the old
+     return route's entrance when the gate opens. Proposed: "stays in the
+     world" (5.1) means it isn't removed; a lid may block it, as long as any
+     exploration on that route stays reachable another way.
+   - **A slime state for slimes in a basket** (5.2, proposed).

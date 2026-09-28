@@ -1,6 +1,6 @@
 # Test level
 
-Status: draft v3
+Status: draft v4
 
 A compact level that puts nearly every v1 gameplay item in one place (D76).
 It is the testing ground while the game is built, and the level the
@@ -95,6 +95,19 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
 - 5 sleepers on ledges above the switch (B ×2, C ×3).
 - The rest of the set is described under "Frontier sets" below. The whole set
   fits on one screen, so this basket fills in view.
+- **As built (chunk 14).** Positions moved from the table below while
+  building, as allowed above:
+  - switch 1's **trapdoor** (6.5 to 7.29) replaces the crust bridge that
+    first covered pit 1: it is solid while the switch sends the flow onward,
+    open while flipped;
+  - **basket 1** is the pit under it: centred at 6.895 screens, 0.81 screens
+    wide and 200 px deep, quota 6;
+  - a **pillar** (7.66 to 8.5) replaces the chute's far wall; its top
+    carries the loop on to **gate 1**, at 8.58. Gate 1's **lid** (7.49 to
+    7.67) shuts slide 1's entrance once the gate is open (O85);
+  - a temporary **section 2 stub** (`s2.loop`, through the gate, and
+    `s2.slide`, its return route, with no gate) gives the loop something to
+    grow into until chunks 15 and 16 build section 2 for real.
 
 ## Section 2 — Caves (screens 8–13)
 
@@ -188,7 +201,8 @@ sits on the loop:
    (D70, D91).
 2. The basket fires. The gate opens, and the loop grows into the next section
    (D9).
-3. As part of the reward, the old slide entrance closes. Only the route back
+3. As part of the reward, the old slide entrance closes (built as the gate's
+   lid; how that fits the master spec is O85). Only the route back
    to the start is replaced: the next section's slide takes over.
 4. The basket releases its slimes.
 5. The switch and basket become inert for good (D86).
@@ -200,7 +214,9 @@ the filling. The slimes inside go back to the loop (D91).
 onward path just before the slide entrance. While the gate is closed, the
 path leads into the slide. Once the gate is open, it leads through the gate.
 Releasing after firing and emptying after an opt-out both use the same
-outlet.
+outlet. Built (chunk 14) as a basket property, 200 px along the loop before
+the slide entrance (`tuning.md`), one slime at a time when the outlet is
+clear.
 
 **Weight:** the outlines fill by weight. A size-3 slime fills 3 at once.
 
@@ -308,8 +324,8 @@ Named save states that tests load through test mode (tech-direction).
 | Fixture | State | For |
 |---|---|---|
 | `fresh` | no save; first launch | the first slime, the hint, and the start of setup |
-| `s1-basket-5of6` | switch 1 flipped, basket 1 at weight 5, a slime on its way | the reward, firing, gate 1 opening, and slide 1 closing |
-| `s1-optout` | basket 1 at weight 3 | flipping back and emptying through the outlet |
+| `s1-basket-5of6` | switch 1 flipped, basket 1 at weight 5 of 6, the next slime about to drop in, the camera on the basket (built, chunk 14) | the reward, firing, gate 1 opening, and slide 1 closing |
+| `s1-optout` | switch 1 flipped, basket 1 at weight 3, the camera on the basket (built, chunk 14) | flipping back and emptying through the outlet |
 | `gate1-open` | S2 reachable, 20 slimes awake, slide 1 closed | starting from S2 |
 | `s2-basket-offscreen` | camera at switch 2, basket 2 at 14, slimes heading into it | filling off screen, then the reward on approach |
 | `s2-cave-return` | 3 free slimes starting down the cave's route back, camera away | projection, respawn, left alone and rejoining |
@@ -319,9 +335,13 @@ Named save states that tests load through test mode (tech-direction).
 | `lost` | a free slime placed off screen, outside any area's route back | left alone at 10 s, then lost at 1 min and teleported to the start |
 | `midair` | a save taken with slimes in mid-air | placement on reload (D12) |
 | `old-version` | a save from an earlier test-level version with a moved sleeper | migration: the displaced slime counts as lost (D72) |
-| `wind-down` | session at 14:50 | dusk and the slower hops, then bedtime |
-| `bedtime` | bedtime just reached | the cooldown and the parent code ending it |
-| `sunrise` | cooldown at 9:55 | sunrise, then screensaver mode, then the first tap |
+| `wind-down` | session clock at 890 000 ms (14:50) (built, chunk 17) | dusk and the slower hops, then bedtime |
+| `bedtime` | session clock at 900 000 ms: bedtime just reached (built, chunk 17) | the cooldown and the parent code ending it (the code: chunk 18) |
+| `sunrise` | session clock at 1 495 000 ms: 9:55 into the cooldown (built, chunk 17) | sunrise, then screensaver mode, then the first tap |
+
+The three session fixtures start from the fresh level with a session
+started and its clock jumped forward. They need sessions switched on in test
+mode (the run's `"sessions": true`); otherwise the game plays untimed.
 
 **Lost** has its own fixture because the level itself can't produce it: every
 spot a free slime can reach leads back to the loop (rule 7).

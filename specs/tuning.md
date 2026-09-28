@@ -79,6 +79,39 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | Gathering window on a dip floor | 300 px behind | D20 |
 | Hop timer while gathering or holding | held at 0.25 s | D74 |
 
+### Frontier sets, gates and completion (chunk 14)
+
+| Value | Start at | Source |
+|---|---|---|
+| A full basket's reward before it fires (`REWARD_SECONDS`) | 2.0 s, counted once the basket is in view | D70, D91 |
+| Release pace (`RELEASE_SECONDS`) | one released slime every 0.3 s, lowest id first, and only when the outlet is clear | D91, O62 |
+| Outlet clear (`OUTLET_CLEARANCE`) | no slime closer than the two radii plus 8 px | O62 |
+| Door clearance (`DOOR_CLEARANCE`) | 3 px (`SlimeBodies.EDGE`): a trapdoor, gate box or lid shuts only once no slime is in its way | D14 |
+| Celebration (`CELEBRATION_SECONDS`) | 4.0 s | D77 |
+| Default outlet (`outlet_before`, a basket property) | on the onward route, 200 px along the loop before the start of the return route its gate retires (Known gap 3); a basket may name an `outlet_point` instead | O62 |
+| Test level, basket 1 quota | 6 (weight) | test level |
+
+### Session, wind-down, bedtime and sunrise (chunk 17)
+
+| Value | Start at | Source |
+|---|---|---|
+| Session (`BEDTIME_MS`) | 900 s (15 min) from the session start | D29 |
+| Wind-down (`WIND_DOWN_MS`) | the last 60 s: from 840 s to 900 s | D28 |
+| Cooldown, then sunrise (`SUNRISE_MS`) | 600 s (10 min): sunrise at 1 500 s from the session start | D29, D44 |
+| Wind-down hop slowdown (`WIND_DOWN_HOP_RATE`) | hop timers slow linearly from 1× to 0.5× over the wind-down | D28, D74 |
+| Dusk tint | ramps 0 to 1 over the wind-down, holds through bedtime, fades back to 0 at sunrise | D28 |
+| Sunrise fade (`SUNRISE_SECONDS`) | 3 s | D44 |
+| Late sunrise shows no cue (`SUNRISE_CUE_LATE_MS`) | a sunrise more than 1 s late (the cooldown ran out while the app was closed) plays no cue | O68 |
+| Waking at sunrise (`FreeSlimes.REJOIN_DISTANCE`) | a bedtime-asleep slime within 40 px of the loop (plus its extra radius) becomes a train slime; any other becomes free and heads back | D44 |
+
+**The clock rule (chunk 17).** Within one run of the app, the time elapsed is
+the larger of the monotonic clock's and the wall clock's progress since the
+anchor (where counting last started over). After a restart (the app killed or
+the phone restarted), only the wall clock's gap counts, and never a negative
+one. Elapsed time never decreases. Moving the wall clock forward while the
+app is closed shortens the cooldown; there is no way around it, since the
+monotonic clock doesn't survive a restart (accepted in master spec §5.7).
+
 ### Placeholders (ui_ux decides)
 
 These stand in until `ui_ux/` designs them.
@@ -87,3 +120,8 @@ These stand in until `ui_ux/` designs them.
   (whether they should be full-height edge strips is O81).
 - **Top band** (the parent zone): 64 screen px.
 - **An object's hit box:** its drawn box grown by 24 px.
+- **Dusk colour** (`DUSK_COLOUR`): the tint at full dusk, RGB (0.55, 0.52,
+  0.78), over the world only (the parent band and buttons aren't tinted).
+- **Frontier art:** the shut trapdoors, closed gate boxes and shut lids as
+  plain blocks; arrows on the switch and signpost; the basket's quota as
+  slime outlines, pulsing during the reward; rings for the celebration.
