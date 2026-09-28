@@ -14,6 +14,7 @@ extends GutTest
 # @test-link [[rule_fusion_contact_time]]
 # @test-link [[rule_max_size_three]]
 # @test-link [[rule_dip_may_nudge_fusion]]
+# @test-link [[req_offscreen_simulation]]
 
 const Support := preload("res://tests/unit/slime_test_support.gd")
 const TICKS := Fusion.CONTACT_TICKS

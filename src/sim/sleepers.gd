@@ -23,6 +23,7 @@ extends RefCounted
 ##   the tap box follows the body, and a woken sleeper is no longer one.
 # @spec-link [[req_waking_sleepers]]
 # @spec-link [[req_slime_states]]
+# @spec-link [[req_offscreen_simulation]]
 
 
 ## Creates the level's sleepers in `sim` (a fresh game): stable ID order,

@@ -14,6 +14,7 @@ extends GutTest
 
 # @test-link [[req_waking_sleepers]]
 # @test-link [[req_slime_states]]
+# @test-link [[req_offscreen_simulation]]
 
 const Support := preload("res://tests/unit/slime_test_support.gd")
 const FIRST_ID := "t.first-slime"

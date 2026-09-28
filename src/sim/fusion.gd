@@ -57,6 +57,7 @@ extends RefCounted
 # @spec-link [[rule_fusion_contact_time]]
 # @spec-link [[rule_max_size_three]]
 # @spec-link [[rule_dip_may_nudge_fusion]]
+# @spec-link [[req_offscreen_simulation]]
 
 ## Continuous contact before two slimes fuse, s (specs/tuning.md).
 const CONTACT_SECONDS := 3.0
