@@ -39,7 +39,6 @@ master spec is put together and handed off for building.
 
 | Path | What it is |
 |---|---|
-| `precursor.md` | The original brief |
 | `specs/` | Working spec: concept, slimes, interactive objects, tech direction, plus the open-questions register and the decisions log. Start at [`specs/README.md`](specs/README.md). |
 | `docs/research/` | Research reports with their sources: the reference game, the tech stack, level authoring and the kid lock. Index: [`docs/research/README.md`](docs/research/README.md). |
 | `docs/*.atom.md` | Declared intent, as ATD atoms (see `.atd`) |

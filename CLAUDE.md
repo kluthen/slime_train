@@ -2,7 +2,6 @@
 
 ## Project layout
 
-- `precursor.md`: the user's original brief.
 - `specs/`: the spec tree, maintained by spec-writer. Start with `specs/README.md`.
 - `docs/research/`: verbatim research reports with their sources.
 - `docs/*.atom.md`: ATD declared intent, maintained by documentalist.
