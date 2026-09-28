@@ -1,5 +1,5 @@
 {
-	"description": "A size-3 and a size-2 train slime of species C, a little apart on the fusion dip's floor, made of five C sleepers (the others asleep at their markers), and the first slime at its marker. For fusion (chunk 10).",
+	"description": "Four train slimes of species C on the fusion dip's floor, sizes 2, 2, 3 and 1 from left to right, about a slime apart, made of the eight C sleepers nearest the dip (the others asleep at their markers), and the first slime at its marker. Both bumps can happen: 2 + 2 and 3 + 1. For fusion (chunk 10; four slimes since chunk 16).",
 	"save": true,
 	"camera": [
 		3456.0,

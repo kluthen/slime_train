@@ -2,8 +2,8 @@
 	"format": 1,
 	"gates": {
 		"s1.gate": {
-			"entrance_closed": false,
-			"open": false
+			"entrance_closed": true,
+			"open": true
 		},
 		"s2.gate": {
 			"entrance_closed": false,
@@ -18,13 +18,13 @@
 	"objects": {
 		"s1.basket": {
 			"next_release": 0,
-			"phase": "filling",
-			"since": -1,
-			"weight": 3
+			"phase": "fired",
+			"since": 0,
+			"weight": 0
 		},
 		"s1.switch": {
 			"flipped": true,
-			"trapdoor_shut": false
+			"trapdoor_shut": true
 		},
 		"s2.basket": {
 			"next_release": 0,
@@ -48,269 +48,6 @@
 		}
 	},
 	"slimes": [
-		{
-			"centre": [
-				345.6,
-				476.0
-			],
-			"id": "start.first-slime",
-			"members": [
-				"start.first-slime"
-			],
-			"size": 1,
-			"species": "A",
-			"state": "train",
-			"train": {
-				"distance": 0.0
-			}
-		},
-		{
-			"centre": [
-				552.96,
-				376.0
-			],
-			"id": "s1.sleeper.01",
-			"members": [
-				"s1.sleeper.01"
-			],
-			"size": 1,
-			"species": "B",
-			"state": "sleeper"
-		},
-		{
-			"centre": [
-				1336.32,
-				-200.0
-			],
-			"id": "s1.sleeper.02",
-			"members": [
-				"s1.sleeper.02"
-			],
-			"size": 1,
-			"species": "A",
-			"state": "sleeper"
-		},
-		{
-			"centre": [
-				1428.48,
-				-188.0
-			],
-			"id": "s1.sleeper.03",
-			"members": [
-				"s1.sleeper.03"
-			],
-			"size": 1,
-			"species": "B",
-			"state": "sleeper"
-		},
-		{
-			"centre": [
-				1624.32,
-				-188.0
-			],
-			"id": "s1.sleeper.04",
-			"members": [
-				"s1.sleeper.04"
-			],
-			"size": 1,
-			"species": "C",
-			"state": "sleeper"
-		},
-		{
-			"centre": [
-				1716.48,
-				-200.0
-			],
-			"id": "s1.sleeper.05",
-			"members": [
-				"s1.sleeper.05"
-			],
-			"size": 1,
-			"species": "A",
-			"state": "sleeper"
-		},
-		{
-			"centre": [
-				1912.32,
-				-200.0
-			],
-			"id": "s1.sleeper.06",
-			"members": [
-				"s1.sleeper.06"
-			],
-			"size": 1,
-			"species": "B",
-			"state": "sleeper"
-		},
-		{
-			"centre": [
-				2004.48,
-				-188.0
-			],
-			"id": "s1.sleeper.07",
-			"members": [
-				"s1.sleeper.07"
-			],
-			"size": 1,
-			"species": "C",
-			"state": "sleeper"
-		},
-		{
-			"centre": [
-				2200.32,
-				-188.0
-			],
-			"id": "s1.sleeper.08",
-			"members": [
-				"s1.sleeper.08"
-			],
-			"size": 1,
-			"species": "A",
-			"state": "sleeper"
-		},
-		{
-			"centre": [
-				2292.48,
-				-200.0
-			],
-			"id": "s1.sleeper.09",
-			"members": [
-				"s1.sleeper.09"
-			],
-			"size": 1,
-			"species": "B",
-			"state": "sleeper"
-		},
-		{
-			"centre": [
-				2488.32,
-				-200.0
-			],
-			"id": "s1.sleeper.10",
-			"members": [
-				"s1.sleeper.10"
-			],
-			"size": 1,
-			"species": "C",
-			"state": "sleeper"
-		},
-		{
-			"centre": [
-				2580.48,
-				-188.0
-			],
-			"id": "s1.sleeper.11",
-			"members": [
-				"s1.sleeper.11"
-			],
-			"size": 1,
-			"species": "A",
-			"state": "sleeper"
-		},
-		{
-			"centre": [
-				2776.32,
-				-188.0
-			],
-			"id": "s1.sleeper.12",
-			"members": [
-				"s1.sleeper.12"
-			],
-			"size": 1,
-			"species": "B",
-			"state": "sleeper"
-		},
-		{
-			"centre": [
-				2868.48,
-				-200.0
-			],
-			"id": "s1.sleeper.13",
-			"members": [
-				"s1.sleeper.13"
-			],
-			"size": 1,
-			"species": "C",
-			"state": "sleeper"
-		},
-		{
-			"centre": [
-				3847.6800000000003,
-				-174.0
-			],
-			"id": "s1.sleeper.14",
-			"members": [
-				"s1.sleeper.14"
-			],
-			"size": 1,
-			"species": "C",
-			"state": "sleeper"
-		},
-		{
-			"centre": [
-				3939.84,
-				-174.0
-			],
-			"id": "s1.sleeper.15",
-			"members": [
-				"s1.sleeper.15"
-			],
-			"size": 1,
-			"species": "C",
-			"state": "sleeper"
-		},
-		{
-			"centre": [
-				5713.92,
-				-384.0
-			],
-			"id": "s1.sleeper.16",
-			"members": [
-				"s1.sleeper.16"
-			],
-			"size": 1,
-			"species": "A",
-			"state": "sleeper"
-		},
-		{
-			"centre": [
-				5783.04,
-				-384.0
-			],
-			"id": "s1.sleeper.17",
-			"members": [
-				"s1.sleeper.17"
-			],
-			"size": 1,
-			"species": "A",
-			"state": "sleeper"
-		},
-		{
-			"centre": [
-				5852.16,
-				-384.0
-			],
-			"id": "s1.sleeper.18",
-			"members": [
-				"s1.sleeper.18"
-			],
-			"size": 1,
-			"species": "B",
-			"state": "sleeper"
-		},
-		{
-			"centre": [
-				5921.28,
-				-384.0
-			],
-			"id": "s1.sleeper.19",
-			"members": [
-				"s1.sleeper.19"
-			],
-			"size": 1,
-			"species": "B",
-			"state": "sleeper"
-		},
 		{
 			"centre": [
 				5990.4000000000005,
@@ -400,6 +137,45 @@
 			],
 			"size": 1,
 			"species": "B",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				7545.6,
+				-384.0
+			],
+			"id": "s1.sleeper.27",
+			"members": [
+				"s1.sleeper.27"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				7626.24,
+				-384.0
+			],
+			"id": "s1.sleeper.28",
+			"members": [
+				"s1.sleeper.28"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				7706.88,
+				-384.0
+			],
+			"id": "s1.sleeper.29",
+			"members": [
+				"s1.sleeper.29"
+			],
+			"size": 1,
+			"species": "C",
 			"state": "sleeper"
 		},
 		{
@@ -2614,18 +2390,323 @@
 		},
 		{
 			"centre": [
-				7943.04,
-				60.63
+				521.6,
+				476.0
 			],
-			"id": "s1.sleeper.27",
+			"id": "start.first-slime",
 			"members": [
-				"s1.sleeper.27",
-				"s1.sleeper.28",
-				"s1.sleeper.29"
+				"start.first-slime"
 			],
-			"size": 3,
+			"size": 1,
+			"species": "A",
+			"state": "train",
+			"train": {
+				"distance": 176.0
+			}
+		},
+		{
+			"centre": [
+				1087.3600000000001,
+				126.74000000000001
+			],
+			"id": "s1.sleeper.01",
+			"members": [
+				"s1.sleeper.01"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "train",
+			"train": {
+				"distance": 917.4300000000001
+			}
+		},
+		{
+			"centre": [
+				1798.82,
+				-13.73
+			],
+			"id": "s1.sleeper.02",
+			"members": [
+				"s1.sleeper.02"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "train",
+			"train": {
+				"distance": 1658.8500000000001
+			}
+		},
+		{
+			"centre": [
+				2525.01,
+				-41.83
+			],
+			"id": "s1.sleeper.03",
+			"members": [
+				"s1.sleeper.03"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "train",
+			"train": {
+				"distance": 2400.28
+			}
+		},
+		{
+			"centre": [
+				3212.2000000000003,
+				161.35
+			],
+			"id": "s1.sleeper.04",
+			"members": [
+				"s1.sleeper.04"
+			],
+			"size": 1,
 			"species": "C",
-			"state": "in_basket"
+			"state": "train",
+			"train": {
+				"distance": 3141.7000000000003
+			}
+		},
+		{
+			"centre": [
+				3898.05,
+				32.9
+			],
+			"id": "s1.sleeper.05",
+			"members": [
+				"s1.sleeper.05"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "train",
+			"train": {
+				"distance": 3883.13
+			}
+		},
+		{
+			"centre": [
+				4607.67,
+				-74.0
+			],
+			"id": "s1.sleeper.06",
+			"members": [
+				"s1.sleeper.06"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "train",
+			"train": {
+				"distance": 4624.55
+			}
+		},
+		{
+			"centre": [
+				5349.02,
+				-78.78
+			],
+			"id": "s1.sleeper.07",
+			"members": [
+				"s1.sleeper.07"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "train",
+			"train": {
+				"distance": 5365.9800000000005
+			}
+		},
+		{
+			"centre": [
+				6090.24,
+				-96.17
+			],
+			"id": "s1.sleeper.08",
+			"members": [
+				"s1.sleeper.08"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "train",
+			"train": {
+				"distance": 6107.4000000000005
+			}
+		},
+		{
+			"centre": [
+				6831.2300000000005,
+				-120.49000000000001
+			],
+			"id": "s1.sleeper.09",
+			"members": [
+				"s1.sleeper.09"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "train",
+			"train": {
+				"distance": 6848.83
+			}
+		},
+		{
+			"centre": [
+				7572.57,
+				-124.0
+			],
+			"id": "s1.sleeper.10",
+			"members": [
+				"s1.sleeper.10"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "train",
+			"train": {
+				"distance": 7590.25
+			}
+		},
+		{
+			"centre": [
+				8314.0,
+				-124.0
+			],
+			"id": "s1.sleeper.11",
+			"members": [
+				"s1.sleeper.11"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "train",
+			"train": {
+				"distance": 8331.68
+			}
+		},
+		{
+			"centre": [
+				9055.42,
+				-124.0
+			],
+			"id": "s1.sleeper.12",
+			"members": [
+				"s1.sleeper.12"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "train",
+			"train": {
+				"distance": 9073.1
+			}
+		},
+		{
+			"centre": [
+				9796.85,
+				-124.0
+			],
+			"id": "s1.sleeper.13",
+			"members": [
+				"s1.sleeper.13"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "train",
+			"train": {
+				"distance": 9814.53
+			}
+		},
+		{
+			"centre": [
+				10530.83,
+				-44.0
+			],
+			"id": "s1.sleeper.14",
+			"members": [
+				"s1.sleeper.14"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "train",
+			"train": {
+				"distance": 10555.95
+			}
+		},
+		{
+			"centre": [
+				11272.25,
+				-44.0
+			],
+			"id": "s1.sleeper.15",
+			"members": [
+				"s1.sleeper.15"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "train",
+			"train": {
+				"distance": 11297.380000000001
+			}
+		},
+		{
+			"centre": [
+				11974.32,
+				14.94
+			],
+			"id": "s1.sleeper.16",
+			"members": [
+				"s1.sleeper.16"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "train",
+			"train": {
+				"distance": 12038.800000000001
+			}
+		},
+		{
+			"centre": [
+				12701.470000000001,
+				-44.0
+			],
+			"id": "s1.sleeper.17",
+			"members": [
+				"s1.sleeper.17"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "train",
+			"train": {
+				"distance": 12780.23
+			}
+		},
+		{
+			"centre": [
+				13442.89,
+				-44.0
+			],
+			"id": "s1.sleeper.18",
+			"members": [
+				"s1.sleeper.18"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "train",
+			"train": {
+				"distance": 13521.66
+			}
+		},
+		{
+			"centre": [
+				14184.32,
+				-44.0
+			],
+			"id": "s1.sleeper.19",
+			"members": [
+				"s1.sleeper.19"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "train",
+			"train": {
+				"distance": 14263.08
+			}
 		}
 	]
 }

@@ -1,0 +1,8 @@
+{
+	"description": "Gates 1 and 2 open and all 200 base slimes woken as size-1 train slimes, spread through section 3's bowl from its bottom up (on the floor, the slopes and the shelves), each following the loop from its nearest point. The camera on the bowl. The worst moving case: a measurement, not a target (chunk 16; tools/bench_level.gd).",
+	"save": true,
+	"camera": [
+		16560.0,
+		-150.0
+	]
+}

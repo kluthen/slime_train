@@ -1,0 +1,2668 @@
+{
+	"format": 1,
+	"gates": {
+		"s1.gate": {
+			"entrance_closed": true,
+			"open": true
+		},
+		"s2.gate": {
+			"entrance_closed": true,
+			"open": true
+		}
+	},
+	"hint_done": false,
+	"level": {
+		"id": "test",
+		"version": 1
+	},
+	"objects": {
+		"s1.basket": {
+			"next_release": 0,
+			"phase": "fired",
+			"since": 0,
+			"weight": 0
+		},
+		"s1.switch": {
+			"flipped": true,
+			"trapdoor_shut": true
+		},
+		"s2.basket": {
+			"next_release": 0,
+			"phase": "fired",
+			"since": 0,
+			"weight": 0
+		},
+		"s2.switch": {
+			"flipped": true,
+			"trapdoor_shut": true
+		},
+		"s3.basket": {
+			"next_release": 0,
+			"phase": "full",
+			"since": 0,
+			"weight": 60
+		},
+		"s3.switch": {
+			"flipped": true,
+			"trapdoor_shut": true
+		}
+	},
+	"session": {
+		"anchor": {
+			"elapsed_ms": 900000,
+			"mono_ms": 0,
+			"wall_ms": 1800000000000
+		},
+		"clock": {
+			"epoch": "test",
+			"mono_ms": 0,
+			"tick": 0,
+			"wall_ms": 1800000000000
+		},
+		"elapsed_ms": 900000,
+		"phase": "bedtime",
+		"sunrise_tick": -1
+	},
+	"slimes": [
+		{
+			"centre": [
+				18127.63,
+				79.08
+			],
+			"id": "s3.sleeper.40",
+			"members": [
+				"s3.sleeper.40"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18196.46,
+				79.08
+			],
+			"id": "s3.sleeper.41",
+			"members": [
+				"s3.sleeper.41"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18232.38,
+				79.64
+			],
+			"id": "s3.sleeper.42",
+			"members": [
+				"s3.sleeper.42"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18307.510000000002,
+				80.59
+			],
+			"id": "s3.sleeper.43",
+			"members": [
+				"s3.sleeper.43"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18345.65,
+				80.73
+			],
+			"id": "s3.sleeper.44",
+			"members": [
+				"s3.sleeper.44"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18384.260000000002,
+				80.76
+			],
+			"id": "s3.sleeper.45",
+			"members": [
+				"s3.sleeper.45"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18462.010000000002,
+				80.73
+			],
+			"id": "s3.sleeper.46",
+			"members": [
+				"s3.sleeper.46"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18500.63,
+				80.82000000000001
+			],
+			"id": "s3.sleeper.47",
+			"members": [
+				"s3.sleeper.47"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18578.21,
+				79.83
+			],
+			"id": "s3.sleeper.48",
+			"members": [
+				"s3.sleeper.48"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18615.7,
+				79.92
+			],
+			"id": "s3.sleeper.49",
+			"members": [
+				"s3.sleeper.49"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18652.73,
+				79.59
+			],
+			"id": "s3.sleeper.50",
+			"members": [
+				"s3.sleeper.50"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18689.02,
+				79.72
+			],
+			"id": "s3.sleeper.51",
+			"members": [
+				"s3.sleeper.51"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18758.88,
+				78.38
+			],
+			"id": "s3.sleeper.52",
+			"members": [
+				"s3.sleeper.52"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18160.96,
+				80.18
+			],
+			"id": "s3.sleeper.53",
+			"members": [
+				"s3.sleeper.53"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18211.06,
+				44.57
+			],
+			"id": "s3.sleeper.54",
+			"members": [
+				"s3.sleeper.54"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18269.53,
+				80.60000000000001
+			],
+			"id": "s3.sleeper.55",
+			"members": [
+				"s3.sleeper.55"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18326.19,
+				46.7
+			],
+			"id": "s3.sleeper.56",
+			"members": [
+				"s3.sleeper.56"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18364.79,
+				46.93
+			],
+			"id": "s3.sleeper.57",
+			"members": [
+				"s3.sleeper.57"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18423.14,
+				80.82000000000001
+			],
+			"id": "s3.sleeper.58",
+			"members": [
+				"s3.sleeper.58"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18481.260000000002,
+				47.01
+			],
+			"id": "s3.sleeper.59",
+			"members": [
+				"s3.sleeper.59"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18539.670000000002,
+				80.87
+			],
+			"id": "s3.sleeper.60",
+			"members": [
+				"s3.sleeper.60"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18598.95,
+				46.51
+			],
+			"id": "s3.sleeper.61",
+			"members": [
+				"s3.sleeper.61"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18638.31,
+				46.14
+			],
+			"id": "s3.sleeper.62",
+			"members": [
+				"s3.sleeper.62"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18677.96,
+				45.04
+			],
+			"id": "s3.sleeper.63",
+			"members": [
+				"s3.sleeper.63"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18724.58,
+				79.75
+			],
+			"id": "s3.sleeper.64",
+			"members": [
+				"s3.sleeper.64"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18132.54,
+				42.64
+			],
+			"id": "s3.sleeper.65",
+			"members": [
+				"s3.sleeper.65"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18172.29,
+				45.59
+			],
+			"id": "s3.sleeper.66",
+			"members": [
+				"s3.sleeper.66"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18248.71,
+				46.1
+			],
+			"id": "s3.sleeper.67",
+			"members": [
+				"s3.sleeper.67"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18287.65,
+				46.61
+			],
+			"id": "s3.sleeper.68",
+			"members": [
+				"s3.sleeper.68"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18345.03,
+				11.8
+			],
+			"id": "s3.sleeper.69",
+			"members": [
+				"s3.sleeper.69"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18403.64,
+				47.17
+			],
+			"id": "s3.sleeper.70",
+			"members": [
+				"s3.sleeper.70"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18442.760000000002,
+				47.0
+			],
+			"id": "s3.sleeper.71",
+			"members": [
+				"s3.sleeper.71"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18520.16,
+				47.36
+			],
+			"id": "s3.sleeper.72",
+			"members": [
+				"s3.sleeper.72"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18559.49,
+				47.01
+			],
+			"id": "s3.sleeper.73",
+			"members": [
+				"s3.sleeper.73"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18618.94,
+				11.94
+			],
+			"id": "s3.sleeper.74",
+			"members": [
+				"s3.sleeper.74"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18658.58,
+				11.23
+			],
+			"id": "s3.sleeper.75",
+			"members": [
+				"s3.sleeper.75"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18717.32,
+				42.94
+			],
+			"id": "s3.sleeper.76",
+			"members": [
+				"s3.sleeper.76"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18756.19,
+				40.75
+			],
+			"id": "s3.sleeper.77",
+			"members": [
+				"s3.sleeper.77"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18132.05,
+				4.33
+			],
+			"id": "s3.sleeper.78",
+			"members": [
+				"s3.sleeper.78"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18212.23,
+				5.71
+			],
+			"id": "s3.sleeper.79",
+			"members": [
+				"s3.sleeper.79"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18266.34,
+				12.42
+			],
+			"id": "s3.sleeper.80",
+			"members": [
+				"s3.sleeper.80"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18306.2,
+				11.58
+			],
+			"id": "s3.sleeper.81",
+			"members": [
+				"s3.sleeper.81"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18384.25,
+				12.24
+			],
+			"id": "s3.sleeper.82",
+			"members": [
+				"s3.sleeper.82"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18423.48,
+				12.38
+			],
+			"id": "s3.sleeper.83",
+			"members": [
+				"s3.sleeper.83"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18500.48,
+				12.44
+			],
+			"id": "s3.sleeper.84",
+			"members": [
+				"s3.sleeper.84"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18539.65,
+				12.67
+			],
+			"id": "s3.sleeper.85",
+			"members": [
+				"s3.sleeper.85"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18579.29,
+				12.4
+			],
+			"id": "s3.sleeper.86",
+			"members": [
+				"s3.sleeper.86"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18639.44,
+				-23.16
+			],
+			"id": "s3.sleeper.87",
+			"members": [
+				"s3.sleeper.87"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18697.74,
+				8.870000000000001
+			],
+			"id": "s3.sleeper.88",
+			"members": [
+				"s3.sleeper.88"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18737.71,
+				6.57
+			],
+			"id": "s3.sleeper.89",
+			"members": [
+				"s3.sleeper.89"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18154.86,
+				-28.44
+			],
+			"id": "s3.sleeper.90",
+			"members": [
+				"s3.sleeper.90"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18172.4,
+				7.2
+			],
+			"id": "s3.sleeper.91",
+			"members": [
+				"s3.sleeper.91"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18243.12,
+				-19.31
+			],
+			"id": "s3.sleeper.92",
+			"members": [
+				"s3.sleeper.92"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18285.72,
+				-22.69
+			],
+			"id": "s3.sleeper.93",
+			"members": [
+				"s3.sleeper.93"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18364.52,
+				-22.88
+			],
+			"id": "s3.sleeper.94",
+			"members": [
+				"s3.sleeper.94"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18404.95,
+				-22.56
+			],
+			"id": "s3.sleeper.95",
+			"members": [
+				"s3.sleeper.95"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18461.97,
+				11.41
+			],
+			"id": "s3.sleeper.96",
+			"members": [
+				"s3.sleeper.96"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18519.04,
+				-22.37
+			],
+			"id": "s3.sleeper.97",
+			"members": [
+				"s3.sleeper.97"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18559.14,
+				-22.36
+			],
+			"id": "s3.sleeper.98",
+			"members": [
+				"s3.sleeper.98"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				18599.19,
+				-22.69
+			],
+			"id": "s3.sleeper.99",
+			"members": [
+				"s3.sleeper.99"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "in_basket"
+		},
+		{
+			"centre": [
+				15774.69,
+				80.17
+			],
+			"id": "start.first-slime",
+			"members": [
+				"start.first-slime"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15814.31,
+				80.11
+			],
+			"id": "s1.sleeper.01",
+			"members": [
+				"s1.sleeper.01"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15854.0,
+				79.83
+			],
+			"id": "s1.sleeper.02",
+			"members": [
+				"s1.sleeper.02"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15893.25,
+				79.89
+			],
+			"id": "s1.sleeper.03",
+			"members": [
+				"s1.sleeper.03"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15933.130000000001,
+				80.38
+			],
+			"id": "s1.sleeper.04",
+			"members": [
+				"s1.sleeper.04"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15973.43,
+				80.68
+			],
+			"id": "s1.sleeper.05",
+			"members": [
+				"s1.sleeper.05"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16013.9,
+				80.78
+			],
+			"id": "s1.sleeper.06",
+			"members": [
+				"s1.sleeper.06"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16054.390000000001,
+				80.73
+			],
+			"id": "s1.sleeper.07",
+			"members": [
+				"s1.sleeper.07"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16094.77,
+				80.5
+			],
+			"id": "s1.sleeper.08",
+			"members": [
+				"s1.sleeper.08"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16134.81,
+				79.88
+			],
+			"id": "s1.sleeper.09",
+			"members": [
+				"s1.sleeper.09"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16213.29,
+				79.84
+			],
+			"id": "s1.sleeper.10",
+			"members": [
+				"s1.sleeper.10"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16253.220000000001,
+				80.39
+			],
+			"id": "s1.sleeper.11",
+			"members": [
+				"s1.sleeper.11"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16293.57,
+				80.60000000000001
+			],
+			"id": "s1.sleeper.12",
+			"members": [
+				"s1.sleeper.12"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16333.94,
+				80.5
+			],
+			"id": "s1.sleeper.13",
+			"members": [
+				"s1.sleeper.13"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16413.98,
+				79.99
+			],
+			"id": "s1.sleeper.14",
+			"members": [
+				"s1.sleeper.14"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16453.61,
+				79.71000000000001
+			],
+			"id": "s1.sleeper.15",
+			"members": [
+				"s1.sleeper.15"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16493.04,
+				79.85000000000001
+			],
+			"id": "s1.sleeper.16",
+			"members": [
+				"s1.sleeper.16"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16573.48,
+				80.66
+			],
+			"id": "s1.sleeper.17",
+			"members": [
+				"s1.sleeper.17"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16613.93,
+				80.79
+			],
+			"id": "s1.sleeper.18",
+			"members": [
+				"s1.sleeper.18"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16654.43,
+				80.79
+			],
+			"id": "s1.sleeper.19",
+			"members": [
+				"s1.sleeper.19"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16695.16,
+				80.82000000000001
+			],
+			"id": "s1.sleeper.20",
+			"members": [
+				"s1.sleeper.20"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16735.7,
+				80.79
+			],
+			"id": "s1.sleeper.21",
+			"members": [
+				"s1.sleeper.21"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16776.39,
+				80.76
+			],
+			"id": "s1.sleeper.22",
+			"members": [
+				"s1.sleeper.22"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16817.04,
+				80.67
+			],
+			"id": "s1.sleeper.23",
+			"members": [
+				"s1.sleeper.23"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16857.55,
+				80.4
+			],
+			"id": "s1.sleeper.24",
+			"members": [
+				"s1.sleeper.24"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16897.670000000002,
+				79.81
+			],
+			"id": "s1.sleeper.25",
+			"members": [
+				"s1.sleeper.25"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16936.96,
+				79.34
+			],
+			"id": "s1.sleeper.26",
+			"members": [
+				"s1.sleeper.26"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16976.39,
+				79.81
+			],
+			"id": "s1.sleeper.27",
+			"members": [
+				"s1.sleeper.27"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17016.53,
+				80.39
+			],
+			"id": "s1.sleeper.28",
+			"members": [
+				"s1.sleeper.28"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17057.08,
+				80.7
+			],
+			"id": "s1.sleeper.29",
+			"members": [
+				"s1.sleeper.29"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17097.78,
+				80.79
+			],
+			"id": "s2.sleeper.01",
+			"members": [
+				"s2.sleeper.01"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17138.420000000002,
+				80.75
+			],
+			"id": "s2.sleeper.02",
+			"members": [
+				"s2.sleeper.02"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17178.87,
+				80.58
+			],
+			"id": "s2.sleeper.03",
+			"members": [
+				"s2.sleeper.03"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17341.81,
+				79.78
+			],
+			"id": "s2.sleeper.04",
+			"members": [
+				"s2.sleeper.04"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15753.75,
+				45.82
+			],
+			"id": "s2.sleeper.05",
+			"members": [
+				"s2.sleeper.05"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15794.140000000001,
+				46.37
+			],
+			"id": "s2.sleeper.06",
+			"members": [
+				"s2.sleeper.06"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15834.390000000001,
+				46.01
+			],
+			"id": "s2.sleeper.07",
+			"members": [
+				"s2.sleeper.07"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15913.48,
+				46.14
+			],
+			"id": "s2.sleeper.08",
+			"members": [
+				"s2.sleeper.08"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15953.59,
+				47.01
+			],
+			"id": "s2.sleeper.09",
+			"members": [
+				"s2.sleeper.09"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15993.91,
+				47.37
+			],
+			"id": "s2.sleeper.10",
+			"members": [
+				"s2.sleeper.10"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16034.28,
+				47.4
+			],
+			"id": "s2.sleeper.11",
+			"members": [
+				"s2.sleeper.11"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16074.62,
+				47.160000000000004
+			],
+			"id": "s2.sleeper.12",
+			"members": [
+				"s2.sleeper.12"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16114.800000000001,
+				46.410000000000004
+			],
+			"id": "s2.sleeper.13",
+			"members": [
+				"s2.sleeper.13"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16154.23,
+				44.74
+			],
+			"id": "s2.sleeper.14",
+			"members": [
+				"s2.sleeper.14"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16174.050000000001,
+				79.26
+			],
+			"id": "s2.sleeper.15",
+			"members": [
+				"s2.sleeper.15"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16273.66,
+				46.980000000000004
+			],
+			"id": "s2.sleeper.16",
+			"members": [
+				"s2.sleeper.16"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16313.880000000001,
+				47.08
+			],
+			"id": "s2.sleeper.17",
+			"members": [
+				"s2.sleeper.17"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16354.06,
+				46.5
+			],
+			"id": "s2.sleeper.18",
+			"members": [
+				"s2.sleeper.18"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16374.140000000001,
+				80.22
+			],
+			"id": "s2.sleeper.19",
+			"members": [
+				"s2.sleeper.19"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16433.920000000002,
+				45.64
+			],
+			"id": "s2.sleeper.20",
+			"members": [
+				"s2.sleeper.20"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16532.99,
+				80.36
+			],
+			"id": "s2.sleeper.21",
+			"members": [
+				"s2.sleeper.21"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16553.510000000002,
+				47.08
+			],
+			"id": "s2.sleeper.22",
+			"members": [
+				"s2.sleeper.22"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16593.94,
+				47.4
+			],
+			"id": "s2.sleeper.23",
+			"members": [
+				"s2.sleeper.23"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16634.46,
+				47.54
+			],
+			"id": "s2.sleeper.24",
+			"members": [
+				"s2.sleeper.24"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16675.010000000002,
+				47.57
+			],
+			"id": "s2.sleeper.25",
+			"members": [
+				"s2.sleeper.25"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16715.58,
+				47.61
+			],
+			"id": "s2.sleeper.26",
+			"members": [
+				"s2.sleeper.26"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16756.15,
+				47.56
+			],
+			"id": "s2.sleeper.27",
+			"members": [
+				"s2.sleeper.27"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16796.7,
+				47.45
+			],
+			"id": "s2.sleeper.28",
+			"members": [
+				"s2.sleeper.28"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16837.170000000002,
+				47.12
+			],
+			"id": "s2.sleeper.29",
+			"members": [
+				"s2.sleeper.29"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16877.54,
+				46.27
+			],
+			"id": "s2.sleeper.30",
+			"members": [
+				"s2.sleeper.30"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16917.260000000002,
+				44.84
+			],
+			"id": "s2.sleeper.31",
+			"members": [
+				"s2.sleeper.31"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16996.82,
+				46.230000000000004
+			],
+			"id": "s2.sleeper.32",
+			"members": [
+				"s2.sleeper.32"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17037.170000000002,
+				47.160000000000004
+			],
+			"id": "s2.sleeper.33",
+			"members": [
+				"s2.sleeper.33"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17077.7,
+				47.49
+			],
+			"id": "s2.sleeper.34",
+			"members": [
+				"s2.sleeper.34"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17118.27,
+				47.52
+			],
+			"id": "s2.sleeper.35",
+			"members": [
+				"s2.sleeper.35"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17158.81,
+				47.33
+			],
+			"id": "s2.sleeper.36",
+			"members": [
+				"s2.sleeper.36"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17219.15,
+				80.63
+			],
+			"id": "s2.sleeper.37",
+			"members": [
+				"s2.sleeper.37"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17259.77,
+				80.71000000000001
+			],
+			"id": "s2.sleeper.38",
+			"members": [
+				"s2.sleeper.38"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15735.57,
+				79.39
+			],
+			"id": "s2.sleeper.39",
+			"members": [
+				"s2.sleeper.39"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17300.84,
+				80.69
+			],
+			"id": "s2.sleeper.40",
+			"members": [
+				"s2.sleeper.40"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15698.14,
+				79.34
+			],
+			"id": "s3.sleeper.01",
+			"members": [
+				"s3.sleeper.01"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17360.12,
+				44.85
+			],
+			"id": "s3.sleeper.02",
+			"members": [
+				"s3.sleeper.02"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15624.77,
+				75.19
+			],
+			"id": "s3.sleeper.03",
+			"members": [
+				"s3.sleeper.03"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17382.71,
+				76.47
+			],
+			"id": "s3.sleeper.04",
+			"members": [
+				"s3.sleeper.04"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15587.7,
+				72.05
+			],
+			"id": "s3.sleeper.05",
+			"members": [
+				"s3.sleeper.05"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17423.46,
+				72.21000000000001
+			],
+			"id": "s3.sleeper.06",
+			"members": [
+				"s3.sleeper.06"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15549.42,
+				67.45
+			],
+			"id": "s3.sleeper.07",
+			"members": [
+				"s3.sleeper.07"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17462.82,
+				66.36
+			],
+			"id": "s3.sleeper.08",
+			"members": [
+				"s3.sleeper.08"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15510.880000000001,
+				61.15
+			],
+			"id": "s3.sleeper.09",
+			"members": [
+				"s3.sleeper.09"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15733.62,
+				11.1
+			],
+			"id": "s3.sleeper.10",
+			"members": [
+				"s3.sleeper.10"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15774.18,
+				11.64
+			],
+			"id": "s3.sleeper.100",
+			"members": [
+				"s3.sleeper.100"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15814.7,
+				11.74
+			],
+			"id": "s3.sleeper.101",
+			"members": [
+				"s3.sleeper.101"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15873.960000000001,
+				45.11
+			],
+			"id": "s3.sleeper.102",
+			"members": [
+				"s3.sleeper.102"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15933.66,
+				12.030000000000001
+			],
+			"id": "s3.sleeper.103",
+			"members": [
+				"s3.sleeper.103"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15974.01,
+				12.58
+			],
+			"id": "s3.sleeper.104",
+			"members": [
+				"s3.sleeper.104"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16014.28,
+				12.8
+			],
+			"id": "s3.sleeper.105",
+			"members": [
+				"s3.sleeper.105"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16054.58,
+				12.69
+			],
+			"id": "s3.sleeper.106",
+			"members": [
+				"s3.sleeper.106"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16095.0,
+				12.280000000000001
+			],
+			"id": "s3.sleeper.107",
+			"members": [
+				"s3.sleeper.107"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16193.880000000001,
+				44.79
+			],
+			"id": "s3.sleeper.108",
+			"members": [
+				"s3.sleeper.108"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16233.470000000001,
+				46.22
+			],
+			"id": "s3.sleeper.109",
+			"members": [
+				"s3.sleeper.109"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16253.61,
+				12.1
+			],
+			"id": "s3.sleeper.11",
+			"members": [
+				"s3.sleeper.11"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16294.02,
+				12.4
+			],
+			"id": "s3.sleeper.110",
+			"members": [
+				"s3.sleeper.110"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16334.460000000001,
+				12.35
+			],
+			"id": "s3.sleeper.111",
+			"members": [
+				"s3.sleeper.111"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16393.73,
+				46.15
+			],
+			"id": "s3.sleeper.112",
+			"members": [
+				"s3.sleeper.112"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16473.54,
+				45.050000000000004
+			],
+			"id": "s3.sleeper.113",
+			"members": [
+				"s3.sleeper.113"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16513.23,
+				46.22
+			],
+			"id": "s3.sleeper.114",
+			"members": [
+				"s3.sleeper.114"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16533.54,
+				12.19
+			],
+			"id": "s3.sleeper.115",
+			"members": [
+				"s3.sleeper.115"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16574.02,
+				12.68
+			],
+			"id": "s3.sleeper.116",
+			"members": [
+				"s3.sleeper.116"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16614.46,
+				12.97
+			],
+			"id": "s3.sleeper.117",
+			"members": [
+				"s3.sleeper.117"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16654.93,
+				13.06
+			],
+			"id": "s3.sleeper.118",
+			"members": [
+				"s3.sleeper.118"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16695.420000000002,
+				13.09
+			],
+			"id": "s3.sleeper.119",
+			"members": [
+				"s3.sleeper.119"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16735.89,
+				13.09
+			],
+			"id": "s3.sleeper.12",
+			"members": [
+				"s3.sleeper.12"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16776.35,
+				13.0
+			],
+			"id": "s3.sleeper.120",
+			"members": [
+				"s3.sleeper.120"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16816.81,
+				12.76
+			],
+			"id": "s3.sleeper.121",
+			"members": [
+				"s3.sleeper.121"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16857.34,
+				12.27
+			],
+			"id": "s3.sleeper.122",
+			"members": [
+				"s3.sleeper.122"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16957.08,
+				44.910000000000004
+			],
+			"id": "s3.sleeper.123",
+			"members": [
+				"s3.sleeper.123"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17017.33,
+				12.26
+			],
+			"id": "s3.sleeper.124",
+			"members": [
+				"s3.sleeper.124"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17057.78,
+				12.81
+			],
+			"id": "s3.sleeper.125",
+			"members": [
+				"s3.sleeper.125"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17098.170000000002,
+				13.02
+			],
+			"id": "s3.sleeper.126",
+			"members": [
+				"s3.sleeper.126"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17138.65,
+				12.94
+			],
+			"id": "s3.sleeper.127",
+			"members": [
+				"s3.sleeper.127"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17199.23,
+				46.83
+			],
+			"id": "s3.sleeper.128",
+			"members": [
+				"s3.sleeper.128"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17239.03,
+				47.19
+			],
+			"id": "s3.sleeper.129",
+			"members": [
+				"s3.sleeper.129"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17279.52,
+				47.57
+			],
+			"id": "s3.sleeper.13",
+			"members": [
+				"s3.sleeper.13"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15712.81,
+				44.83
+			],
+			"id": "s3.sleeper.130",
+			"members": [
+				"s3.sleeper.130"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17320.010000000002,
+				47.03
+			],
+			"id": "s3.sleeper.14",
+			"members": [
+				"s3.sleeper.14"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15661.6,
+				78.36
+			],
+			"id": "s3.sleeper.15",
+			"members": [
+				"s3.sleeper.15"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15436.14,
+				44.77
+			],
+			"id": "s3.sleeper.16",
+			"members": [
+				"s3.sleeper.16"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17378.44,
+				8.56
+			],
+			"id": "s3.sleeper.17",
+			"members": [
+				"s3.sleeper.17"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17538.57,
+				46.27
+			],
+			"id": "s3.sleeper.18",
+			"members": [
+				"s3.sleeper.18"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15244.300000000001,
+				-4.38
+			],
+			"id": "s3.sleeper.19",
+			"members": [
+				"s3.sleeper.19"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15613.380000000001,
+				38.51
+			],
+			"id": "s3.sleeper.20",
+			"members": [
+				"s3.sleeper.20"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15204.54,
+				-14.450000000000001
+			],
+			"id": "s3.sleeper.21",
+			"members": [
+				"s3.sleeper.21"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17400.28,
+				41.19
+			],
+			"id": "s3.sleeper.22",
+			"members": [
+				"s3.sleeper.22"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15398.74,
+				35.44
+			],
+			"id": "s3.sleeper.23",
+			"members": [
+				"s3.sleeper.23"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15573.66,
+				35.15
+			],
+			"id": "s3.sleeper.24",
+			"members": [
+				"s3.sleeper.24"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17439.8,
+				35.06
+			],
+			"id": "s3.sleeper.25",
+			"members": [
+				"s3.sleeper.25"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17576.66,
+				35.300000000000004
+			],
+			"id": "s3.sleeper.26",
+			"members": [
+				"s3.sleeper.26"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15534.1,
+				29.82
+			],
+			"id": "s3.sleeper.27",
+			"members": [
+				"s3.sleeper.27"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15360.84,
+				25.240000000000002
+			],
+			"id": "s3.sleeper.28",
+			"members": [
+				"s3.sleeper.28"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17500.33,
+				56.14
+			],
+			"id": "s3.sleeper.29",
+			"members": [
+				"s3.sleeper.29"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15322.45,
+				15.4
+			],
+			"id": "s3.sleeper.30",
+			"members": [
+				"s3.sleeper.30"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15473.54,
+				52.910000000000004
+			],
+			"id": "s3.sleeper.31",
+			"members": [
+				"s3.sleeper.31"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				16413.31,
+				11.48
+			],
+			"id": "s3.sleeper.32",
+			"members": [
+				"s3.sleeper.32"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17179.21,
+				12.64
+			],
+			"id": "s3.sleeper.33",
+			"members": [
+				"s3.sleeper.33"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17258.420000000002,
+				12.96
+			],
+			"id": "s3.sleeper.34",
+			"members": [
+				"s3.sleeper.34"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17298.58,
+				12.780000000000001
+			],
+			"id": "s3.sleeper.35",
+			"members": [
+				"s3.sleeper.35"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17338.46,
+				11.450000000000001
+			],
+			"id": "s3.sleeper.36",
+			"members": [
+				"s3.sleeper.36"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				17614.62,
+				21.6
+			],
+			"id": "s3.sleeper.37",
+			"members": [
+				"s3.sleeper.37"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15283.69,
+				5.4
+			],
+			"id": "s3.sleeper.38",
+			"members": [
+				"s3.sleeper.38"
+			],
+			"size": 1,
+			"species": "E",
+			"state": "bedtime_asleep"
+		},
+		{
+			"centre": [
+				15654.62,
+				40.06
+			],
+			"id": "s3.sleeper.39",
+			"members": [
+				"s3.sleeper.39"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "bedtime_asleep"
+		}
+	]
+}

@@ -44,9 +44,9 @@ const CRUST_REST := [
 	[7.25, 300], [7.0, 320], [5.0, 350], [3.0, 375], [1.5, 385], [0.78, 352],
 ]
 ## The bedrock: the level's left wall, the start basin's floor, the slide
-## tunnel's floor running on under the pillar and section 2 (chunk 15) to
-## section 3's shaft, the ground past the shaft and the level's right wall
-## (a stub of section 3, for chunk 16). The tunnel's floor falls gently all
+## tunnel's floor running on under the pillar, section 2 (chunk 15) and
+## section 3's bowl (chunk 16) to slide 3's chute, and the chute's far wall,
+## the level's right wall. The tunnel's floor falls gently all
 ## the way back to the basin, so the slides carry the slimes home. Just
 ## inside the tunnel's mouth, under the lip, its floor has a hump that slopes
 ## down into the basin, so a slime that falls short of the lip rolls back out
@@ -54,8 +54,8 @@ const CRUST_REST := [
 const BEDROCK := [
 	[0.0, -800], [0.08, -800], [0.1, 200], [0.14, 440], [0.2, 500], [0.62, 500], [0.78, 462],
 	[1.5, 495], [3.0, 485], [5.0, 460], [7.0, 430], [7.3, 390], [8.0, 375], [8.5, 360],
-	[10.5, 338], [12.5, 312], [12.62, 308], [13.3, 300], [13.4, 280], [13.4, -20], [13.55, -20],
-	[13.55, -800], [13.65, -800], [13.65, 1200], [0.0, 1200],
+	[10.5, 338], [12.5, 312], [12.62, 308], [13.3, 300], [14.5, 286], [16.3, 271], [16.55, 268],
+	[16.55, -800], [16.65, -800], [16.65, 1200], [0.0, 1200],
 ]
 ## Section 2's crust (chunk 15): the ground from the pillar down the descent
 ## (2.1), along the parade (2.2), through the second dip (2.3), under the
@@ -91,10 +91,45 @@ const S2_PIECES := {
 	# 2.5 Frontier set 2: the ledges by the switch and before the pit.
 	"Set2Ledge1": [[10.755, -230], [10.925, -230], [10.925, -205], [10.755, -205]],
 	"Set2Ledge2": [[12.0, -260], [12.265, -260], [12.265, -235], [12.0, -235]],
-	# Past slide 2's chute: gate 2's ground, over the tunnel, to section 3's
-	# shaft (a stub).
-	"Pillar2": [[12.72, -20], [13.3, -20], [13.3, 190], [12.72, 190]],
 }
+## Section 3's crust (chunk 16; README "Section 3"): past slide 2's chute,
+## gate 2's ground, then the entry ramp (3.1) down into the bowl (3.2), its
+## floor (y 100), the far wall up to the plateau (3.4, y -120). The loop
+## rides RIDE above S3_SURFACE. S3_CRUST_REST: basket 3's pit (floor 100),
+## slide 3's chute's near wall, and back along the tunnel's roof.
+const S3_SURFACE := [
+	[12.72, -20], [13.0, -20],
+	# 3.1 Entry ramp.
+	[13.1, -12], [13.2, 8], [13.3, 38], [13.4, 68], [13.5, 90], [13.6, 100],
+	# 3.2 The bowl's floor, then its far wall (gentler than section 1's lip).
+	[15.05, 100], [15.15, 90], [15.25, 62], [15.35, 20], [15.45, -32], [15.55, -88], [15.62, -120],
+	# 3.4 The plateau before basket 3's pit.
+	[15.72, -120],
+]
+const S3_CRUST_REST := [
+	[15.72, 100], [16.3, 100], [16.3, -120], [16.4, -120],
+	[16.4, 160], [14.5, 176], [12.72, 190],
+]
+## Section 3's ledges: [name, x0, x1, top at x0, top at x1] (x in screens),
+## 25 px thick. The entry ramp's two side ledges are flat; the bowl's shelves
+## tilt inward (down toward the bowl's middle), in three tiers on each side,
+## each tier's inner end past the one above, so a woken slime rolls off into
+## the bowl, which is the loop (rules 7, 8). The rim tilts down toward the
+## bowl too.
+const S3_RAMP_LEDGES := [
+	["RampLedge1", 12.96, 13.18, -210, -210],
+	["RampLedge2", 13.22, 13.42, -160, -160],
+]
+const S3_SHELVES := [
+	["ShelfL1", 13.56, 14.18, -105, -90],
+	["ShelfL2", 13.49, 14.11, -265, -250],
+	["ShelfL3", 13.42, 14.04, -425, -410],
+	["ShelfR1", 14.28, 14.9, -90, -105],
+	["ShelfR2", 14.34, 14.96, -250, -265],
+	["ShelfR3", 14.4, 15.02, -410, -425],
+]
+const S3_RIM := ["Rim", 15.05, 16.192, -300, -310]
+const S3_LEDGE_THICKNESS := 25.0
 ## Floating greybox pieces: name -> outline.
 const PIECES := {
 	"FirstLedge": [[0.44, 400], [0.52, 400], [0.52, 420], [0.44, 420]],
@@ -144,10 +179,41 @@ const S2_SLIDE := [
 	[12.66, -44], [12.66, 120], [12.64, 250], [12.55, 285], [10.5, 314], [8.5, 336],
 	[8.3, 345], [8.0, 351], [7.3, 366], [7.0, 406],
 ]
-## Section 3 (a stub for chunk 16): on through gate 2 over Pillar2, then its
-## return route down the shaft and back under the pillar to slide 2's tunnel.
-const S3_LOOP := [[12.66, -44], [13.0, -44], [13.35, -44]]
-const S3_SLIDE := [[13.35, -44], [13.35, 150], [13.3, 276], [13.0, 279], [12.66, 283], [12.55, 285]]
+## Section 3 (chunk 16): on from slide 2's entrance through gate 2, RIDE
+## above S3_SURFACE (down the ramp, across the bowl, up the far wall, over
+## basket 3's trapdoor) to slide 3's entrance at 16.4; then slide 3, the
+## level's last return route (no gate), down the chute and back along the
+## tunnel to slide 2's.
+const S3_LOOP_END := [[16.4, -144]]
+const S3_SLIDE := [
+	[16.4, -144], [16.475, -60], [16.475, 150], [16.45, 240], [16.3, 247], [14.5, 262],
+	[13.3, 276], [12.66, 283], [12.55, 285],
+]
+## Frontier set 3's trapdoor (as TRAPDOOR): over basket 3's pit, on the
+## plateau. Set 3 has no gate: its target is the celebration (D77).
+const TRAPDOOR_3 := [15.72, -120, 16.3, -95]
+## The bowl's routes back: down the tiers of shelves from their inner ends
+## to the bowl's floor (the loop), and along the rim to its left end, then
+## down to the floor.
+const ROUTE_BACK_LEFT_SHELVES := [
+	[13.44, -449], [14.04, -434], [14.07, -275], [14.11, -274], [14.14, -115], [14.18, -114],
+	[14.23, 76],
+]
+const ROUTE_BACK_RIGHT_SHELVES := [
+	[15.0, -449], [14.4, -434], [14.37, -275], [14.34, -274], [14.31, -115], [14.28, -114],
+	[14.23, 76],
+]
+const ROUTE_BACK_RIM := [[16.17, -334], [15.07, -324], [15.02, 76]]
+## Section 3's sleepers: 5 E on each ramp ledge; 15 on each shelf and 30 on
+## the rim, their species taken in turn from S3_SPECIES_CYCLE (README
+## population: shelves A, B, C, D 15 each and E 30; rim A, B, C, D 5 each
+## and E 10). Spacing along a ledge, in screens.
+const S3_SPECIES_CYCLE := ["A", "E", "B", "E", "C", "D"]
+const S3_SLEEPERS_PER_RAMP_LEDGE := 5
+const S3_SLEEPERS_PER_SHELF := 15
+const S3_SLEEPERS_ON_RIM := 30
+const S3_SLEEPER_STEP := 0.04
+const S3_RIM_STEP := 0.038
 ## Frontier set 2's doors (chunk 15), as TRAPDOOR and ENTRANCE_LID: switch
 ## 2's trapdoor over basket 2's pit, and gate 2's lid over slide 2's chute.
 const TRAPDOOR_2 := [12.2, -20, 12.55, 5]
@@ -240,6 +306,14 @@ func _build() -> Level:
 	_terrain(level, terrain, "S2Crust", S2_CRUST)
 	for piece in S2_PIECES:
 		_terrain(level, terrain, piece, S2_PIECES[piece])
+	var s3_crust: Array = S3_SURFACE.duplicate()
+	s3_crust.append_array(S3_CRUST_REST)
+	_terrain(level, terrain, "S3Crust", s3_crust)
+	for ledge in S3_RAMP_LEDGES + S3_SHELVES + [S3_RIM]:
+		_terrain(level, terrain, ledge[0], [
+			[ledge[1], ledge[3]], [ledge[2], ledge[4]],
+			[ledge[2], ledge[4] + S3_LEDGE_THICKNESS], [ledge[1], ledge[3] + S3_LEDGE_THICKNESS],
+		])
 	for i in HILL_BUMPS.size():
 		var x: float = HILL_BUMPS[i][0]
 		var tilt: float = BUMP_TILT * HILL_BUMPS[i][1]
@@ -274,7 +348,11 @@ func _build() -> Level:
 	s2_slide.kind = LoopData.RETURN
 	s2_slide.gate_id = "s2.gate"
 	var s3_loop: LoopSegment = _add(level, loop, "loop_segment", "S3Loop")
-	_set_route(s3_loop, "s3.loop", S3_LOOP, 3)
+	var s3_outgoing: Array = [S2_LOOP[-1]]
+	for point in S3_SURFACE.slice(1):
+		s3_outgoing.append([point[0], point[1] - RIDE])
+	s3_outgoing.append_array(S3_LOOP_END)
+	_set_route(s3_loop, "s3.loop", s3_outgoing, 3)
 	var s3_slide: LoopSegment = _add(level, loop, "loop_segment", "S3Slide")
 	var s3_return: Array = S3_SLIDE.duplicate()
 	s3_return.append_array(S2_SLIDE.slice(4))
@@ -343,6 +421,7 @@ func _build() -> Level:
 	gate.size = Vector2(40, 160)
 	gate.entrance_lid = _box_from(gate.position, ENTRANCE_LID)
 	_build_section_2(level)
+	_build_section_3(level)
 	return level
 
 
@@ -392,6 +471,87 @@ func _build_section_2(level: Level) -> void:
 	gate.size = Vector2(40, 160)
 	gate.entrance_lid = _box_from(gate.position, ENTRANCE_LID_2)
 	_frame(level, frontier, "gate", _at(12.6, -100), Vector2(0.8 * S, 600), 0.9, Vector2(0, -40), "s2")
+
+
+## Section 3, "Big bowl" (chunk 16; README "Section 3"): its 130 sleepers on
+## the ramp's ledges, the bowl's shelves and the rim, numbered left to right
+## (then top to bottom); the shelves' and the rim's branches with their
+## routes back; the framing zones; and frontier set 3, whose basket's target
+## is the level-complete celebration (no gate, no rule: the celebration
+## plays once every basket has fired).
+func _build_section_3(level: Level) -> void:
+	var section := _group(level, level, "Section3")
+	var sleepers := _group(level, section, "Sleepers")
+	var placed: Array = []
+	for ledge in S3_RAMP_LEDGES:
+		for i in S3_SLEEPERS_PER_RAMP_LEDGE:
+			placed.append(_on_ledge(ledge, ledge[1] + 0.02 + S3_SLEEPER_STEP * i, "E"))
+	var n := 0
+	for shelf in S3_SHELVES:
+		for i in S3_SLEEPERS_PER_SHELF:
+			placed.append(_on_ledge(shelf, shelf[1] + 0.02 + S3_SLEEPER_STEP * i,
+					S3_SPECIES_CYCLE[n % S3_SPECIES_CYCLE.size()]))
+			n += 1
+	for i in S3_SLEEPERS_ON_RIM:
+		placed.append(_on_ledge(S3_RIM, S3_RIM[1] + 0.02 + S3_RIM_STEP * i,
+				S3_SPECIES_CYCLE[i % S3_SPECIES_CYCLE.size()]))
+	# Left to right; the tiers share some x, so top to bottom on a tie.
+	placed.sort_custom(func(a, b):
+		var ax := roundi(a[0] * 100000.0)
+		var bx := roundi(b[0] * 100000.0)
+		return ax < bx or (ax == bx and a[1] < b[1]))
+	for i in placed.size():
+		var sleeper: Sleeper = _add(level, sleepers, "sleeper", "Sleeper%02d" % (i + 1))
+		sleeper.stable_id = "s3.sleeper.%02d" % (i + 1)
+		sleeper.species = placed[i][2]
+		sleeper.position = _at(placed[i][0], placed[i][1])
+
+	var bowl := _group(level, section, "Bowl")
+	_frame(level, bowl, "bowl", _at(14.375, -150), Vector2(1.85 * S, 500), 0.5, Vector2(0, -200), "s3")
+	var left := _group(level, bowl, "LeftShelves")
+	_branch(level, left, "left-shelves", Rect2(13.41 * S, -520, 0.83 * S, 440), "s3")
+	_route_back(level, left, "left-shelves", ROUTE_BACK_LEFT_SHELVES, "s3")
+	var right := _group(level, bowl, "RightShelves")
+	_branch(level, right, "right-shelves", Rect2(14.26 * S, -520, 0.77 * S, 440), "s3")
+	_route_back(level, right, "right-shelves", ROUTE_BACK_RIGHT_SHELVES, "s3")
+
+	var rim := _group(level, section, "Rim")
+	_branch(level, rim, "rim", Rect2(15.04 * S, -400, 1.18 * S, 115), "s3")
+	_route_back(level, rim, "rim", ROUTE_BACK_RIM, "s3")
+
+	var frontier := _group(level, section, "FrontierSet")
+	var signpost: Signpost = _add(level, frontier, "signpost", "Signpost")
+	signpost.stable_id = "s3.signpost"
+	signpost.switch_id = "s3.switch"
+	signpost.position = _at(15.62, -120)
+	var switch: Switch = _add(level, frontier, "switch", "Switch")
+	switch.stable_id = "s3.switch"
+	switch.basket_id = "s3.basket"
+	switch.position = _at(15.67, -144)
+	switch.size = Vector2(80, 80)
+	switch.trapdoor = _box_from(switch.position, TRAPDOOR_3)
+	var basket: Basket = _add(level, frontier, "basket", "Basket")
+	basket.stable_id = "s3.basket"
+	basket.quota = 60
+	# No target object: the celebration (D77) is the level's, once every
+	# basket has fired.
+	basket.on_full_object = ""
+	# The pit under the trapdoor, from its rim down to its floor.
+	basket.position = _at(16.01, -10)
+	basket.size = Vector2(0.58 * S, 220)
+	# It releases onto the loop 200 px before slide 3's entrance (with no
+	# gate, "onward_route" has no slide entrance to find).
+	basket.outlet = "point"
+	basket.outlet_point = _at(S3_LOOP_END[0][0], S3_LOOP_END[0][1]) - Vector2(basket.outlet_before, 0) \
+			- basket.position
+	_frame(level, frontier, "basket", _at(15.875, -150), Vector2(1.15 * S, 400), 0.8, Vector2(0, 40), "s3")
+
+
+## A sleeper's place [x, y, species] on ledge `ledge` ([name, x0, x1, top
+## at x0, top at x1]) at `x` (screens): resting on its top.
+func _on_ledge(ledge: Array, x: float, species: String) -> Array:
+	var top: float = lerpf(ledge[3], ledge[4], (x - ledge[1]) / (ledge[2] - ledge[1]))
+	return [x, top - RIDE, species]
 
 
 ## A level box [x0, y0, x1, y1] (x in screens) relative to `origin`.

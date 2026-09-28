@@ -1,0 +1,8 @@
+{
+	"description": "Gates 1 and 2 open as after baskets 1 and 2 fired (slides 1 and 2 shut): the loop runs through section 3 to slide 3. The same 20 slimes as gate1-open, spread along the whole outgoing loop; the camera at section 3's start. For the whole loop, and starting from section 3 (chunk 16).",
+	"save": true,
+	"camera": [
+		14976.0,
+		-44.0
+	]
+}

@@ -1,0 +1,8 @@
+{
+	"description": "Gate 1 open as after basket 1 fired (switch 1 inert, slide 1 shut): the loop runs into section 2. 20 slimes awake, size 1: the first slime and section 1's first 19 sleepers (in stable ID order), train slimes spread along the outgoing loop from just past the split zone; the camera at section 2's start. For starting from section 2 (chunk 16).",
+	"save": true,
+	"camera": [
+		9561.6,
+		-124.0
+	]
+}

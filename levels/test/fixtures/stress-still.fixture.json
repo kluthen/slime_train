@@ -1,0 +1,8 @@
+{
+	"description": "Gates 1 and 2 open and all 200 base slimes woken (no sleeper left): 60 size-1 slimes resting in basket 3 (switch 3 flipped, the basket full and waiting to be in view), and the other 140 piled at the bottom of section 3's bowl, asleep for the night: a session at bedtime, since a slime outside a basket rests only asleep. Settled for 10 s before saving. The camera on the bowl (its framing zone zooms out to half). The worst still case on one screen (chunk 16; measured by tools/bench_level.gd).",
+	"save": true,
+	"camera": [
+		16560.0,
+		-150.0
+	]
+}

@@ -2258,3 +2258,164 @@ adb logcat -v time -s godot:*
   throttles after ~4.5 minutes: short of 60 fps without native code. The
   blend costs ≤ 5 ms of GPU at full-resolution fields, 2.6 ms at half.
   Reported for spec-writer as the D94 native-contingency trigger.
+
+## Chunk 16 in progress (hand-off 2026-09-28)
+
+Chunk 16 ("Test level sections 2 and 3, full population") stopped part-way
+at the end of a session. Nothing is committed. This section is the hand-off:
+fold it into a proper "Chunk 16" section (and the "The test level" and
+"Fixtures" text) when the chunk closes.
+
+**Done.**
+- Section 3 "Big bowl" greybox in `tools/greybox_test_level.gd`
+  (`_build_section_3`, S3_* constants, `_on_ledge`), regenerated into
+  `levels/test/level.tscn` (loads with no errors):
+  - loop: from gate 2 (12.66) down the ramp (13.0 to 13.6), across the bowl
+    floor (13.6 to 15.05, ground y 100), up the far wall (15.05 to 15.62,
+    ground y -120), over basket 3's trapdoor to slide 3's entrance at 16.4
+    (loop y -144); `s3.slide` drops down a chute at 16.4 and runs back under
+    sections 2 and 1 (`S3_SLIDE` + slide 2's tail + slide 1's tail); pillar 2
+    removed from section 2 to make room.
+  - terrain: `S3Crust`, 2 ramp ledges (-210, -160), 6 shelves (3 per inner
+    wall, tops about -90/-105, -250/-265, -410/-425, tilted inward), the rim
+    (15.05 to 16.19, top -300 to -310, over the far wall's plateau),
+    25 px thick.
+  - 130 sleepers `s3.sleeper.01` to `.130` (A 20, B 20, C 20, D 20, E 40):
+    ramp ledges 10 E, shelves 90 (15 each, species cycle A E B E C D), rim 30
+    (0.038 S apart); level total 200 (1 first slime + 199 sleepers).
+  - frontier set 3: signpost `s3.signpost` (15.62), switch `s3.switch`
+    (15.67, y -144), basket `s3.basket` (centre 16.01, 0.58 S x 220, pit
+    floor y 100, quota 60, `on_full_object` "" so no rule, outlet "point"
+    200 px before slide 3's entrance), trapdoor 15.72 to 16.3; no gate.
+  - framing zones `s3.frame.bowl` (centre 14.375, 1.85 S x 500, zoom 0.5)
+    and `s3.frame.basket` (centre 15.875, 1.15 S x 400, zoom 0.8).
+  - 3 exploration branches with routes back into the bowl:
+    `s3.branch.left-shelves`, `s3.branch.right-shelves`, `s3.branch.rim`
+    (and `s3.route-back.*`), in groups Bowl/LeftShelves, Bowl/RightShelves,
+    Bowl/Rim.
+- Fixtures, in `tools/make_fixture.gd`, all regenerated
+  (`levels/test/fixtures/`):
+  - `bump` rebuilt: four C train slimes, sizes 2, 2, 3, 1 at x 2.95, 3.0,
+    3.05, 3.1 screens on the dip's floor, made of the 8 C sleepers nearest
+    the dip. A scratch probe (before the sleepers were removed) gave, seed 5,
+    20 s, camera (3456, 150): 2+2 twice, 3+1 six times, no fusion. Not yet
+    rechecked on the fixture itself.
+  - new `gate1-open` (gate 1 open, the first slime and s1.sleeper.01 to .19
+    as size-1 train slimes spread along the outgoing loop from 60 px past
+    the split zone to 400 px before its end; camera (8.3 S, -124)).
+  - new `gate2-open` (added, not in the README table: gates 1 and 2 open,
+    same 20 slimes along the whole loop; camera (13.0 S, -44)).
+  - new `stress-still`: gates 1 and 2 open, all 200 base slimes woken: 60 in
+    basket 3 (phase full, waiting out of view), 140 piled at the bowl's
+    bottom, asleep at bedtime (a session at bedtime), settled 600 ticks
+    before saving; camera on the bowl (zoom 0.5).
+  - new `stress-moving`: gates 1 and 2 open, all 200 as size-1 train slimes
+    through the bowl, lowest spots first (`_bowl_spots` scans the terrain in
+    50 px columns); camera on the bowl.
+  - `s2-basket-offscreen`'s description: the celebration now waits for
+    basket 3.
+- Parse checks: `godot --headless --path . --check-only --script
+  tools/make_fixture.gd` and `... tools/greybox_test_level.gd`, both exit 0.
+
+**Not done yet (in order).**
+1. `stress-still`: the 140 asleep in the bowl do not rest (after 600 ticks in
+   the game: calm ACTIVE for all 140; the 60 in the basket rest and park).
+   Find why (a member never "supported", or drifting more than 1 px, keeps
+   the whole touching group awake; `SlimeBodies._rest`), then fix the
+   fixture's layout (not the rest rule). The scratch probe is
+   `scratchpad/c16/fx_probe.gd` (its "unsupported" line has a bool/int
+   comparison error to fix: `supported` is a bool in `body_of`).
+2. Tests, none written yet:
+   - `tests/e2e/test_test_level.gd`: expected today, 5 red (the s3 stub IDs,
+     branches and routes back 3 -> 6, tap targets sleepers + 4 -> + 6).
+     Extend to section 3: IDs, population A20 B20 C20 D20 E40, total 200,
+     frames, set 3 (switch 15.67, basket 16.01, quota 60, no rule, no gate),
+     sleepers numbered left to right (["s3", 130]).
+   - Level rule tests with `# @test-link` tags: rule 11 (species per
+     section: S1 A B C, S2 adds D, S3 adds E), rule 16
+     (`rule_max_200_slimes_per_level`: exactly 200), rule 9 (hints visible
+     from the loop), rules 3, 7, 8 over the whole level; check the other
+     rules with `atd check --atom <id>`.
+   - Expected changes elsewhere: `test_frontier_level.gd` (a set per
+     section), `test_fixtures_e2e.gd` (bump: 5 awake, sizes 2 2 3 1; new
+     fixtures), `test_sleepers_e2e.gd` (69 -> 199 sleepers),
+     `test_frontier_e2e.gd` and `test_offscreen_e2e.gd` (the celebration
+     waits for basket 3), fusion e2e for bump asserting both a 2+2 and a 3+1
+     bump.
+   - A whole-level DoD 1 e2e (new file): 15 minutes from `gate2-open` (and
+     `gate1-open`), no input, progress never goes back, nothing lost, same
+     hash twice in process and in a child process
+     (`--test-mode --seed= --fixture= --run-ticks=`, as
+     `test_offscreen_e2e._run_child`); an all-sizes lap with the camera on
+     the slime.
+3. `tools/bench_level.gd` (new): ms/tick with the 200 population and the
+   camera at the start, and on `stress-still` and `stress-moving`. First
+   reading (the scratch probe, 600 ticks right after loading, not the bench
+   method): stress-still 8.5 ms/tick with the pile not resting.
+4. docs: the "Chunk 16" section (section 3 geometry, population table,
+   fixtures, rule tests, measurement), "The test level" and "Fixtures".
+5. ATD tags by hand on the new tests (the 20 rule atoms,
+   `req_level_design_rules`, `req_scope_one_level_four_sections`,
+   `rule_max_200_slimes_per_level`, `req_test_level_and_test_mode`).
+
+**Known problems found.**
+- Pre-existing, in `src/sim/offscreen.gd` (owned elsewhere, not changed): a
+  parked size-2 or size-3 train slime on a downhill stretch can stop
+  advancing and is lost as stalled after 60 s. `Offscreen._train_proxy`
+  lifts the point vertically by `ring_radius(size) - ring_radius(1)`, and
+  `Train.project` clamps to at least the current distance; when
+  pace x dt < lift x sin(slope) the projection never moves on. Seen at 13.1
+  (section 3's ramp) and at 2.3 in section 1. Fix there: lift along the
+  normal, or project the unlifted point. Tests work around it by keeping
+  the camera on the slime.
+- On screen, woken bowl slimes crowd: a rejoin probe lost 6 train slimes
+  to stalls and left one free slime stuck at (14.57, 26) (the known crowd
+  limitation). 40 size-1 slimes in the bowl for 5 min lost 0, 1, 0 on seeds
+  1 to 3.
+- Reach: ramp ledge 1 (-210) and the upper shelves only by size 2 or 3; the
+  rim only by a size 3 from the plateau's right end (16.3 to 16.4).
+
+**Deviations from `specs/levels/test/README.md` to report.** The rim sits
+over the far wall's plateau (15.05 to 16.19), reached from the plateau's
+end, not "15 to 15.5 from the far wall"; sleeper IDs run to 3 digits
+(`.100` sorts before `.11`); the bowl has 3 exploration branches with routes
+back; basket 3's outlet is a point 200 px before slide 3; the shelves float
+inside the bowl; `gate2-open` is an added fixture; `stress-still` puts its
+140 bowl slimes asleep at bedtime (the only state besides a basket in which
+a pile rests), read as "awake" = woken, not sleepers.
+
+**Working tree.** Modified: `docs/dev/README.md` (this section), `levels/test/level.tscn`,
+`tools/greybox_test_level.gd`, `tools/make_fixture.gd`, all 10 existing
+fixture saves and the `bump` and `s2-basket-offscreen` sidecars. Added:
+`levels/test/fixtures/{gate1-open,gate2-open,stress-still,stress-moving}.
+{json,fixture.json}`. (`CODING_RULE.md` at the root is untracked and not
+this chunk's.)
+
+**Suite at hand-off.** `tools/test.sh -gdisable_colors`: 58 scripts, 632
+tests, 621 passing, 11 failing, exit 1 (250.7 s). Every failure is an
+expectation the grown level or the rebuilt `bump` changes, none a
+regression seen so far; each needs its test updated (item 2 above):
+- `test_test_level.gd` (5): `test_every_stable_id_of_sections_1_and_2_is_found`
+  (s3 IDs), `test_the_branches_and_their_routes_back_are_plain_data`,
+  `test_every_exploration_branch_has_a_route_back`,
+  `test_every_route_back_ends_on_the_loop` (3 -> 6),
+  `test_the_switch_basket_and_sleepers_are_tap_targets` (203 -> 205).
+- `test_sleepers_e2e.gd` (2): `test_every_sleeper_starts_asleep_and_the_first_slime_awake`
+  (species counts, 70 -> 200 slimes), `test_no_sleeper_wakes_during_a_lap_without_calls`
+  (`SLEEPERS := 69` -> 199; it stops at the first count check).
+- `test_frontier_level.gd` (1): `test_there_is_a_frontier_set_per_section_with_its_rule`
+  (sets 2 -> 3; set 3 has no rule, so rules stay 2).
+- `test_frontier_e2e.gd` (1): `test_the_celebration_plays_once_and_a_reload_does_not_replay_it`
+  (the celebration now waits for basket 3).
+- `test_fixtures_e2e.gd` (1): `test_bump_has_a_size_three_and_a_size_two_slime_of_one_species_on_the_dip_floor`
+  and `test_fusion_e2e.gd` (1): `test_bump_the_size_three_and_size_two_meet_and_never_fuse`
+  (bump is now 2, 2, 3, 1; replace with the both-bumps test).
+
+**Resume.**
+```
+godot --headless --path . -s res://tools/greybox_test_level.gd   # the level
+godot --headless --path . -s res://tools/make_fixture.gd         # all fixtures
+godot --headless --path . -s res://tools/make_fixture.gd -- stress-still
+tools/test.sh -gdisable_colors                                   # full suite
+tools/test.sh -gdisable_colors -gselect=test_test_level          # one script
+```
