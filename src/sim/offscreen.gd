@@ -86,6 +86,9 @@ const LOW_ZOOM := 0.8
 const FULL_ZOOM := 0.85
 ## How many lost slimes `lost` keeps.
 const LOST_LOG_SIZE := 16
+## How much closer than a slime's width two queued proxies may sit before
+## one is moved back, px: absorbs floating-point rounding when queueing.
+const QUEUE_TOLERANCE := 0.001
 const LOST := "lost"
 
 ## Physics only near the screen (the game's mode). Not saved.
@@ -256,12 +259,20 @@ func _free_proxy(sim: Simulation, slime_id: int) -> void:
 ## on that route within `spacing` of it, so slimes that went off screen
 ## together follow it in single file instead of on one point.
 func _queue(way: Dictionary, spacing: float) -> void:
+	# A proxy that was just placed `spacing` behind another may come out a
+	# hair closer than `spacing` in floating point (a - (a - s) < s), so the
+	# check keeps a tolerance, and the loop is bounded: `along` only ever
+	# goes down, once per proxy at most.
 	var moved := true
-	while moved:
+	var rounds := 0
+	while moved and rounds <= proxies.size():
 		moved = false
+		rounds += 1
 		for other in _sorted_ids(proxies):
 			var ahead: Dictionary = proxies[other]
-			if ahead["route"] == way["route"] and absf(float(ahead["along"]) - float(way["along"])) < spacing:
+			if ahead["route"] != way["route"]:
+				continue
+			if absf(float(ahead["along"]) - float(way["along"])) < spacing - QUEUE_TOLERANCE:
 				way["along"] = float(ahead["along"]) - spacing
 				moved = true
 

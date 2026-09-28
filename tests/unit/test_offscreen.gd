@@ -21,6 +21,7 @@ extends GutTest
 # @test-link [[req_offscreen_simulation]]
 # @test-link [[rule_left_alone_and_lost]]
 # @test-link [[req_switch_basket_gate_set]]
+# @test-link [[req_persistence_and_saves]]
 
 const BRANCH := "t.branch.cave"
 const ROUTE := "t.route-back.cave"
@@ -272,6 +273,19 @@ func test_free_slimes_leaving_together_follow_the_route_in_single_file() -> void
 	sim.run(120)
 	var gap := sim.slimes.centre_of(first).distance_to(sim.slimes.centre_of(second))
 	assert_almost_eq(gap, apart, 0.5, "and it keeps its place")
+
+
+func test_queueing_ends_when_rounding_leaves_a_proxy_a_hair_too_close() -> void:
+	# a - (a - s) can come out below s in floating point: the queue must not
+	# chase the same proxy forever (reviewer finding on chunk 15).
+	var sim := _sim()
+	var spacing := 65.397
+	sim.offscreen.proxies[7] = {"route": "r", "along": 511.9773, "from": Vector2.ZERO, "to": Vector2.ZERO}
+	sim.offscreen.proxies[8] = {"route": "r", "along": 511.9773 - spacing, "from": Vector2.ZERO, "to": Vector2.ZERO}
+	var way := {"route": "r", "along": 511.9773, "from": Vector2.ZERO, "to": Vector2.ZERO}
+	sim.offscreen._queue(way, spacing)
+	assert_true(float(way["along"]) <= 511.9773 - 2.0 * spacing + Offscreen.QUEUE_TOLERANCE, "behind both")
+	sim.offscreen.proxies.clear()
 
 
 func test_a_free_slime_outside_any_branch_goes_straight_to_a_near_loop() -> void:
