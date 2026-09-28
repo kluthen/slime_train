@@ -1,9 +1,9 @@
 # Level design requirements
 
-Status: draft v4
+Status: draft v5
 
 Rules every level must follow, whoever builds it. These rules make up the
-checklist for the dedicated first-level design session (O22). Levels are
+checklist for every level's design (see `levels/`). Levels are
 Godot scenes built from reusable components, with no per-level scripts (D6).
 
 ## The loop
@@ -35,30 +35,29 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
 11. The **first section has 3 native species**, and each later section adds one
     (D22).
 12. A frontier gate opens through the **switch-plus-basket set** (D14, D35).
-13. **Each section needs its own route back to the start** from its unopened
+13. **Each section needs its own return route to the start** from its unopened
     frontier gate. How that route works is O22.
 
 ## Population
 
-16. **At most 200 slimes per level**, counted in base slimes (D67). Scenes
+14. **At most 200 slimes per level**, counted in base slimes (D67). Scenes
     where many slimes pile up on one screen should keep them mostly still,
     such as a basket being filled.
-
-17. **Sleepers never sit on the loop itself.** Waking always takes a call
+15. **Sleepers never sit on the loop itself.** Waking always takes a call
     (D70).
+
+## Onboarding
+
+16. **The first sleeper is placed close to the first awake slime**, so the
+    first-play hint and the first call pay off quickly (D65).
+
+## Camera
+
+17. Wherever a wider view is needed, place a **framing zone** that sets the
+    zoom and position (D60, D61).
 
 ## After release
 
 18. **A released level isn't meant to change.** Any update must be minor and
     ship with a save migration. Keep the stable IDs of slimes, objects and
     gates (D72).
-
-## Onboarding
-
-14. **The first sleeper is placed close to the first awake slime**, so the
-    first-play hint and the first call pay off quickly (D65).
-
-## Camera
-
-15. Wherever a wider view is needed, place a **framing zone** that sets the
-    zoom and position (D60, D61).

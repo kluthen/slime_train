@@ -621,3 +621,16 @@ Resolves O32.
   slimes. It replaces "defusing spot" (and "split object").
 - **Route back** is added: the route an exploration branch provides back to the
   loop.
+
+## D76 — A test level, per-level folders, and consolidating v1 now (2026-09-28)
+- The spec writer designs a **test level**. It is a compact level that
+  exercises most v1 gameplay and is the testing ground for implementation. It
+  is not the real first level.
+- **The real first level's design comes later.** A lot has to be built and
+  checked first.
+- Each level gets its own folder, `levels/<id>/` (the real first level will be
+  `levels/01/`), holding its objectives, its loop description and its content.
+  The test level lives in `levels/test/`. How level design is run is still to
+  be worked out (O59).
+- **Everything except the real first level's design goes into the v1 master
+  spec now.**

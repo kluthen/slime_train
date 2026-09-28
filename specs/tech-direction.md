@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v10
+Status: draft v11
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 
@@ -68,6 +68,20 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
   slimes count as lost and reappear at the start of the loop (D72).
 - (proposed) The save records the level's version, and slimes, objects and
   gates keep stable IDs across versions.
+- (proposed) Saves are written atomically (write a new file, then swap it in),
+  and the previous save is kept as one backup. A save that can't be read falls
+  back to the backup, and only then to a fresh start for that level.
+
+## Testability (proposed, D76)
+
+- **Seeded randomness:** all gameplay randomness (hop timing, unsure hops)
+  comes from one random generator with a seed, so a test run can be repeated
+  exactly.
+- **Test mode** (Linux build and debug Android builds only, never in the
+  release build): load a named fixture save, speed up or skip time (session
+  timer, cooldown, phase timers), and inject taps and tilt from a script.
+  End-to-end tests drive the test level (`levels/test/`) this way.
+- Fixture saves for the test level are listed in `levels/test/README.md`.
 
 ## Camera (D33, D60)
 
@@ -94,7 +108,8 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
   (D55).
 - (proposed) More broadly, the app runs **fully offline**, with no account and
   no backend. D55 settles this for the parent code; paid unlocks will go
-  through Google Play only (D31).
+  through Google Play only (D31). (proposed) No analytics, no ads, no network
+  permission in v1.
 - The same stored clocks enforce the 10 min cooldown after bedtime (D29).
   Changing the device clock can defeat it, which is acceptable under D1.
 

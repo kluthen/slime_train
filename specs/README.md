@@ -4,13 +4,15 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 | Document | Purpose | Status |
 |---|---|---|
-| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v22 |
+| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v23 |
 | `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v10 |
 | `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v7 |
-| `tech-direction.md` | Engine, level authoring, slime simulation, saving, session lock implementation | draft v10 |
+| `tech-direction.md` | Engine, level authoring, slime simulation, saving, testability, session lock implementation | draft v11 |
 | `versions/` | Scope per version (v1–v4…) plus `timeline.md` for features with no version yet (D52) | live |
-| `level-design.md` | Rules every level must follow; the checklist for level design sessions | draft v4 |
-| `personas.md` | Who the game is for: the newcomer (3), the watching sibling (2), the early player (4), the parent | draft v4 |
+| `level-design.md` | Rules every level must follow; the checklist for level design sessions | draft v5 |
+| `levels/` | One folder per level (D76): `test/` (the test level, draft v1), `01/` (the real first level, not started) | live |
+| `versions/v1/master-spec.md` | The v1 master spec, consolidated early (D76), plus `access-model.md` | consolidated |
+| `personas.md` | Who the game is for: P1 the newcomer (3), P2 the watching sibling (2), P3 the early player (4), P4 the parent; goal IDs | draft v5 |
 | `tuning.md` | Every number left to prototypes, with its starting value | live |
 | `open-questions.md` | Register of unresolved decisions (O1…) | live |
 | `decisions.md` | Append-only decisions log (D1…) | live |
@@ -87,6 +89,9 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 - Terminology confirmed; "split zone" replaces "defusing spot", and "route back" is added (D75).
 
+- A test level (`levels/test/`) exercises the v1 gameplay and drives the end-to-end tests. Each level gets its own folder; the real first level (`levels/01/`) is designed later. Everything else is consolidated into the v1 master spec and access model (D76).
+- Proposed tech additions: seeded randomness, a test mode (fixtures, time skip, scripted taps), atomic saves with one backup, no network permission.
+
 ## Where to resume
 
-Only two questions remain open, and neither can be settled in conversation: O22 (return to the start, for the first level's design session) and O14 (prototype risks). Parked: O12 (music), O13 (procedural generation). Next steps to choose from: the first level's design session, the O14 prototypes, or consolidating the v1 master spec (only when the user asks).
+The v1 master spec is consolidated early; its Known gaps mirror the open questions. Open and answerable in conversation: O52 (completing a level), O53 (rails where the loop doubles back), O54 (orientation), O55 (wrong code, settings timeout), O56 (colour blindness), O57 (performance targets), O58 (pinning declined), O60 (when to ask for pinning), O61–O65 (raised by the test level: size forks, basket outlet, frontier set after opening, zoom stacking, minimum zoom), O59 (how level design is run). Needs prototypes: O14. For the first level's design: O22. Parked: O12, O13. When a gap is settled, update both the drafts and the master spec. Handoffs (ux-writer, documentalist, coding-leader) wait for the user's go-ahead.

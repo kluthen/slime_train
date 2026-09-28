@@ -1,6 +1,6 @@
 # Personas
 
-Status: draft v4
+Status: draft v5
 
 Who Slime Train is for, what each person is trying to get done, and the
 circumstances they use it in. These are built from the real people the user
@@ -11,7 +11,7 @@ archived.
 Personas are not roles. What each kind of user *may do* (the child vs the
 parent behind the code) belongs to the parent gate rules (D30, D57), not here.
 
-## Primary: the newcomer (3 years old)
+## P1 — Primary: the newcomer (3 years old)
 
 **Who:** a 3-year-old girl who has **never played a video game**. She is the
 main player.
@@ -23,10 +23,11 @@ over. How she holds it (in her hands, flat on a table, on her lap) isn't
 known, so tilt stays optional (proposed, see below).
 
 **Goals:**
-- See something pleasant happen and keep watching it.
-- Touch the screen and see the world answer her straight away.
-- Find out on her own what touching does. There is no one to explain it and
-  she can't read.
+- **P1.G1** See something pleasant happen and keep watching it.
+- **P1.G2** Touch the screen and see the world answer her straight away.
+- **P1.G3** Find out on her own what touching does. There is no one to explain
+  it and she can't read.
+- **P1.G4** Never fail, and never get stuck with nothing happening.
 
 **Abilities and limits (proposed, to check against the real child):**
 - Taps well. Holding, dragging and precise aiming are unreliable.
@@ -47,55 +48,61 @@ known, so tilt stays optional (proposed, see below).
   (D64, `level-design.md`). Whether a 3-year-old uses tilt at all
   is something to watch in playtests.
 
-## Secondary: the watching sibling (2 years old)
+## P2 — Secondary: the watching sibling (2 years old)
 
 **Who:** her 2-year-old little brother. He mostly watches over her shoulder.
 
 **Goals:**
-- Watch the slimes.
-- Probably poke the screen too, sometimes at the same moment as his sister.
+- **P2.G1** Watch the slimes.
+- **P2.G2** Poke the screen too, sometimes at the same moment as his sister,
+  without breaking anything.
 
 **What it means:** the game has to be pleasant to watch without playing, and
 must stay safe and unbroken whatever gets poked. For now only the first finger
 counts, so his poke does nothing while his sister's finger is down. Two calls
 at once will be tried later (D66).
 
-## Secondary: the early player (4 years old)
+## P3 — Secondary: the early player (4 years old)
 
 **Who:** children of friends, about 4, using a similar phone.
 
 **Goals:**
-- Play more on purpose: call slimes, fuse them, fill a basket, open the next
-  section.
-- Explore off the loop to find more slimes.
+- **P3.G1** Play more on purpose: call slimes, fuse them, fill a basket, open
+  the next section.
+- **P3.G2** Explore off the loop to find more slimes.
 
 **Limits:** may already know digits. The code is 6 digits, and D1 accepts that
 risk.
 
-## Supporting: the parent
+## P4 — Supporting: the parent
 
 **Who:** the adult who owns the phone, buys the game and sets it up: the user,
 and the friends' parents.
 
 **Goals:**
-- Hand over a calm, safe activity for a limited time, and trust it to end on
-  its own.
-- Trust that the child can't leave the app, change anything or buy anything.
-- Set it up once, easily, and never have to think about it again.
-- Take the phone back, or give more time, whenever they choose.
+- **P4.G1** Hand over a calm, safe activity for a limited time, and trust it
+  to end on its own.
+- **P4.G2** Trust that the child can't leave the app, change anything or buy
+  anything.
+- **P4.G3** Set it up once, easily, and never have to think about it again.
+- **P4.G4** Take the phone back, or give more time, whenever they choose.
 
 ## How the settled spec serves these goals
 
+Persona and goal IDs (P1, P1.G2…) are stable content identifiers; the master
+spec cites them.
+
 | Goal | Served by |
 |---|---|
-| Newcomer: something pleasant to watch | interactive screensaver, idle camera, screensaver mode (D2, D4, D53, D59) |
-| Newcomer: instant answer to a touch | tap-to-call, with any tap anywhere doing something (D15, D46) |
-| Newcomer: nothing to fail | no failure states; a lost slime just comes back (D10, D36) |
-| Newcomer: learn with no explanation | a ripple on every tap, and a wordless hint on the very first play (D65) |
-| Sibling: safe to poke | parent gate on every parent button (D57); the first touch wins (D66) |
-| Early player: goals to reach | sleepers, fusion, the frontier-gate set, exploration (D13, D20, D54, D45) |
-| Parent: a reward that ends without a fight | a gentle bedtime, slimes falling asleep on their own (D28) |
-| Parent: bounded time | 15 min real-time sessions, bedtime, 10 min cooldown (D29, D44, D56) |
-| Parent: the child can't get out | screen pinning plus the parent code (D1, D30) |
-| Parent: easy setup | one-time setup at first launch (D55) |
-| Parent: in control | wake early, leave and settings behind the code (D57) |
+| P1.G1 something pleasant to watch | interactive screensaver, idle camera, screensaver mode (D2, D4, D53, D59) |
+| P1.G2 instant answer to a touch | tap-to-call, with any tap anywhere doing something (D15, D46) |
+| P1.G4 nothing to fail | no failure states; a lost slime just comes back (D10, D36) |
+| P1.G3 learn with no explanation | a ripple on every tap, and a wordless hint on the very first play (D65) |
+| P2.G1 / P2.G2 watch, and safe to poke | parent gate on every parent button (D57); the first touch wins (D66) |
+| P3.G1 goals to reach | sleepers, fusion, the frontier-gate set (D13, D20, D54) |
+| P3.G2 exploring | exploration branches with hints visible from the loop, the call dragging the camera (D45, D51) |
+| P4.G1 a reward that ends without a fight | a gentle bedtime, slimes falling asleep on their own (D28) |
+| P4.G1 bounded time | 15 min real-time sessions, bedtime, 10 min cooldown (D29, D44, D56) |
+| P4.G2 the child can't get out | screen pinning plus the parent code (D1, D30) |
+| P4.G3 easy setup | one-time setup at first launch (D55) |
+| P4.G4 in control | wake early, leave and settings behind the code (D57) |

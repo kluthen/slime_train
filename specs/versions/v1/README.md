@@ -1,6 +1,11 @@
 # v1 — First release
 
-Status: scoping
+Status: master spec consolidated (early, D76)
+
+The consolidated spec is [`master-spec.md`](master-spec.md), with its
+companion [`access-model.md`](access-model.md). This page stays the working
+scope list with decision IDs. The real first level's design is not part of it
+(`../../levels/01/`, later).
 
 The first Android release. One level to discover the game's mechanics.
 Items are settled unless tagged (proposed). The decision IDs point to
@@ -86,4 +91,4 @@ Items are settled unless tagged (proposed). The decision IDs point to
 
 ## Open for v1
 
-O14, O22, O50 (see `../../open-questions.md`).
+O14, O22, O52–O65 (see `../../open-questions.md`).
