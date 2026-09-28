@@ -358,6 +358,8 @@ func _new_simulation(seed_value: int) -> Simulation:
 ## Makes `fresh` the running simulation, and the one drawn.
 func _use_simulation(fresh: Simulation) -> void:
 	simulation = fresh
+	# The game simulates only near the screen (chunk 15).
+	fresh.offscreen.enabled = true
 	# The world shows: a due first-play hint counts its 10 s from here.
 	fresh.hint.world_shown(fresh.tick)
 	if slime_renderer != null:

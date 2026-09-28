@@ -23,6 +23,31 @@ extends RefCounted
 ## touch them (touching_pairs, for waking) and are pushed off them by the
 ## whole overlap, as off a wall; two sleepers are never paired.
 ##
+## Calm (chunk 15, master spec §5.3, D96). Each slime also has a `calm`:
+##   ACTIVE   simulated as above.
+##   RESTING  a settled slime of a pile (in a basket, or asleep at bedtime:
+##            the states that never hop, see _can_rest) that stopped
+##            simulating, contacts included: like a sleeper it is a wall,
+##            and two walls are never paired. Piles rest whole: a group of
+##            touching pile slimes rests together once every one of them
+##            has been supported and still (its centre within REST_DRIFT of
+##            where it was) for REST_TICKS, velocities dropped; it keeps
+##            its `pile` (the group's lowest id) and wakes whole. Something
+##            disturbing it makes it ACTIVE again: a touching slime moving
+##            faster than WAKE_SPEED (a hop, a landing, a neighbour
+##            shifting), a state change (bedtime, sunrise, a basket catching
+##            or releasing), a new velocity or body, a slime removed, fused
+##            or split next to it, or whoever knows of a disturbance calling
+##            wake / wake_around / wake_resting_in (a call, a door: Offscreen,
+##            FrontierSets). rest_enabled off: no slime rests.
+##   PARKED   off screen (Offscreen): not simulated nor touched at all, not
+##            even as a wall (it is left out of the pair grid); Offscreen
+##            moves it (translate) and un-parks it near the view. Nothing
+##            but park / unpark changes it.
+## Low detail (zoomed out): set_low_detail() gives a slime's ring the
+## LOW_POINTS_BY_SIZE count, read off its current shape (see _resample); the
+## rest area follows the point count. Offscreen decides from the zoom.
+##
 ## The interface (create, remove, tick, merge, split, hop, the accessors and
 ## dump) is kept small and plain so the tick can move to a GDExtension later
 ## without the callers changing.
@@ -71,6 +96,23 @@ const SUPPORT_NORMAL_Y := 0.3
 ## Extra distance at which two rings count as touching.
 const TOUCH_SKIN := 2.0
 
+## A slime's calm (see the class doc): simulated, resting (a wall), parked.
+# @spec-link [[req_offscreen_simulation]]
+const ACTIVE := 0
+const RESTING := 1
+const PARKED := 2
+## The calm names, as dump() writes them.
+const CALM_NAMES: PackedStringArray = ["active", "resting", "parked"]
+## Ring points per size when zoomed out (index 0 unused).
+const LOW_POINTS_BY_SIZE: Array[int] = [0, 8, 10, 12]
+## A supported slime whose centre stays within REST_DRIFT px of where it was
+## REST_TICKS ticks ago is still (a distance, not a speed: a settled pile
+## jitters by a fraction of a pixel, now and then at 10-20 px/s for a tick).
+const REST_DRIFT := 1.0
+const REST_TICKS := 30
+## A touching slime moving faster than this (px/s) wakes a resting one.
+const WAKE_SPEED := 30.0
+
 var gravity := Vector2(0.0, 1400.0)
 ## The way free slimes fall (a unit vector), set by the Simulation every tick
 ## from the tilt (Tilt.down()). Only free slimes feel tilt: every other state
@@ -112,6 +154,8 @@ var terrain: TerrainSegments = null
 ## by FrontierSets from the object states, so not in dump().
 # @spec-link [[req_switch_basket_gate_set]]
 var doors: Array[TerrainSegments] = []
+## Whether settled pile slimes rest (the resting-pile rule, see the class doc).
+var rest_enabled := true
 
 # Per point.
 var pos := PackedVector2Array()
@@ -154,6 +198,18 @@ var centre := PackedVector2Array()
 var angle0 := PackedFloat32Array()
 ## The mean displacement of the slime's points over the last substep.
 var _drift := PackedVector2Array()
+## Each slime's calm: ACTIVE, RESTING or PARKED (see the class doc).
+var calm := PackedByteArray()
+## 1 while the slime's ring has the low-detail point count.
+var low_detail := PackedByteArray()
+## Ticks in a row the slime has been supported and still (the rest count,
+## capped at REST_TICKS).
+var still_ticks := PackedInt32Array()
+## Where the slime's centre was when its rest count started.
+var rest_anchor := PackedVector2Array()
+## The pile a resting slime rests with: the lowest slime id of the group of
+## touching pile slimes that came to rest together (0 when not resting).
+var pile := PackedInt32Array()
 
 ## The next id create() hands out.
 var next_id := 1
@@ -201,8 +257,16 @@ static func ring_radius_for(slime_size: int) -> float:
 ## The area of the rest ring (a regular polygon), proportional to the size
 ## within about 3 %.
 static func rest_area_for(slime_size: int) -> float:
-	var n := points_for(slime_size)
-	var r := ring_radius_for(slime_size)
+	return _polygon_area(points_for(slime_size), ring_radius_for(slime_size))
+
+
+## The ring point count of a zoomed-out slime of `slime_size`.
+static func low_points_for(slime_size: int) -> int:
+	return LOW_POINTS_BY_SIZE[slime_size]
+
+
+## The area of a regular polygon of `n` points on a circle of radius `r`.
+static func _polygon_area(n: int, r: float) -> float:
 	return 0.5 * n * r * r * sin(TAU / n)
 
 
@@ -254,6 +318,11 @@ func create(slime_species: int, slime_size: int, at: Vector2, slime_state := STA
 	centre.append(at)
 	angle0.append(0.0)
 	_drift.append(Vector2.ZERO)
+	calm.append(ACTIVE)
+	low_detail.append(0)
+	still_ticks.append(0)
+	rest_anchor.append(at)
+	pile.append(0)
 	_slime_cell.append(0)
 	_streams.append(stream)
 	slime_count += 1
@@ -266,6 +335,8 @@ func remove(slime_id: int) -> bool:
 	var s := index_of(slime_id)
 	if s < 0:
 		return false
+	if calm[s] != PARKED:
+		_wake_around(centre[s], bound_r[s], s)
 	_remove_at(s)
 	return true
 
@@ -370,6 +441,8 @@ func set_state(slime_id: int, slime_state: int) -> void:
 	if s < 0 or slime_state < 0 or slime_state >= STATE_NAMES.size():
 		push_error("SlimeBodies: can't set state %d on slime %d" % [slime_state, slime_id])
 		return
+	if state[s] != slime_state:
+		_wake_at(s)
 	state[s] = slime_state
 
 
@@ -408,6 +481,7 @@ func set_velocity(slime_id: int, velocity: Vector2) -> void:
 	var s := index_of(slime_id)
 	if s < 0:
 		return
+	_wake_at(s)
 	var step := velocity * _h
 	for i in range(first[s], first[s] + npts[s]):
 		prev[i] = pos[i] - step
@@ -485,6 +559,7 @@ func merge(a: int, b: int) -> int:
 	var velocity := (_velocity_at(keep) * wk + _velocity_at(gone) * wg) / (wk + wg)
 	_remove_at(gone)
 	_reshape(keep, total, at, velocity)
+	_wake_around(at, bound_r[keep], keep)
 	return id[keep]
 
 
@@ -506,6 +581,7 @@ func split(slime_id: int) -> PackedInt32Array:
 	var velocity := _velocity_at(s)
 	var offsets := _split_offsets(count)
 	_reshape(s, 1, at + offsets[0], velocity)
+	_wake_around(at, bound_r[s] * 2.0, s)
 	var slime_species := species[s]
 	var slime_state := state[s]
 	var slime_heading := heading[s]
@@ -549,20 +625,32 @@ func body_of(slime_id: int) -> Dictionary:
 	var n := npts[s]
 	return {"points": pos.slice(f, f + n), "previous": prev.slice(f, f + n), "centre": centre[s],
 			"hop_timer": hop_timer[s], "heading": heading[s], "held": held[s] != 0,
-			"supported": supported[s] != 0, "rng_state": _streams[s].state}
+			"supported": supported[s] != 0, "rng_state": _streams[s].state,
+			"calm": calm[s], "still": still_ticks[s], "anchor": rest_anchor[s], "pile": pile[s],
+			"low": low_detail[s] != 0}
 
 
 ## Puts back a body from body_of(). False (and nothing changes) when the
-## slime is missing or the point counts don't match its size.
+## slime is missing or the point counts don't match its size (at the body's
+## detail, "low", full when absent). The body's "calm" and "still" are put
+## back too; a body without them leaves the slime ACTIVE. A body that moves
+## the slime by more than a pixel wakes the resting slimes around where it
+## was (a slime taken out from under a pile).
+# @spec-link [[req_offscreen_simulation]]
 func set_body(slime_id: int, body: Dictionary) -> bool:
 	var s := index_of(slime_id)
 	if s < 0:
 		return false
 	var points: PackedVector2Array = body["points"]
 	var previous: PackedVector2Array = body["previous"]
-	var n := npts[s]
+	var is_low: bool = body.get("low", false)
+	var n := low_points_for(size[s]) if is_low else points_for(size[s])
 	if points.size() != n or previous.size() != n:
 		return false
+	if (low_detail[s] != 0) != is_low:
+		low_detail[s] = 1 if is_low else 0
+		_resample(s, n)
+	var was: Vector2 = centre[s]
 	var f := first[s]
 	for k in n:
 		pos[f + k] = points[k]
@@ -573,6 +661,103 @@ func set_body(slime_id: int, body: Dictionary) -> bool:
 	held[s] = 1 if body["held"] else 0
 	supported[s] = 1 if body["supported"] else 0
 	_streams[s].state = body["rng_state"]
+	if body.has("calm"):
+		calm[s] = int(body["calm"])
+		still_ticks[s] = int(body.get("still", 0))
+		rest_anchor[s] = body.get("anchor", centre[s])
+		pile[s] = int(body.get("pile", 0))
+	else:
+		_wake_at(s)
+	if centre[s].distance_squared_to(was) > 1.0 and calm[s] != PARKED:
+		_wake_around(was, bound_r[s], s)
+	return true
+
+
+# --- Calm and detail (chunk 15) ---------------------------------------------
+
+## The slime's calm (ACTIVE, RESTING or PARKED), -1 for a missing slime.
+func calm_of(slime_id: int) -> int:
+	var s := index_of(slime_id)
+	return calm[s] if s >= 0 else -1
+
+
+func is_parked(slime_id: int) -> bool:
+	var s := index_of(slime_id)
+	return s >= 0 and calm[s] == PARKED
+
+
+## Whether the slime's ring has the zoomed-out point count.
+func is_low_detail(slime_id: int) -> bool:
+	var s := index_of(slime_id)
+	return s >= 0 and low_detail[s] != 0
+
+
+## Parks the slime (off screen): from now on it is neither simulated nor
+## touched, not even as a wall, until unpark(). Its velocity is dropped.
+# @spec-link [[req_offscreen_simulation]]
+func park(slime_id: int) -> void:
+	var s := index_of(slime_id)
+	if s < 0 or calm[s] == PARKED:
+		return
+	calm[s] = PARKED
+	still_ticks[s] = 0
+	_set_velocity_at(s, Vector2.ZERO)
+	_drift[s] = Vector2.ZERO
+
+
+## Simulates a parked slime again, at rest where it was put.
+func unpark(slime_id: int) -> void:
+	var s := index_of(slime_id)
+	if s < 0 or calm[s] != PARKED:
+		return
+	calm[s] = ACTIVE
+	still_ticks[s] = 0
+	_set_velocity_at(s, Vector2.ZERO)
+
+
+## Moves the whole slime by `delta`, its velocity and shape kept (how
+## Offscreen carries a parked slime along).
+func translate(slime_id: int, delta: Vector2) -> void:
+	var s := index_of(slime_id)
+	if s < 0:
+		return
+	for i in range(first[s], first[s] + npts[s]):
+		pos[i] += delta
+		prev[i] += delta
+	centre[s] += delta
+
+
+## Wakes a resting slime (ACTIVE again). Nothing for an active or parked one.
+func wake(slime_id: int) -> void:
+	var s := index_of(slime_id)
+	if s >= 0:
+		_wake_at(s)
+
+
+## Wakes every resting slime whose centre is in `box`. Returns how many.
+func wake_resting_in(box: Rect2) -> int:
+	var woken := 0
+	for s in slime_count:
+		if calm[s] == RESTING and box.has_point(centre[s]):
+			woken += _wake_at(s)
+	return woken
+
+
+## Wakes every resting slime whose ring may reach within `radius` of `point`.
+## Returns how many.
+func wake_around(point: Vector2, radius: float) -> int:
+	return _wake_around(point, radius, -1)
+
+
+## Gives the slime's ring the zoomed-out point count (on) or the full one
+## (off), read off its current shape (_resample). False when nothing changed.
+# @spec-link [[req_offscreen_simulation]]
+func set_low_detail(slime_id: int, on: bool) -> bool:
+	var s := index_of(slime_id)
+	if s < 0 or (low_detail[s] != 0) == on:
+		return false
+	low_detail[s] = 1 if on else 0
+	_resample(s, _detail_points(s, size[s]))
 	return true
 
 
@@ -584,7 +769,10 @@ func tick(dt: float) -> void:
 	hopped.clear()
 	if auto_hops:
 		_auto_hops(dt)
-	supported.fill(0)
+	# A resting or parked slime keeps its support: nothing moves it.
+	for s in slime_count:
+		if calm[s] == ACTIVE:
+			supported[s] = 0
 	for sub in substeps:
 		_integrate(_h)
 		if sub == 0:
@@ -597,6 +785,90 @@ func tick(dt: float) -> void:
 	for k in _pair_touch.size():
 		if _pair_touch[k] != 0:
 			_touching.append(Vector2i(id[_pairs[2 * k]], id[_pairs[2 * k + 1]]))
+	_rest()
+
+
+## The resting-pile rule (see the class doc), after the tick. A resting pile
+## touching a slime moving faster than WAKE_SPEED wakes. Each active pile
+## slime counts its still, supported ticks; a group of touching active pile
+## slimes whose every member has counted REST_TICKS rests together. Whole
+## piles rest and wake as one: half a pile resting would make its moving
+## half take every overlap against the wall, jolt, and wake it again.
+# @spec-link [[req_offscreen_simulation]]
+func _rest() -> void:
+	if not rest_enabled:
+		for s in slime_count:
+			_wake_at(s)
+		return
+	var drift2 := REST_DRIFT * REST_DRIFT
+	var fast2 := WAKE_SPEED * _h * WAKE_SPEED * _h
+	for k in _pair_touch.size():
+		if _pair_touch[k] == 0:
+			continue
+		var a: int = _pairs[2 * k]
+		var b: int = _pairs[2 * k + 1]
+		if calm[a] == RESTING and calm[b] == ACTIVE and state[b] != STATE_SLEEPER:
+			if _drift[b].length_squared() > fast2:
+				_wake_at(a)
+		elif calm[b] == RESTING and calm[a] == ACTIVE and state[a] != STATE_SLEEPER:
+			if _drift[a].length_squared() > fast2:
+				_wake_at(b)
+	var ready := false
+	for s in slime_count:
+		if calm[s] != ACTIVE or not _can_rest(s):
+			continue
+		if supported[s] == 0 or centre[s].distance_squared_to(rest_anchor[s]) > drift2:
+			still_ticks[s] = 0
+			rest_anchor[s] = centre[s]
+			continue
+		still_ticks[s] = mini(still_ticks[s] + 1, REST_TICKS)
+		ready = ready or still_ticks[s] == REST_TICKS
+	if ready:
+		_rest_piles()
+
+
+## Rests every group of touching active pile slimes whose members have all
+## been still for REST_TICKS (union-find over the touching pairs).
+func _rest_piles() -> void:
+	var root := PackedInt32Array()
+	root.resize(slime_count)
+	for s in slime_count:
+		root[s] = s
+	for k in _pair_touch.size():
+		if _pair_touch[k] == 0:
+			continue
+		var a: int = _pairs[2 * k]
+		var b: int = _pairs[2 * k + 1]
+		if calm[a] != ACTIVE or calm[b] != ACTIVE or not _can_rest(a) or not _can_rest(b):
+			continue
+		var ra := _find(root, a)
+		var rb := _find(root, b)
+		if ra != rb:
+			root[maxi(ra, rb)] = mini(ra, rb)
+	# A group rests when none of its members is short of REST_TICKS.
+	var short := PackedByteArray()
+	short.resize(slime_count)
+	for s in slime_count:
+		if calm[s] == ACTIVE and _can_rest(s) and still_ticks[s] < REST_TICKS:
+			short[_find(root, s)] = 1
+	for s in slime_count:
+		if calm[s] != ACTIVE or not _can_rest(s):
+			continue
+		var r := _find(root, s)
+		if short[r] != 0:
+			continue
+		calm[s] = RESTING
+		still_ticks[s] = 0
+		pile[s] = id[r]
+		_set_velocity_at(s, Vector2.ZERO)
+		_drift[s] = Vector2.ZERO
+
+
+static func _find(root: PackedInt32Array, s: int) -> int:
+	while root[s] != s:
+		root[s] = root[root[s]]
+		s = root[s]
+	return s
 
 
 ## The whole state of the slimes, as plain data in id order, for
@@ -617,6 +889,10 @@ func dump() -> Array:
 			"held": held[s] != 0,
 			"supported": supported[s] != 0,
 			"rng_state": str(_streams[s].state),
+			"calm": CALM_NAMES[calm[s]],
+			"still": still_ticks[s],
+			"pile": pile[s],
+			"low": low_detail[s] != 0,
 		})
 	return out
 
@@ -624,7 +900,97 @@ func dump() -> Array:
 # --- Internals --------------------------------------------------------------
 
 func _can_hop_at(s: int) -> bool:
-	return (state[s] == STATE_TRAIN or state[s] == STATE_FREE) and held[s] == 0
+	return (state[s] == STATE_TRAIN or state[s] == STATE_FREE) and held[s] == 0 and calm[s] == ACTIVE
+
+
+## Whether the slime may rest: the pile states, which never hop (a slime in a
+## basket, or asleep at bedtime).
+func _can_rest(s: int) -> bool:
+	return state[s] == STATE_IN_BASKET or state[s] == STATE_BEDTIME_ASLEEP
+
+
+## Whether the slime is a wall in the contacts: a sleeper, or resting.
+func _is_wall(s: int) -> bool:
+	return state[s] == STATE_SLEEPER or calm[s] == RESTING
+
+
+## Wakes slime index `s` and, when it rests, its whole pile. Returns how many
+## slimes woke.
+func _wake_at(s: int) -> int:
+	var woken := 0
+	if calm[s] == RESTING:
+		var group := pile[s]
+		for t in slime_count:
+			if calm[t] == RESTING and pile[t] == group:
+				calm[t] = ACTIVE
+				still_ticks[t] = 0
+				rest_anchor[t] = centre[t]
+				pile[t] = 0
+				woken += 1
+	if calm[s] == ACTIVE:
+		still_ticks[s] = 0
+		rest_anchor[s] = centre[s]
+	return woken
+
+
+## Wakes the resting slimes (all but index `except`) whose ring may reach
+## within `radius` of `point`. Returns how many.
+func _wake_around(point: Vector2, radius: float, except: int) -> int:
+	var woken := 0
+	for s in slime_count:
+		if s == except or calm[s] != RESTING:
+			continue
+		var reach := radius + bound_r[s] + TOUCH_SKIN
+		if centre[s].distance_squared_to(point) < reach * reach:
+			woken += _wake_at(s)
+	return woken
+
+
+## The ring point count of slime index `s` at `slime_size`, at its detail.
+func _detail_points(s: int, slime_size: int) -> int:
+	return low_points_for(slime_size) if low_detail[s] != 0 else points_for(slime_size)
+
+
+## Gives slime index `s` a ring of `n` points read off its current shape: the
+## new points sit at even angles from its point 0's, each at the radius of
+## the current ring there (its radial profile), all moving at the slime's
+## mean velocity; the rest ring, area and edge are the regular `n`-gon's.
+## Its slice changes size like in _reshape.
+func _resample(s: int, n: int) -> void:
+	var f := first[s]
+	var old := npts[s]
+	var c := _centre_at(s)
+	var velocity := _velocity_at(s)
+	var a0 := (pos[f] - c).angle()
+	var r := ring_radius[s]
+	var ring := PackedVector2Array()
+	var back := PackedVector2Array()
+	var offs := PackedVector2Array()
+	ring.resize(n)
+	back.resize(n)
+	offs.resize(n)
+	var step := velocity * _h
+	for k in n:
+		var t := float(k) * old / n
+		var i := int(t)
+		var fr := t - i
+		var r0 := (pos[f + i] - c).length()
+		var r1 := (pos[f + (i + 1) % old] - c).length()
+		var a := a0 + TAU * k / n
+		ring[k] = c + Vector2.from_angle(a) * (r0 + (r1 - r0) * fr)
+		back[k] = ring[k] - step
+		offs[k] = Vector2.from_angle(TAU * k / n + PI * 0.5) * r
+	pos = pos.slice(0, f) + ring + pos.slice(f + old)
+	prev = prev.slice(0, f) + back + prev.slice(f + old)
+	rest_off = rest_off.slice(0, f) + offs + rest_off.slice(f + old)
+	for t in range(s + 1, slime_count):
+		first[t] += n - old
+	npts[s] = n
+	rest_area[s] = _polygon_area(n, r)
+	rest_edge[s] = 2.0 * r * sin(PI / n)
+	centre[s] = c
+	_wake_at(s)
+	topology_version += 1
 
 
 func _centre_at(s: int) -> Vector2:
@@ -691,8 +1057,9 @@ func _auto_hops(dt: float) -> void:
 ## moving at `velocity`, replacing its point slice (the later slimes' slices
 ## move to stay back to back).
 func _reshape(s: int, slime_size: int, at: Vector2, velocity: Vector2) -> void:
-	var n := points_for(slime_size)
+	var n := _detail_points(s, slime_size)
 	var r := ring_radius_for(slime_size)
+	_wake_at(s)
 	var ring := PackedVector2Array()
 	var offs := PackedVector2Array()
 	ring.resize(n)
@@ -720,7 +1087,7 @@ func _reshape(s: int, slime_size: int, at: Vector2, velocity: Vector2) -> void:
 	npts[s] = n
 	size[s] = slime_size
 	ring_radius[s] = r
-	rest_area[s] = rest_area_for(slime_size)
+	rest_area[s] = _polygon_area(n, r)
 	rest_edge[s] = 2.0 * r * sin(PI / n)
 	bound_r[s] = r * 1.3
 	centre[s] = at
@@ -754,6 +1121,11 @@ func _remove_at(s: int) -> void:
 	centre.remove_at(s)
 	angle0.remove_at(s)
 	_drift.remove_at(s)
+	calm.remove_at(s)
+	low_detail.remove_at(s)
+	still_ticks.remove_at(s)
+	rest_anchor.remove_at(s)
+	pile.remove_at(s)
 	_slime_cell.remove_at(s)
 	_streams.remove_at(s)
 	slime_count -= 1
@@ -801,9 +1173,9 @@ func _integrate(h: float) -> void:
 		var f: int = first[s]
 		var cnt: int = npts[s]
 		var end: int = f + cnt
-		if state[s] == STATE_SLEEPER:
-			# Asleep: it doesn't simulate (its points stay put), but its
-			# point-0 angle is kept right for the contacts.
+		if state[s] == STATE_SLEEPER or calm[s] != ACTIVE:
+			# Asleep, resting or parked: it doesn't simulate (its points stay
+			# put), but its point-0 angle is kept right for the contacts.
 			var r_sleep: Vector2 = p[f] - centre[s]
 			angle0[s] = atan2(r_sleep.y, r_sleep.x)
 			_drift[s] = Vector2.ZERO
@@ -834,14 +1206,19 @@ func _integrate(h: float) -> void:
 ## the widest possible pair distance, so neighbouring cells are enough.
 func _build_pairs() -> void:
 	_pairs.clear()
-	if slime_count < 2:
-		_pair_touch.resize(0)
-		return
-	var low: Vector2 = centre[0]
-	var high: Vector2 = centre[0]
+	# Parked slimes are left out of the grid (they touch nothing).
+	var placed := 0
+	var low := Vector2.INF
+	var high := -Vector2.INF
 	for s in slime_count:
+		if calm[s] == PARKED:
+			continue
+		placed += 1
 		low = low.min(centre[s])
 		high = high.max(centre[s])
+	if placed < 2:
+		_pair_touch.resize(0)
+		return
 	var extent := high - low
 	_cell_size = maxf(104.0, maxf(extent.x, extent.y) / 256.0)
 	_grid_origin = low
@@ -850,9 +1227,12 @@ func _build_pairs() -> void:
 	var cells := _grid_w * _grid_h
 	_cell_start.resize(cells + 1)
 	_cell_start.fill(0)
-	_cell_items.resize(slime_count)
+	_cell_items.resize(placed)
 	var inv := 1.0 / _cell_size
 	for s in slime_count:
+		if calm[s] == PARKED:
+			_slime_cell[s] = -1
+			continue
 		var c: Vector2 = centre[s] - low
 		var cell := mini(int(c.y * inv), _grid_h - 1) * _grid_w + mini(int(c.x * inv), _grid_w - 1)
 		_slime_cell[s] = cell
@@ -862,10 +1242,15 @@ func _build_pairs() -> void:
 	var fill := _cell_start.slice(0, cells)
 	for s in slime_count:
 		var cell: int = _slime_cell[s]
+		if cell < 0:
+			continue
 		_cell_items[fill[cell]] = s
 		fill[cell] += 1
 	for s in slime_count:
 		var cell: int = _slime_cell[s]
+		if cell < 0:
+			continue
+		var wall_s := _is_wall(s)
 		var cx := cell % _grid_w
 		var cy := cell / _grid_w
 		var cs: Vector2 = centre[s]
@@ -875,7 +1260,8 @@ func _build_pairs() -> void:
 				var gc := gy * _grid_w + gx
 				for q in range(_cell_start[gc], _cell_start[gc + 1]):
 					var t: int = _cell_items[q]
-					if t <= s or (state[s] == STATE_SLEEPER and state[t] == STATE_SLEEPER):
+					# Two walls (sleepers, resting slimes) are never paired.
+					if t <= s or (wall_s and _is_wall(t)):
 						continue
 					# Margin: slimes may close in during the tick's substeps.
 					var rr: float = rs + bound_r[t] + 8.0
@@ -931,10 +1317,11 @@ func _solve_contacts() -> void:
 			var vb: Vector2 = _drift[b]
 			var touched := false
 			var rests := false
-			# A sleeper is a wall: its points only feel the touch, and a slime
+			# A sleeper (or a resting slime) is a wall: its points only feel
+			# the touch, and a slime
 			# against it takes the whole overlap.
-			var still: bool = state[a] == STATE_SLEEPER
-			var against_still: bool = state[b] == STATE_SLEEPER
+			var still: bool = _is_wall(a)
+			var against_still: bool = _is_wall(b)
 			var share := 1.0 if against_still else 0.5
 			for m in range(mid - half, mid + half + 1):
 				var j := fa + (m % na + na) % na
@@ -990,7 +1377,7 @@ func _solve_rings() -> void:
 	var ka := area_stiffness
 	var kshape := shape_stiffness
 	for s in slime_count:
-		if state[s] == STATE_SLEEPER:
+		if state[s] == STATE_SLEEPER or calm[s] != ACTIVE:
 			continue
 		var f: int = first[s]
 		var cnt: int = npts[s]
@@ -1088,7 +1475,7 @@ func _solve_against(tf: TerrainSegments) -> void:
 	var skin := terrain_skin
 	var skin2 := skin * skin
 	for s in slime_count:
-		if state[s] == STATE_SLEEPER:
+		if state[s] == STATE_SLEEPER or calm[s] != ACTIVE:
 			continue
 		var f: int = first[s]
 		var carried := false

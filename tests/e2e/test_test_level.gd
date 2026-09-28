@@ -1,8 +1,9 @@
 extends GutTest
 ## Chunk 4, "Done when": the test level (levels/test/level.tscn) loads
 ## headless, and a test finds the loop, the routes back and every stable ID of
-## section 1 (Meadow), and checks the level rules its layout must meet
-## (specs/levels/test/README.md, specs/level-design.md).
+## section 1 (Meadow) and section 2 (Caves, chunk 15), and checks the level
+## rules its layout must meet (specs/levels/test/README.md,
+## specs/level-design.md).
 ##
 ## Distances are in level pixels; 1 screen is LevelData.SCREEN px.
 
@@ -32,8 +33,6 @@ func after_all() -> void:
 func _expected_section_1_ids() -> PackedStringArray:
 	var ids := PackedStringArray([
 		"start.loop", "s1.loop", "s1.slide",
-		# Section 2's stub (chunk 14): where gate 1 leads.
-		"s2.loop", "s2.slide",
 		"start.split-zone", "start.first-slime",
 		"s1.switch", "s1.basket", "s1.gate", "s1.signpost",
 		"s1.branch.tree", "s1.route-back.tree", "s1.frame.tree",
@@ -43,6 +42,32 @@ func _expected_section_1_ids() -> PackedStringArray:
 		ids.append("s1.sleeper.%02d" % n)
 	ids.sort()
 	return ids
+
+
+## Section 2 (Caves, chunk 15) and section 3's stub: where gate 2 leads.
+func _expected_section_2_ids() -> PackedStringArray:
+	var ids := PackedStringArray([
+		"s2.loop", "s2.slide", "s3.loop", "s3.slide",
+		"s2.switch", "s2.basket", "s2.gate", "s2.signpost",
+		"s2.branch.cave", "s2.route-back.cave",
+		"s2.frame.parade", "s2.frame.gate",
+	])
+	for n in range(1, 41):
+		ids.append("s2.sleeper.%02d" % n)
+	return ids
+
+
+func _sleepers_of(section: String) -> Array:
+	return _of_type(Sleeper).filter(func(sleeper): return sleeper.stable_id.begins_with(section + "."))
+
+
+## The gates open once the loop reaches `section` (1, 2, ...): the gates of
+## the sections before it.
+func _gates_before(section: int) -> Array:
+	var gates := []
+	for n in range(1, section):
+		gates.append("s%d.gate" % n)
+	return gates
 
 
 func _of_type(type: Variant) -> Array:
@@ -74,8 +99,11 @@ func test_level_id_and_version_are_read() -> void:
 	assert_eq(level.data.level_version, level.level_version)
 
 
-func test_every_stable_id_of_section_1_is_found() -> void:
-	assert_eq(level.ids(), _expected_section_1_ids())
+func test_every_stable_id_of_sections_1_and_2_is_found() -> void:
+	var expected := _expected_section_1_ids()
+	expected.append_array(_expected_section_2_ids())
+	expected.sort()
+	assert_eq(level.ids(), expected)
 
 
 func test_ids_are_well_formed() -> void:
@@ -86,7 +114,7 @@ func test_ids_are_well_formed() -> void:
 # --- Population --------------------------------------------------------------
 
 func test_section_1_has_29_sleepers_by_species() -> void:
-	var sleepers := _of_type(Sleeper)
+	var sleepers := _sleepers_of("s1")
 	assert_eq(sleepers.size(), 29)
 	assert_eq(_species_counts(sleepers), {"A": 9, "B": 9, "C": 11})
 	for sleeper in sleepers:
@@ -99,16 +127,28 @@ func test_section_1_population_with_the_first_slime() -> void:
 	var first_slime: FirstSlime = level.find("start.first-slime")
 	assert_eq(first_slime.species, "A")
 	assert_eq(level.find("s1.sleeper.01").species, "B")
-	var slimes := _of_type(Sleeper)
+	var slimes := _sleepers_of("s1")
 	slimes.append(first_slime)
 	assert_eq(_species_counts(slimes), {"A": 10, "B": 9, "C": 11})
 
 
+func test_section_2_has_40_sleepers_by_species() -> void:
+	# README population table: S2 is A 7, B 7, C 7, D 19; D is new here.
+	var sleepers := _sleepers_of("s2")
+	assert_eq(sleepers.size(), 40)
+	assert_eq(_species_counts(sleepers), {"A": 7, "B": 7, "C": 7, "D": 19})
+	for sleeper in sleepers:
+		assert_eq(sleeper.size, 1, sleeper.stable_id)
+		var x: float = level.position_of(sleeper).x / SCREEN
+		assert_between(x, 8.0, 12.66, "%s is in section 2" % sleeper.stable_id)
+
+
 func test_sleepers_are_numbered_left_to_right() -> void:
-	for n in range(1, 29):
-		var here: Vector2 = level.position_of(level.find("s1.sleeper.%02d" % n))
-		var next: Vector2 = level.position_of(level.find("s1.sleeper.%02d" % (n + 1)))
-		assert_lte(here.x, next.x, "s1.sleeper.%02d" % n)
+	for section in [["s1", 29], ["s2", 40]]:
+		for n in range(1, section[1]):
+			var here: Vector2 = level.position_of(level.find("%s.sleeper.%02d" % [section[0], n]))
+			var next: Vector2 = level.position_of(level.find("%s.sleeper.%02d" % [section[0], n + 1]))
+			assert_lte(here.x, next.x, "%s.sleeper.%02d" % [section[0], n])
 
 
 # @test-link [[rule_sleepers_never_on_loop]]
@@ -205,11 +245,14 @@ func test_the_tree_route_back_is_found() -> void:
 
 # @test-link [[rule_exploration_branch_has_route_back]]
 func test_the_branches_and_their_routes_back_are_plain_data() -> void:
-	assert_eq(level.data.branches.keys().size(), 2)
+	assert_eq(level.data.branches.keys().size(), 3)
 	assert_eq(level.data.route_back_for("s1.branch.tree"), "s1.route-back.tree")
 	assert_eq(level.data.route_back_for("s1.branch.high-step"), "s1.route-back.high-step")
+	assert_eq(level.data.route_back_for("s2.branch.cave"), "s2.route-back.cave")
 	var platform := Vector2(5.2 * LevelData.SCREEN, -384)
 	assert_eq(level.data.branch_at(platform), "s1.branch.tree", "the tree's platform is in its branch")
+	var pocket := Vector2(11.3 * LevelData.SCREEN, -724)
+	assert_eq(level.data.branch_at(pocket), "s2.branch.cave", "the cave's pocket is in its branch")
 
 
 # @test-link [[req_controls_tap_zones]]
@@ -217,18 +260,20 @@ func test_the_switch_basket_and_sleepers_are_tap_targets() -> void:
 	var targets: Dictionary = level.data.tap_targets
 	assert_eq(targets["s1.switch"]["kind"], TapDispatcher.KIND_SWITCH)
 	assert_eq(targets["s1.basket"]["kind"], TapDispatcher.KIND_BASKET)
+	assert_eq(targets["s2.switch"]["kind"], TapDispatcher.KIND_SWITCH)
+	assert_eq(targets["s2.basket"]["kind"], TapDispatcher.KIND_BASKET)
 	var sleepers := 0
 	for id in targets:
 		if targets[id]["kind"] == TapDispatcher.KIND_SLEEPER:
 			sleepers += 1
 	assert_eq(sleepers, _of_type(Sleeper).size(), "every sleeper")
-	assert_eq(targets.size(), sleepers + 2, "nothing else (gates, split zones, signposts are not tapped)")
+	assert_eq(targets.size(), sleepers + 4, "nothing else (gates, split zones, signposts are not tapped)")
 
 
 # @test-link [[rule_exploration_branch_has_route_back]]
 func test_every_exploration_branch_has_a_route_back() -> void:
 	var branches := _of_type(ExplorationBranch)
-	assert_eq(branches.size(), 2)
+	assert_eq(branches.size(), 3)
 	for branch in branches:
 		var served := 0
 		for route_back in _of_type(RouteBack):
@@ -243,12 +288,15 @@ func test_every_exploration_branch_has_a_route_back() -> void:
 # @test-link [[rule_no_dead_ends]]
 # @test-link [[rule_exploration_branch_has_route_back]]
 func test_every_route_back_ends_on_the_loop() -> void:
-	assert_eq(level.data.route_backs.size(), 2)
+	assert_eq(level.data.route_backs.size(), 3)
 	for id in level.data.route_backs:
 		var points: PackedVector2Array = level.data.route_backs[id]["points"]
-		var closest: Dictionary = level.data.loop.closest(points[points.size() - 1])
+		# The loop in use once the loop reaches the route's section.
+		var section := str(id).get_slice(".", 0)
+		var gates := _gates_before(section.trim_prefix("s").to_int())
+		var closest: Dictionary = level.data.loop.closest(points[points.size() - 1], gates)
 		assert_lt(closest["gap"], ON_LOOP_MAX_GAP, id)
-		assert_eq(closest["segment"], "s1.loop", "%s lands on the loop in use" % id)
+		assert_eq(closest["segment"], section + ".loop", "%s lands on the loop in use" % id)
 
 
 # @test-link [[rule_gravity_leads_back_to_loop]]
@@ -278,7 +326,26 @@ func test_basket_1_rule_validates_against_the_registry() -> void:
 	assert_eq(rules[0].to_dict(), {"when": {"object": "s1.basket", "event": "full"},
 			"then": {"object": "s1.gate", "action": "open"}})
 	assert_eq(rules[0].validate(level.registry), PackedStringArray())
-	assert_eq(level.all_rules().size(), 1)
+	assert_eq(level.all_rules().size(), 2, "basket 1's and basket 2's")
+
+
+func test_frontier_set_2_is_placed_as_in_the_readme() -> void:
+	# README 2.5: the basket is 1.5 screens from its switch, past the cave.
+	var expected := {"s2.switch": 11.0, "s2.basket": 12.4, "s2.gate": 12.8, "s2.signpost": 10.9}
+	for id in expected:
+		var x: float = level.position_of(level.find(id)).x / SCREEN
+		assert_almost_eq(x, expected[id], 0.1, id)
+	var switch_x: float = level.position_of(level.find("s2.switch")).x / SCREEN
+	var basket_x: float = level.position_of(level.find("s2.basket")).x / SCREEN
+	assert_between(basket_x - switch_x, 1.3, 1.6, "about 1.5 screens apart")
+	assert_eq(level.find("s2.basket").quota, 15)
+	assert_eq(level.find("s2.switch").basket_id, "s2.basket")
+	assert_eq(level.find("s2.signpost").switch_id, "s2.switch")
+	var rules: Array = level.find("s2.basket").rules()
+	assert_eq(rules.size(), 1)
+	assert_eq(rules[0].to_dict(), {"when": {"object": "s2.basket", "event": "full"},
+			"then": {"object": "s2.gate", "action": "open"}})
+	assert_eq(rules[0].validate(level.registry), PackedStringArray())
 
 
 func test_framing_zones() -> void:
@@ -289,6 +356,12 @@ func test_framing_zones() -> void:
 	var high_step: FramingZone = level.find("s1.frame.high-step")
 	assert_almost_eq(level.position_of(high_step).x / SCREEN, 4.0, 0.25)
 	assert_lte(high_step.zoom, 1.0)
+	var parade: FramingZone = level.find("s2.frame.parade")
+	assert_almost_eq(level.position_of(parade).x / SCREEN, 9.5, 0.25)
+	assert_lt(parade.zoom, 1.0, "zooms out over the parade")
+	var gate_2: FramingZone = level.find("s2.frame.gate")
+	assert_almost_eq(level.position_of(gate_2).x / SCREEN, 12.6, 0.25)
+	assert_lt(gate_2.zoom, 1.0, "the basket and the gate both in view")
 
 
 # --- Terrain -----------------------------------------------------------------

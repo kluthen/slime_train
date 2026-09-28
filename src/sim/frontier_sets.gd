@@ -39,7 +39,8 @@ extends RefCounted
 ##    shuts again once no slime is in its way; a closed gate's box is solid;
 ##    an open gate's lid shuts the old slide entrance once no slime is in its
 ##    way. The shut ones are handed to SlimeBodies.doors, solved like the
-##    terrain.
+##    terrain. A door that opens or shuts (a gate's box too, when it opens)
+##    wakes the resting piles within DOOR_WAKE_REACH of it (chunk 15).
 ##
 ## Opening a gate adds it to the train's open gates (the loop grows: the
 ## section's return route is replaced by the next section's segments) and
@@ -74,6 +75,9 @@ const CELEBRATION_SECONDS := 4.0
 const OUTLET_CLEARANCE := 8.0
 ## A door only shuts when no ring point is within this of it, in px.
 const DOOR_CLEARANCE := SlimeBodies.EDGE
+## A door opening or shutting wakes the resting piles whose centre is within
+## this of it, px (chunk 15): a size-3 slime's width.
+const DOOR_WAKE_REACH := 80.0
 
 ## Whether the celebration has played in this save (the level's mark).
 var celebration_done := false
@@ -321,6 +325,7 @@ func _fire(sim: Simulation, id: String) -> void:
 ## Opens gate `id` for good, and grows the train's loop (see the class doc).
 func _open_gate(sim: Simulation, id: String) -> void:
 	sim.gate_states[id]["open"] = true
+	_disturb(sim, _level.gates[id]["box"])
 	var train := sim.train
 	if train == null or id in train.open_gates:
 		return
@@ -374,16 +379,27 @@ func _release(sim: Simulation, slime_id: int, outlet: Vector2) -> bool:
 func _doors_step(sim: Simulation) -> void:
 	for id in _sorted(_level.switches):
 		var state: Dictionary = sim.object_states[id]
+		var was_shut: bool = state["trapdoor_shut"]
 		if _collecting(sim, id, state):
 			state["trapdoor_shut"] = false
 		elif not state["trapdoor_shut"] and (not _trapdoors.has(id)
 				or _clear(sim, _level.switches[id]["trapdoor"])):
 			state["trapdoor_shut"] = true
+		if state["trapdoor_shut"] != was_shut:
+			_disturb(sim, _level.switches[id]["trapdoor"])
 	for id in _sorted(_level.gates):
 		var state: Dictionary = sim.gate_states[id]
 		if state["open"] and not state["entrance_closed"] and (not _lids.has(id)
 				or _clear(sim, _level.gates[id]["lid"])):
 			state["entrance_closed"] = true
+			_disturb(sim, _level.gates[id]["lid"])
+
+
+## A door opening or shutting disturbs the resting piles by it (chunk 15).
+# @spec-link [[req_offscreen_simulation]]
+static func _disturb(sim: Simulation, box: Rect2) -> void:
+	if box.has_area():
+		sim.slimes.wake_resting_in(box.grow(DOOR_WAKE_REACH))
 
 
 func _set_doors(sim: Simulation) -> void:

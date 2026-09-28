@@ -419,7 +419,8 @@ func inherit(parts: PackedInt32Array) -> void:
 func steer(bodies: SlimeBodies, dt: float) -> void:
 	for slime_id in tracked_ids():
 		var s := bodies.index_of(slime_id)
-		if s < 0 or bodies.state[s] != SlimeBodies.TRAIN:
+		# A parked slime moves off screen at its pace (Offscreen).
+		if s < 0 or bodies.state[s] != SlimeBodies.TRAIN or bodies.calm[s] == SlimeBodies.PARKED:
 			continue
 		var record: Dictionary = _records[slime_id]
 		var from := bodies.centre_of(slime_id)

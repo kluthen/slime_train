@@ -33,7 +33,9 @@ static func layout_problems(bodies: SlimeBodies) -> PackedStringArray:
 	for i in bodies.slime_count:
 		if bodies.first[i] != next_first:
 			problems.append("slime %d starts at %d, expected %d" % [i, bodies.first[i], next_first])
-		if bodies.npts[i] != SlimeBodies.points_for(bodies.size[i]):
+		var expected := (SlimeBodies.low_points_for(bodies.size[i]) if bodies.low_detail[i] != 0
+				else SlimeBodies.points_for(bodies.size[i]))
+		if bodies.npts[i] != expected:
 			problems.append("slime %d has %d points for size %d" % [i, bodies.npts[i], bodies.size[i]])
 		if i > 0 and bodies.id[i] <= bodies.id[i - 1]:
 			problems.append("ids not ascending at %d" % i)
@@ -42,7 +44,7 @@ static func layout_problems(bodies: SlimeBodies) -> PackedStringArray:
 		problems.append("point arrays hold %d/%d/%d points, the ranges %d"
 				% [bodies.pos.size(), bodies.prev.size(), bodies.rest_off.size(), next_first])
 	for array_name in ["id", "first", "npts", "size", "species", "state", "ring_radius", "rest_area",
-			"centre", "hop_timer", "heading"]:
+			"centre", "hop_timer", "heading", "calm", "low_detail", "still_ticks"]:
 		if bodies.get(array_name).size() != bodies.slime_count:
 			problems.append("%s has %d entries for %d slimes" % [array_name, bodies.get(array_name).size(), bodies.slime_count])
 	return problems

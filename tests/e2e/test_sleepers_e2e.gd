@@ -17,6 +17,8 @@ const FIRST_SLEEPER := "s1.sleeper.01"
 const DIR := "user://test-sleepers-e2e/"
 const LEVEL := "test"
 const DUE_TICKS := 10 * TICK_RATE
+## The test level's sleepers: section 1's 29 and section 2's 40.
+const SLEEPERS := 69
 
 
 func before_each() -> void:
@@ -110,11 +112,12 @@ func test_every_sleeper_starts_asleep_and_the_first_slime_awake() -> void:
 		var letter := Species.letter(sim.slimes.species_of(slime_id))
 		by_species[letter] = by_species.get(letter, 0) + 1
 		assert_eq(sim.identities.members_of(slime_id).size(), 1, "one stable ID each")
-	assert_eq(by_species, {"A": 9, "B": 9, "C": 11})
+	# Sections 1 and 2 (chunk 15): S1 A 9, B 9, C 11; S2 A 7, B 7, C 7, D 19.
+	assert_eq(by_species, {"A": 16, "B": 16, "C": 18, "D": 19})
 	var first := sim.slimes.ids()[0]
 	assert_eq(sim.slimes.state_of(first), SlimeBodies.TRAIN)
 	assert_eq(Species.letter(sim.slimes.species_of(first)), "A")
-	assert_eq(sim.slimes.slime_count, 30)
+	assert_eq(sim.slimes.slime_count, SLEEPERS + 1)
 
 
 # @test-link [[rule_first_sleeper_near_first_awake_slime]]
@@ -202,7 +205,7 @@ func test_no_sleeper_wakes_during_a_lap_without_calls() -> void:
 	var woke := []
 	for i in range(0, 10 * 60 * TICK_RATE, 30):
 		game.test_mode.run_ticks(30)
-		if _count(sim, SlimeBodies.SLEEPER) != 29:
+		if _count(sim, SlimeBodies.SLEEPER) != SLEEPERS:
 			woke.append(sim.tick)
 			break
 		if sim.train.laps_of(first) >= 1:

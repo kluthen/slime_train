@@ -20,7 +20,9 @@ extends RefCounted
 ##       "train": {"distance", "laps", "on_slide", "mark", "marked_at", "lost"},  # optional
 ##       "free": {"phase", "since", "point", "route", "rng_state"},             # optional
 ##       "body": {"points", "previous", "centre", "hop_timer", "heading", "held",
-##                "supported", "rng_state"},                                   # optional
+##                "supported", "rng_state",                                    # optional
+##                "rest": {"calm", "still", "anchor", "pile"},                  # optional (chunk 15)
+##                "low": true},                                                 # optional (chunk 15)
 ##     } ],
 ##     "train": {"open_gates": [...], "lost": [{"id", "tick", "reason"}]},
 ##     "call": null or {"point", "tick"},
@@ -28,6 +30,7 @@ extends RefCounted
 ##     "hint_done": true,                   # optional: the first call happened
 ##     "celebration_done": true,            # optional: the celebration played (chunk 14)
 ##     "session": {"phase", "elapsed_ms", "anchor", "clock", "sunrise_tick"},  # optional (Session)
+##     "offscreen": {"zoomed_out", "away", "proxies", "lost"},              # optional (chunk 15)
 ##     "transient": {"view", "camera", "ripples", "taps", "facing", "input_log",
 ##                   "tilt", "fusion", "hint", "frontier"},              # optional
 ##   }
@@ -39,6 +42,14 @@ extends RefCounted
 ## celebration: "celebration_done" is its done mark (absent: false), never
 ## reset but by deleting the save; "transient.frontier" keeps
 ## {"celebration_since"}, so a reload during it plays the rest, not all again.
+##
+## Off-screen simulation (chunk 15): a body's "rest" keeps its calm
+## ("active", "resting", "parked": SlimeBodies.CALM_NAMES), its rest count,
+## the centre that count started from and its pile; it is written for a slime
+## resting, parked, or in a pile state (in a basket, asleep at bedtime), and
+## absent means active with no count. "low": true marks a zoomed-out ring
+## (SlimeBodies.LOW_POINTS_BY_SIZE points). "offscreen" keeps the Offscreen
+## state (the off-screen proxies and the left-alone timers, Offscreen.dump).
 ##
 ## The first-play hint (Hint): "hint_done" is the level's done mark (absent:
 ## false, the hint is due, as on a fresh save); "transient.hint" keeps its
@@ -105,8 +116,26 @@ static func capture(sim: Simulation) -> Dictionary:
 		"hint_done": sim.hint.done,
 		"celebration_done": sim.frontier.celebration_done,
 		"session": sim.session.dump(),
+		"offscreen": _offscreen(sim),
 		"transient": _transient(sim),
 	}
+
+
+## The Offscreen state, its reals exact() and its vectors vector().
+# @spec-link [[req_offscreen_simulation]]
+static func _offscreen(sim: Simulation) -> Dictionary:
+	var state := sim.offscreen
+	var away := []
+	for entry in state.dump()["away"]:
+		away.append(entry.duplicate())
+	var proxies := []
+	var ids := PackedInt32Array(state.proxies.keys())
+	ids.sort()
+	for slime_id in ids:
+		var way: Dictionary = state.proxies[slime_id]
+		proxies.append({"id": slime_id, "route": way["route"], "along": exact(way["along"]),
+				"from": vector(way["from"]), "to": vector(way["to"])})
+	return {"zoomed_out": state.zoomed_out, "away": away, "proxies": proxies, "lost": state.lost.duplicate(true)}
 
 
 static func _slime(sim: Simulation, slime_id: int) -> Dictionary:
@@ -127,6 +156,13 @@ static func _slime(sim: Simulation, slime_id: int) -> Dictionary:
 				"heading": exact(body["heading"]), "held": body["held"], "supported": body["supported"],
 				"rng_state": str(body["rng_state"])},
 	}
+	var state := bodies.state_of(slime_id)
+	if (body["calm"] != SlimeBodies.ACTIVE or body["still"] != 0 or state == SlimeBodies.IN_BASKET
+			or state == SlimeBodies.BEDTIME_ASLEEP):
+		out["body"]["rest"] = {"calm": SlimeBodies.CALM_NAMES[body["calm"]], "still": body["still"],
+				"anchor": vector(body["anchor"]), "pile": body["pile"]}
+	if body["low"]:
+		out["body"]["low"] = true
 	if sim.train != null and sim.train.tracks(slime_id):
 		var record := sim.train.record_of(slime_id)
 		out["train"] = {"distance": exact(record["distance"]), "laps": record["laps"],
@@ -249,7 +285,7 @@ static func problems(save: Variant, level_data: LevelData) -> PackedStringArray:
 	for key in ["objects", "gates"]:
 		if typeof(save.get(key, {})) != TYPE_DICTIONARY:
 			out.append("'%s' must be a dictionary (stable ID -> state)" % key)
-	for key in ["train", "call", "transient"]:
+	for key in ["train", "call", "transient", "offscreen"]:
 		var part: Variant = save.get(key)
 		if part != null and typeof(part) != TYPE_DICTIONARY:
 			out.append("'%s' must be a dictionary or null" % key)
@@ -333,10 +369,16 @@ static func _slime_problems(slimes: Array) -> PackedStringArray:
 			out.append(at + "'train' must be a dictionary")
 		var body: Variant = slime.get("body")
 		if body != null and size != null and size >= 1 and size <= SlimeBodies.MAX_SIZE:
-			var n := SlimeBodies.points_for(size)
+			var is_low: bool = typeof(body) == TYPE_DICTIONARY and body.get("low", false) == true
+			var n := SlimeBodies.low_points_for(size) if is_low else SlimeBodies.points_for(size)
 			if (typeof(body) != TYPE_DICTIONARY or unpack_vectors(str(body.get("points", ""))).size() != n
 					or unpack_vectors(str(body.get("previous", ""))).size() != n):
 				out.append(at + "'body' must hold %d points and previous points" % n)
+			elif body.has("rest") and (typeof(body["rest"]) != TYPE_DICTIONARY
+					or str(body["rest"].get("calm", "")) not in SlimeBodies.CALM_NAMES
+					or not _is_vector(body["rest"].get("anchor"))):
+				out.append(at + "'body.rest' needs a calm (%s) and an anchor [x, y]"
+						% ", ".join(SlimeBodies.CALM_NAMES))
 	if with_ids != 0 and with_ids != slimes.size():
 		out.append("either every slime has a runtime_id or none does")
 	return out
@@ -369,11 +411,18 @@ static func restore(save: Dictionary, level_data: LevelData, terrain: TerrainSeg
 				vector_from(slime["centre"]), state)
 		if slime.has("body"):
 			var body: Dictionary = slime["body"]
-			sim.slimes.set_body(slime_id, {"points": unpack_vectors(body["points"]),
+			var restored := {"points": unpack_vectors(body["points"]),
 					"previous": unpack_vectors(body["previous"]), "centre": vector_from(body["centre"]),
 					"hop_timer": real(body["hop_timer"]), "heading": real(body["heading"]),
 					"held": bool(body["held"]), "supported": bool(body["supported"]),
-					"rng_state": str(body["rng_state"]).to_int()})
+					"rng_state": str(body["rng_state"]).to_int(), "low": body.get("low", false) == true}
+			if body.has("rest"):
+				var rest: Dictionary = body["rest"]
+				restored["calm"] = SlimeBodies.CALM_NAMES.find(str(rest["calm"]))
+				restored["still"] = _whole(rest.get("still", 0))
+				restored["anchor"] = vector_from(rest["anchor"])
+				restored["pile"] = _whole(rest.get("pile", 0))
+			sim.slimes.set_body(slime_id, restored)
 		elif slime.has("velocity"):
 			sim.slimes.set_velocity(slime_id, vector_from(slime["velocity"]))
 		sim.identities.assign(slime_id, PackedStringArray(slime.get("members", [])))
@@ -401,6 +450,11 @@ static func restore(save: Dictionary, level_data: LevelData, terrain: TerrainSeg
 		_restore_transient(sim, transient)
 	if save.get("session") is Dictionary:
 		_restore_session(sim, save["session"])
+	# The way down the bodies had (each tick sets it from the tilt), so a
+	# tilt change is only seen when the tilt changes (Offscreen).
+	sim.slimes.free_down = sim.phone_tilt.down()
+	if save.get("offscreen") is Dictionary:
+		_restore_offscreen(sim, save["offscreen"])
 	sim.hint.update(sim.tick)
 	return sim
 
@@ -418,6 +472,22 @@ static func _restore_session(sim: Simulation, session: Dictionary) -> void:
 			out[key] = str(saved[key]) if key == "epoch" else _whole(saved[key])
 		data[part] = out
 	sim.session.restore(sim, data)
+
+
+## The Offscreen state, its reals and vectors back (Offscreen.restore).
+# @spec-link [[req_offscreen_simulation]]
+static func _restore_offscreen(sim: Simulation, saved: Dictionary) -> void:
+	var data := {"zoomed_out": saved.get("zoomed_out", false) == true, "away": [], "proxies": [], "lost": []}
+	for entry in saved.get("away", []):
+		data["away"].append({"id": _whole(entry["id"]), "since": _whole(entry["since"])})
+	for entry in saved.get("proxies", []):
+		data["proxies"].append({"id": _whole(entry["id"]), "route": str(entry.get("route", "")),
+				"along": real(entry["along"]), "from": vector_from(entry.get("from", [0, 0])),
+				"to": vector_from(entry.get("to", [0, 0]))})
+	for entry in saved.get("lost", []):
+		data["lost"].append({"id": _whole(entry["id"]), "tick": _whole(entry["tick"]),
+				"reason": str(entry.get("reason", Offscreen.LOST))})
+	sim.offscreen.restore(data)
 
 
 static func _restore_progress(sim: Simulation, slime_id: int, slime: Dictionary) -> void:

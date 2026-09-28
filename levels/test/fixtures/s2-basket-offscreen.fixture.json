@@ -1,0 +1,8 @@
+{
+	"description": "Gate 1 open (basket 1 fired, slide 1 shut), switch 2 flipped (its trapdoor open) and basket 2 at 14 of 15: a size-3 A, B, C and D and a size-2 D resting in it, made of sleepers around switch 2 and in the cave. The first slime rides the loop just before switch 2, heading into the basket; the camera is on switch 2, 1.5 screens from the basket. Off screen the slime drops in, the basket fills and waits; brought into view it plays its reward, fires, opens gate 2 and, every basket fired, the level's celebration plays. For off-screen simulation (chunk 15).",
+	"save": true,
+	"camera": [
+		12637.4404296875,
+		-150.0
+	]
+}

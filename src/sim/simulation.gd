@@ -54,7 +54,9 @@ extends RefCounted
 ## objects' and gates' state by stable ID (chunk 14; empty until then).
 ##
 ## Tick order: queued input (taps dispatched, calls answered, tilt read); the
-## session advances (clocks, phases, bedtime and sunrise); the train steers (aims the coming hops, carries the slimes on a slide); the free
+## session advances (clocks, phases, bedtime and sunrise); the slimes far
+## from the view park and move at their off-screen pace, the near ones
+## simulate again (Offscreen); the train steers (aims the coming hops, carries the slimes on a slide); the free
 ## slimes steer; the slime bodies (free slimes fall the way the tilt says;
 ## hops, then the solver); the free slimes'
 ## hops are paced and every hop turns its slime; the split zones split (train
@@ -163,6 +165,11 @@ var hint := Hint.new()
 ## clock readings the scene layer feeds it (Session; chunk 17).
 # @spec-link [[req_session_lifecycle]]
 var session := Session.new()
+## Physics only on or near the screen: parked slimes, their off-screen
+## pace, left-alone and lost free slimes, the zoomed-out detail (Offscreen;
+## chunk 15). Its `enabled` is a mode, set by the game.
+# @spec-link [[req_offscreen_simulation]]
+var offscreen := Offscreen.new()
 
 var _pending_input: Array[Dictionary] = []
 
@@ -257,6 +264,7 @@ func step() -> void:
 		_apply_input(event)
 	_pending_input.clear()
 	session.advance(self)
+	offscreen.step(self)
 	var gates: Array = train.open_gates if train != null else []
 	if train != null:
 		train.steer(slimes, TICK_SECONDS)
@@ -349,6 +357,7 @@ func dump() -> Dictionary:
 		"hint": hint.dump(),
 		"frontier": frontier.dump(),
 		"session": session.dump(),
+		"offscreen": offscreen.dump(),
 		"ripples": ripples.duplicate(true),
 		"taps": taps.duplicate(true),
 		"input": {

@@ -4,6 +4,10 @@
 		"s1.gate": {
 			"entrance_closed": false,
 			"open": false
+		},
+		"s2.gate": {
+			"entrance_closed": false,
+			"open": false
 		}
 	},
 	"hint_done": false,
@@ -19,6 +23,16 @@
 			"weight": 0
 		},
 		"s1.switch": {
+			"flipped": false,
+			"trapdoor_shut": true
+		},
+		"s2.basket": {
+			"next_release": 0,
+			"phase": "filling",
+			"since": -1,
+			"weight": 0
+		},
+		"s2.switch": {
 			"flipped": false,
 			"trapdoor_shut": true
 		}
@@ -431,6 +445,526 @@
 			],
 			"size": 1,
 			"species": "C",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				9884.16,
+				-354.0
+			],
+			"id": "s2.sleeper.01",
+			"members": [
+				"s2.sleeper.01"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				9947.52,
+				-354.0
+			],
+			"id": "s2.sleeper.02",
+			"members": [
+				"s2.sleeper.02"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				10010.880000000001,
+				-354.0
+			],
+			"id": "s2.sleeper.03",
+			"members": [
+				"s2.sleeper.03"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				10149.12,
+				-274.0
+			],
+			"id": "s2.sleeper.04",
+			"members": [
+				"s2.sleeper.04"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				10212.48,
+				-274.0
+			],
+			"id": "s2.sleeper.05",
+			"members": [
+				"s2.sleeper.05"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				10275.84,
+				-274.0
+			],
+			"id": "s2.sleeper.06",
+			"members": [
+				"s2.sleeper.06"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				10575.36,
+				-264.0
+			],
+			"id": "s2.sleeper.07",
+			"members": [
+				"s2.sleeper.07"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				10632.960000000001,
+				-264.0
+			],
+			"id": "s2.sleeper.08",
+			"members": [
+				"s2.sleeper.08"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				10690.56,
+				-264.0
+			],
+			"id": "s2.sleeper.09",
+			"members": [
+				"s2.sleeper.09"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				10748.16,
+				-264.0
+			],
+			"id": "s2.sleeper.10",
+			"members": [
+				"s2.sleeper.10"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				11093.76,
+				-264.0
+			],
+			"id": "s2.sleeper.11",
+			"members": [
+				"s2.sleeper.11"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				11151.36,
+				-264.0
+			],
+			"id": "s2.sleeper.12",
+			"members": [
+				"s2.sleeper.12"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				11208.960000000001,
+				-264.0
+			],
+			"id": "s2.sleeper.13",
+			"members": [
+				"s2.sleeper.13"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				11266.56,
+				-264.0
+			],
+			"id": "s2.sleeper.14",
+			"members": [
+				"s2.sleeper.14"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				11485.44,
+				-174.0
+			],
+			"id": "s2.sleeper.15",
+			"members": [
+				"s2.sleeper.15"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				11577.6,
+				-174.0
+			],
+			"id": "s2.sleeper.16",
+			"members": [
+				"s2.sleeper.16"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				12412.800000000001,
+				-254.0
+			],
+			"id": "s2.sleeper.17",
+			"members": [
+				"s2.sleeper.17"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				12462.34,
+				-254.0
+			],
+			"id": "s2.sleeper.18",
+			"members": [
+				"s2.sleeper.18"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				12511.87,
+				-254.0
+			],
+			"id": "s2.sleeper.19",
+			"members": [
+				"s2.sleeper.19"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				12561.41,
+				-254.0
+			],
+			"id": "s2.sleeper.20",
+			"members": [
+				"s2.sleeper.20"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				12648.960000000001,
+				-724.0
+			],
+			"id": "s2.sleeper.21",
+			"members": [
+				"s2.sleeper.21"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				12704.26,
+				-724.0
+			],
+			"id": "s2.sleeper.22",
+			"members": [
+				"s2.sleeper.22"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				12759.550000000001,
+				-724.0
+			],
+			"id": "s2.sleeper.23",
+			"members": [
+				"s2.sleeper.23"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				12814.85,
+				-724.0
+			],
+			"id": "s2.sleeper.24",
+			"members": [
+				"s2.sleeper.24"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				12870.14,
+				-724.0
+			],
+			"id": "s2.sleeper.25",
+			"members": [
+				"s2.sleeper.25"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				12925.44,
+				-724.0
+			],
+			"id": "s2.sleeper.26",
+			"members": [
+				"s2.sleeper.26"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				12980.74,
+				-724.0
+			],
+			"id": "s2.sleeper.27",
+			"members": [
+				"s2.sleeper.27"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				13036.03,
+				-724.0
+			],
+			"id": "s2.sleeper.28",
+			"members": [
+				"s2.sleeper.28"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				13091.33,
+				-724.0
+			],
+			"id": "s2.sleeper.29",
+			"members": [
+				"s2.sleeper.29"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				13146.630000000001,
+				-724.0
+			],
+			"id": "s2.sleeper.30",
+			"members": [
+				"s2.sleeper.30"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				13201.92,
+				-724.0
+			],
+			"id": "s2.sleeper.31",
+			"members": [
+				"s2.sleeper.31"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				13257.220000000001,
+				-724.0
+			],
+			"id": "s2.sleeper.32",
+			"members": [
+				"s2.sleeper.32"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				13312.51,
+				-724.0
+			],
+			"id": "s2.sleeper.33",
+			"members": [
+				"s2.sleeper.33"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				13367.81,
+				-724.0
+			],
+			"id": "s2.sleeper.34",
+			"members": [
+				"s2.sleeper.34"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				13852.800000000001,
+				-284.0
+			],
+			"id": "s2.sleeper.35",
+			"members": [
+				"s2.sleeper.35"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				13902.34,
+				-284.0
+			],
+			"id": "s2.sleeper.36",
+			"members": [
+				"s2.sleeper.36"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				13951.87,
+				-284.0
+			],
+			"id": "s2.sleeper.37",
+			"members": [
+				"s2.sleeper.37"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				14001.41,
+				-284.0
+			],
+			"id": "s2.sleeper.38",
+			"members": [
+				"s2.sleeper.38"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				14050.94,
+				-284.0
+			],
+			"id": "s2.sleeper.39",
+			"members": [
+				"s2.sleeper.39"
+			],
+			"size": 1,
+			"species": "D",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				14100.48,
+				-284.0
+			],
+			"id": "s2.sleeper.40",
+			"members": [
+				"s2.sleeper.40"
+			],
+			"size": 1,
+			"species": "D",
 			"state": "sleeper"
 		}
 	]

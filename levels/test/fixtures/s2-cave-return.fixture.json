@@ -1,0 +1,8 @@
+{
+	"description": "Gate 1 open (basket 1 fired, slide 1 shut) and 3 free size-1 slimes (A, B, C) starting down the cave's route back, on the tunnel's first shelf below the pocket, made of the pocket's sleepers; the camera is away, on the start basin. Off screen they follow the route back at the deterministic pace, are left alone after 10 s and rejoin the train well before they are lost. For off-screen simulation (chunk 15).",
+	"save": true,
+	"camera": [
+		460.799987792969,
+		400.0
+	]
+}

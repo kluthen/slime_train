@@ -190,7 +190,8 @@ func answer_call(point: Vector2, tick: int, bodies: SlimeBodies, radius: float) 
 func steer(bodies: SlimeBodies, dt: float, level: LevelData, open_gates: Array) -> void:
 	for slime_id in tracked_ids():
 		var s := bodies.index_of(slime_id)
-		if s < 0 or bodies.state[s] != SlimeBodies.FREE:
+		# A parked slime follows its route back off screen (Offscreen).
+		if s < 0 or bodies.state[s] != SlimeBodies.FREE or bodies.calm[s] == SlimeBodies.PARKED:
 			continue
 		var from := bodies.centre_of(slime_id)
 		if bodies.supported[s] != 0 and _on_gentle_ground(bodies, s, from):

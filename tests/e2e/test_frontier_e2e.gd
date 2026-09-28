@@ -8,8 +8,9 @@ extends GutTest
 ## comes into view [DoD 10]; from `s1-optout` a tap on the switch flips it
 ## back and the basket lets its slime go [DoD 11]; no run here tilts [DoD
 ## 12]; once the gate is open a tap on the switch does nothing and the
-## basket takes no more slimes [DoD 13]; the celebration plays once, is
-## saved, and a reload doesn't play it again [DoD 14]. The run is the same
+## basket takes no more slimes [DoD 13]; the celebration waits for the last
+## basket (section 2's, since chunk 15: from `s2-basket-offscreen`), plays
+## once, is saved, and a reload doesn't play it again [DoD 14]. The run is the same
 ## in this process and in a child process (same seed, same hash).
 
 # @test-link [[req_switch_basket_gate_set]]
@@ -29,6 +30,9 @@ const GATE := "s1.gate"
 const BASKET_VIEW := Vector2(6.9 * 1152.0, -50.0)
 ## Far from basket 1: the start basin.
 const AWAY_VIEW := Vector2(0.4 * 1152.0, 400.0)
+## The camera on basket 2, the test level's last basket (chunk 15).
+const BASKET_2_VIEW := Vector2(12.4 * 1152.0, -50.0)
+const BASKET_2 := "s2.basket"
 ## From s1-basket-5of6 the basket fires within this (seconds). Probes: the
 ## first slime drops in about 5 s after the start, the reward plays 2 s.
 const FIRE_WITHIN := 30
@@ -63,16 +67,19 @@ func _basket(game: Node) -> Dictionary:
 	return game.simulation.object_states[BASKET]
 
 
-## Runs until basket 1 is in `phase`, at most `limit` ticks, re-aiming the
-## camera at `aim` each tick when given. Returns the ticks it took, or -1.
-func _run_until_phase(game: Node, phase: String, limit: int, aim: Variant = BASKET_VIEW) -> int:
+## Runs until `basket` (basket 1 by default) is in `phase`, at most `limit`
+## ticks, re-aiming the camera at `aim` each tick when given. Returns the
+## ticks it took, or -1.
+func _run_until_phase(game: Node, phase: String, limit: int, aim: Variant = BASKET_VIEW,
+		basket := BASKET) -> int:
+	var states: Dictionary = game.simulation.object_states
 	for i in limit:
-		if _basket(game)["phase"] == phase:
+		if states[basket]["phase"] == phase:
 			return i
 		if aim != null:
 			_aim(game, aim)
 		game.test_mode.run_ticks(1)
-	return -1 if _basket(game)["phase"] != phase else limit
+	return -1 if states[basket]["phase"] != phase else limit
 
 
 func _count(game: Node, state: int) -> int:
@@ -198,11 +205,21 @@ func test_once_the_gate_is_open_the_switch_does_nothing_and_the_basket_takes_not
 
 # --- DoD 14: the celebration, once --------------------------------------------------
 
-func test_the_celebration_plays_once_and_a_reload_does_not_replay_it() -> void:
+func test_basket_1_firing_is_not_the_celebration_any_more() -> void:
+	# Chunk 15 added section 2 and its basket: basket 1 is no longer the last.
 	var game := _boot({"fixture": "s1-basket-5of6"})
 	var sim: Simulation = game.simulation
-	assert_false(sim.frontier.celebration_done)
 	assert_gt(_run_until_phase(game, FrontierSets.FIRED, FIRE_WITHIN * TICK_RATE), 0)
+	assert_false(sim.frontier.celebration_done, "basket 2 is still to fill")
+	assert_false(sim.frontier.celebration_playing(sim.tick))
+
+
+func test_the_celebration_plays_once_and_a_reload_does_not_replay_it() -> void:
+	var game := _boot({"fixture": "s2-basket-offscreen"})
+	var sim: Simulation = game.simulation
+	assert_false(sim.frontier.celebration_done)
+	# Probes: the first slime reaches switch 2 and the basket fires in about 30 s.
+	assert_gt(_run_until_phase(game, FrontierSets.FIRED, 60 * TICK_RATE, BASKET_2_VIEW, BASKET_2), 0)
 	assert_true(sim.frontier.celebration_done, "the last basket fired: the celebration")
 	assert_true(sim.frontier.celebration_playing(sim.tick))
 	var since := sim.frontier.celebration_since
@@ -223,7 +240,7 @@ func test_the_celebration_plays_once_and_a_reload_does_not_replay_it() -> void:
 	reloaded.test_mode.run_ticks(10 * TICK_RATE)
 	assert_false(again.frontier.celebration_playing(again.tick), "not replayed")
 	assert_eq(again.frontier.celebration_since, since)
-	assert_eq(again.object_states[BASKET]["phase"], FrontierSets.FIRED, "the world keeps running")
+	assert_eq(again.object_states[BASKET_2]["phase"], FrontierSets.FIRED, "the world keeps running")
 
 
 # --- Same seed, same hash -------------------------------------------------------------

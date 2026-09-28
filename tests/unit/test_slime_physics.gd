@@ -107,6 +107,9 @@ func test_a_small_slime_rests_on_two_big_ones() -> void:
 	# In the hollow between two big slimes held by walls. (Balanced on the
 	# top of one round slime would be an unstable equilibrium: it rolls off.)
 	var bodies := SlimeBodies.new(Rng.new(1))
+	# The contact solver itself: the resting-pile rule (chunk 15) would turn
+	# the settled pile into walls, and walls are never paired.
+	bodies.rest_enabled = false
 	bodies.terrain = TerrainSegments.new(Support.box_polygons(76))
 	var left := bodies.create(0, 3, Vector2(-38, -40), SlimeBodies.BEDTIME_ASLEEP)
 	var right := bodies.create(0, 3, Vector2(38, -40), SlimeBodies.BEDTIME_ASLEEP)
