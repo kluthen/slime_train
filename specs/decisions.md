@@ -539,3 +539,13 @@ Resolves O48.
   the species present in proportion to how many of each there are.
 - (proposed) "Present" means the slimes on screen.
 - This is part of v3 (sound, D50).
+
+## D69 — Physics only near the screen (2026-09-28)
+Settles the level-of-detail approach proposed with D67.
+- Slime physics runs **only for slimes on or near the screen**.
+- **Off-screen slimes just follow the loop at a deterministic pace.** When the
+  view comes near them, they are properly spawned and physics takes over.
+- Slimes resting in a basket may also get a simplified state.
+- Side benefit: off-screen positions are just a place along the loop. That is
+  easy to save (D7) and repeatable in automated tests.
+- Rules for what happens off screen are O51.

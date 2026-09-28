@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v7
+Status: draft v8
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 
@@ -34,13 +34,14 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
   operations on those rings. (proposed; no engine provides this out of the
   box, see research)
 - **Scale:** up to 200 slimes per level (D67), with many possibly on one screen.
-- (proposed) **Level-of-detail simulation** to afford that:
-  - Off-screen train slimes are just points moving along the loop, since the
-    loop is a drawn route (D8).
-  - Sleepers, and slimes that have come to rest (in a full basket, for
-    example), stop simulating until something touches them.
-  - Only on-screen, moving slimes run the full ring of springs, possibly with
-    fewer points when zoomed out.
+- **Physics only near the screen** (D69):
+  - Off-screen slimes follow the loop at a deterministic pace, as a place
+    along the loop. When the view comes near them, they are spawned just
+    outside the edge of the view, and physics takes over.
+  - Slimes resting in a basket may get a simplified state.
+  - (proposed) Sleepers stop simulating until something touches them. Slimes
+    on screen may use fewer points per ring when zoomed out.
+  - Off-screen rules for free slimes, fusion, waking and objects are O51.
   - The O14 prototype tests the worst case: 200 slimes on one screen on the
     floor phone (O50).
 
