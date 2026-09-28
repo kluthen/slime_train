@@ -61,6 +61,12 @@ const SUPPORT_NORMAL_Y := 0.3
 const TOUCH_SKIN := 2.0
 
 var gravity := Vector2(0.0, 1400.0)
+## The way free slimes fall (a unit vector), set by the Simulation every tick
+## from the tilt (Tilt.down()). Only free slimes feel tilt: every other state
+## falls along `gravity` (gravity_for).
+# @spec-link [[req_tilt_input]]
+# @spec-link [[req_slime_states]]
+var free_down := Vector2.DOWN
 var substeps := 2
 var iterations := 1
 var edge_stiffness := 0.8
@@ -693,13 +699,24 @@ func _split_offsets(count: int) -> PackedVector2Array:
 	return out
 
 
-## Verlet step: gravity, air drag, and internal damping (each point's velocity
-## pulled toward its slime's mean). Also refreshes each slime's centre and
-## point-0 angle.
+## The gravity a slime in `slime_state` feels, px/s²: `gravity` turned to
+## `free_down` for a free slime, the plain `gravity` for every other state.
+# @spec-link [[req_tilt_input]]
+# @spec-link [[req_slime_states]]
+func gravity_for(slime_state: int) -> Vector2:
+	if slime_state != STATE_FREE or free_down == Vector2.DOWN:
+		return gravity
+	return free_down * gravity.length()
+
+
+## Verlet step: gravity (gravity_for the slime's state), air drag, and
+## internal damping (each point's velocity pulled toward its slime's mean).
+## Also refreshes each slime's centre and point-0 angle.
 func _integrate(h: float) -> void:
 	var p := pos
 	var o := prev
 	var g := gravity * h * h
+	var g_free := gravity_for(STATE_FREE) * h * h
 	var ms := max_speed * h
 	var idamp := internal_damping
 	var damp := 1.0 - air_drag * h
@@ -707,6 +724,7 @@ func _integrate(h: float) -> void:
 		var f: int = first[s]
 		var cnt: int = npts[s]
 		var end: int = f + cnt
+		var gs: Vector2 = g_free if state[s] == STATE_FREE else g
 		var mean := Vector2.ZERO
 		for i in range(f, end):
 			mean += p[i] - o[i]
@@ -715,7 +733,7 @@ func _integrate(h: float) -> void:
 		for i in range(f, end):
 			var cur: Vector2 = p[i]
 			var v: Vector2 = cur - o[i]
-			v = ((v + (mean - v) * idamp) * damp).limit_length(ms) + g
+			v = ((v + (mean - v) * idamp) * damp).limit_length(ms) + gs
 			o[i] = cur
 			var nxt := cur + v
 			p[i] = nxt

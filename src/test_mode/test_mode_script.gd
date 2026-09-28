@@ -18,7 +18,10 @@ extends RefCounted
 ##   for tap and touch_down; optional for touch_up (the finger lifts where it
 ##   was).
 ## - "finger": 0 for the first finger (the default), 1 for a second one.
-## - "degrees": the phone's tilt, for tilt.
+## - "degrees": the phone's tilt, for tilt (positive: down turns toward
+##   screen-right; see Tilt).
+## - "flat": optional for tilt, true when the phone lies flat (counts as
+##   neutral); false by default.
 ##
 ## Steps may come in any order; steps on the same tick keep their order.
 ## Mistakes (a typo in a key, a missing position) are reported in `errors`
@@ -28,7 +31,7 @@ const ACTIONS := {
 	"tap": ["tick", "do", "at", "finger"],
 	"touch_down": ["tick", "do", "at", "finger"],
 	"touch_up": ["tick", "do", "at", "finger"],
-	"tilt": ["tick", "do", "degrees"],
+	"tilt": ["tick", "do", "degrees", "flat"],
 }
 
 ## What is wrong with the script, one line per problem. Empty when valid.
@@ -80,6 +83,8 @@ func _parse_step(index: int, step: Variant) -> void:
 		degrees = step.get("degrees")
 		if typeof(degrees) not in [TYPE_INT, TYPE_FLOAT]:
 			_error(index, "'degrees' must be a number")
+		if typeof(step.get("flat", false)) != TYPE_BOOL:
+			_error(index, "'flat' must be true or false")
 	if errors.size() > count_before:
 		return
 	var events: Array = _events.get_or_add(tick, [])
@@ -92,7 +97,7 @@ func _parse_step(index: int, step: Variant) -> void:
 		"touch_up":
 			events.append(Simulation.touch_up(finger, at))
 		"tilt":
-			events.append(Simulation.tilt(float(degrees)))
+			events.append(Simulation.tilt(float(degrees), step.get("flat", false)))
 	last_tick = maxi(last_tick, tick)
 
 

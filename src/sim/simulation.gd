@@ -31,9 +31,15 @@ extends RefCounted
 ## the level's first slime species, on the train, at its marker). No call
 ## from the player is needed.
 ##
-## Tick order: queued input (taps dispatched, calls answered); the train
-## steers (aims the coming hops, carries the slimes on a slide); the free
-## slimes steer; the slime bodies (hops, then the solver); the free slimes'
+## Tilt (Tilt, `phone_tilt`): the tilt event feeds it, load_level() takes
+## its neutral (placeholder for the session start, chunk 17), and before the
+## bodies tick its way down goes to the slime bodies, where only free slimes
+## feel it.
+##
+## Tick order: queued input (taps dispatched, calls answered, tilt read); the
+## train steers (aims the coming hops, carries the slimes on a slide); the free
+## slimes steer; the slime bodies (free slimes fall the way the tilt says;
+## hops, then the solver); the free slimes'
 ## hops are paced and every hop turns its slime; the split zones split (train
 ## and free slimes inherit); the free slimes change phase or rejoin the
 ## train; the train follows (progress, lost slimes); spent ripples go.
@@ -73,8 +79,14 @@ var slimes: SlimeBodies
 var train: Train = null
 ## The level's split zones at work.
 var split_zones := SplitZones.new()
-## Placeholder until chunk 11: the last tilt received, in degrees.
-var tilt_degrees := 0.0
+## The phone's tilt: the last reading, its neutral, and the way down it gives
+## free slimes.
+# @spec-link [[req_tilt_input]]
+var phone_tilt := Tilt.new()
+## The last tilt reading, degrees (phone_tilt.degrees).
+var tilt_degrees: float:
+	get:
+		return phone_tilt.degrees
 ## Every finger down, accepted or ignored: finger index -> screen position.
 var fingers_down: Dictionary = {}
 ## The finger whose touch counts (the first touch wins), or -1.
@@ -118,9 +130,10 @@ static func touch_up(finger: int, at: Variant) -> Dictionary:
 	return {"kind": INPUT_TOUCH_UP, "finger": finger, "at": at}
 
 
-## The phone's tilt, in degrees (raw; chunk 11 applies the dead zone and limits).
-static func tilt(degrees: float) -> Dictionary:
-	return {"kind": INPUT_TILT, "degrees": degrees}
+## The phone's tilt: a raw reading in degrees, positive when down turns toward
+## screen-right, and whether the phone lies flat (see Tilt).
+static func tilt(degrees: float, flat := false) -> Dictionary:
+	return {"kind": INPUT_TILT, "degrees": degrees, "flat": flat}
 
 
 ## Queues an input event (from touch_down, touch_up or tilt) for the next step.
@@ -141,6 +154,9 @@ func push_input(event: Dictionary) -> void:
 # @spec-link [[req_loop_and_world]]
 func load_level(data: LevelData) -> void:
 	level = data
+	# Placeholder until sessions (chunk 17): neutral is taken when a level
+	# starts, fresh or resumed.
+	phone_tilt.take_neutral_now()
 	train = null
 	split_zones = SplitZones.new()
 	if data == null:
@@ -181,6 +197,7 @@ func step() -> void:
 	if train != null:
 		train.steer(slimes, TICK_SECONDS)
 	free_slimes.steer(slimes, TICK_SECONDS, level, gates)
+	slimes.free_down = phone_tilt.down()
 	slimes.tick(TICK_SECONDS)
 	free_slimes.paced(slimes)
 	_face_hops()
@@ -227,7 +244,7 @@ func dump() -> Dictionary:
 		"ripples": ripples.duplicate(true),
 		"taps": taps.duplicate(true),
 		"input": {
-			"tilt_degrees": tilt_degrees,
+			"tilt": phone_tilt.dump(),
 			"fingers_down": fingers,
 			"active_finger": active_finger,
 			"log": input_log.duplicate(true),
@@ -260,7 +277,7 @@ func _apply_input(event: Dictionary) -> void:
 			if event["finger"] == active_finger:
 				active_finger = -1
 		INPUT_TILT:
-			tilt_degrees = event["degrees"]
+			phone_tilt.read(event["degrees"], event.get("flat", false))
 	var logged := event.duplicate()
 	logged["tick"] = tick
 	input_log.append(logged)

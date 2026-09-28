@@ -39,7 +39,9 @@ on every tap, the first touch winning, and the call: tapping open ground
 (or a sleeper) pulls the awake slimes in range off the train; they hop to
 the point, linger unsure, then head back (by a branch's route back when
 there is one) and rejoin the train. The other level objects are still
-placeholders with no behaviour.
+placeholders with no behaviour. Chunk 11 (tilt) turns free slimes' gravity
+with the phone's tilt (up to 45°, a 10° dead zone around neutral, lying flat
+counts as neutral), injected by test mode until the real sensor (chunk 20).
 UX design (`ui_ux/`) has an inventory and open questions, no design yet.
 
 ## Direction so far

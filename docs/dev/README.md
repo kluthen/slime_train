@@ -788,6 +788,60 @@ gives up after exactly 8 s and heads back directly from the ground, or by
 `s1.route-back.tree` from the tree platform; a scripted run with taps
 gives the same hash twice and a different one without them.
 
+## Tilt
+
+Master spec §5.5 and DoD 8. `Tilt` (`src/sim/tilt.gd`) is pure logic owned by
+the simulation (`simulation.phone_tilt`); only free slimes feel it.
+
+**The reading.** The `tilt` input event, `Simulation.tilt(degrees, flat :=
+false)`, carries the direction of real gravity in the screen's plane,
+measured from the screen's down, in degrees. **Positive turns down toward
+screen-right** (the phone's right edge dips, like a steering wheel turned
+right). `flat` says the phone lies flat (screen up): its angle means nothing
+and it counts as neutral. On desktop the event comes from test mode's
+script: `{"tick": 60, "do": "tilt", "degrees": 20}`, with an optional
+`"flat": true`. Turning the sensor into readings (the angle, and the
+threshold under which the phone is flat) is chunk 20's.
+
+**Neutral.** Readings count from `neutral`, the hold when the session
+started: `take_neutral_now()` takes the last reading (0°, the screen's down,
+if the phone lies flat or nothing was read yet); `set_neutral(angle)` sets
+it. Placeholder until sessions (chunk 17): `Simulation.load_level()` takes
+it, so every fresh or resumed level starts at neutral (D95's proposed
+clause). Angles wrap at ±180°.
+
+**Dead zone and cap.** Relative to neutral, a tilt within
+`DEAD_ZONE_DEGREES` (10) leaves gravity plain down (exactly `Vector2.DOWN`,
+so a tilt held at neutral changes nothing, bit for bit). Past it, gravity
+turns continuously from 0° at the dead zone's edge to `CAP_DEGREES` (45) at
+45°, and no further (60° is the same as 45°): `turn = sign * (min(|a|, 45) -
+10) * 45 / 35`. The spec doesn't say what happens just past the dead zone;
+ramping from 0 avoids a 10° jump at its edge, and at the cap gravity turns
+exactly as much as the phone.
+
+**Only free slimes.** Before the bodies tick, the simulation sets
+`slimes.free_down = phone_tilt.down()` (a unit vector). `SlimeBodies.gravity_for(state)`
+gives a free slime `gravity` turned to `free_down` (same strength), every
+other state (train, sleeper, bedtime-asleep) the plain `gravity`. Hop aims
+still use the plain gravity, so a tilted free slime's hops drift the way it
+is tilted, and between hops the free slime's grip (45°, judged against the
+world's down) only slows the drift on gentle ground. The tilt's `degrees`,
+`neutral` and `flat` are in the dump (`input.tilt`); `Tilt.dump()` and
+`restore()` give them to saves.
+
+**Tests.** `tests/unit/test_tilt.gd`: the dead zone (9° plain down, 11°
+turned), the cap, neutral offsets and wrapping, taking neutral, lying flat,
+the sign and length of the way down, the event through the simulation, the
+dump, the script's `flat`, and on a flat floor a free slime rolling with 30°
+of tilt while a train slime, a sleeper and a bedtime-asleep slime don't move.
+`tests/e2e/test_tilt_e2e.gd` on the test level: a scripted tap calls the
+first slime, a scripted ±30° tilt shifts it right or left while a train
+slime ahead on the loop moves exactly as without tilt; scripted tilts give
+the same hash twice; and a tilt held at neutral or inside the dead zone gives
+the very same world as no tilt, so the no-input session test
+(`test_train_session_e2e.gd`) also shows the level is travelled with tilt at
+neutral (no level requires tilt).
+
 ## Android export (debug)
 
 `export_presets.cfg` holds two Android presets, both debug-signed APKs with
