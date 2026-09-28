@@ -1,6 +1,6 @@
 ---
 id: rule_no_network_connection
-status: DRAFT
+status: STABLE
 tags: [privacy,contract-candidate]
 version: 1.0
 type: RULE

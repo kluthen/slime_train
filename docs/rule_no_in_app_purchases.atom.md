@@ -1,6 +1,6 @@
 ---
 id: rule_no_in_app_purchases
-status: DRAFT
+status: STABLE
 type: RULE
 layer: BUSINESS
 priority: 4

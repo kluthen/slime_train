@@ -1,6 +1,6 @@
 ---
 id: rule_saves_never_wiped
-status: DRAFT
+status: STABLE
 dependents: []
 layer: BUSINESS
 priority: 4
