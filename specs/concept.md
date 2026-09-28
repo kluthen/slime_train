@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v17
+Status: draft v18
 
 ## One-liner
 
@@ -107,6 +107,8 @@ save (D43). Save-file versioning is O20.
   mark near the first sleeper shows where to tap (D65).
 - **Tilt** is only for exploration or fun actions, never needed to make
   progress (D64).
+- **The first touch wins** (D66): while one finger is down, other touches are
+  ignored. Two calls at once will be tried later.
 - All the level rules are collected in `level-design.md`.
 - Every awake slime in range answers the call, train slimes included, and
   answering makes it free. (proposed: this follows from D13. At the start the

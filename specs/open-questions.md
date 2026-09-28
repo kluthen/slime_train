@@ -12,7 +12,6 @@ Each entry has a stable ID. Once resolved, an entry moves to `decisions.md`.
 | O22 | Return to the start: how are slimes herded back from an unopened frontier gate (wind, slide, conveyor…)? Every new section needs its own return route. For the first level's design session (D34). | concept |
 | O32 | Terminology still proposed: "section", "unsure", "heading back", "level" (a whole world with its own loop, sections and save file), "signpost", "filter", "screensaver mode" (the world running with no session), "sunrise" (the end of bedtime), "framing zone". | concept |
 | O40 | Hop decision: when and in which direction a slime hops (its rhythm, what stops it, as with a covered slime per D37). | slimes |
-| O48 | Two children, two fingers: when there are several touches at once, is each one a call, or does only the first count? (proposed: each touch is its own call, since a sibling poking the screen should also see a response) | concept |
 | O50 | Target phone: the reference phone is a Samsung Galaxy S20 FE, which is not a low-end phone. For a paid Play Store release, what is the minimum phone we support, and what do the O14 performance tests aim at? | tech-direction |
 
 ## Parked (deferred on purpose; revisit later)

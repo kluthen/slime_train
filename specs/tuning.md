@@ -25,3 +25,4 @@ value to try. When a value is tuned, update it here and log the result in
 | Bedtime wind-down | the last minute | D28 |
 | Autosave interval | 15 s | D12 |
 | First-play hint appears after | about 10 s without a call | D65 |
+| Calls at the same time | 1: the first touch wins; try 2 later | D66 |

@@ -516,3 +516,12 @@ Resolves O49.
   sleeper. It goes away for good after the first call that wakes a sleeper.
 - **Level rule:** the first sleeper is placed close to the first awake slime.
 - After that, the world teaches the rest: waking, the train, fusion.
+
+## D66 — The first touch wins, for now (2026-09-28)
+Resolves O48.
+- Only the **first finger** on the screen counts. While it's down, other
+  touches are ignored. Once it lifts, the next new touch counts.
+- This also takes care of a palm pressed on the screen: the first contact
+  point wins.
+- Two calls at once (for example, both siblings) will be tried later as an
+  experiment (see `tuning.md`).

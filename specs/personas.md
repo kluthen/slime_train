@@ -1,6 +1,6 @@
 # Personas
 
-Status: draft v3
+Status: draft v4
 
 Who Slime Train is for, what each person is trying to get done, and the
 circumstances they use it in. These are built from the real people the user
@@ -56,8 +56,9 @@ known, so tilt stays optional (proposed, see below).
 - Probably poke the screen too, sometimes at the same moment as his sister.
 
 **What it means:** the game has to be pleasant to watch without playing, and
-must stay safe and unbroken whatever gets poked. How the game treats two
-fingers from two children at once is O48.
+must stay safe and unbroken whatever gets poked. For now only the first finger
+counts, so his poke does nothing while his sister's finger is down. Two calls
+at once will be tried later (D66).
 
 ## Secondary: the early player (4 years old)
 
@@ -91,7 +92,7 @@ and the friends' parents.
 | Newcomer: instant answer to a touch | tap-to-call, with any tap anywhere doing something (D15, D46) |
 | Newcomer: nothing to fail | no failure states; a lost slime just comes back (D10, D36) |
 | Newcomer: learn with no explanation | a ripple on every tap, and a wordless hint on the very first play (D65) |
-| Sibling: safe to poke | parent gate on every parent button (D57); two touches at once is O48 |
+| Sibling: safe to poke | parent gate on every parent button (D57); the first touch wins (D66) |
 | Early player: goals to reach | sleepers, fusion, the frontier-gate set, exploration (D13, D20, D54, D45) |
 | Parent: a reward that ends without a fight | a gentle bedtime, slimes falling asleep on their own (D28) |
 | Parent: bounded time | 15 min real-time sessions, bedtime, 10 min cooldown (D29, D44, D56) |
