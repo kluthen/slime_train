@@ -7,6 +7,7 @@ parents:
   - [[req_loop_and_world]]
 dependents:
   - [[req_camera_rails_and_framing]]
+  - [[req_first_play_hint]]
   - [[req_parent_gate_and_access]]
 type: REQUIREMENT
 layer: BUSINESS
