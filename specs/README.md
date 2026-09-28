@@ -7,9 +7,9 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 | `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v18 |
 | `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v6 |
 | `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v5 |
-| `tech-direction.md` | Engine, level authoring, slime simulation, saving, session lock implementation | draft v6 |
+| `tech-direction.md` | Engine, level authoring, slime simulation, saving, session lock implementation | draft v7 |
 | `versions/` | Scope per version (v1–v4…) plus `timeline.md` for features with no version yet (D52) | live |
-| `level-design.md` | Rules every level must follow; the checklist for level design sessions | draft v1 |
+| `level-design.md` | Rules every level must follow; the checklist for level design sessions | draft v2 |
 | `personas.md` | Who the game is for: the newcomer (3), the watching sibling (2), the early player (4), the parent | draft v4 |
 | `tuning.md` | Every number left to prototypes, with its starting value | live |
 | `open-questions.md` | Register of unresolved decisions (O1…) | live |
@@ -72,6 +72,8 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 - Touches: the first touch wins; two calls at once will be tried later (D66).
 
+- At most 200 slimes per level (in base slimes), possibly many on one screen. Proposed answer: level-of-detail simulation (D67). v3 caps slime voices at 10, shared in proportion (D68).
+
 ## Where to resume
 
-Next: O50 (target phone), then O20 (save versioning), O21 (how long a call lasts), O40 (hop decision). After that: a dedicated session on the first level's design (O22).
+Next: O50 (target phone, updated for 200 slimes), then O20, O21, O40. After that: a dedicated session on the first level's design (O22).

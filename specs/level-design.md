@@ -1,6 +1,6 @@
 # Level design requirements
 
-Status: draft v1
+Status: draft v2
 
 Rules every level must follow, whoever builds it. These rules make up the
 checklist for the dedicated first-level design session (O22). Levels are
@@ -37,6 +37,12 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
 12. A frontier gate opens through the **switch-plus-basket set** (D14, D35).
 13. **Each section needs its own route back to the start** from its unopened
     frontier gate. How that route works is O22.
+
+## Population
+
+16. **At most 200 slimes per level**, counted in base slimes (D67). Scenes
+    where many slimes pile up on one screen should keep them mostly still,
+    such as a basket being filled.
 
 ## Onboarding
 

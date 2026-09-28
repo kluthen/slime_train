@@ -525,3 +525,17 @@ Resolves O48.
   point wins.
 - Two calls at once (for example, both siblings) will be tried later as an
   experiment (see `tuning.md`).
+
+## D67 — At most 200 slimes per level (2026-09-28)
+- A level holds **at most 200 slimes**. This is a hard cap in level design.
+- (proposed) The cap counts **base slimes**, so a size-3 slime counts as 3.
+- Many of them can end up on one screen, mostly when the loop is broken to fill
+  a basket. They are pooled there and barely moving.
+- This raises the performance target of the O14 prototype from 30–50 slimes to
+  200 (see O50).
+
+## D68 — Slime voices are capped at 10 (v3) (2026-09-28)
+- Beyond 10 slimes, sounds are capped. **Up to 10 voices** play, shared among
+  the species present in proportion to how many of each there are.
+- (proposed) "Present" means the slimes on screen.
+- This is part of v3 (sound, D50).
