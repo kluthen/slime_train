@@ -768,3 +768,48 @@ Resolves O66. Refines D33 and D79.
   contracts can change the last two.
 - Why: the user said the contract only binds v1, so rules that are true for
   v1 can be guaranteed even if a later version changes them.
+
+## D93 — Vector look: curves baked into polygons and lines (2026-09-28)
+Partly resolves O14 (the vector rendering approach). Spike: chunk 2,
+`docs/dev/spike-vector-look.md`.
+- Terrain and level art are drawn from **Path2D/Curve2D curves** authored in
+  the editor and **baked at load into Polygon2D fills and Line2D outlines**.
+  They stay crisp at 4× zoom and cost about the same to draw as a sprite.
+- **Imported SVG textures are not used for level art:** Godot turns them into
+  images at import, and they blur when the camera zooms in.
+- **No vector plugin:** none renders vector shapes at runtime for Godot 4.7.
+- A terrain component bakes one curve into both the drawing and the collision
+  shape, so an author draws one curve per terrain piece.
+- Why: crisp at every zoom, fits the flat, curved, high-contrast look (D34), and
+  adds no dependency.
+
+## D94 — Slime simulation: approach, renderer, points per ring, native contingency (2026-09-28)
+Partly resolves O14 (desktop only; the phones are still to measure). Spike:
+chunk 1, `docs/dev/spike-soft-slimes.md`.
+- **The ring-of-springs slime with the species-field blend shader is a go.**
+  On the desktop it is stable at 200 slimes, still and moving, and drawing
+  costs about 1 ms of GPU time.
+- **The renderer stays Compatibility.** Forward Mobile gave the same look and
+  frame rate. To confirm on the phones.
+- **Points per ring:** 12 for size 1, 15 for size 2, 18 for size 3.
+- **The simulation tick is the bottleneck.** In GDScript it takes about 11 ms
+  per tick for 200 slimes at 16 points on the desktop; a line-for-line C++
+  port is 20–25× faster. Extrapolated (not measured) phone costs put pure
+  GDScript over budget for 200 slimes on one screen on both phones.
+- **Chunk 5 builds the simulation in GDScript** with the spike's
+  struct-of-arrays layout: packed arrays, rings as ranges of points, Verlet
+  integration with position constraints, and a grid for contact pairs. The
+  tick can then move to a GDExtension without changing its interface.
+- **Native code is the planned contingency,** decided at the first
+  measurement on the reference phone (Galaxy S20 FE), which needs the Android
+  build (chunk 20). If adopted: godot-cpp, `-ffp-contract=off` so ticks repeat
+  exactly, and the Android NDK in chunk 20.
+- **Cheaper fallbacks come first:** resting slimes stop being simulated
+  (contact solving included) until disturbed, since the 200-on-screen case
+  is mostly still (level rule 16); fewer points when zoomed out; a 30 Hz tick.
+- **Still pending:** measurements on the reference phone now and on the floor
+  phone once bought, and with them the floor decision (D71). The 200 cap stays
+  (D67).
+- Why: the approach looks right and holds at the cap; building the layout
+  for native code from the start keeps the contingency cheap without
+  committing the project to a C++ toolchain before a phone has been measured.

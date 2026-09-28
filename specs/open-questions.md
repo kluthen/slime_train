@@ -6,7 +6,7 @@ Each entry has a stable ID. Once resolved, an entry moves to `decisions.md`.
 
 | ID | Question | Where |
 |---|---|---|
-| O14 | Godot risks to test with prototypes: Android audio latency, **up to 200 slimes** (D67) on a floor phone (D71; one has to be bought), including many on one screen, tilt input, running end-to-end tests on Linux without a screen, and a vector rendering approach. | tech-direction |
+| O14 | Godot risks still to test **on real phones**: **up to 200 slimes** (D67), many on one screen, on the reference phone (S20 FE) and on a floor phone (D71; one has to be bought): the simulation tick's cost, which decides the native-code contingency (D94), the blend's GPU cost at the phone's resolution, and Compatibility vs Mobile; tilt input; Android audio latency (only from v3). Settled: the vector look (D93), the slime approach and renderer on the desktop (D94), and running tests headless on Linux (chunk 3). | tech-direction |
 | O22 | Return to the start: how are slimes herded back from an unopened frontier gate (wind, slide, conveyor…)? Every new section needs its own return route. For the first level's design session (D34). | concept |
 | O62 | Basket outlet: where a basket releases its slimes after firing, and when emptied by opting out. Part of the basket object's own design, which needs to be planned (not yet). The test level assumes one outlet onto the onward route. | interactive-objects |
 | O65 | Minimum zoom: a big framing zone may shrink slimes too far to tap or see. Only matters during play, since idle and screensaver mode ignore framing zones (D80). No proposal yet; to find with the prototype. | tuning |
@@ -21,6 +21,7 @@ Each entry has a stable ID. Once resolved, an entry moves to `decisions.md`.
 | O75 | Back gesture when pinning is declined: does it let the child leave without the code, or does the app catch it? (ux Q45) | tech-direction |
 | O76 | Wrong-code wait: do the count of wrong tries and the 30 s wait survive the prompt closing or the app being killed? Does "forgot the code?" work during the wait? (ux Q46) | concept |
 | O77 | Language of the parent-facing text (setup, prompt, settings): which language(s) in v1? (ux Q48) | concept |
+| O78 | Slimes against curved terrain: the slime simulation is our own code (D94), and spike 1 only simulated a flat floor and walls. Does it test ring points against the baked terrain points itself (a static grid of segments), or go through Godot's collision shapes (D93)? Its cost isn't in the spike's numbers. Default proposed: the simulation's own test against the baked segments, which moves to native code with the tick. For chunks 4 and 5. | tech-direction |
 
 ## Parked (deferred on purpose; revisit later)
 

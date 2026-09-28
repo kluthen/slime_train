@@ -676,12 +676,15 @@ Still undecided.
 4. **A minimum zoom.** A big framing zone may shrink slimes too far to tap or
    see. It only matters during play, since the idle camera and screensaver
    mode ignore framing zones. No proposal yet; to find with the prototype.
-5. **Technical risks to check with prototypes before building for real:**
-   200 slimes on the floor phone (many on one screen), tilt input, running
-   end-to-end tests on Linux without a screen, and the vector rendering
-   approach (Godot turns SVGs into images at import, so crisp curves need
-   polygons and lines or a plugin). A floor phone has to be bought for this.
-   Android audio latency matters only from the version that adds sound.
+5. **Technical risks to check with prototypes before building for real.**
+   Checked on the desktop: the vector look (curves baked into polygons and
+   lines; imported SVGs blur when zoomed), soft slimes at 200 with the
+   blending shader and the Compatibility renderer, and running end-to-end
+   tests on Linux without a screen. Still waiting for the phones: 200 slimes
+   (many on one screen) on the reference phone and on the floor phone, which
+   also decides whether the slime simulation's tick moves to native code, and
+   tilt input. A floor phone has to be bought for this. Android audio latency
+   matters only from the version that adds sound.
 6. **Interaction details raised by the first UX review,** to settle before
    the parts that need them are built:
    - whether a second finger, ignored while another is down, still gets a

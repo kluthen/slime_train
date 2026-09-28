@@ -1,24 +1,47 @@
 # Technical direction
 
-Status: draft v12
+Status: draft v13
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
+Spike write-ups (desktop): `docs/dev/spike-vector-look.md` (chunk 2),
+`docs/dev/spike-soft-slimes.md` (chunk 1).
 
 ## Engine
 
 - **Godot 4** is the engine (D5). Unity and Unreal are excluded.
 - Primary target: native Android. A Linux desktop and/or web build of the
-  same project exists to iterate faster and to run end-to-end tests (O14).
-- Choosing Godot comes with risks to test with small prototypes (O14):
-  Android audio latency, cost of the slime simulation on low-end phones,
-  running tests without a screen, and live vector rendering. Godot turns SVGs
-  into images at import time, so crisp curves mean using Polygon2D/Line2D or
-  a plugin.
+  same project exists to iterate faster and to run end-to-end tests.
+- **Renderer: Compatibility** (D94). Forward Mobile gave the same look and
+  frame rate on the desktop; Compatibility reaches the most Android phones.
+  To confirm on the phones (O14).
+- Choosing Godot came with risks to test with small prototypes. Where they
+  stand:
+  - **Vector look: settled (D93).** Level art is drawn from curves baked into
+    polygons and lines (see "Level authoring"). Godot turns imported SVGs into
+    images, which blur when the camera zooms in, and no runtime vector plugin
+    exists for Godot 4.7.
+  - **Soft slimes at 200: settled on the desktop (D94),** phones pending (see
+    "Simulation performance").
+  - **Running tests without a screen: settled** in chunk 3 (headless Godot,
+    see `docs/dev/README.md`).
+  - **Still to test on real phones (O14):** 200 slimes on the reference and
+    floor phones, tilt input, and Android audio latency (only from v3, when
+    sound arrives).
 
 ## Level authoring
 
 - **No custom level editor** (D6). Levels are Godot scenes built in Godot's
   own editor. Curved terrain uses Path2D/Curve2D with collision polygons.
+- **Vector look (D93).** Terrain and other level art (plants, rocks,
+  decoration) are drawn as Path2D/Curve2D curves in the editor. At load, each
+  curve is baked once into a Polygon2D fill and a Line2D outline (antialiased,
+  round joints), which stay crisp at 4× zoom. Imported SVG textures are not
+  used for level art: they blur when zoomed. A reusable terrain component
+  bakes one curve into both the drawing and the collision shape from the same
+  points, so an author draws one curve per terrain piece. The bake interval is
+  fixed at load, fine enough for the closest zoom the camera reaches.
+- How the slime simulation (our own code, not Godot's physics) collides with
+  that curved terrain is still open (O78).
 - Every interactive element (gate, basket, switch, reveal zone, split zone…)
   is a **reusable, programmed component** configured through its properties
   in the editor. There are no per-level scripts, so extra levels (possible
@@ -32,7 +55,29 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
   code rather than a physics-engine feature, and drawn with a shader that
   blends nearby shapes into smooth blobs. Fusing and splitting become
   operations on those rings. No engine provides this out of the box (see
-  research).
+  research). Spike 1 confirmed the approach on the desktop: stable at 200
+  slimes, still and moving (D94).
+- **Points per ring (D94):** 12 for size 1, 15 for size 2, 18 for size 3.
+  8 looks visibly polygonal; 16 costs about 25% more for little visible gain.
+- **Simulation layout (D94):** struct of arrays. Points live in packed arrays
+  (position, previous position, rest offset); each slime is a range of points
+  (first point, point count) plus its own packed per-slime values (size,
+  species, radius, rest area…). Fusing and splitting rewrite ranges. This
+  layout is chosen so the tick can move to native code without changing its
+  interface (see "Simulation performance").
+- **Solver (D94):** Verlet integration with position constraints (edge
+  springs, area preservation, shape matching, internal damping), 2 substeps
+  per 60 Hz tick. Contact pairs between slimes come from a uniform grid on
+  slime centres, rebuilt once per tick. The spike's settings are a starting
+  point, tuned for stability, not yet for the game's feel.
+- **Drawing (D94):** each slime is drawn as a soft field blob into two
+  SubViewports (one species per colour channel, three per viewport), one draw
+  call per viewport. A full-screen composite shader thresholds the fields and
+  colours each pixel by the strongest species, so same-species slimes that
+  touch merge into one blob and different species stay separate. About 1 ms
+  of GPU time for 200 slimes on the desktop's integrated GPU; half-resolution
+  fields look the same and are the lever if phones need it. Where two species'
+  fields are equal the colour can flicker; a tie-break is needed.
 - **Scale:** up to 200 slimes per level (D67), with many possibly on one screen.
 - **Physics only near the screen** (D69):
   - Off-screen slimes follow the loop at a deterministic pace, as a place
@@ -43,6 +88,37 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
     on screen may use fewer points per ring when zoomed out.
   - Off-screen rules (D70): free slimes follow their area's route back, fusion
     and waking happen only on screen, and baskets count weight off screen.
+
+## Simulation performance (D94)
+
+- **The simulation tick is the bottleneck, not drawing.** On the desktop, the
+  GDScript tick takes about 11 ms for 200 slimes at 16 points per ring (about
+  8–9 ms at 12), with no game logic around it; contacts between slimes are more
+  than half of it. A line-for-line C++ port of the same tick is 20–25× faster
+  (about 0.35–0.5 ms).
+- Extrapolated phone costs (estimated, **not measured**) put a pure GDScript
+  tick over budget for 200 slimes on one screen on both the reference and the
+  floor phone.
+- **Chunk 5 builds the simulation in GDScript**, with the spike's struct-of-
+  arrays layout, so the tick can later move to a GDExtension without changing
+  its interface.
+- **Native code is the planned contingency.** It is decided at the first
+  measurement on the reference phone (Galaxy S20 FE), which needs the Android
+  build (chunk 20). If adopted: a GDExtension in C++ (godot-cpp), built with
+  `-ffp-contract=off` so ticks repeat exactly from one build to another, and
+  the Android NDK in the Android build.
+- **Cheaper fallbacks, tried first:**
+  - resting slimes stop being simulated, contact solving included, until
+    something disturbs them. The 200-on-screen case is mostly still by level
+    rule 16, and covered slimes don't hop;
+  - fewer points per ring when zoomed out;
+  - a 30 Hz tick, with the drawing interpolated.
+- **Pending:** measurements on the reference phone now and on the floor phone
+  once it is bought (O14); the floor decision rests on them (D71). The
+  200-slime cap stays (D67).
+- Not covered by the spike: collisions with curved terrain (only a flat floor
+  and walls were simulated, O78), game logic, the camera and the UI, all of
+  which share the same frame budget.
 
 ## Target phones (D71)
 
@@ -61,7 +137,7 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
 | Real phones (S20 FE, a floor phone) | performance (O14), audio latency, touch and tilt feel, playtests with children | fast iteration |
 | Google Play pre-launch report (later) | automatic smoke tests on a range of real phones when uploading to a test track | detailed performance work |
   - The O14 prototype tests the worst case: 200 slimes on one screen on the
-    floor phone (O50).
+    floor phone (D71).
 
 ## Saving (D7, D12, D43)
 

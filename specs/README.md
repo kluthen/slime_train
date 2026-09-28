@@ -7,7 +7,7 @@ Research: `../docs/research/` (verbatim reports with sources).
 | `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v24 |
 | `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v11 |
 | `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v8 |
-| `tech-direction.md` | Engine, level authoring, slime simulation, saving, testability, session lock implementation | draft v12 |
+| `tech-direction.md` | Engine, level authoring, slime simulation and its performance, saving, testability, session lock implementation | draft v13 |
 | `versions/` | Scope per version (v1–v4…) plus `timeline.md` for features with no version yet (D52) | live |
 | `level-design.md` | Rules every level must follow; the checklist for level design sessions | draft v6 |
 | `levels/` | One folder per level (D76): `test/` (the test level, draft v2), `01/` (the real first level, not started) | live |
@@ -102,6 +102,8 @@ Research: `../docs/research/` (verbatim reports with sources).
 - Edge buttons: right is forward along the loop, left is backward, whatever the direction on screen (D90).
 - A frontier set is inert once its gate opens (D86). A level's folder stores its design requirements and discussion (D87). Size forks are a size filter (D88); both filters are v2, so v1's only fork is the frontier switch (D89).
 
+- Spikes done on the desktop (chunks 1, 2). Level art: curves baked into polygons and lines, no SVG textures, no plugin (D93). Slimes: ring-of-springs plus blend shader is a go, Compatibility renderer, 12/15/18 points per ring; the GDScript tick is the bottleneck, so chunk 5 uses a native-ready layout and native code is the contingency, decided on the reference phone (D94). Phone measurements pending (O14). Slimes against curved terrain: O78.
+
 ## Where to resume
 
-The v1 master spec and access model are consolidated early and kept in step with the drafts. The build plan (`versions/v1/build-plan.md`) is proposed and awaits the user's review. The first UX review raised O67–O77 (interaction details); the user will settle them later, before the build chunks they block (listed in the build plan). Deferred to a planned design: O62 (basket outlet, with the basket's own design). For prototypes: O14, O65 (minimum zoom). For the first level's design: O22. Parked: O12, O13. Documentalist ingestion done (docs/*.atom.md); ux-writer has an inventory and questions in `../ui_ux/`, no design yet.
+The v1 master spec and access model are consolidated early and kept in step with the drafts. The build plan (`versions/v1/build-plan.md`) is proposed and awaits the user's review. The first UX review raised O67–O77 (interaction details); the user will settle them later, before the build chunks they block (listed in the build plan). Deferred to a planned design: O62 (basket outlet, with the basket's own design). For prototypes: O14 (now the phone measurements only), O65 (minimum zoom). For chunks 4 and 5: O78 (slimes against curved terrain). For the first level's design: O22. Parked: O12, O13. Documentalist ingestion done (docs/*.atom.md); ux-writer has an inventory and questions in `../ui_ux/`, no design yet.
