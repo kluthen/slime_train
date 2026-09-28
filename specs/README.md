@@ -9,6 +9,7 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 | `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v5 |
 | `tech-direction.md` | Engine, level authoring, slime simulation, saving, session lock implementation | draft v6 |
 | `versions/` | Scope per version (v1–v4…) plus `timeline.md` for features with no version yet (D52) | live |
+| `personas.md` | Who the game is for: the newcomer (3), the watching sibling (2), the early player (4), the parent | draft v1 |
 | `tuning.md` | Every number left to prototypes, with its starting value | live |
 | `open-questions.md` | Register of unresolved decisions (O1…) | live |
 | `decisions.md` | Append-only decisions log (D1…) | live |
@@ -64,6 +65,8 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 - Leaving a framing zone takes a slightly longer delay (to be tested). The in-session idle camera zooms out like screensaver mode (D61, D62).
 
+- Personas started (from real people): the primary persona is a 3-year-old newcomer to video games, on an S20 FE. Also a 2-year-old watching sibling, 4-year-old early players, and the parent.
+
 ## Where to resume
 
-Next: personas (O15). Then save versioning (O20), how long a call lasts (O21), the hop decision (O40), and a dedicated session on the first level's design (O22).
+Next: the rest of O15 (context of use), then O48 (several touches at once), O49 (first-time discovery), O50 (target phone). After that: O20, O21, O40, and a dedicated session on the first level's design (O22).
