@@ -3,6 +3,7 @@
 ## Project layout
 
 - `specs/`: the spec tree, maintained by spec-writer. Start with `specs/README.md`.
+- `ui_ux/`: the UX design tree, maintained by ux-writer (no design yet).
 - `docs/research/`: verbatim research reports with their sources.
 - `docs/*.atom.md`: ATD declared intent, maintained by documentalist.
 

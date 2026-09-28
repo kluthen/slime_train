@@ -431,7 +431,8 @@ bedtime --parent code, or 10 min--> sunrise → screensaver mode
   displaces are treated as lost. The save records the level's
   version, and slimes, objects and gates have stable IDs.
 - Saves are written atomically, and the previous one is kept as a
-  backup that is used if the latest can't be read.
+  backup that is used if the latest can't be read. If neither can be read,
+  that level starts fresh.
 
 ### 5.11 Level rules
 
@@ -551,6 +552,7 @@ Starting values, to be tuned in prototypes and playtests.
 | Minimum zoom in framing zones | to find with the prototype |
 | Wrong-code wait | 30 s after 5 wrong tries in a row |
 | Code prompt closes by itself | about 15 s with no input |
+| Settings closes by itself | a short time with no input; to try |
 | Leaving a framing zone | a bit longer than a normal move |
 | Camera drag toward a call | slow and steady; return behaviour to try |
 | Tilt | ±45° cap, about 10° dead zone |
@@ -680,3 +682,28 @@ Still undecided.
    approach (Godot turns SVGs into images at import, so crisp curves need
    polygons and lines or a plugin). A floor phone has to be bought for this.
    Android audio latency matters only from the version that adds sound.
+6. **Interaction details raised by the first UX review,** to settle before
+   the parts that need them are built:
+   - whether a second finger, ignored while another is down, still gets a
+     ripple;
+   - what reopening the app shows when a session or bedtime was running
+     (this section says opening always lands in screensaver mode, while the
+     timers and the access model say play resumes where it was);
+   - which taps count as the first tap that starts a session (the parent
+     zone, an edge button, an object);
+   - whether one edge-button press is a fixed step or moves the camera while
+     the finger stays down, and what "a slightly longer push" out of a
+     framing zone means then;
+   - when the first-play hint's 10 s start, and whether deleting the level's
+     save brings the hint back;
+   - what deleting the running level's save does to the live world, the
+     session, the hint and the celebration;
+   - "forgot the code?" on a phone with no screen lock, when Android's prompt
+     is cancelled or fails, and whether the new code is typed twice;
+   - on first launch, whether pinning is asked before or after setup, and
+     whether coming back from the background asks again;
+   - whether the back gesture lets the child leave when pinning was declined;
+   - whether the wrong-code count and the 30 s wait survive the prompt
+     closing or the app being killed, and whether "forgot the code?" works
+     during the wait;
+   - the language of the parent-facing text.

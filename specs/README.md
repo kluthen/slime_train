@@ -12,7 +12,7 @@ Research: `../docs/research/` (verbatim reports with sources).
 | `level-design.md` | Rules every level must follow; the checklist for level design sessions | draft v6 |
 | `levels/` | One folder per level (D76): `test/` (the test level, draft v2), `01/` (the real first level, not started) | live |
 | `versions/v1/master-spec.md` | The v1 master spec, consolidated early (D76), plus `access-model.md` | consolidated |
-| `versions/v1/build-plan.md` | v1 split into 23 build chunks ordered for testing, each tied to the master spec's Definition of done and the test level's fixtures | draft v1 (proposed) |
+| `versions/v1/build-plan.md` | v1 split into 23 build chunks ordered for testing, each tied to the master spec's Definition of done and the test level's fixtures | draft v2 (proposed) |
 | `personas.md` | Who the game is for: P1 the newcomer (3), P2 the watching sibling (2), P3 the early player (4), P4 the parent; goal IDs | draft v5 |
 | `tuning.md` | Every number left to prototypes, with its starting value | live |
 | `open-questions.md` | Register of unresolved decisions (O1…) | live |
@@ -104,4 +104,4 @@ Research: `../docs/research/` (verbatim reports with sources).
 
 ## Where to resume
 
-The v1 master spec and access model are consolidated early and kept in step with the drafts. No open question is left to settle in conversation. Deferred to a planned design: O62 (basket outlet, with the basket's own design). For prototypes: O14, O65 (minimum zoom). For the first level's design: O22. Parked: O12, O13. Handoffs (ux-writer, documentalist, coding-leader) wait for the user's go-ahead.
+The v1 master spec and access model are consolidated early and kept in step with the drafts. The build plan (`versions/v1/build-plan.md`) is proposed and awaits the user's review. The first UX review raised O67–O77 (interaction details); they block specific build chunks and are next to settle in conversation, one at a time. Deferred to a planned design: O62 (basket outlet, with the basket's own design). For prototypes: O14, O65 (minimum zoom). For the first level's design: O22. Parked: O12, O13. Documentalist ingestion done (docs/*.atom.md); ux-writer has an inventory and questions in `../ui_ux/`, no design yet.

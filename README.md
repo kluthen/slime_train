@@ -16,9 +16,10 @@ limits play to 15 minutes at most, and the session ends with a gentle
 
 ## Status
 
-**Spec and design phase: there is no code yet.** Scope, mechanics and
-vocabulary are being worked out in `specs/`. Nothing there is final until a
-master spec is put together and handed off for building.
+**Build preparation.** The v1 master spec is in
+`specs/versions/v1/master-spec.md`, with a proposed build plan next to it. The
+Godot project has just been created; there is no game code yet. UX design
+(`ui_ux/`) has an inventory and open questions, no design yet.
 
 ## Direction so far
 

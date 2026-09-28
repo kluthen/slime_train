@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v1 (proposed; waiting for the user's review)
+Status: draft v2 (proposed; waiting for the user's review)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -315,6 +315,20 @@ parallel with the camera and objects work.
   real first level.
 - **The basket's own design** (where it releases its slimes): a later
   spec session. Chunk 14 keeps it swappable.
+
+## Open questions that block chunks
+
+Raised by the first UX review. Each must be settled before its chunk is
+finished (see the master spec's Known gaps, item 6):
+
+| Chunk | Questions |
+|---|---|
+| 7 Taps and the call | O67 (second-finger ripple) |
+| 9 Hint | O71 (when the 10 s start; reset on delete) |
+| 12 Camera rails | O70 (edge-button press) |
+| 17 Session | O68 (reopening the app), O69 (which taps start a session) |
+| 18 Parent gate | O72 (deleting the running save), O73 (forgotten code), O76 (wrong-code wait), O77 (language) |
+| 20 Android | O74 (pinning timing), O75 (back gesture without pinning) |
 
 ## Before starting
 
