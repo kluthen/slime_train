@@ -26,6 +26,13 @@ func _init() -> void:
 	add_to_group(Level.THINGS_GROUP)
 
 
+## What a tap lands on (TapDispatcher): its drawn circle's box. A tap on a
+## sleeper is a call centred on it (D46); waking comes with chunk 9.
+# @spec-link [[req_controls_tap_zones]]
+func tap_target() -> Dictionary:
+	return {"kind": TapDispatcher.KIND_SLEEPER, "size": Vector2.ONE * 2.0 * PlaceholderArt.SLIME_RADIUS}
+
+
 func _draw() -> void:
 	var color := PlaceholderArt.species_color(species)
 	draw_circle(Vector2.ZERO, PlaceholderArt.SLIME_RADIUS, Color(color, 0.45))

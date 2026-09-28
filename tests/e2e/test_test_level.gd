@@ -202,6 +202,28 @@ func test_the_tree_route_back_is_found() -> void:
 
 
 # @test-link [[rule_exploration_branch_has_route_back]]
+func test_the_branches_and_their_routes_back_are_plain_data() -> void:
+	assert_eq(level.data.branches.keys().size(), 2)
+	assert_eq(level.data.route_back_for("s1.branch.tree"), "s1.route-back.tree")
+	assert_eq(level.data.route_back_for("s1.branch.high-step"), "s1.route-back.high-step")
+	var platform := Vector2(5.2 * LevelData.SCREEN, -384)
+	assert_eq(level.data.branch_at(platform), "s1.branch.tree", "the tree's platform is in its branch")
+
+
+# @test-link [[req_controls_tap_zones]]
+func test_the_switch_basket_and_sleepers_are_tap_targets() -> void:
+	var targets: Dictionary = level.data.tap_targets
+	assert_eq(targets["s1.switch"]["kind"], TapDispatcher.KIND_SWITCH)
+	assert_eq(targets["s1.basket"]["kind"], TapDispatcher.KIND_BASKET)
+	var sleepers := 0
+	for id in targets:
+		if targets[id]["kind"] == TapDispatcher.KIND_SLEEPER:
+			sleepers += 1
+	assert_eq(sleepers, _of_type(Sleeper).size(), "every sleeper")
+	assert_eq(targets.size(), sleepers + 2, "nothing else (gates, split zones, signposts are not tapped)")
+
+
+# @test-link [[rule_exploration_branch_has_route_back]]
 func test_every_exploration_branch_has_a_route_back() -> void:
 	var branches := _of_type(ExplorationBranch)
 	assert_eq(branches.size(), 2)

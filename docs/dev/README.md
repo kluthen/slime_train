@@ -45,6 +45,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `src/sim/` | The simulation core: pure logic, with no scene dependencies, so it can be unit tested |
 | `src/test_mode_guard.gd` | The one check that keeps test mode out of release builds |
 | `src/test_mode/` | Test mode: scripted input, time control, the fixture stub, the on-screen marker |
+| `src/taps/` | Tap feedback drawing (`TapFeedback`: the ripples and the slimes' eye dots); the tap logic itself is in `src/sim/` (see "Taps and the call") |
 | `src/slimes/` | Slime drawing (`SlimeRenderer` and its shaders), the terrain hand-off to the simulation (`SlimeWorld`) and the slime demo scene |
 | `src/components/` | Reusable level components, configured in the editor (see "Levels and components") |
 | `levels/<id>/` | One folder per level, with its scenes. `levels/test/level.tscn` is the test level |
@@ -57,6 +58,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `tools/bench_slimes.gd` | Times the slime tick (see "Slimes") |
 | `docs/dev/img/` | Screenshots used by these notes (`docs/.gdignore` keeps Godot from importing anything under `docs/`) |
 | `spikes/` | Throwaway prototypes. Nothing else depends on them |
+| `export_presets.cfg` | The Android export presets (see "Android export (debug)"); `build/` (gitignored) receives the APKs |
 | `addons/gut/` | The GUT test framework, vendored |
 
 Dependencies go one way: levels use components, components use the
@@ -84,8 +86,11 @@ scaling and skipping in one place.
 
 `Simulation` holds the whole game state: the tick, the master `Rng`, the
 slimes (`SlimeBodies`), the train (`Train`: each train slime's progress
-along the loop, see "Train"), the level's split zones, and a record of the
-input received (the fingers down, the last tilt, the last 64 input events). Each later chunk adds
+along the loop, see "Train"), the level's split zones, the free slimes and
+the last call (`FreeSlimes`), the view, the ripples, the last 16 taps, the
+slimes' facings (see "Taps and the call"), and a record of the input
+received (the fingers down, the finger whose touch counts, the last tilt,
+the last 64 input events). Each later chunk adds
 its state there and **must add it to `dump()`**, or the state hash won't see
 it.
 
@@ -98,7 +103,8 @@ at)`, `touch_up(finger, at)` and `tilt(degrees)`. They are queued with
 in viewport pixels. **Rule for later chunks:** game logic (tap dispatch, the
 call, edge buttons, tilt) reads input only from these events, never from
 Godot's `InputEvent` directly; `src/main.gd` is the one place that
-translates. Otherwise scripted input would bypass it.
+translates. Otherwise scripted input would bypass it. Touches are turned
+into taps inside the simulation (see "Taps and the call").
 
 ### Randomness
 
@@ -165,6 +171,10 @@ A run is one dictionary, in GDScript or in a JSON file:
   the name and reports "not implemented", which makes the run fail to start.
   The `.json` extension is provisional; chunk 8 settles the save format.
 - `block_real_input` (default true): ignore the real mouse and touches.
+- `screen_size` (`[width, height]`, default `[1152, 648]`): the screen size
+  the simulation's view uses to dispatch taps (a headless window reports a
+  wrong one). The game reads it in `sync_view()`; outside test mode it uses
+  the viewport's size.
 - `steps`: the input script (`src/test_mode/test_mode_script.gd`). `tick` is
   the tick the step happens on: its events are consumed by the step that
   advances that tick. `do` is `tap` (down and up on the same tick),
@@ -229,7 +239,7 @@ Godot process started from a test also works. Caveats: headless has no real
 window, so the viewport size is not the project's 1152×648 (Godot reports
 1152×1152 for the visible rect and a 64×64 root). Anything that depends on
 screen size (the tap zones in chunk 7, the camera) must take the size from
-one place a test can set. Nothing rendered can be checked headless; for
+one place a test can set: test mode's `screen_size` (chunk 7). Nothing rendered can be checked headless; for
 pixels use the movie maker under Xvfb, as above.
 
 ### The release guard
@@ -675,6 +685,170 @@ of the ideal pace; it makes 5) and the same seed gives the same hash twice.
 It takes about 2 s per run, 4-5 s for the test. Several slimes at once in
 the start basin can still jam (see chunk 6's choices).
 
+## Taps and the call
+
+Master spec §5.2 and §5.5. All of it is simulation logic in `src/sim/`
+(`ScreenView`, `TapDispatcher`, `FreeSlimes`, driven by `Simulation`);
+`src/taps/tap_feedback.gd` only draws.
+
+![A tap on the hills: the ripple, and the first slime hopping back to it](img/chunk7-call.png)
+
+**The view.** Taps arrive in screen pixels, so the simulation holds a view,
+`simulation.view` (`ScreenView`): the level point at the screen's centre,
+the zoom and the screen size. `main.gd`'s `sync_view()` copies it from the
+camera before every tick (`camera_centre()` reproduces Camera2D's limit
+clamp and adds the offset); the screen size is test mode's `screen_size`
+in test mode, else the viewport's. `world = centre + (screen - size / 2) /
+zoom`. The view is in the dump. The camera itself stays in the scene until
+chunk 12.
+
+**Tap zones** (`TapDispatcher.dispatch`), checked in this order:
+
+| Order | Zone | Where | Does |
+|---|---|---|---|
+| 1 | `parent_zone` | the top `TOP_BAND_HEIGHT` (64) screen px | nothing yet (parent buttons, chunk 18); never calls |
+| 2 | `edge_button` | `EDGE_BUTTON_SIZE` (96×192) screen px against each side, vertically centred | nothing yet (camera, chunk 12); never calls |
+| 3 | `object` | a tap target's box grown by `OBJECT_HIT_MARGIN` (24) screen px | nothing yet (chunks 9, 14); a **sleeper** calls, centred on it |
+| 4 | `open_ground` | anywhere else | calls, centred on the tap |
+
+Tap targets come from the registry: `Level.build()` adds every node with a
+`tap_target()` (switch, basket, sleeper) to `LevelData.tap_targets` (ID,
+kind, level box). Where hit areas overlap, the nearest box centre wins
+(ties: the smaller ID). The top band and edge button sizes are
+placeholders until the ui_ux tree settles them.
+
+**First touch wins** (D66, O67's proposed default). A tap is dispatched
+when its finger touches down, and only if no finger is down then
+(`active_finger`). A touch that starts while any finger is down gets
+nothing, not even a ripple, and stays ignored until it lifts, even if the
+first finger lifts before it. `fingers_down` still records every finger.
+
+**Ripples and facing.** Every accepted tap, whatever its zone, appends a
+ripple `{at, tick}` (level point) to `simulation.ripples`; it lasts
+`RIPPLE_TICKS` (36, 0.6 s). The ripples are sim state and in the hash:
+they are deterministic (a function of the input), and keeping them there
+lets the renderer draw from the state alone. `TapFeedback` draws each as a
+ring growing from 10 to 64 screen px and fading. The tap also turns every
+awake slime within the call radius toward it (`simulation.facing`, a unit
+vector per slime), and every hop turns its slime the way it hops;
+`TapFeedback` draws the facing as an eye dot (placeholder art). The last 16
+taps are logged in `simulation.taps` (zone, object, whether it called, who
+answered), for tests and debugging.
+
+**The call** (`FreeSlimes`, `simulation.free_slimes`). A call has a point
+and a tick. Every awake slime (train or free) whose centre is within the
+call radius, half the view's width in level px (576 at zoom 1), answers:
+it becomes free (state `free`, the train drops it), is let go if it was
+held on the slide, and hops within `FIRST_HOP_SECONDS` (0.35 s). A new call
+replaces the point for every slime still answering, in range or not, and
+restarts its 8 s. Sleepers don't answer (waking them is chunk 9). A free
+slime then goes through three phases, recorded per slime with the tick it
+entered them:
+
+| Phase | Hops | Ends |
+|---|---|---|
+| `answering` | toward the point, at 0.6× its usual hop interval; up to `Train.hop_reach` sideways; upward when the point is higher, up to `max_rise(size)` (about 133, 168, 208 px for sizes 1 to 3: bigger slimes jump higher) | within `REACHED` (56 px, plus the extra radius of bigger slimes) of the point, or after `CALL_SECONDS` (8 s): turns unsure |
+| `unsure` | lazy random hops (60 px, low) near the point, at 1.3× its interval, directions from its own stream `free:<id>:<tick>`; hops back toward the point if more than 120 px away | after `UNSURE_SECONDS` (15 s): heads back |
+| `heading_back` | toward the loop at its usual pace (see below) | its centre within `REJOIN_DISTANCE` (40 px, plus the extra radius) of the current loop: back to state `train`, adopted at the closest loop point |
+
+Physics applies throughout: the bodies are the same soft bodies, and a
+free slime grips ground up to 45° between hops like a train slime (rolls on
+steeper ground). A free slime with no record (none yet: later chunks may
+free slimes otherwise) is adopted as heading back.
+
+**The way back (route-back selection rule).** Chosen again at every hop,
+from where the slime stands:
+
+1. If its centre is inside an exploration branch's box
+   (`LevelData.branch_at`, first ID in sorted order) and that branch has a
+   route back (`route_back_for`), it follows that route: it aims
+   `hop_reach` ahead of its projection on the route, until it is at the
+   route's end. `route_of(id)` names the route used.
+2. Otherwise (no branch, a branch without a route, or past the route's
+   end), it hops straight for the nearest point of the current loop,
+   always at least `MIN_SIDEWAYS` (60 px) sideways (the loop's direction
+   there when the loop point is right below), so it leaves a ledge rather
+   than hop in place above the loop.
+
+**Tick order.** Input (taps, calls answered); `train.steer`;
+`free_slimes.steer`; `slimes.tick`; `free_slimes.paced` and hop facings;
+split zones (`train.inherit`, `free_slimes.inherit`: split parts keep the
+phase and get a fresh stream); `free_slimes.follow` (phases, rejoining);
+`train.follow`; spent ripples go.
+
+**Tests.** `tests/unit/test_screen_view.gd` (screen to world and back,
+zoom), `tests/unit/test_tap_dispatch.gd` (zone order, hit margins at zoom,
+ripples in every zone, first touch wins, taps in the state) and
+`tests/unit/test_call.gd` (on a synthetic world: radius just inside and
+just outside, a new tap, 8 s give-up, 15 s unsure, heading back by a route
+and directly, rejoining, determinism). `tests/e2e/test_call_e2e.gd` on the
+test level: a call on the hills pulls the first slime off the loop, it
+reaches the point and rejoins within 45 s; a call to the tree's high bough
+gives up after exactly 8 s and heads back directly from the ground, or by
+`s1.route-back.tree` from the tree platform; a scripted run with taps
+gives the same hash twice and a different one without them.
+
+## Android export (debug)
+
+`export_presets.cfg` holds two Android presets, both debug-signed APKs with
+no Gradle build, arm64-v8a only, landscape (from `project.godot`),
+minimum SDK 24 (Godot's default):
+
+| Preset | Package | Output | What it runs |
+|---|---|---|---|
+| `Android debug` | `com.slimetrain.dev` | `build/slime-train-debug.apk` | the game (`src/main.tscn`); `spikes/` is left out |
+| `Android spike: soft slimes` | `com.slimetrain.spike` | `build/spike-debug.apk` | spike 1's phone benchmark (feature tag `spike_soft_slimes`) |
+
+The preset file holds no credentials. The debug keystore comes from the
+editor settings (`~/.config/godot/editor_settings-4.7.tres`), which need:
+
+```
+export/android/android_sdk_path = "/home/<you>/Android/Sdk"
+export/android/java_sdk_path = "/usr/lib/jvm/java-21-openjdk-amd64"
+export/android/debug_keystore = "/home/<you>/.local/share/godot/keystores/debug.keystore"
+export/android/debug_keystore_pass = "android"
+```
+
+The user defaults to `androiddebugkey`. Create the keystore once if it is missing:
+
+```sh
+keytool -genkeypair -keystore ~/.local/share/godot/keystores/debug.keystore \
+  -storepass android -alias androiddebugkey -keypass android -keyalg RSA \
+  -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+```
+
+Godot 4.7 asks for JDK 17; the JDK 21 of Debian 13 signs and exports
+without complaint (no Gradle build). `project.godot` enables
+`rendering/textures/vram_compression/import_etc2_astc`, which every Android
+export requires.
+
+Export, install, run and read the output (Godot's `print()` goes to the
+logcat tag `godot`):
+
+```sh
+mkdir -p build
+godot --headless --path . --export-debug "Android debug" build/slime-train-debug.apk
+adb install -r build/slime-train-debug.apk
+adb shell am start -n com.slimetrain.dev/com.godot.game.GodotAppLauncher
+adb logcat -v time -s godot:*
+```
+
+- The launcher activity is `com.godot.game.GodotAppLauncher`: starting
+  `GodotApp` directly is refused (not exported).
+- A headless export restarts the adb server, which kills a running
+  `adb logcat`; start the capture after exporting.
+- The official Android templates are built without path overrides, so
+  a scene given on the command line (`command_line/extra_args`) aborts the
+  engine. That is why the spike preset uses a **feature tag** instead:
+  `src/main.gd` checks `OS.has_feature("spike_soft_slimes")` first thing and
+  changes to `res://spikes/soft-slimes/spike.tscn`. Options after `--` in
+  `command_line/extra_args` do reach the spike (for example
+  `-- --draw-only`); intent extras from `adb shell am start` are stripped for
+  an exported activity, so they don't.
+- On the phone, the spike runs its whole bench matrix and then a 10-minute
+  soak, prints one `RESULT` line per case and quits (see
+  `docs/dev/spike-soft-slimes.md`).
+
 ## Technical choices
 
 ### Chunk 0: tooling and project setup
@@ -768,6 +942,31 @@ the start basin can still jam (see chunk 6's choices).
 - **Measured tick cost** is in "Slimes", "Demo and bench": GDScript is
   10-15 ms per tick for 200 slimes.
 
+### Chunk 7: taps and the call
+
+- **Taps are resolved in the simulation, through a view.** The scene only
+  copies the camera into `simulation.view` each tick, so scripted and real
+  taps take the same path and a test sets the screen size in one place.
+- **Dispatch on touch down**, so a tap answers at once; a long press or a
+  drag (later chunks) can still build on the same touch.
+- **Ripples, taps and facings are in the hash:** they are deterministic
+  functions of the input, and the renderer draws from the state alone.
+- **A new call restarts the 8 s** for every slime still answering (the
+  spec says the new tap replaces the point; restarting the clock is the
+  reading taken).
+- **The way back is re-chosen at every hop** from where the slime stands,
+  so a slime that falls off a branch mid-route heads straight for the loop.
+  Heading back directly keeps at least 60 px sideways, or a slime on a
+  ledge right above the loop hops in place.
+- **Placeholders:** the top band (64 px) and edge buttons (96×192 px) until
+  ux-writer settles them; the ripple ring and the eye dot as art.
+- **The basket is a tap target** (per the build plan), though the spec has
+  a basket act by presence: it only blocks a call there, nothing else yet.
+- **Known limit:** from the ground, a base slime can't hop onto the tree
+  climb's lower end (about 180 px up; it aims at most about 133 px, a size
+  2 about 168, a size 3 about 208). Called to the platform from below, a
+  base slime gives up after 8 s. Level tuning, not code, if it matters.
+
 ### Chunk 6: train and split zone
 
 - **Progress by windowed projection, not by path following:** the bodies
@@ -792,6 +991,11 @@ the start basin can still jam (see chunk 6's choices).
   once jammed on 1 of 6 seeds. Chunk 9 (sleepers joining) has to settle the
   crowd at the start.
 
+### Chunk 5N: native tick (contingency, deferred by D96)
+
+- A verified GDExtension toolchain, not used by the game and kept out of
+  the tests and exports. See `docs/dev/native.md`.
+
 ### Chunk 2: spike: vector look
 
 - Terrain is drawn as a `Curve2D`/`Path2D` baked into `Polygon2D` +
@@ -803,3 +1007,8 @@ the start basin can still jam (see chunk 6's choices).
 - Ring-of-springs slimes with a species-field blend shader hold 200 on one
   screen only if the simulation tick is native code, and the renderer stays
   Compatibility. See `docs/dev/spike-soft-slimes.md`.
+- On the reference phone (Galaxy S20 FE 5G) the GDScript tick is 2.0–2.1×
+  the desktop's (16.7–18.1 ms at 12 points), and ~27 ms once the phone
+  throttles after ~4.5 minutes: short of 60 fps without native code. The
+  blend costs ≤ 5 ms of GPU at full-resolution fields, 2.6 ms at half.
+  Reported for spec-writer as the D94 native-contingency trigger.

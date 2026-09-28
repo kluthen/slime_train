@@ -32,9 +32,14 @@ blend renderer (with a direct fallback), shown in the demo scene
 `src/slimes/demo.tscn`. Chunk 6 (train and split zone) wakes the first
 slime in the start basin and moves the train along the loop with no input:
 aimed hops out along the section, the slide back (a placeholder), and the
-split zone at the start splitting every slime into base slimes. The other
-level objects are still placeholders with no behaviour, and there is no
-player input yet.
+split zone at the start splitting every slime into base slimes. Chunk 7
+(taps and the call) adds the first player input: taps dispatched to the
+tap zones (parent zone, edge buttons, objects, open ground) with a ripple
+on every tap, the first touch winning, and the call: tapping open ground
+(or a sleeper) pulls the awake slimes in range off the train; they hop to
+the point, linger unsure, then head back (by a branch's route back when
+there is one) and rejoin the train. The other level objects are still
+placeholders with no behaviour.
 UX design (`ui_ux/`) has an inventory and open questions, no design yet.
 
 ## Direction so far
@@ -64,6 +69,7 @@ UX design (`ui_ux/`) has an inventory and open questions, no design yet.
 | `levels/` | One folder per level, with its scenes; `levels/test/` is the test level |
 | `tests/` | Unit tests (`tests/unit/`) and end-to-end tests (`tests/e2e/`), run with GUT |
 | `tools/` | Developer scripts, such as `tools/test.sh` |
+| `native/` | The native simulation tick, a deferred contingency (D96): godot-cpp (git submodule) and a trivial GDExtension. See [`docs/dev/native.md`](docs/dev/native.md). |
 | `spikes/` | Throwaway prototypes |
 | `addons/gut/` | GUT, the test framework (vendored) |
 | `CLAUDE.md` | Conventions for AI-assisted sessions, including the project vocabulary |

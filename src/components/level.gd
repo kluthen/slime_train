@@ -9,12 +9,15 @@ extends Node2D
 ## the level, a rule whose ends don't exist or don't understand it, a level
 ## with no loop or a loop whose segments don't join. It then builds `data`,
 ## the level as plain data for the simulation (LevelData: the loop, the
-## routes back, the split zones and the first slime's spot, in level pixels).
+## exploration branches and their routes back, the split zones, the tap
+## targets and the first slime's spot, in level pixels).
 ##
 ## Components register themselves by joining THINGS_GROUP; each has a
 ## `stable_id` property. Optional methods a component may have:
 ## `references()` (property name -> stable ID it points at),
-## `rule_events()`, `rule_actions()` and `rules()` (see Rule).
+## `rule_events()`, `rule_actions()` and `rules()` (see Rule), and
+## `tap_target()` ({"kind": a TapDispatcher.KIND_*, "size": the drawn box,
+## centred on the component}) for what a tap can land on.
 # @spec-link [[req_loop_and_world]]
 # @spec-link [[req_interactive_objects_general]]
 # @spec-link [[rule_released_level_stable_with_migration]]
@@ -97,8 +100,13 @@ func build() -> PackedStringArray:
 			data.add_route_back(id, node.serves, node.level_points(self))
 		elif node is SplitZone:
 			data.add_split_zone(id, box_of(node, node.size))
+		elif node is ExplorationBranch:
+			data.add_branch(id, box_of(node, node.size))
 		elif node is FirstSlime:
 			data.first_slime = {"id": id, "species": node.species, "position": position_of(node)}
+		if node.has_method("tap_target"):
+			var target: Dictionary = node.tap_target()
+			data.add_tap_target(id, target["kind"], box_of(node, target["size"]))
 	load_errors = errors
 	return errors
 

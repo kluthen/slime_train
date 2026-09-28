@@ -16,7 +16,15 @@ extends Node2D
 ##
 ## The level's collision terrain is baked once into TerrainSegments and
 ## shared by every simulation started on it; a SlimeRenderer draws the
-## current simulation's slimes.
+## current simulation's slimes and a TapFeedback their ripples and eyes.
+## Before every tick, sync_view() copies what the camera shows into the
+## simulation's view, through which the simulation dispatches taps.
+##
+## A build exported with the "spike_soft_slimes" feature tag (the "Android
+## spike: soft slimes" preset) runs spike 1's phone benchmark instead of the
+## game, since the official Android templates ignore a scene given on the
+## command line (see docs/dev/README.md "Android export (debug)"). The spike
+## is named by path only, like the test level.
 # @spec-link [[req_test_level_and_test_mode]]
 
 const TEST_LEVEL_SCENE := "res://levels/test/level.tscn"
@@ -28,6 +36,9 @@ const TEST_MODE_REFUSED := "Test mode is not available in this build (release bu
 ## The most ticks one frame runs at normal speed (8 ticks: a 133 ms hitch).
 ## Beyond that the game slows down rather than catching up.
 const MAX_TICKS_PER_FRAME := 8
+## The export feature tag that swaps the game for spike 1's benchmark.
+const SPIKE_SOFT_SLIMES_FEATURE := "spike_soft_slimes"
+const SPIKE_SOFT_SLIMES_SCENE := "res://spikes/soft-slimes/spike.tscn"
 
 var simulation: Simulation
 ## The loaded level, or null (a release build has none yet).
@@ -36,6 +47,8 @@ var level: Level = null
 var camera: Camera2D = null
 ## Draws the current simulation's slimes (DIRECT when headless).
 var slime_renderer: SlimeRenderer = null
+## Draws the tap ripples and the slimes' facing, above the slimes.
+var tap_feedback: TapFeedback = null
 ## The running TestMode, or null. Loosely typed on purpose (see above).
 var test_mode: RefCounted = null
 ## Replaced by tests to check the release path.
@@ -47,6 +60,11 @@ var _terrain: TerrainSegments = null
 
 
 func _ready() -> void:
+	if OS.has_feature(SPIKE_SOFT_SLIMES_FEATURE):
+		set_process(false)
+		set_process_unhandled_input(false)
+		get_tree().change_scene_to_file.call_deferred(SPIKE_SOFT_SLIMES_SCENE)
+		return
 	print("Slime Train booted (Godot %s)." % Engine.get_version_info().string)
 	if test_mode_guard.allows():
 		_load_level(TEST_LEVEL_SCENE)
@@ -54,6 +72,9 @@ func _ready() -> void:
 	slime_renderer.name = "Slimes"
 	slime_renderer.draw_mode = SlimeRenderer.default_mode()
 	add_child(slime_renderer)
+	tap_feedback = TapFeedback.new()
+	tap_feedback.name = "TapFeedback"
+	add_child(tap_feedback)
 	_use_simulation(_new_simulation(Rng.random_seed()))
 	var user_args := OS.get_cmdline_user_args()
 	if TestModeGuard.requested(user_args):
@@ -92,13 +113,44 @@ func _unhandled_input(event: InputEvent) -> void:
 			simulation.push_input(Simulation.touch_up(0, event.position))
 
 
-## Runs one simulation tick, first feeding it the input test mode scripted for
-## that tick.
+## Runs one simulation tick, first giving it the view and feeding it the
+## input test mode scripted for that tick.
 func step_simulation() -> void:
+	sync_view()
 	if test_mode != null:
 		for event in test_mode.inputs_for_tick(simulation.tick):
 			simulation.push_input(event)
 	simulation.step()
+
+
+## Copies what the camera shows into the simulation's view (taps are
+## dispatched through it). The screen's size is test mode's "screen_size" in
+## test mode (a headless window reports a wrong size), else the viewport's.
+# @spec-link [[req_controls_tap_zones]]
+func sync_view() -> void:
+	var size: Vector2 = test_mode.screen_size if test_mode != null else get_viewport_rect().size
+	if camera == null:
+		simulation.view.set_to(size * 0.5, 1.0, size)
+		return
+	simulation.view.set_to(camera_centre(size), camera.zoom.x, size)
+
+
+## The level point at the middle of a `size` screen: the camera's position
+## held inside its limits as Camera2D does it (left, then right; bottom, then
+## top), plus its offset.
+func camera_centre(size: Vector2) -> Vector2:
+	var span := size / camera.zoom
+	var corner := camera.position - span * 0.5
+	if camera.limit_enabled:
+		if corner.x < camera.limit_left:
+			corner.x = camera.limit_left
+		if corner.x + span.x > camera.limit_right:
+			corner.x = camera.limit_right - span.x
+		if corner.y + span.y > camera.limit_bottom:
+			corner.y = camera.limit_bottom - span.y
+		if corner.y < camera.limit_top:
+			corner.y = camera.limit_top
+	return corner + span * 0.5 + camera.offset
 
 
 ## Turns test mode on with a run configuration (see src/test_mode/test_mode.gd)
@@ -169,3 +221,5 @@ func _use_simulation(fresh: Simulation) -> void:
 	simulation = fresh
 	if slime_renderer != null:
 		slime_renderer.bodies = fresh.slimes
+	if tap_feedback != null:
+		tap_feedback.simulation = fresh

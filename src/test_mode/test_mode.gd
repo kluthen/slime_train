@@ -16,14 +16,20 @@ extends RefCounted
 ##     "time_scale": 1.0,          # optional, 0 to 64; 0 holds the frame clock
 ##     "fixture": "fresh",         # optional; stub until chunk 8
 ##     "block_real_input": true,   # optional; ignore the real mouse and touch
+##     "screen_size": [1152, 648], # optional: the screen the taps are on
 ##     "steps": [ ... ],           # optional: the input script (TestModeScript)
 ##   }
+##
+## "screen_size" is the one place a run sets the screen's size, in viewport
+## pixels (the project's 1152 x 648 by default): the game hands it to the
+## simulation's view instead of the window's size, which headless runs report
+## wrong.
 
 const FIXTURES_DIR := "res://levels/test/fixtures/"
 ## Provisional: chunk 8 settles the save format, and with it this extension.
 const FIXTURE_EXTENSION := ".json"
 const MAX_TIME_SCALE := 64.0
-const CONFIG_KEYS := ["seed", "time_scale", "fixture", "block_real_input", "steps"]
+const CONFIG_KEYS := ["seed", "time_scale", "fixture", "block_real_input", "screen_size", "steps"]
 const OVERLAY_SCRIPT := preload("res://src/test_mode/test_mode_overlay.gd")
 
 ## What is wrong with the configuration. Empty when it is valid.
@@ -36,6 +42,8 @@ var time_scale := 1.0
 ## click can't change a scripted run.
 var block_real_input := true
 var fixture_name := ""
+## The screen the taps are on, viewport pixels (see the class doc).
+var screen_size := ScreenView.DEFAULT_SIZE
 var input_script: TestModeScript = TestModeScript.parse([])
 ## The game root this test mode drives, once attached.
 var game: Node = null
@@ -66,6 +74,11 @@ static func from_config(config: Dictionary) -> TestMode:
 		tm.errors.append("'block_real_input' must be true or false")
 	else:
 		tm.block_real_input = block
+	var size: Variant = _screen_size(config.get("screen_size", ScreenView.DEFAULT_SIZE))
+	if size == null:
+		tm.errors.append("'screen_size' must be [width, height], two numbers above 0")
+	else:
+		tm.screen_size = size
 	var steps: Variant = config.get("steps", [])
 	if typeof(steps) != TYPE_ARRAY:
 		tm.errors.append("'steps' must be an array of steps")
@@ -79,6 +92,18 @@ static func from_config(config: Dictionary) -> TestMode:
 			var where := " (%s)" % fixture["path"] if not fixture["path"].is_empty() else ""
 			tm.errors.append("fixture '%s'%s: %s" % [tm.fixture_name, where, fixture["error"]])
 	return tm
+
+
+## `value` as a screen size ([w, h] or a Vector2, both above 0), or null.
+static func _screen_size(value: Variant) -> Variant:
+	if typeof(value) == TYPE_VECTOR2 or typeof(value) == TYPE_VECTOR2I:
+		value = [value.x, value.y]
+	if typeof(value) != TYPE_ARRAY or value.size() != 2:
+		return null
+	for n in value:
+		if typeof(n) not in [TYPE_INT, TYPE_FLOAT] or n <= 0:
+			return null
+	return Vector2(value[0], value[1])
 
 
 ## The simulation input events scripted for `tick`.

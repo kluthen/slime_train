@@ -360,6 +360,14 @@ func set_heading(slime_id: int, direction: float) -> void:
 		heading[s] = clampf(direction, -1.0, 1.0)
 
 
+## Sets the seconds until the slime's next automatic hop (whoever steers it
+## paces its hops: a called slime hops sooner and more often).
+func set_hop_timer(slime_id: int, seconds: float) -> void:
+	var s := index_of(slime_id)
+	if s >= 0:
+		hop_timer[s] = maxf(seconds, 0.0)
+
+
 ## Aims the slime's automatic hop, if it hops this tick: its take-off
 ## velocity (px/s) instead of a plain hop along its heading.
 func set_hop_aim(slime_id: int, velocity: Vector2) -> void:

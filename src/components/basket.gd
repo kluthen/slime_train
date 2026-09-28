@@ -46,6 +46,12 @@ func contains(offset: Vector2) -> bool:
 	return PlaceholderArt.box_contains(size, offset)
 
 
+## What a tap lands on (TapDispatcher): its box. The hit area adds a margin.
+# @spec-link [[req_controls_tap_zones]]
+func tap_target() -> Dictionary:
+	return {"kind": TapDispatcher.KIND_BASKET, "size": size}
+
+
 ## Events it can trigger a rule with.
 func rule_events() -> PackedStringArray:
 	return PackedStringArray(["full"])

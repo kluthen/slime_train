@@ -4,8 +4,8 @@ extends Area2D
 ## A switch (master spec §5.4): stands at the fork just before the frontier
 ## gate. By default the flow carries on (toward the return route while the
 ## gate is closed); tapped, it flips and sends the flow into its basket.
-## Placeholder: no behaviour yet (chunk 14). The hit area larger than the
-## drawn switch comes with the taps (chunk 7).
+## Placeholder: no behaviour yet (chunk 14). A tap on it (its box plus
+## TapDispatcher.OBJECT_HIT_MARGIN) doesn't call.
 # @spec-link [[req_interactive_objects_general]]
 
 const COLOR := Color(1.0, 0.6, 0.2)
@@ -38,6 +38,12 @@ func _draw() -> void:
 ## Whether `offset` (from its position) is inside its box.
 func contains(offset: Vector2) -> bool:
 	return PlaceholderArt.box_contains(size, offset)
+
+
+## What a tap lands on (TapDispatcher): its box. The hit area adds a margin.
+# @spec-link [[req_controls_tap_zones]]
+func tap_target() -> Dictionary:
+	return {"kind": TapDispatcher.KIND_SWITCH, "size": size}
 
 
 func references() -> Dictionary:

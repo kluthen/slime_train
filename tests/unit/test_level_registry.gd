@@ -185,3 +185,33 @@ func test_rules_held_on_the_level_are_validated_too() -> void:
 	var errors := level.build()
 	assert_eq(errors.size(), 1)
 	assert_string_contains(errors[0], "s1.switch")
+
+
+# @test-link [[req_controls_tap_zones]]
+func test_tappable_components_become_tap_targets() -> void:
+	var sleeper := _sleeper("s1.sleeper.01")
+	sleeper.position = Vector2(100, -40)
+	var basket := _basket("s1.basket", "s1.gate")
+	basket.position = Vector2(300, 0)
+	basket.size = Vector2(200, 100)
+	var level := _level_with([sleeper, basket, _gate("s1.gate")])
+	assert_eq(level.build(), PackedStringArray())
+	var targets: Dictionary = level.data.tap_targets
+	assert_eq(targets.keys().size(), 2, "the gate is not tapped")
+	assert_eq(targets["s1.sleeper.01"]["kind"], TapDispatcher.KIND_SLEEPER)
+	assert_eq(targets["s1.sleeper.01"]["box"], Rect2(76, -64, 48, 48), "the drawn circle's box")
+	assert_eq(targets["s1.basket"]["kind"], TapDispatcher.KIND_BASKET)
+	assert_eq(targets["s1.basket"]["box"], Rect2(200, -50, 200, 100))
+
+
+# @test-link [[rule_exploration_branch_has_route_back]]
+func test_exploration_branches_become_plain_data() -> void:
+	var branch := ExplorationBranch.new()
+	branch.stable_id = "s1.branch.tree"
+	branch.position = Vector2(400, -300)
+	branch.size = Vector2(200, 100)
+	var level := _level_with([branch])
+	level.build()
+	assert_eq(level.data.branches["s1.branch.tree"], Rect2(300, -350, 200, 100))
+	assert_eq(level.data.branch_at(Vector2(350, -320)), "s1.branch.tree")
+	assert_eq(level.data.branch_at(Vector2(350, -200)), "")
