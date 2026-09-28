@@ -100,4 +100,5 @@ Items are settled. The decision IDs point to
 
 ## Open for v1
 
-O14, O22, O62, O65 (see `../../open-questions.md`).
+O14, O22, O62, O65 (see `../../open-questions.md`). O67–O77 have proposed
+defaults pending the user's approval (D95).

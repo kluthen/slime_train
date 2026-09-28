@@ -813,3 +813,62 @@ chunk 1, `docs/dev/spike-soft-slimes.md`.
 - Why: the approach looks right and holds at the cap; building the layout
   for native code from the start keeps the contingency cheap without
   committing the project to a C++ toolchain before a phone has been measured.
+
+## D95 — Proposed defaults for the UX review's interaction details (2026-09-28)
+**Proposed, pending the user's approval.** Addresses O67–O77, which stay open
+until the user approves or changes these defaults in one pass. Set while the
+user was away, so the build chunks they block (7, 9, 12, 17, 18, 20) can
+close: the build follows them unless the user overrules them, as with the
+defaults later approved in D91. They are written into the v1 master spec and
+access model, tagged (proposed).
+- **O67, second finger:** a touch that starts while another finger is down
+  gets nothing at all, not even a ripple, and stays ignored until it lifts,
+  even after the first finger lifts. "The first touch wins" stays absolute.
+- **O68, reopening the app:** it resumes where it was, in the state the
+  stored timers give: a running session (wind-down included), bedtime with
+  the rest of its cooldown, or screensaver mode if the cooldown ran out
+  meanwhile (sunrise isn't replayed). Screensaver mode only when no session or
+  bedtime is running. Tilt's neutral is taken again when a session resumes.
+- **O69, which taps start a session:** a tap that reaches the world, on open
+  ground (a call) or an object (it operates it). Not the parent zone or an
+  edge button; the edge buttons still move the camera in screensaver mode.
+- **O70, edge-button press:** at least one fixed step per press; the camera
+  keeps moving at a steady pace while the finger stays down and eases to a
+  stop on release. Leaving a framing zone takes about 1 s of holding; a short
+  press stays inside. Holding is the same button pressed longer, not a new
+  gesture.
+- **O71, first-play hint:** the 10 s count from the first frame the world
+  shows on a fresh save of the level (screensaver mode right after setup),
+  and again each time the world shows while the hint is due. The first call
+  marks it done in the level's save, so deleting the save brings it back.
+  Not shown during bedtime.
+- **O72, deleting the running level's save:** the level reloads fresh at
+  once, as on a fresh install; the hint is due again and the celebration can
+  play again. The session or bedtime and their timers carry on. Deleting
+  removes the backup too.
+- **O73, forgotten code:** with no screen lock, "forgot the code?" explains
+  that clearing the app's data is the only way and that it erases all
+  progress. Cancelling or failing Android's prompt returns to the code prompt,
+  with nothing changed and no wrong try counted. The new code is typed twice;
+  the parent is then back at the code prompt for the action they started,
+  with the wrong tries and any wait cleared.
+- **O74, pinning timing:** on first launch, right after setup is completed;
+  on every later launch, before the world takes a tap. Coming back from the
+  background doesn't ask again. "Leave" closes the app, so the next open is a
+  launch and asks.
+- **O75, back without pinning:** the back gesture leaves the app as Android
+  normally does; the session keeps counting and reopening resumes. Setup says
+  so. The alternative, catching back alone, is left for the user.
+- **O76, wrong-code wait:** the count and the end of the wait are stored on
+  disk and survive the prompt closing and the app being killed. One count for
+  every parent button, reset by a correct code or a code reset, starting from
+  0 after a wait. "Forgot the code?" works during the wait.
+- **O77, language (a guess, for the user to confirm):** parent-facing text in
+  the phone's language when v1 has it, English otherwise; v1 ships English
+  and French.
+- Why: each follows the design stance (watching is playing, nothing to fail,
+  every touch is answered, sessions end softly, simple) and the personas:
+  leaving the app or deleting a save never dodges bedtime (P4.G1), a parent
+  is never stuck (P4.G3, P4.G4), and the 2-year-old's poke changes nothing
+  for his sister (P2.G2). The one exception to "every touch is answered" is
+  the second finger (O67), where "the first touch wins" (D66) comes first.

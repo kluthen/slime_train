@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v4 (proposed; waiting for the user's review)
+Status: draft v5 (proposed; waiting for the user's review)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -384,7 +384,10 @@ parallel with the camera and objects work.
 ## Open questions that block chunks
 
 Raised by the first UX review. Each must be settled before its chunk is
-finished (see the master spec's Known gaps, item 6):
+finished (see the master spec's Known gaps, item 6). All of them now have
+proposed defaults in the master spec and access model, tagged (proposed)
+(D95): a chunk builds to them and can close on them unless the user
+overrules them.
 
 | Chunk | Questions |
 |---|---|
