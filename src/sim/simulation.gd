@@ -9,8 +9,9 @@ extends RefCounted
 ## push_input() and consumed at the start of the next step(). An event pushed
 ## while `tick` is T is stamped with T.
 ##
-## For now the state is the tick counter, the master Rng, an empty slime list
-## and a record of the input received. Later chunks fill it in; each piece of
+## For now the state is the tick counter, the master Rng, the level played
+## (its ID and version), an empty slime list and a record of the input
+## received. Later chunks fill it in; each piece of
 ## state they add must appear in dump().
 
 ## Simulation ticks per second. Tuning durations (3 s of contact to fuse, 10 s
@@ -30,6 +31,10 @@ var tick := 0
 ## The master random generator. All gameplay randomness comes from it or from
 ## streams derived from it (Rng.derive).
 var rng: Rng
+## The level played, as plain data (loop, routes back), or null. Set by the
+## game root once the level scene has loaded. Its geometry is static; only its
+## ID and version go into dump().
+var level: LevelData = null
 ## Placeholder: the slimes. Filled from chunk 5 on.
 var slimes: Array = []
 ## Placeholder until chunk 11: the last tilt received, in degrees.
@@ -97,6 +102,7 @@ func dump() -> Dictionary:
 		"tick": tick,
 		"seed": str(rng.seed_value),
 		"rng_state": str(rng.state),
+		"level": level.header() if level != null else null,
 		"slimes": slimes.duplicate(true),
 		"input": {
 			"tilt_degrees": tilt_degrees,

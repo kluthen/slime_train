@@ -8,7 +8,17 @@ extends Node2D
 ## or the "--test-mode" command-line flag, and only in a debug build. This
 ## script names test-mode code by path only, never by class, so a release
 ## export can leave src/test_mode/ out.
+##
+## In a debug build it loads the test level (levels/test/), puts a plain
+## camera on the start basin and hands the level's plain data to the
+## simulation. The test level is named by path too: it never ships (D91).
+## A release build has no level yet (the real first level comes later).
+# @spec-link [[req_test_level_and_test_mode]]
 
+const TEST_LEVEL_SCENE := "res://levels/test/level.tscn"
+## Where the camera sits relative to the first slime: a little above it, so
+## the basin's floor and the first sleeper's ledge are both in view.
+const CAMERA_OFFSET := Vector2(0, -120)
 const TEST_MODE_SCRIPT := "res://src/test_mode/test_mode.gd"
 const TEST_MODE_REFUSED := "Test mode is not available in this build (release builds never run it)."
 ## The most ticks one frame runs at normal speed (8 ticks: a 133 ms hitch).
@@ -16,6 +26,10 @@ const TEST_MODE_REFUSED := "Test mode is not available in this build (release bu
 const MAX_TICKS_PER_FRAME := 8
 
 var simulation: Simulation
+## The loaded level, or null (a release build has none yet).
+var level: Level = null
+## A plain camera on the start basin. The camera rails come with chunk 13.
+var camera: Camera2D = null
 ## The running TestMode, or null. Loosely typed on purpose (see above).
 var test_mode: RefCounted = null
 ## Replaced by tests to check the release path.
@@ -26,7 +40,9 @@ var _clock := FixedStep.new()
 
 func _ready() -> void:
 	print("Slime Train booted (Godot %s)." % Engine.get_version_info().string)
-	simulation = Simulation.new(Rng.random_seed())
+	if test_mode_guard.allows():
+		_load_level(TEST_LEVEL_SCENE)
+	simulation = _new_simulation(Rng.random_seed())
 	var user_args := OS.get_cmdline_user_args()
 	if TestModeGuard.requested(user_args):
 		var errors := start_test_mode_from_args(user_args)
@@ -85,7 +101,7 @@ func enable_test_mode(config: Dictionary) -> PackedStringArray:
 	if test_mode != null:
 		test_mode.detach()
 	test_mode = candidate
-	simulation = Simulation.new(candidate.seed_value)
+	simulation = _new_simulation(candidate.seed_value)
 	_clock.reset()
 	test_mode.attach(self)
 	return PackedStringArray()
@@ -110,3 +126,23 @@ func start_test_mode_from_args(user_args: PackedStringArray) -> PackedStringArra
 			print("STATE_JSON ", StateHash.canonical_json(simulation.dump()))
 		get_tree().quit()
 	return PackedStringArray()
+
+
+## Adds the level scene at `path` and a camera on its start basin.
+func _load_level(path: String) -> void:
+	level = load(path).instantiate()
+	add_child(level)
+	camera = Camera2D.new()
+	camera.name = "Camera"
+	camera.position = level.start_position() + CAMERA_OFFSET
+	camera.limit_left = 0
+	add_child(camera)
+	camera.make_current()
+
+
+## A fresh simulation from `seed_value`, holding the level's plain data.
+func _new_simulation(seed_value: int) -> Simulation:
+	var fresh := Simulation.new(seed_value)
+	if level != null:
+		fresh.level = level.data
+	return fresh

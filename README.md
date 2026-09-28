@@ -22,7 +22,11 @@ limits play to 15 minutes at most, and the session ends with a gentle
 settings, the code layout and the headless test runner, plus one seeded
 random generator, a fixed 60-tick simulation step, test mode (scripted taps
 and tilt, time control, a fixture stub; debug builds only) and a headless
-end-to-end runner comparing state hashes. There is no gameplay code yet.
+end-to-end runner comparing state hashes. Chunk 4 (level scaffolding) adds
+the reusable level components and a greybox of the test level's first
+section, Meadow, which a debug build loads with a plain camera on the start
+basin. The objects are placeholders with no behaviour yet: there are no
+slimes and no gameplay yet.
 UX design (`ui_ux/`) has an inventory and open questions, no design yet.
 
 ## Direction so far
