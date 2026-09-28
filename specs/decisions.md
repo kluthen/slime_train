@@ -612,3 +612,12 @@ Resolves O40.
 - **Size:** bigger slimes hop a little less often, but further and higher.
 - **Bedtime wind-down:** every slime hops more slowly (D28).
 - All the numbers are tuning values.
+
+## D75 — Terminology confirmed (2026-09-28)
+Resolves O32.
+- Adopted: **level, section, unsure, heading back, signpost, large signpost,
+  filter, screensaver mode, sunrise, framing zone**.
+- **Split zone** is the only term for a place that splits slimes back into base
+  slimes. It replaces "defusing spot" (and "split object").
+- **Route back** is added: the route an exploration branch provides back to the
+  loop.

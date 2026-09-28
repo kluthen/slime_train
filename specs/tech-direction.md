@@ -19,7 +19,7 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
 
 - **No custom level editor** (D6). Levels are Godot scenes built in Godot's
   own editor. Curved terrain uses Path2D/Curve2D with collision polygons.
-- Every interactive element (gate, basket, switch, reveal zone, defuse spot…)
+- Every interactive element (gate, basket, switch, reveal zone, split zone…)
   is a **reusable, programmed component** configured through its properties
   in the editor. There are no per-level scripts, so extra levels (possible
   paid DLC) stay content rather than code.

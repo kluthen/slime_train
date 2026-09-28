@@ -4,9 +4,9 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 | Document | Purpose | Status |
 |---|---|---|
-| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v21 |
-| `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v9 |
-| `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v6 |
+| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v22 |
+| `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v10 |
+| `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v7 |
 | `tech-direction.md` | Engine, level authoring, slime simulation, saving, session lock implementation | draft v10 |
 | `versions/` | Scope per version (v1–v4…) plus `timeline.md` for features with no version yet (D52) | live |
 | `level-design.md` | Rules every level must follow; the checklist for level design sessions | draft v4 |
@@ -85,6 +85,8 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 - Hopping rules per state: the train bounces unevenly, called slimes hop eagerly, and big slimes hop less often but further (D74).
 
+- Terminology confirmed; "split zone" replaces "defusing spot", and "route back" is added (D75).
+
 ## Where to resume
 
-Next: O32 (confirm the proposed terms). After that: a dedicated session on the first level's design (O22), and the O14 prototypes.
+Only two questions remain open, and neither can be settled in conversation: O22 (return to the start, for the first level's design session) and O14 (prototype risks). Parked: O12 (music), O13 (procedural generation). Next steps to choose from: the first level's design session, the O14 prototypes, or consolidating the v1 master spec (only when the user asks).

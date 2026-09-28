@@ -15,7 +15,8 @@ terms are added.
 
 When the user misuses a term, or uses an old synonym (for example "type"
 instead of "species", "gate" for what is now a "switch", or "path" or "new
-loop" for what is now the "loop" or a "section"):
+loop" for what is now the "loop" or a "section", "defusing spot" for what is
+now a "split zone"):
 
 - Understand what they meant and carry on normally. Never block on it.
 - At the **end** of your message, add a short, friendly information box that

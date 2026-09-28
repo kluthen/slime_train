@@ -1,6 +1,6 @@
 # Interactive objects
 
-Status: draft v6
+Status: draft v7
 
 **Versions (D50, D54):** v1 has only the frontier-gate set (switch, basket,
 gate) and the split zone at the start of the loop. Every other object comes in
@@ -61,8 +61,8 @@ A walkway that bends under load. Activation: presence.
   trickle takes the other. The call can **hold** slimes on it (piling up
   weight) or **hurry** them across (so it stays straight).
 
-### Defusing spot (precursor, D38)
-A split object or zone. It instantly splits slimes back into base slimes.
+### Split zone (D38, D75)
+A place that instantly splits slimes back into base slimes.
 The start of the loop carries one (D23, D54). Not specified in detail yet.
 
 ### Signpost (D47)

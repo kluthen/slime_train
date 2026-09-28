@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v9
+Status: draft v10
 
 ## States
 
@@ -78,8 +78,8 @@ Slimes move only by hopping.
 
 ## Splitting
 
-- Only specific **split objects or zones** split slimes (D38). The defusing
-  spot is one of them, and it splits a slime back into base slimes instantly.
+- Only **split zones** split slimes. A split zone splits a slime back into base
+  slimes instantly (D38, D75).
 - Slimes reaching the start of the loop split back into base slimes (D23).
   This is because the start of the loop carries a split zone (D54).
 

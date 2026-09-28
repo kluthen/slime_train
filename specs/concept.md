@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v21
+Status: draft v22
 
 ## One-liner
 
@@ -142,12 +142,17 @@ pattern is a switch plus a basket (D14).
 - Business model (D31): the base game is paid (about $3–5), and new levels
   come later as paid unlocks (about $2).
 
-## Candidate actions (from precursor, each still to be specified)
+## The precursor's actions: where they landed
 
-Gates redirecting the flow (for example into a waiting basket that opens the
-next section), jumping toward a tapped target that is out of reach, objects
-activated by slime contact, zones revealed when slimes approach, fusing,
-defusing spots, waking by contact.
+| Precursor action | Now |
+|---|---|
+| Gates redirecting the flow into a basket | switch plus basket opening a frontier gate (D14, D35) |
+| Jumping toward something out of reach | a called slime jumps upward toward a higher call point (D74) |
+| Objects activated by slime contact | presence objects, by weight (D16); v2 |
+| Zones revealed when slimes approach | reveal zones; v2 |
+| Fusing | D20, D37, D49 |
+| Defusing | split zones (D38, D75) |
+| Waking | a free slime touching a sleeper (D13, D70) |
 
 ## Session and parental controls
 
@@ -206,17 +211,20 @@ survives the app being killed.
 | lost | a left-alone slime not back on the loop after 1 min; teleported to the loop start |
 | free slime | an awake slime attracted away from the loop, driven by physics alone until it rejoins |
 | session | one timed play period (15 min for now) |
-| level | a whole world with its own loop, sections and save file; the first release ships one (proposed) |
-| signpost | a sign at a fork showing which way the loop goes; a larger one lets the child pick the camera's branch (proposed) |
-| filter | a fork that sends slimes down a branch by species; usually has a signpost next to it (proposed) |
-| screensaver mode | the world running with no session, after sunrise and before the first tap (proposed) |
-| framing zone | an area of the level that sets the camera's zoom and position when the camera reaches it (proposed) |
-| sunrise | the end of bedtime: slimes wake up and screensaver mode begins (proposed) |
+| level | a whole world with its own loop, sections and save file; the first release ships one |
+| signpost | a sign at a fork showing which way the loop goes |
+| large signpost | a signpost that also lets the child pick which branch the camera follows |
+| filter | a fork that sends slimes down a branch by species; usually has a signpost next to it |
+| screensaver mode | the world running with no session, after sunrise and before the first tap |
+| framing zone | an area of the level that sets the camera's zoom and position when the camera reaches it |
+| sunrise | the end of bedtime: slimes wake up and screensaver mode begins |
 | species | a kind of slime; only the same species fuse (replaces the precursor's "type") |
 | call | a tap that draws nearby awake slimes toward a point (D46) |
-| unsure | a free slime just after a call ends, lingering near the call point (proposed) |
-| heading back | a free slime making for the loop (proposed) |
+| unsure | a free slime just after a call ends, lingering near the call point |
+| heading back | a free slime making for the loop |
 | size | the number of base slimes a slime is made of; equals its weight |
-| section | the part of the world opened by one gate (proposed) |
+| section | the part of a level opened by one gate |
+| split zone | a place that splits slimes back into base slimes; the start of the loop has one (replaces "defusing spot") |
+| route back | the route an exploration branch provides back to the loop |
 | parent gate | the 6-digit code an adult enters to leave, change settings, or end bedtime early |
 | bedtime | the end of a session: slimes fall asleep until sunrise (parent code or 10 min); not the same as a sleeper |
