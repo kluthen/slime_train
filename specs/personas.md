@@ -1,6 +1,6 @@
 # Personas
 
-Status: draft v1
+Status: draft v2
 
 Who Slime Train is for, what each person is trying to get done, and the
 circumstances they use it in. These are built from the real people the user
@@ -16,8 +16,11 @@ parent behind the code) belongs to the parent gate rules (D30, D57), not here.
 **Who:** a 3-year-old girl who has **never played a video game**. She is the
 main player.
 
-**Context:** a Samsung Galaxy S20 FE. When and where the phone is handed over,
-and whether she holds it or it lies on a table, are still open (O15).
+**Context:** a Samsung Galaxy S20 FE, at home, in the daytime. The phone is
+handed over **as a reward for good behaviour, or for a little while after
+school**. It is not a before-sleep routine. The parent chooses when to hand it
+over. How she holds it (in her hands, flat on a table, on her lap) isn't
+known, so tilt stays optional (proposed, see below).
 
 **Goals:**
 - See something pleasant happen and keep watching it.
@@ -30,6 +33,18 @@ and whether she holds it or it lies on a table, are still open (O15).
 - Doesn't read. Digits are not a given.
 - Holding the phone steady, or tilting it on purpose, is uncertain at 3.
 - Short bursts of attention. She may put the phone down and come back.
+
+**What the context means:**
+- A reward has to **end without a fight**. The session ends softly, falls
+  asleep on its own, and nobody has to take the phone away mid-action. That is
+  why bedtime is gentle (D28).
+- It happens at home during the day, so v1 having no sound (D50) isn't a
+  problem.
+- (proposed) **Tilt is a bonus and never needed to make progress.** v1 already
+  guarantees this: only free slimes feel tilt, and the loop works with no
+  input (D19). Tilt objects arrive in v2, and a v2 design rule should keep
+  them from being the only way forward. Whether a 3-year-old uses tilt at all
+  is something to watch in playtests.
 
 ## Secondary: the watching sibling (2 years old)
 
@@ -77,6 +92,7 @@ and the friends' parents.
 | Newcomer: learn with no explanation | **gap:** nothing yet. How a first-time player discovers the call is O49 |
 | Sibling: safe to poke | parent gate on every parent button (D57); two touches at once is O48 |
 | Early player: goals to reach | sleepers, fusion, the frontier-gate set, exploration (D13, D20, D54, D45) |
+| Parent: a reward that ends without a fight | a gentle bedtime, slimes falling asleep on their own (D28) |
 | Parent: bounded time | 15 min real-time sessions, bedtime, 10 min cooldown (D29, D44, D56) |
 | Parent: the child can't get out | screen pinning plus the parent code (D1, D30) |
 | Parent: easy setup | one-time setup at first launch (D55) |

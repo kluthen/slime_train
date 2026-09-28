@@ -490,3 +490,12 @@ Resolves O47.
 - The idle camera during a session uses screensaver mode's wider zoom.
 - The cue 10 s before is simply the start of that zoom-out. The first touch
   zooms back in.
+
+## D63 — Context of use for the personas (2026-09-28)
+Resolves O15.
+- The child plays at home in the daytime: **as a reward for good behaviour, or
+  for a little while after school**. It is not a before-sleep routine.
+- A reward has to end without a fight, which D28's gentle bedtime supports.
+- (proposed) Tilt is a bonus and never needed to make progress. How the phone
+  is held isn't known, and playtests will show whether a 3-year-old tilts at
+  all.

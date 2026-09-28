@@ -7,7 +7,6 @@ Each entry has a stable ID. Once resolved, an entry moves to `decisions.md`.
 | ID | Question | Where |
 |---|---|---|
 | O14 | Godot risks to test with prototypes: Android audio latency, 30–50 slimes on a low-end phone, tilt input, running end-to-end tests on Linux without a screen, and a vector rendering approach. | tech-direction |
-| O15 | Personas, still open: when and where the phone is handed over, and whether the child holds it or it lies on a table or lap. This affects tilt (D19). (`personas.md` is started.) | personas |
 | O20 | Save-file versioning: what happens to a level's save when an update changes that level (proposed: the save records the level version, and an incompatible save is reset)? (One save per level is settled: D43.) | tech-direction |
 | O21 | How long a call lasts: a fixed time after the tap, or until the slimes arrive? (Tap-to-call is settled: D46. The radius is a tuning value, see `tuning.md`.) | concept |
 | O22 | Return to the start: how are slimes herded back from an unopened frontier gate (wind, slide, conveyor…)? Every new section needs its own return route. For the first level's design session (D34). | concept |
