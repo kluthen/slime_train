@@ -21,7 +21,7 @@ Guarantee that the 6-digit parent code is never persisted on the phone in a form
 The parent code is stored locally only, as everywhere else in the app (no server, no account): it is never written to disk in plain text, at first-launch setup, on a change, or on a reset after a forgotten code. Whatever local storage holds instead (a hash or equivalent) is a technical choice for the implementer; this rule only guarantees that reading the save data directly never discloses the code. This does not weaken step-up: the code prompt still compares against the stored value, and a wrong entry still shakes, clears and counts toward the 5-in-a-row wait.
 
 ## TECHNICAL INTERFACE
-Parented to req_parent_gate_and_access. Sibling guarantee to rule_no_network_connection (same parent, same privacy stance): protects the parent code the way that rule protects against remote access. Not yet stated in the requirement atom's own text or restated elsewhere in the business record; the leader implementing the parent-gate settings work should still treat it as governing, and the gap should be reported so the wider record can absorb it.
+Parented to req_parent_gate_and_access. Sibling guarantee to rule_no_network_connection (same parent, same privacy stance): protects the parent code the way that rule protects against remote access. Now also stated directly in the master spec's own parent-gate section and in the access model's role-assignment section (D98), not only here and in the build plan.
 
 ## EXPECTATION
 No file or save on the phone holds the parent code in plain text, under any of the three ways the code is set (create, change, reset).
