@@ -9,6 +9,7 @@ dependents:
   - [[req_camera_rails_and_framing]]
   - [[req_first_play_hint]]
   - [[req_parent_gate_and_access]]
+  - [[req_tilt_input]]
 type: REQUIREMENT
 layer: BUSINESS
 tags: [controls,input]
