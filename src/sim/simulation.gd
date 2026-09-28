@@ -400,6 +400,8 @@ func _apply_input(event: Dictionary) -> void:
 ## call.
 # @spec-link [[req_controls_tap_zones]]
 # @spec-link [[req_call_mechanic]]
+# @spec-link [[req_denial_and_stepup_behavior]]
+# @spec-link [[req_session_lifecycle]]
 func _tap(finger: int, at: Vector2) -> void:
 	# At bedtime taps only ripple: no object, no edge button (hidden), no call.
 	var bedtime := session.phase == Session.BEDTIME

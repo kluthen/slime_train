@@ -19,6 +19,7 @@ extends RefCounted
 ##     run starts (both clocks, as for a skip), and "restarted": true, the
 ##     app was killed or the phone restarted meanwhile: a new epoch, the
 ##     monotonic clock from 0.
+# @spec-link [[req_session_lifecycle]]
 
 const DEFAULT_WALL_MS := 1_800_000_000_000
 const DEFAULT_MONO_MS := 0
