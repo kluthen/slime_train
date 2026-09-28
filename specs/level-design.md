@@ -1,6 +1,6 @@
 # Level design requirements
 
-Status: draft v3
+Status: draft v4
 
 Rules every level must follow, whoever builds it. These rules make up the
 checklist for the dedicated first-level design session (O22). Levels are
@@ -46,6 +46,12 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
 
 17. **Sleepers never sit on the loop itself.** Waking always takes a call
     (D70).
+
+## After release
+
+18. **A released level isn't meant to change.** Any update must be minor and
+    ship with a save migration. Keep the stable IDs of slimes, objects and
+    gates (D72).
 
 ## Onboarding
 

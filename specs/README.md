@@ -4,12 +4,12 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 | Document | Purpose | Status |
 |---|---|---|
-| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v19 |
+| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v20 |
 | `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v7 |
 | `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v6 |
-| `tech-direction.md` | Engine, level authoring, slime simulation, saving, session lock implementation | draft v9 |
+| `tech-direction.md` | Engine, level authoring, slime simulation, saving, session lock implementation | draft v10 |
 | `versions/` | Scope per version (v1–v4…) plus `timeline.md` for features with no version yet (D52) | live |
-| `level-design.md` | Rules every level must follow; the checklist for level design sessions | draft v3 |
+| `level-design.md` | Rules every level must follow; the checklist for level design sessions | draft v4 |
 | `personas.md` | Who the game is for: the newcomer (3), the watching sibling (2), the early player (4), the parent | draft v4 |
 | `tuning.md` | Every number left to prototypes, with its starting value | live |
 | `open-questions.md` | Register of unresolved decisions (O1…) | live |
@@ -79,6 +79,8 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 - Off-screen rules: free slimes follow their route back, fusion and waking happen only on screen, only free slimes wake sleepers, and sleepers never sit on the loop. Baskets fill off screen, earn a reward animation, and can be abandoned before they're full (D70).
 - Phones: S20 FE is the reference; the floor is Galaxy A14 class; if needed the floor rises and the 200 cap stays (D71). Test environments proposed in `tech-direction.md`.
 
+- Saves are never wiped. Released levels aren't meant to change, and any minor update ships with its migration. Displaced slimes count as lost (D72).
+
 ## Where to resume
 
-Next: O20 (save versioning). Then O21 (how long a call lasts), O40 (hop decision), O32 (terms). After that: a dedicated session on the first level's design (O22), and the O14 prototypes.
+Next: O21 (how long a call lasts). Then O40 (hop decision), O32 (terms). After that: a dedicated session on the first level's design (O22), and the O14 prototypes.

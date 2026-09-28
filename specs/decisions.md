@@ -577,3 +577,14 @@ Resolves O50.
   A14 class), reached through physics only near the screen (D69).
 - If the O14 prototype can't hold 200 slimes on the floor phone, the floor
   rises to S20 FE class. The 200 cap (D67) stays.
+
+## D72 — Level updates and saves (2026-09-28)
+Resolves O20.
+- The intent is **never to update a released level**. If an update does
+  happen, it should only be a minor change.
+- **Saves are never wiped.**
+- Slimes displaced by an update are treated as **lost** and reappear at the
+  start of the loop (D10).
+- **Any level update must ship with its migration.**
+- (proposed) To make that possible, the save records the level's version, and
+  slimes, objects and gates keep stable IDs across versions.

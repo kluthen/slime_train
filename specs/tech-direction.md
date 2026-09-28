@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v9
+Status: draft v10
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 
@@ -62,8 +62,12 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
 
 ## Saving (D7, D12, D43)
 
-- One save file per level. The user can delete one level's save. Versioning
-  across level updates is O20.
+- One save file per level. The user can delete one level's save (D43).
+- Released levels aren't meant to change. If one does, the update must be
+  minor and ship with its migration. Saves are never wiped, and displaced
+  slimes count as lost and reappear at the start of the loop (D72).
+- (proposed) The save records the level's version, and slimes, objects and
+  gates keep stable IDs across versions.
 
 ## Camera (D33, D60)
 

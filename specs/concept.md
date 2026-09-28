@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v19
+Status: draft v20
 
 ## One-liner
 
@@ -90,7 +90,8 @@ species, size and position, plus the state of every interactive object. It is
 saved every 15 s and whenever the app goes to the background. On load, a slime
 saved in mid-air is placed on the ground or at its jump start, or declared lost
 (D12). Each level has its own save file, and the user can delete one level's
-save (D43). Save-file versioning is O20.
+save (D43). Saves are never wiped. A released level isn't meant to change,
+and any minor update ships with its migration (D72).
 
 ## Controls
 
