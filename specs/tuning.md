@@ -19,7 +19,10 @@ value to try. When a value is tuned, update it here and log the result in
 | Camera drag toward a call: speed, and when it goes back | slow and steady; to try | D45 |
 | Call radius | about half the screen width (proposed) | D46 |
 | Call cap (a slime that can't reach the point gives up) | about 8 s | D73 |
-| How often a slime hops, and how far | every few seconds; grows with size | D21, O40 |
+| Train slime hop interval | ~1.5–3 s, random per slime | D74 |
+| Hop rate when answering a call | a bit faster than on the train | D74 |
+| Size effect on hops | bigger: a little less often, further and higher | D24, D74 |
+| Wind-down hop slowdown | slower in the last minute | D28, D74 |
 | Tilt | ±45° cap, about 10° dead zone | D19 |
 | Session length | 15 min (fixed in v1) | D29 |
 | Cooldown after bedtime | 10 min | D29, D44 |

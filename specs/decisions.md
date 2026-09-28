@@ -598,3 +598,17 @@ Resolves O21.
   range of it (D66).
 - Called slimes gather in a clump at the call point. That is the natural way
   to get same-species fusion going (D20, D37).
+
+## D74 — How slimes hop (2026-09-28)
+Resolves O40.
+- **Train slime:** hops forward along the loop every ~1.5–3 s. Each slime has
+  a little random timing, so the train bounces unevenly.
+- **Answering a call:** hops toward the call point, a bit more often. If the
+  point is higher up, it jumps upward, and bigger slimes jump higher (D24).
+- **Unsure:** small, lazy hops in random directions near the call point (D27).
+- **Heading back:** hops along its area's route back (D41, D51).
+- **No hopping:** sleepers, bedtime-asleep slimes, slimes covered by others
+  (D37), and slimes resting in a full basket (D69).
+- **Size:** bigger slimes hop a little less often, but further and higher.
+- **Bedtime wind-down:** every slime hops more slowly (D28).
+- All the numbers are tuning values.

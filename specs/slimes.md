@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v8
+Status: draft v9
 
 ## States
 
@@ -33,12 +33,21 @@ and it may roll downhill. Phase names are proposed (O32).
   route back (if there is none, it is lost).
 - Fusion and waking happen only on screen.
 
-## Movement (D21)
+## Movement (D21, D74)
 
-Every few seconds a slime makes a small hop in a direction of its choosing.
-A train slime hops along the loop. How far and how often a hop goes depends
-on the slime's size (see below). A slime covered by other slimes doesn't hop
-(D37). When and where a slime hops in general is O40.
+Slimes move only by hopping.
+
+| State | Hopping |
+|---|---|
+| train slime | forward along the loop every ~1.5–3 s, with a little random timing per slime so the train bounces unevenly |
+| answering a call | toward the call point, a bit more often; jumps upward when the point is higher, and bigger slimes jump higher |
+| unsure | small, lazy hops in random directions near the call point |
+| heading back | along its area's route back |
+| sleeper, bedtime-asleep, covered by other slimes, resting in a full basket | no hopping |
+
+- Bigger slimes hop a little less often, but further and higher.
+- During bedtime's wind-down, every slime hops more slowly.
+- The numbers are in `tuning.md`.
 
 ## Size and weight (D24, D16)
 

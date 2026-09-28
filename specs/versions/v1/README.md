@@ -23,7 +23,7 @@ Items are settled unless tagged (proposed). The decision IDs point to
 **Slimes**
 - The train follows the loop. The game wakes the first slime, and sleepers
   wake on contact (D8, D11, D13).
-- Movement by hopping (D21).
+- Movement by hopping, with each state's hopping rules (D21, D74).
 - Fusion after 3 s of contact; a hop resets the count (D37). Maximum size 3,
   and slimes that would go over it just bump (D39, D49). Size = weight (D24).
 - Free slimes: answering the call, then unsure, then heading back by the
@@ -86,4 +86,4 @@ Items are settled unless tagged (proposed). The decision IDs point to
 
 ## Open for v1
 
-O14, O22, O40, O50 (see `../../open-questions.md`).
+O14, O22, O32, O50 (see `../../open-questions.md`).

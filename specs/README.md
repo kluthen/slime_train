@@ -5,7 +5,7 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 | Document | Purpose | Status |
 |---|---|---|
 | `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v21 |
-| `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v8 |
+| `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v9 |
 | `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v6 |
 | `tech-direction.md` | Engine, level authoring, slime simulation, saving, session lock implementation | draft v10 |
 | `versions/` | Scope per version (v1–v4…) plus `timeline.md` for features with no version yet (D52) | live |
@@ -83,6 +83,8 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 - A call lasts until each slime reaches the point (capped at about 8 s), and a new tap replaces it (D73).
 
+- Hopping rules per state: the train bounces unevenly, called slimes hop eagerly, and big slimes hop less often but further (D74).
+
 ## Where to resume
 
-Next: O40 (hop decision), then O32 (terms). After that: a dedicated session on the first level's design (O22), and the O14 prototypes.
+Next: O32 (confirm the proposed terms). After that: a dedicated session on the first level's design (O22), and the O14 prototypes.
