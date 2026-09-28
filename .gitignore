@@ -1,9 +1,9 @@
-# Agent/tooling logs
-.agent/
-
-# Godot
+# Godot 4+ specific ignores
 .godot/
 /android/
+
+# Agent/tooling logs
+.agent/
 
 # Build outputs
 /build/

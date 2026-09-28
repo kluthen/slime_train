@@ -210,7 +210,7 @@ outlet.
 |---|---|---|---|
 | `s1.frame.high-step` | 3.5–4.5 | the loop and the ledge | framing beside the loop |
 | `s1.frame.tree` | 4.5–5.5 | the loop and the tree's lower platform | zoom out and shift up; the exit delay |
-| `s2.frame.parade` | 9–10 | the parade, slightly wider | combining with the idle and screensaver zoom-out |
+| `s2.frame.parade` | 9–10 | the parade, slightly wider | being ignored while the idle camera or screensaver mode follows a slime, then resuming (D80) |
 | `s2.frame.gate` | 12.2–13 | gate 2, the slide entrance and the basket pit | reward waiting for view |
 | `s3.frame.bowl` | 13.5–15.5 | the whole bowl | a strong zoom-out; stress |
 | `s3.frame.basket` | 15.3–16.5 | switch 3 and the basket pit | a big still pile |
