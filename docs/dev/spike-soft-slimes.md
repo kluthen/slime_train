@@ -8,9 +8,9 @@ targets it measures against are in master-spec.md §7: **60 fps on the
 reference phone, at least 30 fps on the floor phone with 200 slimes on one
 screen.**
 
-Only the desktop has been measured so far. The reference phone (Galaxy S20
-FE) and the floor phone (Galaxy A14 class, not bought yet) are still to do,
-so chunk 1's "Done when" is only half met (see "Retest on the phones").
+The desktop and the reference phone (Galaxy S20 FE 5G) have been measured;
+see "Reference phone (Galaxy S20 FE 5G)". The floor phone (Galaxy A14 class,
+not bought yet) is still to do (see "Retest on the phones").
 
 ## Approach
 
@@ -103,6 +103,9 @@ godot --path . --rendering-method gl_compatibility --resolution 1920x1080 \
 # The whole matrix (2 renderers x 2 modes x 3 point counts x 3 draw variants, ~7 min)
 spikes/soft-slimes/run_bench.sh
 
+# The same matrix for one renderer in a single process (what the phone runs)
+godot --path . spikes/soft-slimes/spike.tscn -- --matrix [--soak=600] [--draw-only]
+
 # Native estimate
 g++ -O2 -std=c++17 -o /tmp/native_estimate spikes/soft-slimes/native_estimate.cpp
 /tmp/native_estimate 16 1        # points, moving (0|1)
@@ -111,7 +114,19 @@ g++ -O2 -std=c++17 -o /tmp/native_estimate spikes/soft-slimes/native_estimate.cp
 Spike arguments (after `--`): `--mode=still|moving`, `--points=N`,
 `--draw=blend|direct`, `--field-scale=X`, `--count=200`, `--substeps=2`,
 `--iterations=1`, `--step=frame|physics`, `--warmup=S`, `--measure=S`,
-`--bench` (quit after measuring) and `--shot=PATH` (save a screenshot).
+`--bench` (quit after measuring), `--shot=PATH` (save a screenshot),
+`--matrix` (every mode × points × draw case in turn, then the first case
+again as a drift check), `--soak=S` (then a moving run of S seconds with a
+`SOAK` line every 10 s) and `--draw-only` (a settled pile with the
+simulation frozen, so the frame is bound by drawing). Each matrix case
+starts from a fresh pile and warms up for at least 4 s and 400 ticks.
+
+**On a phone:** export the preset "Android spike: soft slimes" (see
+`docs/dev/README.md` "Android export (debug)"). With no command line, the
+spike runs `--matrix --soak=600` (about 15 minutes) and quits; the results
+are the `RESULT` and `SOAK` lines in `adb logcat -s godot:*`. Other options
+go into the preset's `command_line/extra_args` after `--`, for example
+`--rendering-method mobile -- --draw-only`.
 
 ## Desktop
 
@@ -220,8 +235,10 @@ phones.
 
 ## What the numbers mean for the phones
 
-These are desktop numbers. They set **the CPU cost per slime**, and that's
-all. How fast a phone's GPU and thermals are can only be measured on the
+These are desktop numbers, written before the phone was measured; the
+measured S20 FE numbers are in "Reference phone (Galaxy S20 FE 5G)" below
+and replace the S20 FE row here. They set **the CPU cost per slime**, and
+that's all. How fast a phone's GPU and thermals are can only be measured on the
 phone.
 
 Rough single-core ratios against this desktop are about 2.2–2.7× slower for
@@ -239,18 +256,163 @@ UI), so a simulation that takes the whole frame isn't enough. The blend's
 GPU cost on phone GPUs at 2400×1080 is unknown; half-resolution fields are
 the lever if it matters.
 
+## Reference phone (Galaxy S20 FE 5G)
+
+Measured on 2026-09-28 with a debug export of this spike (preset "Android
+spike: soft slimes"), Compatibility renderer, 200 slimes, lockstep.
+
+| | |
+|---|---|
+| Phone | Samsung Galaxy S20 FE 5G, SM-G781B, Android 13 |
+| SoC | Snapdragon 865 (`kona`): 1× Cortex-A77 2.84 GHz, 3× A77 2.42 GHz, 4× A55 1.80 GHz |
+| GPU | Adreno 650: OpenGL ES 3.2 (Compatibility), Vulkan 1.1.128 (Mobile) |
+| Screen | 2400×1080 physical, 60 Hz mode (the phone's "standard" setting; 120 Hz is available) |
+| As seen by the spike | window 2400×1080, viewport 2400×1080, screen scale 1.8; world **1440×648** logical |
+| Conditions | on USB power (charging), room temperature, thermal status 0 (none) at the start |
+
+The world is wider than on the desktop (1440 vs 1152 logical pixels: the
+`canvas_items` stretch with `expand` keeps the 648 px height and widens to
+the 20:9 screen), so the pile is lower and wider. It has ~10% fewer contact
+tests than the desktop's, which slightly flatters the phone.
+
+**Vsync can't be turned off on the phone:** `VSYNC_DISABLED` has no effect
+and the frame rate stops at 60 (59.0 in the table). Below 60 the fps still
+shows the real cost (the swap chain doesn't lock to 30); above it, only the
+sim ms per tick does.
+
+### Matrix (cold)
+
+Run straight after launch; the first case, repeated at the end (4 minutes
+later), gave the same result (38.5 fps, 23.31 ms), so there was no throttling
+during the matrix.
+
+| Mode | Points | fps: blend 1.0 / blend 0.5 / direct | sim ms / tick | draw build ms | render CPU ms: blend / direct | phone ÷ desktop (sim) |
+|---|---|---|---|---|---|---|
+| still | 16 | 38.7 / 38.9 / 39.4 | 23.2 | 1.1–1.2 | 0.65 / 0.38 | 2.11× |
+| still | 12 | 47.8 / 49.1 / 50.2 | 18.1–18.5 | 0.8–0.9 | 0.64 / 0.35 | 2.08× |
+| still | 8 | 59.0 / 59.0 / 59.0 (cap) | 13.6 | 0.6–0.7 | 0.60 / 0.35 | 2.06× |
+| moving | 16 | 42.4 / 42.4 / 43.2 | 21.0 | 1.1–1.2 | 0.66 / 0.38 | 2.05× |
+| moving | 12 | 52.7 / 52.6 / 53.9 | 16.7 | 0.9–1.0 | 0.66 / 0.36 | 2.06× |
+| moving | 8 | 59.0 / 59.0 / 59.0 (cap) | 12.5 | 0.6–0.7 | 0.57 / 0.35 | 2.01× |
+
+The sim cost doesn't depend on the draw variant; the small fps gain of
+`direct` is its lower render CPU time (0.3 ms). **The phone runs the
+GDScript tick 2.0–2.1× slower than the desktop**, a little better than the
+2.2–2.7× estimated below.
+
+### Throttling (soak)
+
+A moving run at 12 points with the blend at full resolution, started right
+after the matrix (so about 4 minutes of full load before it), for 10
+minutes:
+
+| Time into the soak | fps | sim ms / tick |
+|---|---|---|
+| 0–10 s | 51.2 | 17.2 |
+| 50–60 s | 39.5 | 22.5 |
+| 90–100 s | 32.9 | 27.2 |
+| 100–590 s | 32.5–33.1 | 27.0–27.5 (steady) |
+
+At about 4.5 minutes of sustained load the thermal status went from 0 to 1
+("light") and the phone capped its big and prime cores at 1.75 GHz (from
+2.42 and 2.84 GHz; `scaling_max_freq`). 2.84 / 1.75 = 1.62, which is the
+slowdown measured (27.3 / 16.7 = 1.64). The cap then held: steady at ~27 ms
+for 8 minutes, not getting worse. The temperatures stayed moderate
+(processor 38–44 °C, skin 37–39 °C, battery 34–35 °C). The cap follows the
+sustained load, not heat you can feel. **Throttled, the phone is ~3.4× slower
+than the desktop** (27.3 vs 8.08 ms).
+
+### Drawing cost on the phone's GPU
+
+Compatibility (OpenGL ES) returns 0 for
+`viewport_get_measured_render_time_gpu` on the Adreno 650: no GPU timer.
+Two other measurements, with the simulation frozen on a settled 12-point
+pile (`--draw-only`), so the frame is bound by drawing:
+
+| Draw | Mobile (Vulkan): GPU ms | Compatibility: fps | Compatibility: GPU busy (sysfs) |
+|---|---|---|---|
+| blend, fields at 1.0 | **4.97** | 59.2 (cap) | ~20–24% |
+| blend, fields at 0.5 | **2.63** | 59.1 (cap) | ~19% |
+| direct | **1.36** | 59.1 (cap) | ~11% |
+
+- The Vulkan timings are exact per frame. The Compatibility busy
+  percentages (`/sys/class/kgsl/kgsl-3d0/gpu_busy_percentage`, sampled every
+  5 s) are rough: they depend on the GPU clock the governor chose. They are
+  in the same range or lower than Mobile's (~40% during its blend 1.0 case).
+- Both renderers hold the 60 fps cap on drawing alone, at every variant.
+- These runs came after the soak, with the CPU cap still on (so the draw
+  build took ~3 ms instead of ~1 ms).
+- Forward Mobile runs on this phone (Vulkan 1.1) with a lower render CPU
+  time (0.14–0.24 ms vs 0.5–1.1 ms).
+
+### Conclusion against D94
+
+- **Pure GDScript does not hold 60 fps with 200 slimes on the reference
+  phone.** At the chosen 12 points per ring (D94), the tick alone takes
+  18.1 ms still and 16.7 ms moving: 48–53 fps with nothing else in the
+  frame. Only 8 points reaches the 60 fps cap (12.5–13.6 ms), and that
+  leaves 3 ms for everything else. After about 4.5 minutes of play the phone
+  throttles, and the 12-point tick settles at ~27 ms (33 fps). 8 points
+  would then take ~21 ms (~45 fps). The real tick of chunk 5 (terrain
+  segments, friction, touch tracking) is also heavier than the spike's:
+  14.7 ms against 8.75 ms on the desktop for the mixed-size pile
+  (`tools/bench_slimes.gd`), so ~31 ms cold and ~50 ms throttled on this
+  phone.
+- **So the measurement triggers D94's native contingency:** D94 defers the
+  choice to "the first measurement on the reference phone", and this is it.
+  The same tick in C++ costs 0.35–0.48 ms on the desktop, so about 0.8–1.0
+  ms on this phone cold and 1.2–1.6 ms throttled (at the ratios measured
+  here). That leaves most of the frame to the game even when throttled. The
+  cheaper fallbacks (resting slimes stop simulating, fewer points when zoomed
+  out, a 30 Hz tick) can't close a gap this size alone: the throttled tick
+  is 1.6× the whole 60 fps frame budget. **This goes to spec-writer to
+  record; it is not settled here.**
+- **The floor phone (A14 class, not measured).** The estimate for the
+  reference phone was a little pessimistic (2.2–2.7× measured as
+  2.0–2.1×). Taking the floor estimates below as they are:
+  - **A14 4G (Helio G80, ~6× the desktop, ~2.9× this phone):** a 12-point
+    GDScript spike tick is ~50 ms cold (20 fps), and chunk 5's tick is
+    ~88 ms. It fails 30 fps by far.
+  - **A14 5G (Exynos 1330, ~2.7× the desktop):** ~24 ms cold for the spike
+    tick, which fits 33 ms only before throttling and before the game's
+    heavier tick (~40 ms). It fails too.
+
+  Budget phones throttle as well, likely at least as early. In native code
+  (~0.35–0.48 ms × 6 ≈ 2–3 ms, more when throttled), both fit 30 fps.
+- **The blend's cost doesn't matter for the frame rate on this phone:** the
+  GPU works alongside the CPU, and at most 5 ms per frame at full-resolution
+  fields is far from 16.7 ms. It still matters for the battery and for heat:
+  half-resolution fields (what `SlimeRenderer` uses) halve it to 2.6 ms and
+  look the same. The direct fallback (1.4 ms) isn't needed.
+- **Renderer: Compatibility stays (D94).** Both renderers run on the
+  Adreno 650 and hold the cap on drawing alone. Mobile's lower render CPU
+  time (~0.5–0.9 ms saved) is small next to the tick. The Mali-GPU floor phone
+  is still the real test of the choice.
+
 ## Retest on the phones
 
-On the S20 FE now, and on the floor phone once bought, with a debug export
-of this spike:
+Done on the S20 FE (see above): fps and sim ms per tick at 8, 12 and 16
+points, still and moving; the blend's GPU cost at field scale 1.0 vs 0.5 at
+2400×1080 (on Mobile/Vulkan; Compatibility has no GPU timer there);
+Compatibility vs Mobile on drawing; a 10-minute soak.
 
-- fps and sim ms per tick, still and moving, at 8, 12 and 16 points;
-- GPU time of the blend at field scale 1.0 vs 0.5, at the phone's native
-  resolution (2400×1080);
-- Compatibility vs Mobile;
-- throttling: a moving run of 10 minutes or more, fps over time;
-- the native tick, once a GDExtension build exists (a small Android build of
-  `native_estimate.cpp` through the NDK would give the CPU number sooner).
+Still to do:
+
+- **The floor phone**, once bought: the same export as is (matrix + soak,
+  about 15 minutes). On a Mali GPU, also the `--draw-only` run on
+  Compatibility and on Mobile (Vulkan driver risk).
+- **The native tick on the S20 FE:** a small Android build of
+  `native_estimate.cpp` through the NDK (`ndk/28.2.13676358` is installed)
+  pushed with `adb` and run from `adb shell`, before the GDExtension exists.
+  Same on the floor phone.
+- **The Compatibility GPU time** stays unmeasured on Adreno (no timer
+  query). If it ever matters, use a GPU profiler (Android GPU Inspector or
+  Snapdragon Profiler).
+- **120 Hz:** the phone was in its 60 Hz mode. With 120 Hz on, the game
+  should still cap itself at 60 (to check in chunk 22, with the frame pacing).
+- **The whole game at 200 slimes**, throttled, in chunk 22 (the performance
+  pass): terrain, game logic, camera and UI share the frame. The spike
+  doesn't cover them.
 
 ## To carry into chunk 5
 
