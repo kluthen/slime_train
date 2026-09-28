@@ -5,9 +5,9 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 | Document | Purpose | Status |
 |---|---|---|
 | `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v24 |
-| `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v12 |
+| `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v11 |
 | `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v8 |
-| `tech-direction.md` | Engine, level authoring, slime simulation, saving, testability, session lock implementation | draft v11 |
+| `tech-direction.md` | Engine, level authoring, slime simulation, saving, testability, session lock implementation | draft v12 |
 | `versions/` | Scope per version (v1–v4…) plus `timeline.md` for features with no version yet (D52) | live |
 | `level-design.md` | Rules every level must follow; the checklist for level design sessions | draft v6 |
 | `levels/` | One folder per level (D76): `test/` (the test level, draft v2), `01/` (the real first level, not started) | live |
