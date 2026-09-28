@@ -43,7 +43,11 @@ Items are settled unless tagged (proposed). The decision IDs point to
 - The camera runs on rails along the loop, moved with buttons at the left and
   right edges. By default it follows the main stream at forks (D33).
 - A call drags the camera toward it (D45).
-- The idle camera takes over after 45 s and locks onto a train slime (D32).
+- The idle camera takes over after 45 s and follows the train slime nearest
+  the middle of the view, with a slow zoom-out as the cue (D32, D59).
+- Automatic framing: the player never controls the zoom. Framing zones set the
+  zoom and position, and the edge buttons have to push to leave them.
+  Screensaver mode is about 10–20% wider (D60).
 
 **Session and parents**
 - A fixed 15 min session. It starts at the first tap and counts in real time,
@@ -76,4 +80,4 @@ Items are settled unless tagged (proposed). The decision IDs point to
 
 ## Open for v1
 
-O4, O14, O15, O20, O21, O22 (see `../../open-questions.md`).
+O14, O15, O20, O21, O22, O47 (see `../../open-questions.md`).

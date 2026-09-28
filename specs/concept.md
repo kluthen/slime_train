@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v14
+Status: draft v15
 
 ## One-liner
 
@@ -17,9 +17,17 @@ The slimes stand in for LocoRoco.
 - **Watching is playing.** The world keeps moving and stays pleasant to look
   at without any input. Input adds to it; it is never required to keep
   things alive.
-- **Idle camera** (D32). After 45 s with no input, the camera takes over and
-  locks onto a train slime. A slight cue may come 10 s beforehand. What's
-  still open is O4.
+- **Idle camera** (D32, D59). After 45 s with no input, the camera glides to the
+  train slime nearest the middle of the view and follows it. If that slime
+  fuses, the camera follows the fused slime; if it splits, one of the pieces.
+  The cue 10 s beforehand is a slow zoom-out. Any touch takes back control and
+  also does its normal job.
+- **Automatic framing** (D60). The player never controls the zoom. Where the
+  camera is decides the zoom, and sometimes the position. An area that needs a
+  wider view pulls the camera gently into place, and the edge buttons have to
+  push to leave it, like a dip. Screensaver mode is about 10–20% more zoomed
+  out than normal play. Whether the in-session idle camera also zooms out is
+  O47.
 - **Manual camera** (D33). The child moves the camera along the loop, like on
   rails, using left and right buttons at the screen edges. At forks,
   signposts show the directions, and by default the camera follows the main
@@ -188,6 +196,7 @@ survives the app being killed.
 | signpost | a sign at a fork showing which way the loop goes; a larger one lets the child pick the camera's branch (proposed) |
 | filter | a fork that sends slimes down a branch by species; usually has a signpost next to it (proposed) |
 | screensaver mode | the world running with no session, after sunrise and before the first tap (proposed) |
+| framing zone | an area of the level that sets the camera's zoom and position when the camera reaches it (proposed) |
 | sunrise | the end of bedtime: slimes wake up and screensaver mode begins (proposed) |
 | species | a kind of slime; only the same species fuse (replaces the precursor's "type") |
 | call | a tap that draws nearby awake slimes toward a point (D46) |

@@ -452,3 +452,28 @@ Resolves O6.
   themselves. The code is then never asked for, and waking early takes just a
   tap. This can be changed in the settings.
 - Assigned to **v4**.
+
+## D59 — Idle camera details (2026-09-28)
+Resolves O4.
+- **Which slime:** the train slime nearest the middle of the current view, so
+  the camera glides to it rather than cutting away.
+- **Keeping it:** if that slime fuses, the camera follows the fused slime. If
+  it splits at the start of the loop, the camera takes one of the pieces.
+  Otherwise the camera stays on the same slime.
+- **Taking back control:** any touch. That touch also does its normal job (a
+  call, operating an object, and so on).
+- **The cue 10 s before:** a slow, gentle zoom-out, with no text or sound.
+- Screensaver mode uses the same idle camera (D53).
+
+## D60 — Automatic camera framing (2026-09-28)
+- **The player never controls the zoom.** Zoom, and sometimes position, are
+  set automatically from where the camera is.
+- An area may need a wider view. When the camera reaches it, the camera
+  gently moves and zooms out to fit.
+- The edge buttons can still leave such an area, but not straight away. Like a
+  dip, the player has to push to get out of the framed position.
+- **Screensaver mode** is zoomed out further than normal play, by about
+  **10–20%** (to be tuned).
+- (proposed) Level designers mark these areas as **framing zones**. A framing
+  zone is a reusable level component (D6) with properties for zoom, position
+  and how strongly it holds the camera. It ships in v1.
