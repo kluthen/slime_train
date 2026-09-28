@@ -7,6 +7,13 @@
 - `docs/research/`: verbatim research reports with their sources.
 - `docs/*.atom.md`: ATD declared intent, maintained by documentalist.
 
+## Declared intent
+
+This project records its declared intent with ATD: atoms in `docs/*.atom.md`,
+linked from code by `@spec-link` / `@test-link`, managed with the `atd`
+tool. `documentalist` owns it; leaders gate every change through it (skill
+`intent-gating-protocol`).
+
 ## Project lexicon: coach the user on it
 
 The canonical terms are listed in the **Terminology** table of
