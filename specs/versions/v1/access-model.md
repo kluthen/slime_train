@@ -1,7 +1,6 @@
 # Slime Train v1 — Access model
 
-Status: consolidated early with the v1 master spec. Items tagged (proposed)
-and the Known gaps are not yet confirmed by the owner.
+Status: consolidated early with the v1 master spec.
 
 ## 1. Purpose and scope
 
@@ -45,7 +44,7 @@ condition used only to reset a forgotten code (§6).
 - **In-flight play during a parent action:** opening the parent buttons or
   the code prompt pauses nothing. The world keeps running, the session timer
   keeps counting (sessions are real time), and bedtime can arrive while the
-  prompt is open. (proposed)
+  prompt is open.
 
 ## 4. Resources and operations
 
@@ -141,11 +140,11 @@ edits a save directly.
 
 | Operation class | Behaviour | Why |
 |---|---|---|
-| A tap during bedtime (`call`, `operate-object`, `tilt`) | **Visible but inert.** The ripple still shows (proposed); slimes stay asleep; nothing else happens. No text, no sound. | Every tap gets an answer, but bedtime must stay calm and nudge the child to put the phone down. |
-| `move-camera` during bedtime | The edge buttons do nothing (proposed: they are hidden during bedtime). | Nothing to explore while everyone sleeps. |
+| A tap during bedtime (`call`, `operate-object`, `tilt`) | **Visible but inert.** The ripple still shows; slimes stay asleep; nothing else happens. No text, no sound. | Every tap gets an answer, but bedtime must stay calm and nudge the child to put the phone down. |
+| `move-camera` during bedtime | The edge buttons are hidden during bedtime. | Nothing to explore while everyone sleeps. |
 | Any parent-only operation (`wake-early`, `leave`, `change`, `delete`) by `child` | **Visible but blocked:** the button is shown, and pressing it raises the code prompt. Without the correct code, nothing happens. | The parent has to find the buttons without instructions; the code is the only guard. |
 | A wrong code | The entry shakes and clears. Tries are unlimited, but 5 wrong tries in a row bring a 30 s wait. The prompt closes after about 15 s with no input. | A 3-year-old pressing digits must not lock the parent out for long. |
-| `wake-early` pressed outside bedtime | Proposed: the button is shown only during bedtime. | There is nothing to wake. |
+| `wake-early` pressed outside bedtime | The button is shown only during bedtime. | There is nothing to wake. |
 | Home and back while the screen is pinned | Android ignores them. | Screen pinning. |
 | Pinning declined by the parent | The game still works; every parent button still asks for the code; setup explains the difference. | Pinning is a courtesy, not a requirement. |
 | The child leaves the app anyway (pinning declined or escaped, or the power button) | Nothing is blocked in the app: the session keeps counting in real time, and reopening the app resumes where it was. | Best effort by design; the timer can't be dodged by leaving. |
@@ -172,13 +171,12 @@ the 30 s wait after 5 wrong codes in a row.
 ## 9. Audited and step-up operations
 
 - **Step-up:** every parent-only operation requires the code immediately
-  before it. Deleting a level's save also asks for a second confirmation
-  (proposed), since it erases that level's progress.
+  before it. Deleting a level's save also asks for a second confirmation,
+  since it erases that level's progress.
 - **Changing the code** asks for the new code twice. The current code has
   already been entered to open settings.
 - **Resetting the code** requires the phone's own screen lock.
-- **Audit:** nothing is logged. There is no analytics and no network
-  (proposed).
+- **Audit:** nothing is logged. There is no analytics and no network.
 
 ## 10. Out of scope
 
@@ -192,7 +190,4 @@ the 30 s wait after 5 wrong codes in a row.
 
 ## 11. Known gaps
 
-- None about access itself. The items tagged (proposed) above (the ripple and
-  hidden edge buttons during bedtime, the wake-early button shown only during
-  bedtime, the second confirmation before deleting a save, play carrying on
-  while a parent prompt is open, no network) await the owner's confirmation.
+None.

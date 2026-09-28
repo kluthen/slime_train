@@ -24,7 +24,7 @@ Status: draft v11
    reaches the loop.
 
 Physics applies in every phase. On a steep slope its hopping can't hold it,
-and it may roll downhill. Phase names are proposed (O32).
+and it may roll downhill. Phase names were adopted in D75.
 
 ## Off screen (D69, D70)
 
@@ -68,7 +68,7 @@ Slimes move only by hopping.
   of instrument (D40). v1 has no sound, so there it's colour only (D50, D81). Later versions may
   add a texture or styling per species, other colour palettes (for
   colour-blind players), and behaviour quirks.
-- (proposed) Pick v1's 6 colours so they also differ clearly in lightness,
+- Pick v1's 6 colours so they also differ clearly in lightness,
   which helps colour-blind players at no cost.
 
 ## Fusion (D20)

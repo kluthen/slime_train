@@ -20,7 +20,7 @@ value to try. When a value is tuned, update it here and log the result in
 | Code prompt and settings close by themselves | about 15 s with no input (settings: short, to try) | D83 |
 | Delay before leaving a framing zone | a bit longer than a normal move | D61 |
 | Camera drag toward a call: speed, and when it goes back | slow and steady; to try | D45 |
-| Call radius | about half the screen width (proposed) | D46 |
+| Call radius | about half the screen width | D46 |
 | Call cap (a slime that can't reach the point gives up) | about 8 s | D73 |
 | Train slime hop interval | ~1.5–3 s, random per slime | D74 |
 | Hop rate when answering a call | a bit faster than on the train | D74 |

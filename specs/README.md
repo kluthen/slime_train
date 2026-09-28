@@ -74,12 +74,12 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 - Touches: the first touch wins; two calls at once will be tried later (D66).
 
-- At most 200 slimes per level (in base slimes), possibly many on one screen. Proposed answer: level-of-detail simulation (D67). v3 caps slime voices at 10, shared in proportion (D68).
+- At most 200 slimes per level (in base slimes), possibly many on one screen. Level-of-detail simulation (D67, D69). v3 caps slime voices at 10, shared in proportion (D68).
 
 - Physics only near the screen. Off-screen slimes follow the loop at a deterministic pace and are spawned properly when the view nears them (D69).
 
 - Off-screen rules: free slimes follow their route back, fusion and waking happen only on screen, only free slimes wake sleepers, and sleepers never sit on the loop. Baskets fill off screen, earn a reward animation, and can be abandoned before they're full (D70).
-- Phones: S20 FE is the reference; the floor is Galaxy A14 class; if needed the floor rises and the 200 cap stays (D71). Test environments proposed in `tech-direction.md`.
+- Phones: S20 FE is the reference; the floor is Galaxy A14 class; if needed the floor rises and the 200 cap stays (D71). Test environments in `tech-direction.md`.
 
 - Saves are never wiped. Released levels aren't meant to change, and any minor update ships with its migration. Displaced slimes count as lost (D72).
 
@@ -90,16 +90,17 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 - Terminology confirmed; "split zone" replaces "defusing spot", and "route back" is added (D75).
 
 - A test level (`levels/test/`) exercises the v1 gameplay and drives the end-to-end tests. Each level gets its own folder; the real first level (`levels/01/`) is designed later. Everything else is consolidated into the v1 master spec and access model (D76).
-- Proposed tech additions: seeded randomness, a test mode (fixtures, time skip, scripted taps), atomic saves with one backup, no network permission.
+- Tech additions (approved, D91): seeded randomness, a test mode (fixtures, time skip, scripted taps), atomic saves with one backup, no network permission.
 
 - Completing a level: a one-time celebration; the world stays open (D77). Landscape, locked (D78).
 - The return route is part of the loop, with its own rail; it may carry exploration, which later gates must never cut off (D79).
 - Screensaver and idle share one zoom and ignore framing zones; framing resumes when control comes back (D80).
 - Species: colour only in v1; texture, styling and other palettes later (D81). 60 fps reference, 30 fps floor (D82).
 - Wrong code: shake, clear, a 30 s wait after 5 wrong tries; prompt and settings close by themselves (D83). Pinning declined: the game still works (D84). Pinning asked at every launch; setup recommends "Ask for PIN before unpinning" (D85).
+- All the master spec's proposed defaults are approved (D91).
 - Edge buttons: right is forward along the loop, left is backward, whatever the direction on screen (D90).
 - A frontier set is inert once its gate opens (D86). A level's folder stores its design requirements and discussion (D87). Size forks are a size filter (D88); both filters are v2, so v1's only fork is the frontier switch (D89).
 
 ## Where to resume
 
-The v1 master spec and access model are consolidated early and kept in step with the drafts. No open question is left to settle in conversation. Deferred to a planned design: O62 (basket outlet, with the basket's own design). For prototypes: O14, O65 (minimum zoom). For the first level's design: O22. Parked: O12, O13. The master spec's (proposed) defaults still await the user's batch confirmation. Handoffs (ux-writer, documentalist, coding-leader) wait for the user's go-ahead.
+The v1 master spec and access model are consolidated early and kept in step with the drafts. No open question is left to settle in conversation. Deferred to a planned design: O62 (basket outlet, with the basket's own design). For prototypes: O14, O65 (minimum zoom). For the first level's design: O22. Parked: O12, O13. Handoffs (ux-writer, documentalist, coding-leader) wait for the user's go-ahead.

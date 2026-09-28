@@ -23,14 +23,14 @@ weighs more (D16). Each object's thresholds are set when that object is
 designed.
 
 Tapping an interactive object operates it. A tap anywhere else is a call.
-(proposed: hit areas are generous, bigger than the drawn object, to suit
-small fingers)
+Hit areas are generous, bigger than the drawn object, to suit small
+fingers (D91).
 
 ## Catalogue
 
 ### Switch (D14)
 Redirects the flow at a fork in the loop. Activation: tap. Properties: the
-default direction, and the direction when flipped. (proposed: it stays
+default direction, and the direction when flipped. (D91: it stays
 flipped until tapped again)
 
 ### Basket (D14)
@@ -39,10 +39,10 @@ Activation: presence (weight). When full, it fires its target (usually a gate)
 and then releases its slimes. Properties: the weight it needs, and its target.
 Its outlines fill by weight, so a fused slime fills several at once.
 - **Off screen (D70):** it can still reach its quota. Filling it earns a
-  **reward animation**, then it fires. (proposed: the reward and the firing
+  **reward animation**, then it fires. (D91: the reward and the firing
   wait until the basket is in view)
 - **Opting out (D70):** flipping the switch back before the basket is full
-  stops the filling. (proposed: the slimes inside go back to the loop, and the
+  stops the filling. (D91: the slimes inside go back to the loop, and the
   basket empties)
 
 - **Outlet:** where it releases its slimes, after firing or after an opt-out,
@@ -73,11 +73,10 @@ The start of the loop carries one (D23, D54). Not specified in detail yet.
 
 ### Signpost (D47)
 Stands at every fork in the loop and shows which way the loop goes. Not
-interactive. (proposed: in v1)
+interactive. In v1 (D91).
 
 ### Large signpost (D47)
-A larger signpost. Tapping it chooses which branch the camera follows. (proposed:
-v2, since it is tapped)
+A larger signpost. Tapping it chooses which branch the camera follows. v2, since it is tapped.
 
 ### Filter (D47, D88)
 A kind of fork that sends slimes down a branch by **species** ("all blue

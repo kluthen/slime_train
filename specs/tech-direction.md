@@ -26,20 +26,20 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
 - The rule schema these components share (for example "basket holds 5 or
   more slimes, so gate G opens") is yet to be designed.
 
-## Slimes (proposed)
+## Slimes (D91)
 
 - Each slime is simulated as a ring of points joined by springs, using our own
   code rather than a physics-engine feature, and drawn with a shader that
   blends nearby shapes into smooth blobs. Fusing and splitting become
-  operations on those rings. (proposed; no engine provides this out of the
-  box, see research)
+  operations on those rings. No engine provides this out of the box (see
+  research).
 - **Scale:** up to 200 slimes per level (D67), with many possibly on one screen.
 - **Physics only near the screen** (D69):
   - Off-screen slimes follow the loop at a deterministic pace, as a place
     along the loop. When the view comes near them, they are spawned just
     outside the edge of the view, and physics takes over.
   - Slimes resting in a basket may get a simplified state.
-  - (proposed) Sleepers stop simulating until something touches them. Slimes
+  - Sleepers stop simulating until something touches them. Slimes
     on screen may use fewer points per ring when zoomed out.
   - Off-screen rules (D70): free slimes follow their area's route back, fusion
     and waking happen only on screen, and baskets count weight off screen.
@@ -52,7 +52,7 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
   on the floor phone with 200 slimes on one screen.
 - **Landscape, locked** (D78).
 
-## Test environments (proposed)
+## Test environments (D91)
 
 | Environment | Good for | Not good for |
 |---|---|---|
@@ -69,13 +69,13 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
 - Released levels aren't meant to change. If one does, the update must be
   minor and ship with its migration. Saves are never wiped, and displaced
   slimes count as lost and reappear at the start of the loop (D72).
-- (proposed) The save records the level's version, and slimes, objects and
+- The save records the level's version, and slimes, objects and
   gates keep stable IDs across versions.
-- (proposed) Saves are written atomically (write a new file, then swap it in),
+- Saves are written atomically (write a new file, then swap it in),
   and the previous save is kept as one backup. A save that can't be read falls
   back to the backup, and only then to a fresh start for that level.
 
-## Testability (proposed, D76)
+## Testability (D76, D91)
 
 - **Seeded randomness:** all gameplay randomness (hop timing, unsure hops)
   comes from one random generator with a seed, so a test run can be repeated
@@ -92,7 +92,7 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
   Framing zones are ignored while the idle camera or screensaver mode follows
   a slime (D80). Zoom and framing are computed from
   the camera's position and the mode (screensaver mode is about 10–20% wider).
-- (proposed) Framing zones are a reusable level component with properties for
+- Framing zones are a reusable level component with properties for
   zoom, position and the delay before the camera leaves (D61). They are authored like
   any other component, with no per-level scripts (D6).
 
@@ -100,8 +100,8 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
 
 - A heading-back slime follows the route back that is built into every
   exploration branch as part of the level (D41, D51). That route is authored
-  level data, like the loop, so there is no general pathfinding. (proposed:
-  drawn as a path in the Godot editor)
+  level data, like the loop, so there is no general pathfinding. It is
+  drawn as a path in the Godot editor.
 
 ## Session lock (D1)
 
@@ -115,9 +115,9 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
 - Recovering the parent code uses Android's device-credential prompt
   (BiometricPrompt, which also accepts the PIN or pattern). There is no server
   (D55).
-- (proposed) More broadly, the app runs **fully offline**, with no account and
+- More broadly, the app runs **fully offline**, with no account and
   no backend. D55 settles this for the parent code; paid unlocks will go
-  through Google Play only (D31). (proposed) No analytics, no ads, no network
+  through Google Play only (D31). No analytics, no ads, no network
   permission in v1.
 - The same stored clocks enforce the 10 min cooldown after bedtime (D29).
   Changing the device clock can defeat it, which is acceptable under D1.

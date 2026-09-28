@@ -1,9 +1,8 @@
 # Slime Train v1 — Master spec
 
-Status: consolidated early, at the user's request, while two things are still
-unsettled: the design of the real first level, and the gaps listed in
-"Known gaps". Everything else here is settled, except items tagged
-(proposed). Companions: `access-model.md` (who may do what) and
+Status: consolidated early, at the user's request. Everything here is
+settled except the design of the real first level and the gaps listed in
+"Known gaps". Companions: `access-model.md` (who may do what) and
 `../../personas.md` (who the game is for). The test level used to build and
 check v1 is in `../../levels/test/README.md`.
 
@@ -81,7 +80,7 @@ would add to P1.G1 and P1.G2) comes in a later version.
   fusion up to size 3, the split zone at the start of the loop, left alone and
   lost.
 - Objects: the frontier-gate set (switch, basket, gate), the split zone at
-  the start of the loop, and plain signposts at forks (proposed).
+  the start of the loop, and plain signposts at forks.
 - Controls: tap-to-call, tilt for free slimes, edge buttons moving the camera,
   a tap at the top of the screen for parent access.
 - Camera: rails along the loop, the call dragging the camera, the idle camera,
@@ -90,7 +89,7 @@ would add to P1.G1 and P1.G2) comes in a later version.
   a 10 min cooldown, sunrise, the 6-digit parent code with setup and
   recovery, screen pinning.
 - Persistence: one save per level, autosave, deleting a level's save.
-- A test level (not shipped, proposed) plus a test mode for end-to-end tests.
+- A test level (not shipped) plus a test mode for end-to-end tests.
 - Platform: Godot 4, Android; a Linux desktop build for development and tests.
   A paid app at about $3–5, with no purchases inside the app.
 
@@ -100,7 +99,7 @@ would add to P1.G1 and P1.G2) comes in a later version.
 |---|---|
 | Sound of any kind (effects, species voices, music) | v3 |
 | Every other interactive object: bending pathways, other split zones, tilt objects, reveal zones, filters (forks sorting slimes by species or by size), switches and baskets outside the frontier set | v2 |
-| Large signposts that let the child choose which branch the camera follows | v2 (proposed) |
+| Large signposts that let the child choose which branch the camera follows | v2 |
 | Turning the parent code off | v4 |
 | A parent-chosen session length and cooldown | later, no version yet |
 | A freeform camera (hold and drag, replacing the edge buttons) | later, no version yet |
@@ -185,9 +184,9 @@ One term per concept, used everywhere in the code and documents.
 **The call and free slimes**
 
 - A tap on open ground is a **call**. Every awake slime within the call radius
-  (about half the screen width, proposed) answers it, train slimes included,
-  and becomes free. (proposed: this is needed because at the start the only
-  awake slime is on the loop.)
+  (about half the screen width) answers it, train slimes included, and
+  becomes free. This is needed because at the start the only awake slime is
+  on the loop.
 - A free slime goes through three phases:
   1. **Answering the call:** it hops toward the call point until it reaches
      it, or gives up after about 8 s. A new tap replaces the call point.
@@ -234,9 +233,8 @@ minute of a session every slime hops more slowly.
 - The **maximum size is 3**. Two slimes whose sizes add up to more than 3
   just bump into each other.
 - 6 **species** in v1: 3 native to the first section, and one more per later
-  section. In v1 species differ by **colour only**. (proposed: the 6 colours
-  also differ clearly in lightness, which helps colour-blind players at no
-  cost.) A texture or styling per species, and other colour palettes, may
+  section. In v1 species differ by **colour only**. The 6 colours also differ
+  clearly in lightness, which helps colour-blind players at no cost. A texture or styling per species, and other colour palettes, may
   come in later versions.
 
 **Fusion and splitting**
@@ -261,7 +259,7 @@ minute of a session every slime hops more slowly.
   route back is near, it is lost.
 - **Fusion and waking happen only on screen.**
 - **Baskets** keep counting weight off screen and can fill there.
-- (proposed) Sleepers don't simulate until something touches them, slimes in
+- Sleepers don't simulate until something touches them, slimes in
   a full basket use a simplified state, and slimes on screen may use fewer
   points when zoomed out.
 
@@ -269,20 +267,20 @@ minute of a session every slime hops more slowly.
 
 Every object is a reusable component configured in the Godot editor, and its
 state is saved. A tap on an object operates it; a tap anywhere else is a call.
-(proposed: hit areas are larger than the drawn object, for small fingers.)
+Hit areas are larger than the drawn object, for small fingers.
 
 - **Switch.** Stands at the fork just before the frontier gate. By default it
   sends the flow back to the start (by the return route). Tapping it flips it
-  so the flow goes into the basket. (proposed: it stays flipped until tapped
-  again.)
+  so the flow goes into the basket. It stays flipped until tapped
+  again.
 - **Basket.** Shows the weight it still needs as empty slime outlines, which
   fill by weight (a size-3 slime fills three). When full, it plays a **reward
   animation**, fires its target (the gate), then releases its slimes. It can
-  fill off screen. (proposed: the reward and the firing wait until the basket
-  is in view.)
+  fill off screen. The reward and the firing wait until the basket
+  is in view.
 - **Opting out.** Flipping the switch back before the basket is full stops the
-  filling. (proposed: the slimes inside go back to the loop and the basket
-  empties.)
+  filling. The slimes inside go back to the loop and the
+  basket empties.
 - **Where a basket releases its slimes** (after firing, and after an opt-out)
   belongs to the basket's own design, which is still to be planned (see Known
   gaps).
@@ -291,13 +289,13 @@ state is saved. A tap on an object operates it; a tap anywhere else is a call.
   removed or turned into a landscape feature.
 - **Split zone.** At the start of the loop; splits every slime that enters it
   into base slimes.
-- **Signpost** (proposed). Stands at every fork of the loop and shows which
+- **Signpost.** Stands at every fork of the loop and shows which
   way the loop goes. Not interactive.
 - **No filters in v1.** The only fork in the loop is the frontier switch, so
   every size travels the loop the same way. Size matters through basket
   weight, and off the loop, where bigger free slimes jump higher.
 - The switch plus basket is the **only** way to open a gate in v1.
-- (proposed) The components share one rule format ("when this basket is full,
+- The components share one rule format ("when this basket is full,
   open that gate"). Its design is left to implementation.
 
 ### 5.5 Controls
@@ -305,7 +303,6 @@ state is saved. A tap on an object operates it; a tap anywhere else is a call.
 The screen has four tap zones, checked in this order:
 
 1. **The top of the screen:** reveals the parent buttons. Doesn't call.
-   (proposed)
 2. **The left and right edge buttons:** move the camera along the loop.
    Don't call.
 3. **An interactive object:** operates it. Doesn't call.
@@ -348,7 +345,7 @@ The screen has four tap zones, checked in this order:
   than normal play. It doesn't stack with anything. While either follows a
   slime, **framing zones are ignored**. When the child takes back control,
   framing resumes if the camera's centre is still inside a framing zone.
-  (proposed: screensaver mode starts on the idle camera straight away.)
+  Screensaver mode starts on the idle camera straight away.
 
 ### 5.7 Session, bedtime and screensaver mode
 
@@ -369,7 +366,8 @@ bedtime --parent code, or 10 min--> sunrise → screensaver mode
 - **Wind-down:** in the last minute the light drifts toward dusk and slimes hop
   more slowly. No text, no countdown.
 - **Bedtime:** slimes fall asleep where they are, the game saves, and taps no
-  longer call. The phone's usual screen timeout applies again (proposed).
+  longer call. The edge buttons are hidden, and the phone's
+  usual screen timeout applies again.
 - **Sunrise** comes when the parent enters the code (wake early) or **10 real
   minutes** after bedtime began. The slimes wake and screensaver mode begins.
   The long delay is on purpose: it nudges the child to put the phone down.
@@ -396,6 +394,10 @@ bedtime --parent code, or 10 min--> sunrise → screensaver mode
   wrong tries in a row bring a 30 s wait. The code prompt closes after about
   15 s with no input, and the settings screen also closes by itself after a
   short time with no input.
+- **Wake early** is shown only during bedtime. **Deleting a level's save**
+  asks for a second confirmation after the code.
+- Opening the parent buttons or the code prompt pauses nothing: the world
+  keeps running and the session keeps counting.
 - How the buttons and the code prompt look is interface design.
 - The full rules are in `access-model.md`.
 
@@ -426,9 +428,9 @@ bedtime --parent code, or 10 min--> sunrise → screensaver mode
   of its jump, whichever is easier to build; if neither works, it is lost.
 - **Saves are never wiped.** A released level isn't meant to change. If one
   does, the change is minor and ships with a save migration; slimes it
-  displaces are treated as lost. (proposed: the save records the level's
-  version, and slimes, objects and gates have stable IDs.)
-- (proposed) Saves are written atomically, and the previous one is kept as a
+  displaces are treated as lost. The save records the level's
+  version, and slimes, objects and gates have stable IDs.
+- Saves are written atomically, and the previous one is kept as a
   backup that is used if the latest can't be read.
 
 ### 5.11 Level rules
@@ -470,8 +472,7 @@ Every level, the test level included, follows these rules.
   storage for that level's design requirements and the discussion about it.
 - **The test level** (`levels/test/`) is a compact level designed to exercise
   the v1 mechanics. It is the testing ground for implementation and the base
-  for end-to-end tests. It uses placeholder art and is not shipped
-  (proposed).
+  for end-to-end tests. It uses placeholder art and is not shipped.
 - **The real first level** (`levels/01/`) is designed later, once enough is
   built and checked. v1 ships that level, not the test level.
 
@@ -485,7 +486,7 @@ Every level, the test level included, follows these rules.
   element is a reusable, programmed component configured by properties, and
   **there are no per-level scripts**. This keeps extra levels (possibly paid)
   as content rather than code.
-- **Soft slimes** (proposed): each slime is a ring of points joined by
+- **Soft slimes:** each slime is a ring of points joined by
   springs, in our own code, drawn with a shader that blends nearby shapes into
   smooth blobs. Fusion and splitting are operations on rings. No engine gives
   this out of the box.
@@ -494,7 +495,7 @@ Every level, the test level included, follows these rules.
   authored paths at a deterministic pace; that is also what makes off-screen
   behaviour predictable and testable.
 - **Authored routes back, no pathfinding.** Every exploration branch includes
-  its route back as level data (proposed: a path drawn in the editor), so a
+  its route back as level data (a path drawn in the editor), so a
   heading-back slime never needs general pathfinding.
 - **The loop is a route, not physics.** The train follows a drawn route so
   that it always flows with no input, whatever physics does; only free slimes
@@ -505,10 +506,10 @@ Every level, the test level included, follows these rules.
   stored clocks cover the real risk (a small child wandering out of the app)
   without asking the parent to provision the phone. Code recovery uses the
   phone's own screen lock, so no server, website or account exists.
-  (proposed: no analytics, no ads, no network permission.)
+  No analytics, no ads, no network permission.
 - **One save per level, never wiped.** A parent can reset one level without
   losing others; level updates migrate saves rather than breaking them.
-- **Testability** (proposed): all gameplay randomness comes from one seeded
+- **Testability:** all gameplay randomness comes from one seeded
   generator so test runs repeat exactly. A test mode, only in the Linux build
   and debug Android builds, loads fixture saves, speeds up or skips time, and
   injects taps and tilt from a script.
@@ -522,7 +523,7 @@ This is a new project; there is no existing code base to fit into.
   the 200 cap stays.
 - **Performance targets:** 60 frames per second on the reference phone; at
   least 30 on the floor phone in the worst case of 200 slimes on one screen.
-- Test environments (proposed):
+- Test environments:
 
 | Environment | Used for | Not used for |
 |---|---|---|
@@ -541,7 +542,7 @@ Starting values, to be tuned in prototypes and playtests.
 | Unsure phase | up to about 15 s |
 | Left alone | 10 s off screen |
 | Lost | 1 min after left alone |
-| Call radius | about half the screen width (proposed) |
+| Call radius | about half the screen width |
 | Call cap | about 8 s |
 | Train hop interval | about 1.5–3 s, random per slime |
 | Hop rate answering a call | a bit faster than on the train |
@@ -595,9 +596,9 @@ later) passes the level-rules check.
    and releases its slimes; the loop then extends into the new section and
    the old return route is no longer used.
 10. A basket filled while off screen plays its reward and opens the gate
-    when it comes into view (proposed behaviour).
-11. Flipping the switch back before the basket is full stops the filling
-    (with the proposed release of the slimes inside).
+    when it comes into view.
+11. Flipping the switch back before the basket is full stops the filling,
+    releases the slimes inside back to the loop, and empties the basket.
 12. Opening all gates of the level never requires tilt.
 13. Once a gate is open, tapping its switch does nothing, and its basket
     takes no more slimes.
@@ -634,7 +635,7 @@ later) passes the level-rules check.
     child out of the app; "leave" with the correct code does.
 26. "Forgot the code?" lets the parent set a new code after passing the
     phone's own screen lock.
-27. The app makes no network connection (proposed).
+27. The app makes no network connection.
 
 **Persistence**
 
@@ -679,11 +680,3 @@ Still undecided.
    approach (Godot turns SVGs into images at import, so crisp curves need
    polygons and lines or a plugin). A floor phone has to be bought for this.
    Android audio latency matters only from the version that adds sound.
-6. **Items tagged (proposed) in this document** are the spec writer's
-   defaults, not yet confirmed by the owner. The main ones: train slimes
-   answering calls; the call radius; the top-of-screen zone not calling;
-   generous hit areas; the switch staying flipped; the basket's reward
-   waiting until it's in view and its slimes being released on opting out;
-   plain signposts being in v1; species colours differing in lightness; the
-   usual screen timeout during bedtime; the test level not shipping; stable
-   IDs and atomic saves; the test mode; no network permission.

@@ -729,3 +729,31 @@ Resolves O66. Refines D33 and D79.
 - On a return route, which runs right to left on screen, "forward" carries the
   camera round the turn at the frontier and back toward the start. Holding
   one button long enough goes all the way round the loop.
+
+## D91 — The master spec's proposed defaults are approved (2026-09-28)
+- The user approved every default tagged (proposed) in the v1 master spec and
+  access model. They are now settled:
+  - calls also pull train slimes off the loop; a call radius of about half
+    the screen width;
+  - a tap at the top of the screen only reveals the parent buttons;
+    generous hit areas on objects;
+  - a switch stays flipped until tapped again; a basket filled off screen
+    waits until it's in view to play its reward and fire; on opting out, the
+    slimes inside go back to the loop and the basket empties;
+  - plain signposts at forks in v1; large signposts in v2;
+  - v1's species colours also differ in lightness;
+  - during bedtime, taps show a ripple only, the edge buttons and "wake
+    early" are hidden, and the usual screen timeout applies;
+  - deleting a level's save asks for a second confirmation; the world and
+    the session keep running while a parent prompt is open;
+  - screensaver mode starts on the idle camera;
+  - the test level never ships;
+  - saves record the level's version and use stable IDs, are written
+    atomically, and keep one backup;
+  - seeded randomness and a test mode (Linux and debug builds only), with
+    the test level's fixture saves;
+  - fully offline: no analytics, no ads, no network permission;
+  - the technical direction: soft slimes as spring rings drawn with a
+    blending shader, sleepers not simulated until touched, routes back drawn
+    as editor paths, framing zones as a level component, one shared rule
+    format for components, and the test-environments table.

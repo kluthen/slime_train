@@ -8,7 +8,7 @@ scope list with decision IDs. The real first level's design is not part of it
 (`../../levels/01/`, later).
 
 The first Android release. One level to discover the game's mechanics.
-Items are settled unless tagged (proposed). The decision IDs point to
+Items are settled. The decision IDs point to
 `../../decisions.md`.
 
 ## In scope
@@ -35,7 +35,7 @@ Items are settled unless tagged (proposed). The decision IDs point to
   area's route (D27, D41, D51). Left alone after 10 s off screen, lost after
   1 min (D10).
 - Tilt moves free slimes: ±45° cap, a dead zone of about 10° (D19).
-  (proposed: in v1. It's a control, not an object.)
+  It's a control, not an object, so it is in v1 (D91).
 
 **Objects**
 - The frontier-gate set: a switch, a basket and a gate (D14, D54). A full
@@ -43,7 +43,7 @@ Items are settled unless tagged (proposed). The decision IDs point to
   flipping the switch back (D70).
 - A split zone at the start of the loop, where fused slimes split back into
   base slimes (D23, D54).
-- (proposed) Plain signposts at forks, which only show directions (D47).
+- Plain signposts at forks, which only show directions (D47, D91).
 - Once its gate opens, a frontier set is inert for good (D86). Completing the
   level brings a one-time celebration; the world stays open (D77).
 - No filters in v1: the only fork in the loop is the frontier switch, and every

@@ -20,7 +20,7 @@ main player.
 handed over **as a reward for good behaviour, or for a little while after
 school**. It is not a before-sleep routine. The parent chooses when to hand it
 over. How she holds it (in her hands, flat on a table, on her lap) isn't
-known, so tilt stays optional (proposed, see below).
+known, so tilt stays optional (D64, see below).
 
 **Goals:**
 - **P1.G1** See something pleasant happen and keep watching it.
@@ -41,7 +41,7 @@ known, so tilt stays optional (proposed, see below).
   why bedtime is gentle (D28).
 - It happens at home during the day, so v1 having no sound (D50) isn't a
   problem.
-- (proposed) **Tilt is a bonus and never needed to make progress.** v1 already
+- **Tilt is a bonus and never needed to make progress.** v1 already
   guarantees this: only free slimes feel tilt, and the loop works with no
   input (D19). Tilt objects arrive in v2, and a v2 design rule should keep
   them from being the only way forward. This is now a level design requirement

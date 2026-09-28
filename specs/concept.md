@@ -124,9 +124,9 @@ and any minor update ships with its migration (D72).
   ignored. Two calls at once will be tried later.
 - All the level rules are collected in `level-design.md`.
 - Every awake slime in range answers the call, train slimes included, and
-  answering makes it free. (proposed: this follows from D13. At the start the
+  answering makes it free. This follows from D13: at the start the
   only awake slime is on the loop, so train slimes have to answer or no
-  sleeper could ever be woken.)
+  sleeper could ever be woken (D91).
 
 ## Interactive objects
 
@@ -190,7 +190,7 @@ survives the app being killed.
   slimes early (D56).
 - **Parent access** (D57): a tap at the top of the screen reveals the parent
   buttons (wake early, leave, settings). Every button asks for the code. A tap
-  there doesn't call (proposed).
+  there doesn't call (D91).
 - Later (v4, D58): the parent can turn the code off entirely.
 
 ### Bedtime (D28)

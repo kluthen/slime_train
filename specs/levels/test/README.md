@@ -9,7 +9,7 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
 
 - It is **not** the real first level (`../01/`, designed later). Its layout,
   pacing and size teach us nothing about how the real level should feel.
-- (proposed) It never ships in the release build. It uses placeholder art.
+- It never ships in the release build (D91). It uses placeholder art.
 - It follows every rule in `../../level-design.md`. The checklist is at the
   end of this document.
 - Positions and sizes are rough. Whoever builds the scene may move things,
@@ -185,7 +185,7 @@ sits on the loop:
 
 **When the basket fills:**
 1. The reward animation plays. It waits until the basket is in view
-   (proposed, D70).
+   (D70, D91).
 2. The basket fires. The gate opens, and the loop grows into the next section
    (D9).
 3. As part of the reward, the old slide entrance closes. Only the route back
@@ -194,7 +194,7 @@ sits on the loop:
 5. The switch and basket become inert for good (D86).
 
 **Opting out (D70):** flipping the switch back before the basket is full stops
-the filling. (proposed) The slimes inside go back to the loop.
+the filling. The slimes inside go back to the loop (D91).
 
 **Outlet (proposed; the basket's own design, O62):** each basket has one outlet that drops slimes onto the
 onward path just before the slide entrance. While the gate is closed, the
@@ -301,7 +301,7 @@ wind-down, sunrise, screensaver mode, the cooldown, the parent gate, setup and
 real-time counting. They are tested anywhere in the level through fixtures and
 test mode.
 
-## Test fixtures (proposed)
+## Test fixtures
 
 Named save states that tests load through test mode (tech-direction).
 
