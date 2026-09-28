@@ -43,12 +43,22 @@ func _clear(game: Node) -> void:
 		slimes.remove(slime)
 
 
+## The awake slimes: every slime but the level's sleepers.
+func _awake(slimes: SlimeBodies) -> Array[int]:
+	var awake: Array[int] = []
+	for slime_id in slimes.ids():
+		if slimes.state_of(slime_id) != SlimeBodies.SLEEPER:
+			awake.append(slime_id)
+	return awake
+
+
 func test_the_game_wakes_the_first_slime() -> void:
 	var game := _boot()
 	var sim: Simulation = game.simulation
 	var slimes: SlimeBodies = sim.slimes
-	assert_eq(slimes.slime_count, 1, "one slime, with no call")
-	var slime := slimes.ids()[0]
+	var awake := _awake(slimes)
+	assert_eq(awake.size(), 1, "one awake slime, with no call (the rest are sleepers)")
+	var slime := awake[0]
 	assert_eq(slimes.species_of(slime), Species.from_letter("A"))
 	assert_eq(slimes.size_of(slime), 1)
 	assert_eq(slimes.state_of(slime), SlimeBodies.TRAIN)
@@ -65,8 +75,10 @@ func test_a_restored_simulation_does_not_wake_a_second_slime() -> void:
 	var game := _boot()
 	var sim: Simulation = game.simulation
 	game.test_mode.run_ticks(5)
+	var count := sim.slimes.slime_count
 	sim.load_level(game.level.data)
-	assert_eq(sim.slimes.slime_count, 1, "only a fresh state wakes the first slime")
+	assert_eq(sim.slimes.slime_count, count,
+			"only a fresh state wakes the first slime and places the sleepers")
 
 
 ## One size per game: several slimes at once would test the crowd at the

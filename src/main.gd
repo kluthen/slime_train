@@ -16,8 +16,10 @@ extends Node2D
 ## The level's collision terrain is baked once into TerrainSegments and
 ## shared by every simulation started on it; a SlimeRenderer draws the
 ## current simulation's slimes and a TapFeedback their ripples and eyes.
-## The camera is the simulation's (Camera: rails, edge buttons, call drag);
-## sync_view() makes the simulation's view and the scene's Camera2D show it,
+## The camera is the simulation's (Camera: rails, edge buttons, call drag,
+## framing zones, idle camera). Normal play starts in screensaver mode (the
+## idle camera) until sessions (chunk 17) drive it; test mode plays as in a
+## session. sync_view() makes the simulation's view and the scene's Camera2D show it,
 ## before and after every tick. EdgeButtons draws the edge buttons on a HUD
 ## layer.
 ##
@@ -116,6 +118,7 @@ func _ready() -> void:
 			return
 	if test_mode == null:
 		_resume_play()
+		simulation.screensaver = true
 
 
 func _process(delta: float) -> void:
@@ -320,6 +323,8 @@ func _new_simulation(seed_value: int) -> Simulation:
 ## Makes `fresh` the running simulation, and the one drawn.
 func _use_simulation(fresh: Simulation) -> void:
 	simulation = fresh
+	# The world shows: a due first-play hint counts its 10 s from here.
+	fresh.hint.world_shown(fresh.tick)
 	if slime_renderer != null:
 		slime_renderer.bodies = fresh.slimes
 	if tap_feedback != null:

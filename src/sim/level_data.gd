@@ -2,7 +2,8 @@ class_name LevelData
 extends RefCounted
 ## A level as plain data for the simulation core: its ID and version, the
 ## loop, the exploration branches and their routes back, the split zones, the
-## tap targets and the first awake slime's spot.
+## framing zones, the tap targets, the first awake slime's spot and the
+## sleepers.
 ## Built at load by the Level component
 ## (src/components/level.gd); nothing here refers to a scene node.
 # @spec-link [[req_loop_and_world]]
@@ -35,10 +36,23 @@ var branches: Dictionary = {}
 ## hit area adds a margin)}.
 # @spec-link [[req_controls_tap_zones]]
 var tap_targets: Dictionary = {}
+## The framing zones (the camera's, Camera): stable ID -> {"box" (Rect2,
+## level pixels), "zoom" (as ScreenView.zoom: below 1 shows more), "offset"
+## (Vector2, level pixels: how far the view shifts from the rails' place),
+## "exit_hold" (seconds of holding an edge button to leave it; -1 for the
+## camera's default, Camera.EXIT_HOLD)}.
+# @spec-link [[req_camera_rails_and_framing]]
+# @spec-link [[rule_framing_zone_wherever_wider_view_needed]]
+var framing_zones: Dictionary = {}
 ## Where the game wakes the first slime (the FirstSlime component): {"id",
 ## "species" (its letter), "position" (level pixels, a base slime's centre)},
 ## or {} when the level has none.
 var first_slime: Dictionary = {}
+## The sleepers placed in the level (the Sleeper components): stable ID ->
+## {"species" (its letter), "position" (level pixels, a base slime's centre
+## resting on its ledge)}. Simulation.load_level puts them in a fresh game.
+# @spec-link [[req_waking_sleepers]]
+var sleepers: Dictionary = {}
 
 
 func _init(id := "", version := 0) -> void:
@@ -59,6 +73,19 @@ func add_split_zone(id: String, box: Rect2) -> void:
 ## Adds an exploration branch covering `box` (level pixels).
 func add_branch(id: String, box: Rect2) -> void:
 	branches[id] = box
+
+
+## Adds a framing zone covering `box` (level pixels): the camera's `zoom`
+## and `offset` inside it, and the hold it takes to leave it (`exit_hold`
+## seconds, -1 for the camera's default).
+func add_framing_zone(id: String, box: Rect2, zoom: float, offset: Vector2, exit_hold := -1.0) -> void:
+	framing_zones[id] = {"box": box, "zoom": zoom, "offset": offset, "exit_hold": exit_hold}
+
+
+## Adds a sleeper: a base slime of species `species` (its letter), asleep,
+## centred at `position` (level pixels).
+func add_sleeper(id: String, species: String, position: Vector2) -> void:
+	sleepers[id] = {"species": species, "position": position}
 
 
 ## Adds something a tap can land on: `kind` is a TapDispatcher.KIND_*, `box`

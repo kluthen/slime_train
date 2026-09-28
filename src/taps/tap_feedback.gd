@@ -3,9 +3,12 @@ extends Node2D
 ## Draws what the simulation says about taps, above the slimes: every tap's
 ## ripple, an expanding ring where the finger touched (D65), and each slime's
 ## facing, a placeholder eye dot on the side it looks at (slimes in range
-## turn toward a tap). It only reads the simulation. Placeholder art until
-## the ui_ux tree settles the look. Place it at the world origin.
+## turn toward a tap). Also the first-play hint (Hint), while it shows: a
+## wordless touch mark pulsing around the first sleeper (D65). It only reads
+## the simulation. Placeholder art until the ui_ux tree settles the look.
+## Place it at the world origin.
 # @spec-link [[req_controls_tap_zones]]
+# @spec-link [[req_first_play_hint]]
 
 const RIPPLE_COLOR := Color(1.0, 1.0, 1.0, 0.9)
 ## The ripple's radius at its start and end, and its line width, screen pixels.
@@ -17,6 +20,15 @@ const EYE_COLOR := Color(0.05, 0.05, 0.1)
 ## of the slime's ring radius.
 const EYE_SIZE := 0.16
 const EYE_OUT := 0.5
+const HINT_COLOR := Color(1.0, 1.0, 1.0, 0.85)
+## One pulse of the hint, seconds of simulated time (so a recorded run
+## shows the same frames).
+const HINT_PULSE_SECONDS := 1.2
+## The hint's ring: its radius swells from HINT_FROM to HINT_TO and fades
+## (screen pixels), with a steady inner ring at HINT_FROM.
+const HINT_FROM := 34.0
+const HINT_TO := 58.0
+const HINT_WIDTH := 4.0
 
 ## The simulation drawn.
 var simulation: Simulation = null
@@ -39,6 +51,13 @@ func _draw() -> void:
 		var radius := lerpf(RIPPLE_FROM, RIPPLE_TO, age) / zoom
 		var color := Color(RIPPLE_COLOR, RIPPLE_COLOR.a * (1.0 - age))
 		draw_arc(ripple["at"], radius, 0.0, TAU, 40, color, RIPPLE_WIDTH / zoom, true)
+	var hint := simulation.hint
+	if hint.visible:
+		var pulse := fmod(float(simulation.tick) / Simulation.TICK_RATE, HINT_PULSE_SECONDS) / HINT_PULSE_SECONDS
+		var swell := lerpf(HINT_FROM, HINT_TO, pulse) / zoom
+		draw_arc(hint.position, HINT_FROM / zoom, 0.0, TAU, 40, HINT_COLOR, HINT_WIDTH / zoom, true)
+		draw_arc(hint.position, swell, 0.0, TAU, 48, Color(HINT_COLOR, HINT_COLOR.a * (1.0 - pulse)),
+				HINT_WIDTH / zoom, true)
 	var slimes := simulation.slimes
 	for slime_id in slimes.ids():
 		var r := slimes.radius_of(slime_id)

@@ -46,8 +46,11 @@ static func expected_laps(train: Train, seconds: float) -> float:
 ## Runs a full session and returns [hash, laps, samples, problems].
 func _run_session(game: Node) -> Dictionary:
 	var sim: Simulation = game.simulation
-	var ids := sim.slimes.ids()
-	assert_eq(ids.size(), 1, "the game woke the first slime")
+	var ids: Array[int] = []
+	for slime_id in sim.slimes.ids():
+		if sim.slimes.state_of(slime_id) != SlimeBodies.SLEEPER:
+			ids.append(slime_id)
+	assert_eq(ids.size(), 1, "the game woke the first slime (the rest are sleepers)")
 	var slime := ids[0]
 	var last: float = sim.train.progress_of(slime)
 	var problems := PackedStringArray()

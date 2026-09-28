@@ -2,9 +2,13 @@
 class_name FramingZone
 extends Area2D
 ## A framing zone (D60, D61, rule 19): an area of the level that sets the
-## camera's zoom and position when the camera reaches it. Placeholder: the
-## camera doesn't read it yet (chunk 13).
+## camera's zoom and shifts its place while the camera's rail point is inside
+## it (Camera, "Framing zones"). Level.build() hands it to the simulation as
+## LevelData.framing_zones. Put one wherever the view needs to be wider: a
+## branch, a high step, a place the child must see to understand.
 # @spec-link [[req_level_design_rules]]
+# @spec-link [[req_camera_rails_and_framing]]
+# @spec-link [[rule_framing_zone_wherever_wider_view_needed]]
 
 const COLOR := Color(0.5, 0.8, 1.0, 0.5)
 
@@ -30,6 +34,10 @@ const COLOR := Color(0.5, 0.8, 1.0, 0.5)
 	set(value):
 		offset = value
 		queue_redraw()
+## How long an edge button must be held to leave the zone, seconds; -1 uses
+## the camera's default (Camera.EXIT_HOLD, about 1 s, O70). A short press
+## inside the zone stays inside.
+@export var exit_hold := -1.0
 
 func _init() -> void:
 	add_to_group(Level.THINGS_GROUP)

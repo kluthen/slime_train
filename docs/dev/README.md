@@ -684,7 +684,8 @@ species and state: train slimes stay on the train. Nothing else splits.
 **Waking the first slime.** `Simulation.load_level` creates the level's
 first slime (size 1, its species, a train slime) at its marker when the
 state is fresh (tick 0, no slimes): a restored state keeps its own slimes.
-There are no sleepers on the level yet (chunk 9).
+It also puts every sleeper to sleep at its marker (chunk 9, see "Sleepers,
+waking and the hint").
 
 **Tests.** `tests/unit/test_train_progress.gd` (progress window, wrap,
 laps, lost, aim, targets, off-route steering) and
@@ -708,19 +709,18 @@ Master spec §5.2 and §5.5. All of it is simulation logic in `src/sim/`
 
 **The view.** Taps arrive in screen pixels, so the simulation holds a view,
 `simulation.view` (`ScreenView`): the level point at the screen's centre,
-the zoom and the screen size. `main.gd`'s `sync_view()` copies it from the
-camera before every tick (`camera_centre()` reproduces Camera2D's limit
-clamp and adds the offset); the screen size is test mode's `screen_size`
-in test mode, else the viewport's. `world = centre + (screen - size / 2) /
-zoom`. The view is in the dump. The camera itself stays in the scene until
-chunk 12.
+the zoom and the screen size. `main.gd`'s `sync_view()` sets it from the
+simulation's camera (`Camera.apply_to()`, see "Camera" below) before and
+after every tick; the screen size is test mode's `screen_size` in test
+mode, else the viewport's. `world = centre + (screen - size / 2) / zoom`.
+The view is in the dump.
 
 **Tap zones** (`TapDispatcher.dispatch`), checked in this order:
 
 | Order | Zone | Where | Does |
 |---|---|---|---|
 | 1 | `parent_zone` | the top `TOP_BAND_HEIGHT` (64) screen px | nothing yet (parent buttons, chunk 18); never calls |
-| 2 | `edge_button` | `EDGE_BUTTON_SIZE` (96×192) screen px against each side, vertically centred | nothing yet (camera, chunk 12); never calls |
+| 2 | `edge_button` | `EDGE_BUTTON_SIZE` (96×192) screen px against each side, vertically centred | moves the camera along its rails (`Camera.press`, see "Camera"); never calls |
 | 3 | `object` | a tap target's box grown by `OBJECT_HIT_MARGIN` (24) screen px | nothing yet (chunks 9, 14); a **sleeper** calls, centred on it |
 | 4 | `open_ground` | anywhere else | calls, centred on the tap |
 
@@ -754,7 +754,8 @@ call radius, half the view's width in level px (576 at zoom 1), answers:
 it becomes free (state `free`, the train drops it), is let go if it was
 held on the slide, and hops within `FIRST_HOP_SECONDS` (0.35 s). A new call
 replaces the point for every slime still answering, in range or not, and
-restarts its 8 s. Sleepers don't answer (waking them is chunk 9). A free
+restarts its 8 s. Sleepers don't answer: a free slime's touch wakes them
+(see "Sleepers, waking and the hint"). A free
 slime then goes through three phases, recorded per slime with the tick it
 entered them:
 
@@ -779,9 +780,10 @@ from where the slime stands:
    route's end. `route_of(id)` names the route used.
 2. Otherwise (no branch, a branch without a route, or past the route's
    end), it hops straight for the nearest point of the current loop,
-   always at least `MIN_SIDEWAYS` (60 px) sideways (the loop's direction
-   there when the loop point is right below), so it leaves a ledge rather
-   than hop in place above the loop.
+   always at least `MIN_SIDEWAYS` (60 px) sideways. When the loop point is
+   more or less right below, it hops the loop's way there, level with where
+   it stands (chunk 9: aiming down at the loop, the hop came down after
+   about 30 px and a slime woken on a ledge stayed stuck on its corner).
 
 **Tick order.** Input (taps, calls answered); `train.steer`;
 `free_slimes.steer`; `slimes.tick`; `free_slimes.paced` and hop facings;
@@ -869,8 +871,8 @@ chunk 7 above: `camera_centre()`, the Camera2D's limit clamp and
 current loop (`LoopData.current_segments` for the open gates), return
 routes included: each section's slide has its own rail. Its point is
 `loop.position_at(distance) + RAIL_OFFSET` (0, -120: the view shows more
-above the route than under it; one constant, a framing zone's `offset` will
-adjust places in chunk 13). **Forward is increasing distance** whatever the
+above the route than under it; one constant, a framing zone's `offset`
+shifts it where needed, below). **Forward is increasing distance** whatever the
 direction on screen: forward along a slide, which runs right to left, moves
 the view left, round the frontier turn and back toward the start; the rail
 wraps at the loop's end like the train. When a gate opens and the loop
@@ -904,9 +906,9 @@ nearest point (`rail_gap` holds the difference, closed at `CATCH_UP`,
 `camera.place(centre, zoom)` puts it off the rails for tests (it glides
 back the same way); it isn't an input.
 
-**Zoom and bounds.** `zoom` is the camera's (1.0); no input changes it
-(DoD 18). Framing zones and the idle zoom set it in chunk 13. The only
-level bound is the old left edge, kept in the simulation:
+**Zoom and bounds.** `zoom` is the camera's; no input sets it (DoD 18):
+framing zones, the idle cue and the idle camera do (chunk 13, below), and it
+is 1.0 elsewhere. The only level bound is the old left edge, kept in the simulation:
 `view_centre()` holds the view's centre so the view never shows left of
 x = 0 (`LEVEL_LEFT`); the camera itself may sit nearer (the start basin's
 first rail point is at x 345.6).
@@ -951,6 +953,400 @@ inside `Simulation.step()`, so unit tests that set `sim.view` by hand keep
 working. The drag and the return share one pace. A per-segment rail offset
 was left out: framing zones cover it.
 
+### Framing zones (chunk 13)
+
+Master spec §5.6 "Automatic framing", rule 19, DoD 18
+(`req_camera_rails_and_framing`, `rule_framing_zone_wherever_wider_view_needed`).
+A `FramingZone` (`src/components/framing_zone.gd`, an Area2D) is placed in
+the level like any component. Its editor properties:
+
+| Property | What |
+|---|---|
+| `stable_id` | `<place>.frame.<name>` |
+| `size` | the box it covers, centred on its position, level px |
+| `zoom` | as Camera2D.zoom: 1 is normal play, below 1 shows more (0.7 shows 43 % more), above 1 closes in; 0.25-2 |
+| `offset` | how far the view shifts from where the rails put it, level px (negative y is up) |
+| `exit_hold` | seconds of holding an edge button to leave it; -1 (default) uses `Camera.EXIT_HOLD` |
+
+`Level.build()` collects them into `LevelData.framing_zones` (stable ID ->
+`{"box", "zoom", "offset", "exit_hold"}`), and `Simulation.load_level()`
+hands them to the camera (`camera.zones`) before starting it. The test level
+has two, from `tools/greybox_test_level.gd`: `s1.frame.high-step` (x
+3.5-4.5 screens, zoom 0.85, offset (0, -120): the loop and the ledge) and
+`s1.frame.tree` (x 4.5-5.5, zoom 0.7, offset (0, -250): the loop, the
+tree's lower platform and the bough).
+
+**Framing.** A zone frames the camera while its **rail point** (the rails'
+place, before framing) is inside the zone's box; the box is tested against
+that point, so a zone above the way out doesn't frame the slide under it.
+Framed, the camera's place is the rail point plus `frame_shift`, which eases
+toward the zone's `offset`, and `zoom` eases toward the zone's zoom; both
+ease back to (0, 0) and 1.0 when the rail point leaves. The ease is
+`FRAME_EASE` (1.5) times the difference left per second, never slower than
+`ZOOM_SETTLE` (0.02 /s) for the zoom or `SETTLE` (30 px/s) for the shift,
+so it lands without creeping: just under 3 s from 1.0 to 0.7. A zone reframes
+the rails, it doesn't pin the view: the camera still moves along them
+inside. Where boxes overlap the current zone keeps the camera, else the
+smaller ID. A camera started inside a zone (a level load, a fixture's
+camera) shows its framing at once. A call still drags the camera out of a
+zone; it keeps the zone's framing while dragged and is framed again by
+wherever its rail point lands.
+
+**Leaving a zone** (O70's proposed default). In `RAILS`, a move that would
+take the rail point from inside the current zone's box to outside it is
+held back (the camera stays at the edge) until the edge button has been
+held for the zone's exit hold (`EXIT_HOLD`, 1 s, unless the zone sets its
+own) since it was pressed in that zone (`zone_hold`, ticks; it restarts on
+each press and on entering a zone). A short press, or a hold let go before
+then, stays inside: the rest of the press is dropped at the edge. Once the
+hold has lasted long enough the right to leave stays until the next press,
+so the ease after the finger lifts carries the camera on out. **With STEP
+and PACE:** a press still moves a `STEP` and a hold still moves at `PACE`
+inside a zone; only the crossing of its edge waits. Holding across a whole
+zone is never slowed as long as crossing it at `PACE` takes longer than its
+exit hold (the test level's zones are one screen wide: 1.33 s at `PACE`,
+over the 1 s). Zones are entered freely.
+
+### Idle camera and screensaver mode (chunk 13)
+
+Master spec §5.6, §5.7, DoD 19 (`req_idle_camera_and_screensaver_zoom`).
+`Camera.watch(slimes, touching, screensaver)` runs once a tick before
+`step()`: `touching` is whether a finger is down (a finger held down counts
+all along), and `Simulation._apply_input` calls `camera.touched()` for every
+touch that counts, before the tap does its job. `quiet` counts the ticks
+since the last touch. Tilt doesn't count as input for this clock: it
+steers free slimes, it doesn't take the camera.
+
+- **Cue.** From `IDLE_SECONDS - CUE_SECONDS` (35 s) the zoom goes slowly
+  (smoothstep over 10 s) from where it was to `IDLE_ZOOM`, while the camera
+  stays the child's (on its rails). A touch stops the cue and the zoom
+  eases back to its framing.
+- **Following.** At `IDLE_SECONDS` (45 s) the camera switches to `FOLLOW`:
+  it picks the **train slime whose centre is nearest the camera's point**
+  (the smaller id on a tie; with none it tries again each tick) and glides
+  after it, keeping it `RAIL_OFFSET` under the middle of the view, at
+  `FOLLOW_EASE` (2) times the distance per second, between `SETTLE` and
+  `FOLLOW_PACE` (half a screen a second, above the slide's 360 px/s). A
+  hopping slime runs a little ahead of the view (about half a second of
+  its motion). Framing zones are ignored while following.
+- **The follow rule.** The camera keeps its slime's id. Through **fusion**
+  it follows the fused slime: `SlimeBodies.merge` keeps the lower id, so if
+  the followed id is gone the camera takes the slime of the same species
+  with a lower id nearest where it was. Through **splitting** it follows the
+  piece that keeps the id (`SlimeBodies.split`'s first part). A slime gone
+  any other way: the train slime nearest where it was.
+- **Taking control back.** Any touch ends following and still does its
+  normal job: the camera glides back to the rails as after a call
+  (`RETURN`), framed again only if its point (the view's centre) is still
+  inside a framing zone, else as in chunk 12; an edge button puts it
+  straight back on the rails at the nearest point and moves it on; a call on
+  open ground drags it toward the call. The idle clock starts again.
+- **One zoom.** `IDLE_ZOOM` = 1/1.15 (15 % wider than normal play, within the
+  spec's 10-20 %) is the only zoom while following, in idle and screensaver
+  mode alike: it replaces a zone's zoom, it never stacks with one.
+- **Screensaver mode.** `simulation.screensaver` (true: screensaver mode).
+  Turning it on starts the idle camera at once, at `IDLE_ZOOM`, with no cue.
+  A touch takes the camera back as above; it idles again after the usual
+  45 s. The core default is false (a session, and test mode and the unit
+  tests play as in one); `main.gd` turns it on in normal play after the
+  save is loaded, until sessions (chunk 17) drive it. It is a mode set
+  from outside, so it is not in `Simulation.dump()` nor in saves; the
+  camera's own dump records what it did (`screensaver` as last seen,
+  `quiet`, `cue_from`, `follow_id`, `follow_species`, `follow_point`,
+  `frame_zone`, `frame_shift`, `zone_hold`).
+
+`camera.place()` (tests, debugging) also ends following, restarts the idle
+clock and frames the camera by the zone its centre is in.
+
+![In s1.frame.tree: zoom 0.7, the view shifted up onto the tree's lower platform and the bough](img/chunk13-framing.png)
+
+![The idle camera following the first slime through a dip, at the shared zoom](img/chunk13-idle.png)
+
+The screenshots are from a debug run with a display, seed 91: a scripted
+right hold to the middle of the tree's zone (the camera at distance
+5769.6, zoom 0.7, shift (0, -250)), and a fresh run left alone for 50 s
+(following slime 1 at zoom 0.8696; at 40 s the cue had it at 0.9348).
+
+**Minimum zoom (Known gap 4), data only.** A base (size 1) slime's visible
+edge is `RING_RADIUS_SIZE_1` + `EDGE` = 24 level px from its centre, so it
+is drawn 48 level px across: 48 viewport px at zoom 1, 40.8 in
+`s1.frame.high-step` (0.85), **33.6 in `s1.frame.tree` (0.7)**, 41.7 at
+`IDLE_ZOOM` (measured about 33 px across in the tree screenshot). On the
+reference phone (S20 FE, 2400×1080 at about 405 ppi, 1.667 physical px per
+viewport px) that is 80 px (5.0 mm) at zoom 1 and 56 px (3.5 mm) at 0.7,
+the Meadow's smallest. No rule is set here.
+
+**Tests.** `tests/unit/test_camera_framing.gd` (synthetic loop, one zone):
+`Level.build()` collecting the zones with their exit hold, entering a zone
+reframing smoothly (the zoom only going out, less than 0.01 a tick, no jump
+in place) and settling on its zoom and offset, not there after 0.5 s, a
+camera started inside framed at once, the slide under a zone not framed,
+short presses forward and backward staying inside, a hold leaving after
+1 s, a shorter hold staying, a hold across the zone not slowed, a hold let
+go near the edge easing on out, a zone's own exit hold, only the zone
+setting the zoom, a call from inside a zone keeping and regaining its
+framing, dump and restore. `tests/unit/test_camera_idle.gd`: idle at 45 s
+with the cue from 35 s (half way at 40 s), a finger held down counting as
+input, waiting without a train slime, following the train slime nearest
+the middle (not a free slime or a sleeper) and gliding to it, following
+through a fusion (either id) and a split (with `SlimeBodies` directly), a
+touch taking control back and restarting the clock, a touch stopping the
+cue, an edge press from following, zones ignored while following, framing
+resumed on touch only inside a zone, screensaver mode starting at once
+(also inside a zone, no stacking), one shared zoom, and through the
+simulation the zones handed over, screensaver mode, tilt not counting, a
+tap on open ground taking control and still calling, an edge tap taking
+control and moving the camera, dump and restore.
+`tests/e2e/test_camera_framing_e2e.gd` on the test level (seed 91): the
+zones reach the camera, a right hold into `s1.frame.tree` reframes it
+(zoom 0.7, the shift, the platform and the loop on screen, the Camera2D
+mirroring the zoom), four short presses stay inside and a hold leaves after
+about 1 s, 45 s alone gives the cue then the follow of the first slime and
+a tap takes the camera back and calls, screensaver mode, and a repeatable
+hash. `test_camera_e2e.gd`'s call to the tree now stops short of the tree
+(in the high step's zone): the tree's zone shifts the view onto the call
+point, which left the drag nothing to do.
+
+**Choices.** Framing is relative to the rails (rail point plus a shift),
+not a fixed view per zone, so the camera still travels inside a zone and a
+zone's edge needs no special seam. The exit hold is a fence on the rail
+point rather than a slower pace, so short presses behave the same inside a
+zone and a long hold is not slowed. Tilt is not input for the idle clock.
+`screensaver` stays out of the dump so a reload in normal play still
+matches the saved hash.
+
+## Fusion and bumping
+
+Master spec §5.2 and §5.3, D20, D37, D49 (`rule_fusion_contact_time`,
+`rule_max_size_three`, `rule_dip_may_nudge_fusion`). `Fusion`
+(`src/sim/fusion.gd`, pure logic) holds the contact counts; the ring
+operation is `SlimeBodies.merge`, reached through `Simulation.fuse()` so the
+stable identities follow. `Simulation.step()` calls `fusion.step(self)` after
+the split zones and before the free slimes and the train follow (they drop
+the fused-away slime's records).
+
+**Contact timers.** After the bodies tick, every touching pair
+(`SlimeBodies.touching_pairs()`, rings within `TOUCH_SKIN` 2 px) that
+counts adds one tick to its count. A pair counts when both slimes are awake
+(train or free; sleepers never count), of the same species, both centres on
+screen, and neither in a split zone (a slime fused there would split again
+at once). A pair that stops touching or counting for even one tick loses
+its count. **No grace:** two slimes resting against each other stay
+touching every tick (`test_179_ticks_of_contact_do_not_fuse_and_180_do`
+checks every tick), so solver jitter never needed one.
+
+At `CONTACT_TICKS` (180, 3 s) the pair acts:
+
+- sizes adding up to 3 at most: it **fuses**. The fused slime keeps the
+  lower runtime id and with it that slime's state and records (a train
+  slime keeps its progress, a free slime its phase, call point and stream),
+  at the size-weighted centre, momentum kept. Its identity is the union of
+  both (D72).
+- above 3: it **bumps**. Each slime gets a push apart (`BUMP_SPEED` 240
+  px/s shared by size, the smaller moving more) and a lift (`BUMP_LIFT`
+  200 px/s up), and the count starts again. A pair that stays together
+  bumps once every 3 s, not every tick.
+
+**On screen only.** The view is `Simulation.view` (the scene copies the
+camera into it before every tick; unit tests set it by hand). A centre is
+on screen when it is inside the view shrunk by `VIEW_MARGIN` (24 px, a base
+slime's drawn radius, so the whole body shows). Off screen the count is
+**dropped, not paused**: a pair that comes back into view starts from zero.
+
+**The dip nudges fusion** (level rule 5, test level 1.3). Measured first:
+without help, two base slimes of one species put on the Meadow dip's rim
+pass through the dip at the train's pace. Over 20 seeds none fused in 60 s;
+the longest contact was 16 to 115 ticks. Two lighter tweaks weren't enough:
+holding touching pairs only (9 of 20 seeds fused) and doubling the hop
+interval on landing at the floor (13 of 20). The kept nudge is sim-side, in
+`Fusion`:
+
+- a **dip floor** is found from the loop (`Fusion.dip_floors()`): a vertex
+  of the outgoing route from which the route rises `DIP_DEPTH` (100 px)
+  above it on both sides before going any lower; the floor is the stretch
+  around it at most `DIP_FLOOR_RISE` (30 px) higher. The Meadow's fusion
+  dip gives one floor, 3217 to 3570 px along the loop; the smaller dips and
+  the slide have none. Recomputed when the open gates change, not state.
+- **gathering:** a train slime on a dip floor doesn't hop while a train
+  slime it may fuse with (same species, sizes up to 3) is less than
+  `DIP_GATHER` (300 px, two base hops) behind it along the loop, so the one
+  behind catches up;
+- **holding:** two such slimes touching on the floor don't hop until they
+  fuse or lose contact.
+
+Both apply only on screen, where fusion can happen, and only to pairs that
+may fuse: pairs that would bump, or of different species, pass through. A
+held slime's hop timer is kept at `DIP_HOLD_SECONDS` (0.25 s), so it hops
+soon after it is let go. With it, all 20 seeds fuse, in 7.5 to 11.6 s.
+
+**State and saves.** The counts are state: `dump()["fusion"]` is
+`[[a, b, ticks]]` in id order. They are saved too, in the save's
+`transient.fusion`, because it is trivial and keeps the reload invariant (a
+reloaded save has the same hash and fuses on the same tick).
+
+![The fusion dip: two base slimes of species C touching at the bottom (count 160 of 180), then the fused size-2 slime 30 ticks after the fusion](img/chunk10-fusion.png)
+
+The screenshot is from a debug run with a display, seed 5, the camera on
+the dip at zoom 1: two species-C base slimes put on the rim (2.58 and 2.68
+screens) gather on the floor and fuse at tick 491 (8.2 s).
+
+**Tests.** `tests/unit/test_fusion.gd` (flat floor, automatic hops off, the
+view set by hand): 179 ticks don't fuse and 180 do, with the summed size; a
+small hop at tick 100 breaks the contact and the fusion comes exactly 180
+ticks after the contact is back (293); different species and sleepers
+never count; free slimes fuse; 1 + 2 fuse; 2 + 2 and 3 + 1 bump (both
+remain, pushed apart and lifted, the smaller faster, at most one bump per
+3 s); off screen, half off screen and inside the margin nothing fuses, and
+going off screen drops the count; a fused train slime keeps its progress
+and hops on along the loop; identities merge; determinism; the counts in
+the dump and through a save; `dip_floors()` on a synthetic loop.
+`tests/e2e/test_fusion_e2e.gd` on the Meadow: from `bump` the size 3 and
+size 2 meet and are both there after 10 s [DoD 6, bump]; two base slimes
+on the dip rim fuse within 20 s and the run is repeatable; the fused slime
+leaves the dip; 2 + 2 and 3 + 1 on the dip meet and stay apart in size.
+
+**Choices.** The nudge is a small sim-side wait, not a level edit and not a
+physics change: the dip geometry is the level's, and the train's grip and
+hop aims stay as they are. The count is dropped, not paused, off screen, so
+a fusion the player sees always shows its full 3 s. The bumped pair's count
+starts again rather than bumping every tick, which would shake them apart
+on every contact.
+
+**Known gaps.** In the `bump` fixture's 10 s the pair meets (touching for
+75 ticks, the longest run 68) but never reaches 3 s together, so no bump
+push happens in that run; the bumps themselves are covered by the unit
+tests. The `bump` fixture holds a 3 + 2 pair, while the build plan's
+"`bump` (2 + 2 and 3 + 1)" names other sizes; 2 + 2 and 3 + 1 are covered by
+scripted spawns on the dip instead.
+
+## Sleepers, waking and the hint
+
+Master spec §5.2, D13, D70, D65 and D95 (`req_waking_sleepers`,
+`req_first_play_hint`, `req_controls_tap_zones`). The code is in `Sleepers`
+(`src/sim/sleepers.gd`, stateless) and `Hint` (`src/sim/hint.gd`,
+`simulation.hint`). `TapFeedback` draws the hint.
+
+- **Placing.** `Level.build()` adds every `Sleeper` component to
+  `LevelData.sleepers` (stable ID, species, position). On a fresh state,
+  `Simulation.load_level` creates the first slime and then every sleeper
+  (`Sleepers.place`) in stable ID order. Each sleeper is size 1, in state
+  `sleeper`, named by its stable ID. A restored save brings its own
+  sleepers and gets no new ones. The test level has 29. The markers only
+  draw in the editor: the game draws the bodies.
+- **Asleep.** A sleeper doesn't simulate. `SlimeBodies` skips its hops,
+  integration, ring and terrain constraints, so its points never move. It
+  still takes part in the contacts, as a wall: the other slime takes the
+  whole overlap, can rest on it, and wakes it. Two sleepers are never
+  paired.
+- **Waking.** Right after the bodies tick, `Sleepers.wake` wakes every
+  sleeper touching a free slime when both are on screen: any part of the
+  ring in `simulation.view`. Train slimes never wake one. The woken slime
+  becomes free and `unsure` at its own centre, then heads back and rejoins
+  like any free slime. It can wake another sleeper on a later tick.
+- **Tapping.** A tap on a sleeper is a call centred on its body.
+  `Sleepers.tap_targets` moves the level's box onto the body and drops it
+  once the sleeper is awake.
+- **The hint.** The hint has one place: the sleeper nearest the first
+  slime's marker (the smaller ID on a tie). It is due until the first call:
+  any tap that calls, on open ground or on a sleeper. The game calls
+  `hint.world_shown(tick)` whenever it shows a simulation. If no call comes
+  in the 10 s after that, the hint shows, but never during bedtime
+  (`hint.bedtime`, which chunk 17 drives). `TapFeedback` draws it as a
+  steady ring plus a ring that swells and fades every 1.2 s of sim time.
+  This is placeholder art.
+- **Saving.** `hint_done` sits at the top level of the save (absent means
+  false, so the hint is due). `transient.hint` holds `{since, bedtime}`.
+  `readable()` keeps `hint_done`.
+
+![The first-play hint pulsing around the first sleeper, 10 s into a fresh run with no call](img/chunk9-hint.png)
+
+The screenshot comes from a debug run with a display: fresh, seed 91, no
+input, tick 677. It was recorded with the movie maker under
+`xvfb-run -a -s "-screen 0 1280x720x24"`, `--fixed-fps 60 --quit-after
+700 -- --test-mode --seed=91`.
+
+**Tick cost.** Measured with `Simulation.step` on the test level, seed 909,
+over 3600 steps, headless. The figure is the median of rounds 2 and 3.
+
+| Case | Slimes | ms per step |
+|---|---|---|
+| No sleepers | 1 | 0.057 |
+| 29 sleepers (not simulating) | 30 | 0.142 to 0.148 |
+| The same 29 as bedtime-asleep (simulated) | 30 | 0.91 to 0.94 |
+
+The 54 000-tick session test now takes 7.9 s. The bench's "still" case
+(`tools/bench_slimes.gd`) uses bedtime-asleep slimes, because sleepers no
+longer simulate.
+
+**Tests.**
+- `tests/unit/test_sleepers.gd` (12 tests):
+  - placing, and a restored save placing none;
+  - never moving, and resting on a sleeper;
+  - train slimes not waking one;
+  - on and off screen, and both having to be on screen;
+  - unsure, then rejoining;
+  - the tap following the body, and a woken sleeper no longer a target;
+  - determinism.
+- `tests/unit/test_hint.gd` (10 tests):
+  - 10 s after the world shows, next to the first sleeper;
+  - showing again restarts the count;
+  - done for good, a call hiding it, and a tap that doesn't call leaving it due;
+  - bedtime, and a level without sleepers;
+  - the save round trip, a save without the mark, and a bad mark.
+- `tests/e2e/test_sleepers_e2e.gd` (7 tests, on `fresh`):
+  - every sleeper asleep;
+  - the hint after 10 s with no call [DoD 16];
+  - a call at 5 s means no hint, even after a reload;
+  - a reload counts 10 s again;
+  - a call on the first sleeper wakes it and both rejoin;
+  - no waking in a lap without calls;
+  - repeatability.
+- `tests/unit/test_call.gd` gains a heading-back test from a ledge above
+  the loop.
+
+**Crowd check** (scratch runs, not tests):
+- **Hill sleepers can't be reached.** Hill sleepers `.02` to `.13` sit on
+  slabs about 150 to 210 px above the hill surface, beyond a base slime's
+  `max_rise` of about 133 px.
+  - A called slime came no closer than 65 to 70 px (the tree: 105 to 112;
+    the bough: 380; ledges B and C: 69 to 76).
+  - In 8 minutes of taps, none woke.
+  - This is a level design question, not code. The slabs also have to
+    clear size-3 train slimes on the loop below.
+- **Woken on a ledge.** Force-woken hill sleepers (6 per run) first got
+  stuck on their slab's corner. The way back is now fixed (see the call
+  above), with a test.
+- **Corner snag.** A slime can snag on bump 2's right end, around
+  (1746 to 1751, −164 to −174). At a convex corner that isn't square,
+  `TerrainSegments` takes the first-listed segment on a tie. That can
+  count a point just past the corner as inside the terrain, so a
+  wedge-shaped strip of air acts as solid (seen at x 1778 to 1802,
+  y −184).
+  - After the fix, one slime still stuck there on 9 of 10 seeds.
+  - A fix (the vertex's summed normal on a tie, in both `resolve` and
+    `SlimeBodies._solve_terrain`) changes contact physics everywhere, so
+    it is left open.
+- **Lost by stalling.** Crowds were lost by the 60 s stall rule:
+  - at the start basin's lip, around (716 to 723, 370 to 381), on seed 4
+    (seed 2 before the fix);
+  - on the fusion dip's floor, around (3459 to 3592, 200 to 218), on
+    seeds 6 and 9, mixed species.
+  - Not settled; the start crowd from chunk 6's known limit remains.
+
+**Choices and gaps.**
+- The hint ends on the first call, not on the first call that wakes a
+  sleeper as D65 words it. This follows D95 and `req_first_play_hint`.
+- The done mark lives in the level's save. Deleting the save brings the
+  hint back.
+- A reload while the hint is due restarts its 10 s, so the hash of a
+  reloaded run can differ from the unbroken run's while the hint is due.
+- The bedtime flag stays off until chunk 17.
+- Tests changed because sleepers now exist and don't simulate:
+  - test_slime_physics, test_slimes_in_game and the bench use
+    bedtime-asleep bodies;
+  - the e2e counts expect 1 + the level's sleepers at load;
+  - the `bump` fixture expects 3 awake slimes.
+
 ## Saves and fixtures
 
 Master spec §6.4 and D72 (`req_persistence_and_saves`,
@@ -973,7 +1369,7 @@ One JSON object, keys sorted, tab-indented:
 | `train` | The open gates and the lost-slime log |
 | `call` | The last call (point, tick), or null |
 | `objects`, `gates` | Stable ID to state, `{}` until chunk 14 |
-| `transient` | The view, the camera, the ripples, the last taps, the facings, the input log and the tilt (reading, neutral, flat). Optional |
+| `transient` | The view, the camera, the ripples, the last taps, the facings, the input log, the tilt (reading, neutral, flat) and the fusion contact counts. Optional |
 
 Not saved: the fingers on the screen and input not yet consumed (a
 restarted game has no finger down: a held edge button is let go), and what
@@ -1053,8 +1449,8 @@ save `<name>.json` in the hand-made form above.
 
 | Fixture | State |
 |---|---|
-| `fresh` | No save: the level as new, the first slime at its marker |
-| `bump` | A size-3 (`s1.sleeper.04`, `.07`, `.10`) and a size-2 (`.14`, `.15`, the dip hollow's pair) train slime of species C, about 40 px apart on the fusion dip's floor, and the first slime; the camera on the dip |
+| `fresh` | No save: the level as new, the first slime at its marker, every sleeper asleep at its own, the hint due |
+| `bump` | A size-3 (`s1.sleeper.04`, `.07`, `.10`) and a size-2 (`.14`, `.15`, the dip hollow's pair) train slime of species C, about 40 px apart on the fusion dip's floor (those five sleepers' bodies gone, the other sleepers asleep), and the first slime; the camera on the dip |
 | `s1-basket-5of6` | Not made yet: it needs the baskets (chunk 14) |
 
 To make or remake them: `godot --headless -s res://tools/make_fixture.gd`
@@ -1062,7 +1458,7 @@ To make or remake them: `godot --headless -s res://tools/make_fixture.gd`
 tool that sets up a simulation on the test level and saves it; the tool
 looks the stable IDs up in the level scene and checks the save loads back.
 To add one, add an entry to `FIXTURES` and its builder. Fixtures follow
-the level: when it changes (chunk 9 adds the sleepers), run the tool again.
+the level: when it changes, run the tool again.
 
 ## Android export (debug)
 
@@ -1246,7 +1642,7 @@ adb logcat -v time -s godot:*
 ### Chunk 7: taps and the call
 
 - **Taps are resolved in the simulation, through a view.** The scene only
-  copies the camera into `simulation.view` each tick, so scripted and real
+  copies the simulation's camera (chunk 12) into `simulation.view` each tick, so scripted and real
   taps take the same path and a test sets the screen size in one place.
 - **Dispatch on touch down**, so a tap answers at once; a long press or a
   drag (later chunks) can still build on the same touch.
@@ -1257,8 +1653,8 @@ adb logcat -v time -s godot:*
   reading taken).
 - **The way back is re-chosen at every hop** from where the slime stands,
   so a slime that falls off a branch mid-route heads straight for the loop.
-  Heading back directly keeps at least 60 px sideways, or a slime on a
-  ledge right above the loop hops in place.
+  Heading back directly keeps at least 60 px sideways, level with the
+  slime, or a slime on a ledge right above the loop hops in place.
 - **Placeholders:** the top band (64 px) and edge buttons (96×192 px) until
   ux-writer settles them; the ripple ring and the eye dot as art.
 - **The basket is a tap target** (per the build plan), though the spec has
@@ -1289,8 +1685,8 @@ adb logcat -v time -s godot:*
   can jam there, and two slimes shoved into each other by the carry can end
   up overlapping for good (the contact model can't separate two rings with
   the same centre). One slime per size passes on every seed tried; three at
-  once jammed on 1 of 6 seeds. Chunk 9 (sleepers joining) has to settle the
-  crowd at the start.
+  once jammed on 1 of 6 seeds. Chunk 9's crowd check (see "Sleepers,
+  waking and the hint") still sees jams there: not settled.
 
 ### Chunk 5N: native tick (contingency, deferred by D96)
 

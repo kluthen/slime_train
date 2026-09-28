@@ -37,3 +37,8 @@ pattern; `scripts/` holds the JSON run files. How to write one:
   size-3 and a size-2 slime of one species a little apart on the fusion
   dip's floor with the camera on them, `fresh` is the level as new, and
   every fixture in `levels/test/fixtures/` loads.
+- `test_fusion_e2e.gd` checks fusion and bumping on the Meadow's fusion
+  dip [DoD 6]: from `bump` the size 3 and size 2 meet and never fuse in
+  10 s; two base slimes put on the dip's rim fuse within 20 s (the dip
+  nudges fusion), the run is repeatable and the fused slime hops on; 2 + 2
+  and 3 + 1 on the dip meet and keep their sizes.

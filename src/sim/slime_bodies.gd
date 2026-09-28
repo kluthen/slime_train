@@ -18,9 +18,15 @@ extends RefCounted
 ## build the slime-pair grid (first substep only), slime-slime contacts, ring
 ## constraints (edge springs, area, shape matching), terrain contacts.
 ##
+## Sleepers (STATE_SLEEPER) don't simulate: no hop, no integration, no ring
+## or terrain constraint, so their points never move. Other slimes still
+## touch them (touching_pairs, for waking) and are pushed off them by the
+## whole overlap, as off a wall; two sleepers are never paired.
+##
 ## The interface (create, remove, tick, merge, split, hop, the accessors and
 ## dump) is kept small and plain so the tick can move to a GDExtension later
 ## without the callers changing.
+# @spec-link [[req_waking_sleepers]]
 
 const STATE_SLEEPER := 0
 const STATE_TRAIN := 1
@@ -780,6 +786,13 @@ func _integrate(h: float) -> void:
 		var f: int = first[s]
 		var cnt: int = npts[s]
 		var end: int = f + cnt
+		if state[s] == STATE_SLEEPER:
+			# Asleep: it doesn't simulate (its points stay put), but its
+			# point-0 angle is kept right for the contacts.
+			var r_sleep: Vector2 = p[f] - centre[s]
+			angle0[s] = atan2(r_sleep.y, r_sleep.x)
+			_drift[s] = Vector2.ZERO
+			continue
 		var gs: Vector2 = g_free if state[s] == STATE_FREE else g
 		var mean := Vector2.ZERO
 		for i in range(f, end):
@@ -847,7 +860,7 @@ func _build_pairs() -> void:
 				var gc := gy * _grid_w + gx
 				for q in range(_cell_start[gc], _cell_start[gc + 1]):
 					var t: int = _cell_items[q]
-					if t <= s:
+					if t <= s or (state[s] == STATE_SLEEPER and state[t] == STATE_SLEEPER):
 						continue
 					# Margin: slimes may close in during the tick's substeps.
 					var rr: float = rs + bound_r[t] + 8.0
@@ -903,6 +916,11 @@ func _solve_contacts() -> void:
 			var vb: Vector2 = _drift[b]
 			var touched := false
 			var rests := false
+			# A sleeper is a wall: its points only feel the touch, and a slime
+			# against it takes the whole overlap.
+			var still: bool = state[a] == STATE_SLEEPER
+			var against_still: bool = state[b] == STATE_SLEEPER
+			var share := 1.0 if against_still else 0.5
 			for m in range(mid - half, mid + half + 1):
 				var j := fa + (m % na + na) % na
 				var rel: Vector2 = p[j] - cb
@@ -926,8 +944,8 @@ func _solve_contacts() -> void:
 				var d := sqrt(d2)
 				if rel.y < -SUPPORT_NORMAL_Y * d:
 					rests = true
-				if d < r:
-					var push := rel * ((r - d) * 0.5 / d)
+				if d < r and not still:
+					var push := rel * ((r - d) * share / d)
 					var moved: Vector2 = p[j] + push
 					p[j] = moved
 					react -= push
@@ -939,9 +957,9 @@ func _solve_contacts() -> void:
 					drag += slide
 			if touched:
 				_pair_touch[pair] = 1
-			if rests:
+			if rests and not still:
 				supported[a] = 1
-			if react != Vector2.ZERO:
+			if react != Vector2.ZERO and not against_still:
 				react /= nb
 				drag /= nb
 				for q in range(fb, fb + nb):
@@ -957,6 +975,8 @@ func _solve_rings() -> void:
 	var ka := area_stiffness
 	var kshape := shape_stiffness
 	for s in slime_count:
+		if state[s] == STATE_SLEEPER:
+			continue
 		var f: int = first[s]
 		var cnt: int = npts[s]
 		var last := f + cnt - 1
@@ -1047,6 +1067,8 @@ func _solve_terrain() -> void:
 	var skin := terrain_skin
 	var skin2 := skin * skin
 	for s in slime_count:
+		if state[s] == STATE_SLEEPER:
+			continue
 		var f: int = first[s]
 		var carried := false
 		for i in range(f, f + npts[s]):

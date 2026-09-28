@@ -32,10 +32,11 @@ extends RefCounted
 ##              route back (it aims Train.hop_reach() ahead of its projection
 ##              on the route); past the route's end, or in no branch, it
 ##              hops straight for the nearest point of the current loop,
-##              which is mostly downhill, and at least MIN_SIDEWAYS px
-##              sideways (the way the loop runs there when the loop point is
-##              right below), so it leaves a ledge rather than hop in place
-##              above the loop. It rejoins the train (state train;
+##              which is mostly downhill. When that point is less than
+##              MIN_SIDEWAYS px away sideways (the loop is below), it hops
+##              MIN_SIDEWAYS px the way the loop runs there, aimed level with
+##              where it stands, so it clears a ledge's edge rather than hop
+##              in place above the loop. It rejoins the train (state train;
 ##              the Train adopts it at the loop point closest to it) as soon
 ##              as its centre is within REJOIN_DISTANCE of the loop.
 ##
@@ -365,11 +366,13 @@ func _way_back(record: Dictionary, from: Vector2, reach: float, level: LevelData
 	var target: Vector2 = nearest["position"]
 	var dx := target.x - from.x
 	if absf(dx) < MIN_SIDEWAYS:
-		var way := signf(dx)
-		if absf(dx) < 1.0:
-			var ahead := level.loop.position_at(nearest["distance"] + 1.0, open_gates)
-			way = 1.0 if ahead.x >= target.x else -1.0
-		target.x = from.x + way * MIN_SIDEWAYS
+		# The loop is below, more or less: hop the way it runs there (always
+		# the same way, so the slime never hops to and fro above a crest),
+		# level with where the slime stands, so the hop carries it the whole
+		# MIN_SIDEWAYS before it comes down and it clears a ledge's edge.
+		var ahead := level.loop.position_at(nearest["distance"] + 1.0, open_gates)
+		var way := 1.0 if ahead.x >= target.x else -1.0
+		target = Vector2(from.x + way * MIN_SIDEWAYS, minf(target.y, from.y))
 	return target
 
 

@@ -51,6 +51,17 @@ counts as neutral), injected by test mode until the real sensor (chunk 20).
 Chunk 12 (camera) puts the camera on rails along the loop, moved by the
 edge buttons (a step per press, a steady pace while held) and pulled toward
 a call for its 8 s before gliding back; no input changes the zoom.
+Chunk 13 (camera framing) adds framing zones (the tree and the high step
+zoom out and shift the view; leaving one takes about 1 s of holding), and
+the idle camera: after 45 s without a touch, and a 10 s zoom-out cue, the
+camera follows the train slime nearest the middle of the view until a touch
+takes it back; screensaver mode starts on it.
+Chunk 10 (fusion and bumping) fuses two awake slimes of one species after
+3 s of unbroken contact on screen, up to size 3; bigger pairs bump apart,
+and train slimes gather at the bottom of a dip so they can fuse there.
+Chunk 9 (sleepers, waking and the hint) places the level's sleepers as
+still obstacles that a free slime's touch on screen wakes, and shows a
+wordless hint by the first sleeper 10 s into a fresh game until the first call.
 UX design (`ui_ux/`) has an inventory and open questions, no design yet.
 
 ## Direction so far

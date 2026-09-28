@@ -102,8 +102,12 @@ func build() -> PackedStringArray:
 			data.add_split_zone(id, box_of(node, node.size))
 		elif node is ExplorationBranch:
 			data.add_branch(id, box_of(node, node.size))
+		elif node is FramingZone:
+			data.add_framing_zone(id, box_of(node, node.size), node.zoom, node.offset, node.exit_hold)
 		elif node is FirstSlime:
 			data.first_slime = {"id": id, "species": node.species, "position": position_of(node)}
+		elif node is Sleeper:
+			data.add_sleeper(id, node.species, position_of(node))
 		if node.has_method("tap_target"):
 			var target: Dictionary = node.tap_target()
 			data.add_tap_target(id, target["kind"], box_of(node, target["size"]))

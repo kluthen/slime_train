@@ -5,8 +5,9 @@ extends GutTest
 ## back along slide 1 (right to left on screen) and out into the start
 ## basin; the left button goes the other way. A call to the tree, off the
 ## loop, drags the camera toward it and the camera comes back to the rails.
-## The scene's Camera2D shows what the simulation's camera says, the zoom
-## never changes (DoD 18, in part), and a scripted run is repeatable.
+## The scene's Camera2D shows what the simulation's camera says, no input
+## sets the zoom (DoD 18, in part: the tree's framing zone does, chunk 13),
+## and a scripted run is repeatable.
 
 # @test-link [[req_camera_rails_and_framing]]
 # @test-link [[req_controls_tap_zones]]
@@ -56,11 +57,11 @@ func _ticks_for(distance: float) -> int:
 	return ceili(distance / Camera.PACE * TICK_RATE)
 
 
-func _assert_scene_mirrors(game: Node) -> void:
+func _assert_scene_mirrors(game: Node, zoom := 1.0) -> void:
 	var sim: Simulation = game.simulation
 	assert_eq(game.camera.position, sim.view.centre, "the Camera2D shows the simulation's view")
-	assert_eq(game.camera.zoom, Vector2.ONE)
-	assert_eq(sim.view.zoom, 1.0)
+	assert_eq(game.camera.zoom, Vector2(zoom, zoom))
+	assert_eq(sim.view.zoom, zoom)
 
 
 func test_the_camera_starts_on_the_rails_by_the_first_slime() -> void:
@@ -150,7 +151,10 @@ func test_a_call_to_the_tree_drags_the_camera_and_it_comes_back_to_the_rails() -
 	var rail := _rail()
 	var probe := _boot()
 	var tree_distance: float = probe.simulation.level.loop.closest(TREE_POINT)["distance"]
-	var hold := _ticks_for(tree_distance - float(rail["start"]) - Camera.STEP)
+	# Stopping short of the tree (in the high step's framing zone): the tree's
+	# own zone shifts the view up onto TREE_POINT, which would leave the call
+	# nothing to drag toward (chunk 13).
+	var hold := _ticks_for(tree_distance - float(rail["start"]) - Camera.STEP - 400.0)
 	var game := _boot(_hold(1, hold))
 	var sim: Simulation = game.simulation
 	game.test_mode.run_ticks(HOLD_FROM + hold + 3 * TICK_RATE)
@@ -178,9 +182,10 @@ func test_a_call_to_the_tree_drags_the_camera_and_it_comes_back_to_the_rails() -
 		took += 1
 	assert_eq(sim.camera.mode, Camera.RAILS, "back on the rails")
 	var loop := sim.level.loop
-	assert_eq(sim.camera.position, loop.position_at(sim.camera.distance, sim.train.open_gates) + Camera.RAIL_OFFSET)
+	assert_eq(sim.camera.position, loop.position_at(sim.camera.distance, sim.train.open_gates)
+			+ Camera.RAIL_OFFSET + sim.camera.frame_shift, "on its rail point, framed")
 	assert_lt(absf(sim.camera.distance - tree_distance), LevelData.SCREEN * 0.5, "by the tree")
-	_assert_scene_mirrors(game)
+	_assert_scene_mirrors(game, sim.camera.zoom)
 
 
 func test_a_scripted_camera_run_is_repeatable() -> void:

@@ -2,7 +2,8 @@ extends GutTest
 ## The soft-body solver (SlimeBodies.tick): Verlet with position constraints,
 ## contacts between rings, and contacts with the baked terrain segments (O78).
 ## Resting slimes settle, rings push each other apart, and two runs with the
-## same seed and the same operations end in the same state.
+## same seed and the same operations end in the same state. The test bodies are
+## bedtime-asleep: simulated but never hopping (a sleeper doesn't simulate).
 # @test-link [[req_slime_states]]
 
 const Support := preload("res://tests/unit/slime_test_support.gd")
@@ -24,7 +25,7 @@ func _deepest(bodies: SlimeBodies) -> float:
 func test_a_resting_slime_settles_on_a_flat_floor() -> void:
 	for size in [1, 2, 3]:
 		var bodies := Support.bodies_on_floor()
-		var slime := bodies.create(0, size, Vector2(0, -80), SlimeBodies.SLEEPER)
+		var slime := bodies.create(0, size, Vector2(0, -80), SlimeBodies.BEDTIME_ASLEEP)
 		_run(bodies, 180)
 		var y1 := bodies.centre_of(slime).y
 		_run(bodies, 60)
@@ -51,7 +52,7 @@ func test_a_slime_on_a_curved_slope_settles_in_the_valley() -> void:
 	curve.add_point(Vector2(-500, 200))
 	var bodies := SlimeBodies.new(Rng.new(1))
 	bodies.terrain = TerrainSegments.new([Terrain.bake_polygon(curve, 2.0)])
-	var slime := bodies.create(1, 2, Vector2(-330, -260), SlimeBodies.SLEEPER)
+	var slime := bodies.create(1, 2, Vector2(-330, -260), SlimeBodies.BEDTIME_ASLEEP)
 	var moved := 0.0
 	for i in 60 * 8:
 		bodies.tick(DT)
@@ -69,7 +70,7 @@ func test_a_slime_on_a_curved_slope_settles_in_the_valley() -> void:
 func test_a_slime_rests_against_a_wall() -> void:
 	var bodies := SlimeBodies.new(Rng.new(1))
 	bodies.terrain = TerrainSegments.new(Support.box_polygons(200))
-	var slime := bodies.create(0, 1, Vector2(150, -40), SlimeBodies.SLEEPER)
+	var slime := bodies.create(0, 1, Vector2(150, -40), SlimeBodies.BEDTIME_ASLEEP)
 	bodies.set_velocity(slime, Vector2(600, 0))
 	_run(bodies, 240)
 	assert_lt(bodies.centre_of(slime).x, 200.0 - bodies.radius_of(slime) * 0.6, "held by the wall")
@@ -79,8 +80,8 @@ func test_a_slime_rests_against_a_wall() -> void:
 func test_contact_between_two_rings_pushes_them_apart() -> void:
 	var bodies := SlimeBodies.new(Rng.new(1))
 	bodies.gravity = Vector2.ZERO
-	var a := bodies.create(0, 1, Vector2(0, 0), SlimeBodies.SLEEPER)
-	var b := bodies.create(1, 1, Vector2(30, 0), SlimeBodies.SLEEPER)
+	var a := bodies.create(0, 1, Vector2(0, 0), SlimeBodies.BEDTIME_ASLEEP)
+	var b := bodies.create(1, 1, Vector2(30, 0), SlimeBodies.BEDTIME_ASLEEP)
 	bodies.tick(DT)
 	assert_true(bodies.touching(a, b), "overlapping rings are in contact")
 	_run(bodies, 60)
@@ -107,9 +108,9 @@ func test_a_small_slime_rests_on_two_big_ones() -> void:
 	# top of one round slime would be an unstable equilibrium: it rolls off.)
 	var bodies := SlimeBodies.new(Rng.new(1))
 	bodies.terrain = TerrainSegments.new(Support.box_polygons(76))
-	var left := bodies.create(0, 3, Vector2(-38, -40), SlimeBodies.SLEEPER)
-	var right := bodies.create(0, 3, Vector2(38, -40), SlimeBodies.SLEEPER)
-	var small := bodies.create(1, 1, Vector2(0, -130), SlimeBodies.SLEEPER)
+	var left := bodies.create(0, 3, Vector2(-38, -40), SlimeBodies.BEDTIME_ASLEEP)
+	var right := bodies.create(0, 3, Vector2(38, -40), SlimeBodies.BEDTIME_ASLEEP)
+	var small := bodies.create(1, 1, Vector2(0, -130), SlimeBodies.BEDTIME_ASLEEP)
 	_run(bodies, 300)
 	var top := minf(bodies.centre_of(left).y, bodies.centre_of(right).y)
 	assert_lt(bodies.centre_of(small).y, top - bodies.radius_of(left) * 0.6, "on top")
@@ -123,7 +124,7 @@ func test_a_pile_stays_stable() -> void:
 	bodies.terrain = TerrainSegments.new(Support.box_polygons(200))
 	for i in 24:
 		var size := 1 + i % 3
-		bodies.create(i % 6, size, Vector2(-160 + (i % 4) * 100, -60 - 90 * (i / 4)), SlimeBodies.SLEEPER)
+		bodies.create(i % 6, size, Vector2(-160 + (i % 4) * 100, -60 - 90 * (i / 4)), SlimeBodies.BEDTIME_ASLEEP)
 	_run(bodies, 600)
 	assert_lt(Support.max_speed(bodies), 20.0, "the pile has come to rest")
 	assert_lt(_deepest(bodies), 1.5, "nothing sinks into the terrain")

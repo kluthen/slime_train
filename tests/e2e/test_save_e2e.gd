@@ -124,8 +124,14 @@ func test_without_a_save_the_game_starts_fresh() -> void:
 	var game := _game(SaveStore.new(DIR))
 	var sim: Simulation = game.simulation
 	assert_eq(sim.tick, 0)
-	assert_eq(sim.slimes.slime_count, 1, "the first slime is woken")
-	assert_eq(sim.identities.members_of(sim.slimes.ids()[0]), PackedStringArray(["start.first-slime"]))
+	assert_eq(sim.slimes.slime_count, 1 + game.level.data.sleepers.size(),
+			"the first slime is woken, the sleepers are placed")
+	var awake: Array[int] = []
+	for slime_id in sim.slimes.ids():
+		if sim.slimes.state_of(slime_id) != SlimeBodies.SLEEPER:
+			awake.append(slime_id)
+	assert_eq(awake.size(), 1)
+	assert_eq(sim.identities.members_of(awake[0]), PackedStringArray(["start.first-slime"]))
 	assert_false(FileAccess.file_exists(DIR + "test.json"), "nothing written yet")
 
 
@@ -185,7 +191,8 @@ func test_an_unreadable_save_starts_fresh_and_is_never_written_over() -> void:
 	file.close()
 	var game := _game(SaveStore.new(DIR))
 	assert_eq(game.simulation.tick, 0, "fresh")
-	assert_eq(game.simulation.slimes.slime_count, 1)
+	assert_eq(game.simulation.slimes.slime_count, 1 + game.level.data.sleepers.size(),
+			"the first slime and the sleepers")
 	assert_ne(game.save_now(), "", "refused")
 	game.notification(Node.NOTIFICATION_APPLICATION_FOCUS_OUT)
 	assert_eq(FileAccess.get_file_as_string(DIR + "test.json"), corrupt, "untouched")

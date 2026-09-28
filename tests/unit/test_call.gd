@@ -103,7 +103,7 @@ func test_sleepers_do_not_answer() -> void:
 	var sim := _sim()
 	var sleeper := sim.slimes.create(0, 1, Vector2(100, -24), SlimeBodies.SLEEPER)
 	_call(sim, Vector2(0, -24))
-	assert_eq(sim.slimes.state_of(sleeper), SlimeBodies.SLEEPER, "waking comes with chunk 9")
+	assert_eq(sim.slimes.state_of(sleeper), SlimeBodies.SLEEPER, "a call doesn't wake a sleeper: a free slime's touch does")
 	assert_false(sim.free_slimes.tracks(sleeper))
 
 
@@ -231,6 +231,25 @@ func test_outside_any_branch_it_heads_straight_for_the_loop() -> void:
 	assert_eq(sim.slimes.state_of(slime), SlimeBodies.TRAIN, "back on the train within 20 s")
 	assert_eq(routes, [""], "no route back: straight for the loop")
 	assert_gt(sim.slimes.centre_of(slime).y, -60.0, "down on the floor")
+
+
+## A ledge in no branch, well above the loop, rising toward its forward
+## (right) end: the loop is right below, so the slime hops the way the loop
+## runs, up to the ledge's high corner, and must still get off it.
+func test_heading_back_it_leaves_a_ledge_above_the_loop_by_its_high_end() -> void:
+	for master_seed in [11, 12, 13]:
+		var sim := _sim(master_seed)
+		var ledge := PackedVector2Array([Vector2(-400, -170), Vector2(60, -220), Vector2(60, -190),
+				Vector2(-400, -140)])
+		sim.slimes.terrain = TerrainSegments.new([
+			Support.floor_polygon(),
+			ledge,
+		])
+		var slime := sim.slimes.create(0, 1, Vector2(-40, -236), SlimeBodies.FREE)
+		sim.step()
+		_run_until_rejoined(sim, slime, 30 * Simulation.TICK_RATE)
+		gut.p("seed %d: tick %d, at %s" % [master_seed, sim.tick, sim.slimes.centre_of(slime).round()])
+		assert_eq(sim.slimes.state_of(slime), SlimeBodies.TRAIN, "seed %d: off the ledge and back within 30 s" % master_seed)
 
 
 func test_inside_a_branch_it_follows_the_route_back() -> void:

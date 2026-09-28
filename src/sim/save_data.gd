@@ -25,9 +25,15 @@ extends RefCounted
 ##     "train": {"open_gates": [...], "lost": [{"id", "tick", "reason"}]},
 ##     "call": null or {"point", "tick"},
 ##     "objects": {}, "gates": {},          # stable ID -> state (chunk 14)
+##     "hint_done": true,                   # optional: the first call happened
 ##     "transient": {"view", "camera", "ripples", "taps", "facing", "input_log",
-##                   "tilt"},                                            # optional
+##                   "tilt", "fusion", "hint"},                          # optional
 ##   }
+##
+## The first-play hint (Hint): "hint_done" is the level's done mark (absent:
+## false, the hint is due, as on a fresh save); "transient.hint" keeps its
+## count ({"since", "bedtime"}) so a reload is exact. The game restarts the
+## count when it shows the reloaded world (Hint.world_shown).
 ##
 ## Exactness. JSON numbers are doubles printed to 17 digits, and Godot's
 ## parser doesn't always read those back to the same double. So every real
@@ -81,6 +87,7 @@ static func capture(sim: Simulation) -> Dictionary:
 		"call": last_call,
 		"objects": sim.object_states.duplicate(true),
 		"gates": sim.gate_states.duplicate(true),
+		"hint_done": sim.hint.done,
 		"transient": _transient(sim),
 	}
 
@@ -140,7 +147,9 @@ static func _transient(sim: Simulation) -> Dictionary:
 		"taps": taps,
 		"facing": facing,
 		"input_log": log,
+		"fusion": sim.fusion.dump(),
 		"camera": _exact_values(sim.camera.dump()),
+		"hint": {"since": sim.hint.since, "bedtime": sim.hint.bedtime},
 		"tilt": {"degrees": exact(sim.phone_tilt.degrees), "neutral": exact(sim.phone_tilt.neutral),
 				"flat": sim.phone_tilt.flat},
 	}
@@ -226,6 +235,8 @@ static func problems(save: Variant, level_data: LevelData) -> PackedStringArray:
 		var part: Variant = save.get(key)
 		if part != null and typeof(part) != TYPE_DICTIONARY:
 			out.append("'%s' must be a dictionary or null" % key)
+	if save.has("hint_done") and typeof(save["hint_done"]) != TYPE_BOOL:
+		out.append("'hint_done' must be true or false")
 	return out
 
 
@@ -314,6 +325,7 @@ static func restore(save: Dictionary, level_data: LevelData, terrain: TerrainSeg
 		sim.identities.assign(slime_id, PackedStringArray(slime.get("members", [])))
 	sim.slimes.next_id = maxi(sim.slimes.next_id, _whole(saved_sim.get("next_slime_id", 0)))
 	sim.load_level(level_data)
+	sim.hint.done = save.get("hint_done", false)
 	var saved_train: Variant = save.get("train")
 	if sim.train != null and saved_train is Dictionary:
 		sim.train.set_open_gates(saved_train.get("open_gates", []))
@@ -331,6 +343,7 @@ static func restore(save: Dictionary, level_data: LevelData, terrain: TerrainSeg
 	var transient: Variant = save.get("transient")
 	if transient is Dictionary:
 		_restore_transient(sim, transient)
+	sim.hint.update(sim.tick)
 	return sim
 
 
@@ -373,6 +386,9 @@ static func _restore_transient(sim: Simulation, transient: Dictionary) -> void:
 	if transient.get("camera") is Dictionary:
 		sim.camera.restore(_typed_values(transient["camera"]))
 		sim.camera.release(sim.camera.hold_finger)
+	if transient.get("hint") is Dictionary:
+		sim.hint.since = _whole(transient["hint"].get("since", sim.tick))
+		sim.hint.bedtime = bool(transient["hint"].get("bedtime", false))
 	if transient.get("view") is Dictionary:
 		var view: Dictionary = transient["view"]
 		sim.view.set_to(vector_from(view["centre"]), real(view["zoom"]), vector_from(view["screen_size"]))
@@ -388,6 +404,9 @@ static func _restore_transient(sim: Simulation, transient: Dictionary) -> void:
 				"kind": str(tap["kind"]), "call": bool(tap["call"]), "answered": answered})
 	for entry in transient.get("facing", []):
 		sim.facing[_whole(entry["id"])] = vector_from(entry["facing"])
+	# The contact counts (Fusion): [[a, b, ticks]], whole numbers.
+	if transient.get("fusion") is Array:
+		sim.fusion.restore(transient["fusion"])
 	for event in transient.get("input_log", []):
 		var entry := {"kind": str(event["kind"]), "tick": _whole(event["tick"])}
 		if event.has("finger"):
@@ -474,7 +493,8 @@ static func readable(save: Dictionary) -> Dictionary:
 					"point": _rounded(vector_from(slime["free"]["point"])), "route": slime["free"]["route"]}
 		slimes.append(out)
 	return {"format": save["format"], "level": save["level"], "slimes": slimes,
-			"objects": save.get("objects", {}), "gates": save.get("gates", {})}
+			"objects": save.get("objects", {}), "gates": save.get("gates", {}),
+			"hint_done": save.get("hint_done", false)}
 
 
 static func _rounded(v: Vector2) -> Array:

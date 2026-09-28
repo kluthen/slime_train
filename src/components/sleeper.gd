@@ -1,9 +1,11 @@
 @tool
 class_name Sleeper
 extends Node2D
-## A sleeping slime placed in the level (master spec §5.2): it wakes when an
-## awake slime of its species touches it. Sleepers sit off the loop (rule 5).
-## Placeholder: a coloured circle until the slime body (chunk 5).
+## A sleeping slime placed in the level (master spec §5.2): it wakes when a
+## free slime touches it, on screen (D13, D70). Sleepers sit off the loop
+## (rule 17). The marker: a fresh game puts a sleeping slime body here
+## (Level.build -> LevelData.sleepers -> Sleepers.place), so the game draws
+## the body, not this; the circle and label show in the editor only.
 # @spec-link [[rule_sleepers_never_on_loop]]
 # @spec-link [[req_level_design_rules]]
 
@@ -27,13 +29,16 @@ func _init() -> void:
 
 
 ## What a tap lands on (TapDispatcher): its drawn circle's box. A tap on a
-## sleeper is a call centred on it (D46); waking comes with chunk 9.
+## sleeper is a call centred on its body (D46; Sleepers.tap_targets moves the
+## box onto the body and drops it once the sleeper wakes).
 # @spec-link [[req_controls_tap_zones]]
 func tap_target() -> Dictionary:
 	return {"kind": TapDispatcher.KIND_SLEEPER, "size": Vector2.ONE * 2.0 * PlaceholderArt.SLIME_RADIUS}
 
 
 func _draw() -> void:
+	if not Engine.is_editor_hint():
+		return
 	var color := PlaceholderArt.species_color(species)
 	draw_circle(Vector2.ZERO, PlaceholderArt.SLIME_RADIUS, Color(color, 0.45))
 	draw_arc(Vector2.ZERO, PlaceholderArt.SLIME_RADIUS, 0.0, TAU, 32, color, 2.0, true)

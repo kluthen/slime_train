@@ -12,8 +12,8 @@ extends SceneTree
 ## A fixture is built here, from the level scene, by a function below: add
 ## one to FIXTURES and write its builder. The level's stable IDs (the
 ## sleepers') are looked up in the scene, never typed in. Levels change: when
-## the test level moves things, run this again (chunk 9 does, with the
-## sleepers). s1-basket-5of6 waits for the baskets (chunk 14).
+## the test level moves things, run this again. s1-basket-5of6 waits for the
+## baskets (chunk 14).
 # @spec-link [[req_test_level_and_test_mode]]
 # @spec-link [[req_persistence_and_saves]]
 
@@ -28,10 +28,12 @@ const BUMP_APART := 40.0
 ## name -> {"description", "camera" (a level point, or null), "build" (the
 ## builder's name, or "" for no save: a fresh level)}.
 const FIXTURES := {
-	"fresh": {"description": "The test level as new: no save, the first slime woken at its marker.",
+	"fresh": {"description": ("The test level as new: no save, the first slime woken at its marker "
+			+ "and every sleeper asleep at its own; the first-play hint is due."),
 			"camera": null, "build": ""},
 	"bump": {"description": ("A size-3 and a size-2 train slime of species C, a little apart on the "
-			+ "fusion dip's floor, and the first slime at its marker. For fusion (chunk 10)."),
+			+ "fusion dip's floor, made of five C sleepers (the others asleep at their markers), "
+			+ "and the first slime at its marker. For fusion (chunk 10)."),
 			"camera": [DIP_FLOOR.x, DIP_FLOOR.y], "build": "_bump"},
 }
 
@@ -85,7 +87,7 @@ func _write(name: String, fixture: Dictionary) -> String:
 	return ""
 
 
-## The level as new: the first slime woken at its marker.
+## The level as new: the first slime woken at its marker, the sleepers asleep.
 func _fresh_level() -> Simulation:
 	var sim := Simulation.new(1)
 	sim.slimes.terrain = _terrain
@@ -94,7 +96,8 @@ func _fresh_level() -> Simulation:
 
 
 ## bump: a size-3 and a size-2 slime of species C on the dip's floor, made of
-## the level's C sleepers (the two in the dip's hollow for the size 2).
+## the level's C sleepers (the two in the dip's hollow for the size 2); those
+## five sleepers' bodies go.
 func _bump() -> Simulation:
 	var sim := _fresh_level()
 	var sleepers := _sleepers("C")
@@ -112,6 +115,11 @@ func _bump() -> Simulation:
 			three.append(sleeper["id"])
 	var apart := (SlimeBodies.ring_radius_for(3) + SlimeBodies.ring_radius_for(2)
 			+ 2.0 * SlimeBodies.EDGE + BUMP_APART)
+	for slime_id in sim.slimes.ids():
+		var stable_id := sim.identities.stable_id_of(slime_id)
+		if stable_id in pair or stable_id in three:
+			sim.slimes.remove(slime_id)
+	sim.identities.tidy(sim.slimes)
 	var species := Species.from_letter("C")
 	var big := sim.spawn_train_slime(species, 3, _distance_at(sim, DIP_FLOOR.x - apart * 0.5))
 	var small := sim.spawn_train_slime(species, 2, _distance_at(sim, DIP_FLOOR.x + apart * 0.5))

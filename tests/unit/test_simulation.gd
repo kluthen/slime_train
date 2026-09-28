@@ -120,7 +120,7 @@ func test_the_slimes_are_in_the_dump_and_the_hash() -> void:
 	assert_has(dump, "next_slime_id")
 	var before := sim.state_hash()
 	sim.step()
-	assert_ne(sim.state_hash(), before, "a falling slime changes the hash")
+	assert_ne(sim.state_hash(), before, "a step changes the hash")
 
 
 func test_same_seed_and_slimes_give_the_same_hash() -> void:

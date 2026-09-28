@@ -27,10 +27,12 @@ func test_a_slime_rests_on_the_start_basin_floor() -> void:
 	assert_eq(game.enable_test_mode({"seed": 5, "time_scale": 0}), PackedStringArray())
 	var spot: Vector2 = game.level.start_position()
 	var slimes: SlimeBodies = game.simulation.slimes
-	# The game wakes the first slime on that spot (chunk 6): make room.
+	# The game wakes the first slime on that spot (chunk 6) and places the
+	# sleepers (chunk 9): make room. A bedtime-asleep slime falls and rests
+	# without hopping (a sleeper doesn't simulate).
 	for awake in slimes.ids():
 		slimes.remove(awake)
-	var slime := slimes.create(0, 1, spot + Vector2(0, -60), SlimeBodies.SLEEPER)
+	var slime := slimes.create(0, 1, spot + Vector2(0, -60), SlimeBodies.BEDTIME_ASLEEP)
 	game.test_mode.run_ticks(240)
 	# The first slime's spot is at a size-1 slime's centre height above the
 	# ground (PlaceholderArt.SLIME_RADIUS, 24 px, the drawn radius).

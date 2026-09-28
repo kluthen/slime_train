@@ -1,4 +1,4 @@
 {
-	"description": "The test level as new: no save, the first slime woken at its marker.",
+	"description": "The test level as new: no save, the first slime woken at its marker and every sleeper asleep at its own; the first-play hint is due.",
 	"save": false
 }

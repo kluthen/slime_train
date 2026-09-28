@@ -28,8 +28,14 @@ extends RefCounted
 ##
 ## load_level() hands the simulation its level: it builds the train and the
 ## split zones and, in a fresh state, wakes the first slime (a base slime of
-## the level's first slime species, on the train, at its marker). No call
-## from the player is needed.
+## the level's first slime species, on the train, at its marker) and puts
+## every sleeper to sleep at its marker (Sleepers). No call from the player
+## is needed.
+##
+## Sleepers (chunk 9): they don't simulate; a free slime touching one, both
+## on screen, wakes it (Sleepers.wake, right after the bodies tick); a tap on
+## one is a call centred on its body. The first-play hint (`hint`) shows next
+## to the first sleeper 10 s after the world shows, until the first call.
 ##
 ## Tilt (Tilt, `phone_tilt`): the tilt event feeds it, load_level() takes
 ## its neutral (placeholder for the session start, chunk 17), and before the
@@ -48,9 +54,11 @@ extends RefCounted
 ## slimes steer; the slime bodies (free slimes fall the way the tilt says;
 ## hops, then the solver); the free slimes'
 ## hops are paced and every hop turns its slime; the split zones split (train
-## and free slimes inherit); the free slimes change phase or rejoin the
-## train; the train follows (progress, lost slimes); the camera moves
-## (Camera: rails, edge buttons, call drag); spent ripples go.
+## and free slimes inherit); slimes in contact fuse or bump, and train slimes
+## gather at dip bottoms (Fusion); the free slimes change phase or rejoin the
+## train; the train follows (progress, lost slimes); the camera watches
+## (idle clock, cue, the slime it follows) and moves (Camera: rails, edge
+## buttons, call drag, framing zones, idle camera); spent ripples go.
 
 ## Simulation ticks per second. Tuning durations (3 s of contact to fuse, 10 s
 ## before left alone, and so on) are counted in ticks at this rate.
@@ -109,6 +117,12 @@ var view := ScreenView.new()
 ## call (Camera). The scene layer makes `view` and its Camera2D show it.
 # @spec-link [[req_camera_rails_and_framing]]
 var camera := Camera.new()
+## Screensaver mode: the camera starts on the idle camera (Camera.watch()).
+## False in the core, as in a session; the game root turns it on until
+## sessions (chunk 17) drive it. A mode set from outside, like input: not in
+## dump() nor saves (the camera's dump has what it did).
+# @spec-link [[req_idle_camera_and_screensaver_zoom]]
+var screensaver := false
 ## The free slimes and the last call.
 # @spec-link [[req_call_mechanic]]
 var free_slimes: FreeSlimes
@@ -124,11 +138,18 @@ var facing: Dictionary = {}
 ## Which placed base slimes each slime is made of (stable IDs, for saves).
 # @spec-link [[req_persistence_and_saves]]
 var identities := SlimeIdentities.new()
+## The contact counts: which touching slimes fuse or bump, and when (Fusion).
+# @spec-link [[rule_fusion_contact_time]]
+var fusion := Fusion.new()
 ## The interactive objects' state by stable ID, as plain data (chunk 14).
 # @spec-link [[req_interactive_objects_general]]
 var object_states: Dictionary = {}
 ## The gates' state by stable ID, as plain data (chunk 14).
 var gate_states: Dictionary = {}
+## The first-play hint: due until the first call; shows 10 s after the world
+## shows (Hint). The game calls hint.world_shown() when it shows the world.
+# @spec-link [[req_first_play_hint]]
+var hint := Hint.new()
 
 var _pending_input: Array[Dictionary] = []
 
@@ -169,9 +190,11 @@ func push_input(event: Dictionary) -> void:
 ## level's loop, bounded by the terrain (so set slimes.terrain first), and the
 ## split zones. In a fresh state (tick 0, no slimes) the game wakes the first
 ## slime: a base slime of the first slime's species, on the train, at its
-## marker. Sleepers come with chunk 9.
+## marker, and puts every sleeper to sleep at its marker (Sleepers.place).
+## The hint takes its place and starts counting.
 # @spec-link [[req_slime_states]]
 # @spec-link [[req_loop_and_world]]
+# @spec-link [[req_waking_sleepers]]
 func load_level(data: LevelData) -> void:
 	level = data
 	# Placeholder until sessions (chunk 17): neutral is taken when a level
@@ -185,14 +208,20 @@ func load_level(data: LevelData) -> void:
 		train = Train.new(data.loop)
 		train.bounds = Train.bounds_for(slimes.terrain, data.loop)
 	split_zones = SplitZones.new(data.split_zones)
+	camera.zones = data.framing_zones
 	camera.start(data.loop, train.open_gates if train != null else [], data.first_slime.get("position"))
-	if tick == 0 and slimes.slime_count == 0 and not data.first_slime.is_empty():
+	var fresh := tick == 0 and slimes.slime_count == 0
+	if fresh and not data.first_slime.is_empty():
 		var at: Vector2 = data.first_slime["position"]
 		var first := slimes.create(Species.from_letter(data.first_slime["species"]), 1, at, SlimeBodies.TRAIN)
 		if str(data.first_slime.get("id", "")) != "":
 			identities.assign(first, PackedStringArray([data.first_slime["id"]]))
 		if train != null:
 			train.track(first, data.loop.closest(at, train.open_gates)["distance"])
+	if fresh:
+		Sleepers.place(self, data)
+	hint.place(data)
+	hint.world_shown(tick)
 
 
 ## Puts a train slime of `slime_species` and `slime_size` on the loop,
@@ -222,6 +251,7 @@ func step() -> void:
 	free_slimes.steer(slimes, TICK_SECONDS, level, gates)
 	slimes.free_down = phone_tilt.down()
 	slimes.tick(TICK_SECONDS)
+	Sleepers.wake(self)
 	free_slimes.paced(slimes)
 	_face_hops()
 	for parts in split_zones.apply(slimes):
@@ -229,12 +259,15 @@ func step() -> void:
 		if train != null:
 			train.inherit(parts)
 		free_slimes.inherit(parts, tick)
+	fusion.step(self)
 	free_slimes.follow(slimes, tick, level, gates)
 	if train != null:
 		train.follow(slimes, tick)
+	camera.watch(slimes, not fingers_down.is_empty(), screensaver)
 	camera.step(level.loop if level != null else null, gates, TICK_SECONDS, tick)
 	_tidy()
 	tick += 1
+	hint.update(tick)
 
 
 ## Runs `ticks` steps at once.
@@ -295,9 +328,11 @@ func dump() -> Dictionary:
 		"gates": gate_states.duplicate(true),
 		"train": train.dump() if train != null else null,
 		"free_slimes": free_slimes.dump(),
+		"fusion": fusion.dump(),
 		"facing": facings,
 		"view": view.dump(),
 		"camera": camera.dump(),
+		"hint": hint.dump(),
 		"ripples": ripples.duplicate(true),
 		"taps": taps.duplicate(true),
 		"input": {
@@ -328,6 +363,7 @@ func _apply_input(event: Dictionary) -> void:
 			fingers_down[finger] = event["at"]
 			if counts:
 				active_finger = finger
+				camera.touched()
 				_tap(finger, event["at"])
 		INPUT_TOUCH_UP:
 			fingers_down.erase(event["finger"])
@@ -349,7 +385,7 @@ func _apply_input(event: Dictionary) -> void:
 # @spec-link [[req_controls_tap_zones]]
 # @spec-link [[req_call_mechanic]]
 func _tap(finger: int, at: Vector2) -> void:
-	var targets: Dictionary = level.tap_targets if level != null else {}
+	var targets := Sleepers.tap_targets(self)
 	var hit := TapDispatcher.dispatch(at, view, targets)
 	if hit["zone"] == TapDispatcher.ZONE_EDGE:
 		camera.press(hit["side"], finger)
@@ -366,6 +402,7 @@ func _tap(finger: int, at: Vector2) -> void:
 	var answered := PackedInt32Array()
 	if hit["call"]:
 		answered = free_slimes.answer_call(hit["call_point"], tick, slimes, radius)
+		hint.called()
 		camera.follow_call(hit["call_point"], tick)
 	taps.append({"tick": tick, "finger": finger, "screen": at,
 			"world": world.snapped(Vector2(0.01, 0.01)), "zone": hit["zone"], "side": hit["side"],

@@ -5,7 +5,7 @@ extends SceneTree
 ## Run:   godot --headless -s res://tools/bench_slimes.gd [-- --count=200 --ticks=600]
 ## For each case: `count` slimes dropped as a pile into a box 1152 px wide,
 ## settled for 180 ticks (untimed), then `ticks` ticks timed.
-##   still   every slime a sleeper (no hops): a resting pile
+##   still   every slime bedtime-asleep (simulated, no hops): a resting pile
 ##   moving  every slime a train slime hopping on its own timer, heading
 ##           left, right or in place
 ## Sizes: "size1" all size 1 (12 points); "mix" 60 % size 1, 25 % size 2,
@@ -37,7 +37,7 @@ func _run(sizes: String, mode: String) -> void:
 	var rng := Rng.new(20260928)
 	var bodies := SlimeBodies.new(rng)
 	bodies.terrain = TerrainSegments.new(_box())
-	var state := SlimeBodies.SLEEPER if mode == "still" else SlimeBodies.TRAIN
+	var state := SlimeBodies.BEDTIME_ASLEEP if mode == "still" else SlimeBodies.TRAIN
 	# Shelf-pack from the floor up; the upper rows fall into the pile.
 	var x := -HALF_WIDTH + 4.0
 	var y := 0.0
