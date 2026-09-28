@@ -7,6 +7,7 @@ extends GutTest
 
 # @test-link [[req_controls_tap_zones]]
 # @test-link [[req_call_mechanic]]
+# @test-link [[req_interactive_objects_general]]
 
 const SCREEN := Vector2(1152, 648)
 
