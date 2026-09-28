@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v16
+Status: draft v17
 
 ## One-liner
 
@@ -102,6 +102,12 @@ save (D43). Save-file versioning is O20.
   Hold-and-drag isn't used for the call. Its radius and duration are O21.
   Taps on objects, on the edge buttons, or at the top of the screen (parent
   access) don't call (D15, D33, D57).
+- **Every tap gets a visible answer:** a ripple where the finger touched, and
+  slimes in range turn toward it. On the very first play, a wordless pulsing
+  mark near the first sleeper shows where to tap (D65).
+- **Tilt** is only for exploration or fun actions, never needed to make
+  progress (D64).
+- All the level rules are collected in `level-design.md`.
 - Every awake slime in range answers the call, train slimes included, and
   answering makes it free. (proposed: this follows from D13. At the start the
   only awake slime is on the loop, so train slimes have to answer or no

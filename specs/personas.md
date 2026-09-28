@@ -1,6 +1,6 @@
 # Personas
 
-Status: draft v2
+Status: draft v3
 
 Who Slime Train is for, what each person is trying to get done, and the
 circumstances they use it in. These are built from the real people the user
@@ -43,7 +43,8 @@ known, so tilt stays optional (proposed, see below).
 - (proposed) **Tilt is a bonus and never needed to make progress.** v1 already
   guarantees this: only free slimes feel tilt, and the loop works with no
   input (D19). Tilt objects arrive in v2, and a v2 design rule should keep
-  them from being the only way forward. Whether a 3-year-old uses tilt at all
+  them from being the only way forward. This is now a level design requirement
+  (D64, `level-design.md`). Whether a 3-year-old uses tilt at all
   is something to watch in playtests.
 
 ## Secondary: the watching sibling (2 years old)
@@ -89,7 +90,7 @@ and the friends' parents.
 | Newcomer: something pleasant to watch | interactive screensaver, idle camera, screensaver mode (D2, D4, D53, D59) |
 | Newcomer: instant answer to a touch | tap-to-call, with any tap anywhere doing something (D15, D46) |
 | Newcomer: nothing to fail | no failure states; a lost slime just comes back (D10, D36) |
-| Newcomer: learn with no explanation | **gap:** nothing yet. How a first-time player discovers the call is O49 |
+| Newcomer: learn with no explanation | a ripple on every tap, and a wordless hint on the very first play (D65) |
 | Sibling: safe to poke | parent gate on every parent button (D57); two touches at once is O48 |
 | Early player: goals to reach | sleepers, fusion, the frontier-gate set, exploration (D13, D20, D54, D45) |
 | Parent: a reward that ends without a fight | a gentle bedtime, slimes falling asleep on their own (D28) |

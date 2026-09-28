@@ -4,12 +4,13 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 | Document | Purpose | Status |
 |---|---|---|
-| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v16 |
+| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v17 |
 | `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v6 |
 | `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v5 |
 | `tech-direction.md` | Engine, level authoring, slime simulation, saving, session lock implementation | draft v6 |
 | `versions/` | Scope per version (v1–v4…) plus `timeline.md` for features with no version yet (D52) | live |
-| `personas.md` | Who the game is for: the newcomer (3), the watching sibling (2), the early player (4), the parent | draft v2 |
+| `level-design.md` | Rules every level must follow; the checklist for level design sessions | draft v1 |
+| `personas.md` | Who the game is for: the newcomer (3), the watching sibling (2), the early player (4), the parent | draft v3 |
 | `tuning.md` | Every number left to prototypes, with its starting value | live |
 | `open-questions.md` | Register of unresolved decisions (O1…) | live |
 | `decisions.md` | Append-only decisions log (D1…) | live |
@@ -67,6 +68,8 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 - Personas started (from real people): the primary persona is a 3-year-old newcomer to video games, on an S20 FE. Also a 2-year-old watching sibling, 4-year-old early players, and the parent. Played at home as a reward or after school, not before sleep. Tilt stays a bonus (proposed).
 
+- Tilt is only for exploration or fun actions (D64). First-time discovery: a ripple on every tap, and a wordless hint on the very first play (D65). The level rules are collected in `level-design.md`.
+
 ## Where to resume
 
-Next: O49 (first-time discovery), then O48 (several touches at once), O49 (first-time discovery), O50 (target phone). After that: O20, O21, O40, and a dedicated session on the first level's design (O22).
+Next: O48 (several touches at once), then O50 (target phone), O20, O21, O40. After that: a dedicated session on the first level's design (O22).

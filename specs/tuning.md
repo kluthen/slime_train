@@ -24,3 +24,4 @@ value to try. When a value is tuned, update it here and log the result in
 | Cooldown after bedtime | 10 min | D29, D44 |
 | Bedtime wind-down | the last minute | D28 |
 | Autosave interval | 15 s | D12 |
+| First-play hint appears after | about 10 s without a call | D65 |

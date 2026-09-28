@@ -499,3 +499,20 @@ Resolves O15.
 - (proposed) Tilt is a bonus and never needed to make progress. How the phone
   is held isn't known, and playtests will show whether a 3-year-old tilts at
   all.
+
+## D64 — Tilt is for exploration and fun (2026-09-28)
+- Tilt is used **only for exploration or fun actions**. It is never needed to
+  make progress along the loop or to open a frontier gate.
+- This is a **level design requirement** (see `level-design.md`). It applies
+  to v2's tilt objects too.
+
+## D65 — First-time discovery (2026-09-28)
+Resolves O49.
+- **Every tap gets a visible answer:** a soft ripple where the finger
+  touched, even when no slime is in range. Slimes in range visibly turn toward
+  the tap before they hop.
+- **A wordless hint, only on the very first play:** if no call has happened
+  after about 10 s, a gentle pulsing touch mark appears next to the first
+  sleeper. It goes away for good after the first call that wakes a sleeper.
+- **Level rule:** the first sleeper is placed close to the first awake slime.
+- After that, the world teaches the rest: waking, the train, fusion.
