@@ -1,7 +1,8 @@
 class_name LevelData
 extends RefCounted
 ## A level as plain data for the simulation core: its ID and version, the
-## loop and the routes back. Built at load by the Level component
+## loop, the routes back, the split zones and the first awake slime's spot.
+## Built at load by the Level component
 ## (src/components/level.gd); nothing here refers to a scene node.
 # @spec-link [[req_loop_and_world]]
 # @spec-link [[rule_released_level_stable_with_migration]]
@@ -22,6 +23,12 @@ var loop: LoopData = null
 ## branch's stable ID, "points": PackedVector2Array in level pixels, "lengths":
 ## PackedFloat64Array, cumulative}.
 var route_backs: Dictionary = {}
+## The split zones: stable ID -> the box it covers (Rect2, level pixels).
+var split_zones: Dictionary = {}
+## Where the game wakes the first slime (the FirstSlime component): {"id",
+## "species" (its letter), "position" (level pixels, a base slime's centre)},
+## or {} when the level has none.
+var first_slime: Dictionary = {}
 
 
 func _init(id := "", version := 0) -> void:
@@ -32,6 +39,11 @@ func _init(id := "", version := 0) -> void:
 ## Adds a route back serving the exploration branch `serves`.
 func add_route_back(id: String, serves: String, points: PackedVector2Array) -> void:
 	route_backs[id] = {"serves": serves, "points": points, "lengths": Polyline.cumulative_lengths(points)}
+
+
+## Adds a split zone covering `box` (level pixels).
+func add_split_zone(id: String, box: Rect2) -> void:
+	split_zones[id] = box
 
 
 ## The ID and version, as the simulation's dump carries them.

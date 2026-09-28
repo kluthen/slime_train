@@ -2,8 +2,9 @@
 class_name SplitZone
 extends Area2D
 ## A split zone (master spec §5.4): splits every slime that enters it into
-## base slimes. The start of the loop carries one (rule 4). Placeholder: no
-## behaviour yet (the splitting comes with chunk 6).
+## base slimes. The start of the loop carries one (rule 4). The component
+## marks the box; the splitting is SplitZones' (src/sim/split_zones.gd), in
+## the simulation.
 # @spec-link [[rule_start_carries_split_zone]]
 # @spec-link [[req_interactive_objects_general]]
 

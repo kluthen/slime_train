@@ -25,7 +25,7 @@ const RIDE := 24.0
 ## The top of the ground along section 1, from the lip over the start basin to
 ## the slide entrance. The loop rides RIDE px above it.
 const SURFACE := [
-	[0.60, 390], [0.62, 368], [0.75, 300], [0.9, 180], [1.05, 80], [1.15, 50],
+	[0.64, 390], [0.66, 368], [0.75, 300], [0.9, 180], [1.05, 80], [1.15, 50],
 	# 1.2 Hills.
 	[1.3, 20], [1.45, 40], [1.6, 0], [1.75, 30], [1.9, -10], [2.05, 20],
 	[2.2, -20], [2.35, 10], [2.5, 0],
@@ -34,27 +34,31 @@ const SURFACE := [
 	[3.38, 60], [3.5, -40],
 	# 1.4 High step, 1.5 the tree, then up to frontier set 1.
 	[3.6, -50], [4.0, -50], [4.5, -50], [4.8, -60], [5.2, -70], [5.6, -80],
-	[6.0, -100], [6.45, -100],
+	[6.0, -100], [6.49, -100],
 ]
 ## Basket 1's pit, under the onward path, then the ground up to the slide
-## entrance, the chute's near wall and the slide tunnel's roof back to the lip.
+## entrance, the chute's near wall and the slide tunnel's roof back to the lip
+## (it slopes down to the lip's nose, over the hump in the tunnel's floor).
 const CRUST_REST := [
-	[6.7, 100], [7.2, 100], [7.3, -100], [7.56, -100],
-	[7.25, 300], [7.0, 320], [5.0, 350], [3.0, 375], [1.5, 385],
+	[6.7, 100], [7.2, 100], [7.3, -100], [7.5, -100],
+	[7.25, 300], [7.0, 320], [5.0, 350], [3.0, 375], [1.5, 385], [0.78, 352],
 ]
 ## The bedrock: the level's left wall, the start basin's floor, the slide
-## tunnel's floor rising to the chute, and the ground past gate 1.
+## tunnel's floor rising to the chute, and the ground past gate 1. Just
+## inside the tunnel's mouth, under the lip, its floor has a hump that slopes
+## down into the basin, so a slime that falls short of the lip rolls back out
+## instead of getting lost in the tunnel.
 const BEDROCK := [
-	[0.0, -800], [0.08, -800], [0.1, 200], [0.14, 440], [0.2, 500], [0.6, 500],
+	[0.0, -800], [0.08, -800], [0.1, 200], [0.14, 440], [0.2, 500], [0.62, 500], [0.78, 462],
 	[1.5, 495], [3.0, 485], [5.0, 460], [7.0, 430], [7.3, 390], [7.5, 150],
-	[7.66, -100], [8.0, -100], [8.0, 1200], [0.0, 1200],
+	[7.66, 30], [7.66, -100], [8.0, -100], [8.0, 1200], [0.0, 1200],
 ]
 ## Floating greybox pieces: name -> outline.
 const PIECES := {
 	"FirstLedge": [[0.44, 400], [0.52, 400], [0.52, 420], [0.44, 420]],
 	"DipHollow": [[3.3, -170], [3.32, -150], [3.44, -150], [3.46, -170], [3.46, -130], [3.3, -130]],
-	"HighStep": [[3.7, -330], [4.15, -330], [4.5, -170], [3.7, -170]],
-	"TreeClimb": [[4.62, -170], [4.9, -360], [4.9, -330], [4.62, -140]],
+	"HighStep": [[3.7, -330], [4.15, -330], [4.41, -210], [3.7, -210]],
+	"TreeClimb": [[4.72, -238], [4.9, -360], [4.9, -330], [4.72, -208]],
 	"TreePlatform": [[4.9, -360], [5.5, -360], [5.5, -320], [4.9, -320]],
 	"TreeBough": [[5.3, -640], [5.48, -640], [5.48, -615], [5.3, -615]],
 	"TreeBack": [[5.5, -360], [5.85, -230], [5.85, -200], [5.5, -330]],
@@ -72,17 +76,21 @@ const BUMP_TILT := 12.0
 
 # --- Routes (x in screens, y in px) ------------------------------------------
 
-## The loop out: from the start of the loop across the basin, up the lip,
-## then RIDE above SURFACE, over the bridge to the slide entrance.
-const LOOP_START := [[0.2, 476], [0.57, 476], [0.58, 366], [0.62, 344]]
+## The loop out: from the start of the loop across the basin, up over the
+## lip's nose (the rise is in the open, clear of the first sleeper's ledge and
+## of the nose), then RIDE above SURFACE, over the bridge to the slide
+## entrance.
+const LOOP_START := [[0.3, 476], [0.58, 476], [0.59, 356], [0.66, 344]]
 const LOOP_END := [[7.6, -124]]
 ## Slide 1, the section's return route: down the chute and back under the
 ## surface to the start of the loop.
 const SLIDE := [
 	[7.6, -124], [7.54, 0], [7.43, 150], [7.31, 300], [7.0, 406], [5.0, 436],
-	[3.0, 461], [1.5, 471], [0.6, 476], [0.2, 476],
+	[3.0, 461], [1.5, 471], [0.78, 438], [0.62, 476], [0.3, 476],
 ]
-const ROUTE_BACK_HIGH_STEP := [[3.8, -354], [4.15, -354], [4.5, -194], [4.56, -120], [4.58, -76]]
+const ROUTE_BACK_HIGH_STEP := [
+	[3.8, -354], [4.15, -354], [4.41, -234], [4.5, -194], [4.56, -120], [4.58, -76],
+]
 const ROUTE_BACK_TREE := [[4.95, -384], [5.5, -384], [5.85, -254], [5.95, -121]]
 
 # --- Placed things -----------------------------------------------------------
@@ -163,7 +171,7 @@ func _build() -> Level:
 	split_zone.size = Vector2(0.28 * S, 100)
 	var first_slime: FirstSlime = _add(level, start, "first_slime", "FirstSlime")
 	first_slime.species = "A"
-	first_slime.position = _at(0.24, 476)
+	first_slime.position = _at(0.3, 476)
 
 	var section := _group(level, level, "Section1")
 	var sleepers := _group(level, section, "Sleepers")

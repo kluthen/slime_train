@@ -29,8 +29,12 @@ basin. Chunk 5 (slime body) adds the slimes' soft bodies: six species in
 three sizes, the four states, automatic hops on each slime's own seeded
 timer, merge and split operations, contact with the level's terrain, and a
 blend renderer (with a direct fallback), shown in the demo scene
-`src/slimes/demo.tscn`. The level's objects are still placeholders with no
-behaviour, and nothing places slimes in the level or plays yet.
+`src/slimes/demo.tscn`. Chunk 6 (train and split zone) wakes the first
+slime in the start basin and moves the train along the loop with no input:
+aimed hops out along the section, the slide back (a placeholder), and the
+split zone at the start splitting every slime into base slimes. The other
+level objects are still placeholders with no behaviour, and there is no
+player input yet.
 UX design (`ui_ux/`) has an inventory and open questions, no design yet.
 
 ## Direction so far

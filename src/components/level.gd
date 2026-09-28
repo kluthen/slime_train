@@ -8,8 +8,8 @@ extends Node2D
 ## malformed stable ID, a duplicated one, a reference to an ID that isn't in
 ## the level, a rule whose ends don't exist or don't understand it, a level
 ## with no loop or a loop whose segments don't join. It then builds `data`,
-## the level as plain data for the simulation (LevelData: the loop and the
-## routes back, in level pixels).
+## the level as plain data for the simulation (LevelData: the loop, the
+## routes back, the split zones and the first slime's spot, in level pixels).
 ##
 ## Components register themselves by joining THINGS_GROUP; each has a
 ## `stable_id` property. Optional methods a component may have:
@@ -92,8 +92,13 @@ func build() -> PackedStringArray:
 		data.loop = loop.build_data(self)
 		errors.append_array(data.loop.validate())
 	for id in ids():
-		if registry[id] is RouteBack:
-			data.add_route_back(id, registry[id].serves, registry[id].level_points(self))
+		var node: Node = registry[id]
+		if node is RouteBack:
+			data.add_route_back(id, node.serves, node.level_points(self))
+		elif node is SplitZone:
+			data.add_split_zone(id, box_of(node, node.size))
+		elif node is FirstSlime:
+			data.first_slime = {"id": id, "species": node.species, "position": position_of(node)}
 	load_errors = errors
 	return errors
 
@@ -135,6 +140,17 @@ func transform_of(node: Node) -> Transform2D:
 			result = current.transform * result
 		current = current.get_parent()
 	return result
+
+
+## The level-coordinate bounds of a box of `size` centred on `node` (the
+## box components: split zones, and so on).
+func box_of(node: Node, size: Vector2) -> Rect2:
+	var to_level := transform_of(node)
+	var half := size * 0.5
+	var box := Rect2(to_level * -half, Vector2.ZERO)
+	for corner in [Vector2(half.x, -half.y), half, Vector2(-half.x, half.y)]:
+		box = box.expand(to_level * corner)
+	return box
 
 
 ## Where the game starts the view: the first slime's spawn, or the start of

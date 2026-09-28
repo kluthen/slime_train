@@ -117,6 +117,10 @@ var bound_r := PackedFloat32Array()
 var hop_timer := PackedFloat64Array()
 ## Sideways direction of the automatic hops: -1 left, 0 in place, 1 right.
 var heading := PackedFloat32Array()
+## The take-off velocity (px/s) of the slime's automatic hop if it hops this
+## tick, set by whoever steers it (the Train); zero for a plain hop along its
+## heading. Valid for one tick only: cleared by every tick, so not state.
+var hop_aim := PackedVector2Array()
 ## The mean of the slime's points, refreshed each substep.
 var centre := PackedVector2Array()
 ## The angle of the slime's point 0 around its centre, refreshed each substep.
@@ -219,6 +223,7 @@ func create(slime_species: int, slime_size: int, at: Vector2, slime_state := STA
 	bound_r.append(0.0)
 	hop_timer.append(stream.randf_range(interval.x, interval.y))
 	heading.append(0.0)
+	hop_aim.append(Vector2.ZERO)
 	centre.append(at)
 	angle0.append(0.0)
 	_drift.append(Vector2.ZERO)
@@ -355,6 +360,14 @@ func set_heading(slime_id: int, direction: float) -> void:
 		heading[s] = clampf(direction, -1.0, 1.0)
 
 
+## Aims the slime's automatic hop, if it hops this tick: its take-off
+## velocity (px/s) instead of a plain hop along its heading.
+func set_hop_aim(slime_id: int, velocity: Vector2) -> void:
+	var s := index_of(slime_id)
+	if s >= 0:
+		hop_aim[s] = velocity
+
+
 ## Gives every point of the slime the velocity `velocity` (px/s).
 func set_velocity(slime_id: int, velocity: Vector2) -> void:
 	var s := index_of(slime_id)
@@ -363,6 +376,31 @@ func set_velocity(slime_id: int, velocity: Vector2) -> void:
 	var step := velocity * _h
 	for i in range(first[s], first[s] + npts[s]):
 		prev[i] = pos[i] - step
+
+
+## Takes `share` (0 to 1) of the slime's rigid motion away: its mean
+## velocity and its spin about its centre, so it neither slides nor rolls,
+## while its squish (the points' motion relative to that) is kept. How a slime
+## grips the ground between hops (the Train does it for train slimes).
+func brake(slime_id: int, share: float) -> void:
+	var s := index_of(slime_id)
+	if s < 0:
+		return
+	var f := first[s]
+	var n := npts[s]
+	var c := _centre_at(s)
+	var v := _velocity_at(s)
+	var turn := 0.0
+	var inertia := 0.0
+	for i in range(f, f + n):
+		var r := pos[i] - c
+		turn += r.cross((pos[i] - prev[i]) / _h - v)
+		inertia += r.length_squared()
+	var spin := turn / inertia if inertia > 0.0 else 0.0
+	var k := clampf(share, 0.0, 1.0) * _h
+	for i in range(f, f + n):
+		var r := pos[i] - c
+		prev[i] += (v + Vector2(-r.y, r.x) * spin) * k
 
 
 ## Whether the slime hops on its own: train and free slimes not held still.
@@ -532,7 +570,8 @@ func _hop_at(s: int, velocity: Vector2) -> void:
 
 ## Automatic hops: each able slime counts its timer down; at zero, if it
 ## stands on something, it hops (heading-slanted, strength jittered by its
-## stream) and draws its next interval; if not, it hops on landing.
+## stream, or at its hop_aim when steered) and draws its next interval; if
+## not, it hops on landing. Every hop_aim is then cleared.
 # @spec-link [[req_hopping_behavior]]
 func _auto_hops(dt: float) -> void:
 	for s in slime_count:
@@ -548,9 +587,13 @@ func _auto_hops(dt: float) -> void:
 		var stream: Rng = _streams[s]
 		var strength := 1.0 + stream.randf_range(-HOP_STRENGTH_JITTER, HOP_STRENGTH_JITTER)
 		var direction := Vector2(heading[s] * HOP_FORWARD, -1.0)
-		_hop_at(s, hop_velocity(size[s], direction, strength))
+		if hop_aim[s] != Vector2.ZERO:
+			_hop_at(s, hop_aim[s])
+		else:
+			_hop_at(s, hop_velocity(size[s], direction, strength))
 		var interval := hop_interval_range(size[s])
 		hop_timer[s] = stream.randf_range(interval.x, interval.y)
+	hop_aim.fill(Vector2.ZERO)
 
 
 ## Gives slime index `s` a fresh rest ring of `slime_size` centred at `at`,
@@ -616,6 +659,7 @@ func _remove_at(s: int) -> void:
 	bound_r.remove_at(s)
 	hop_timer.remove_at(s)
 	heading.remove_at(s)
+	hop_aim.remove_at(s)
 	centre.remove_at(s)
 	angle0.remove_at(s)
 	_drift.remove_at(s)

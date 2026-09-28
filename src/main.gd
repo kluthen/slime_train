@@ -141,6 +141,7 @@ func start_test_mode_from_args(user_args: PackedStringArray) -> PackedStringArra
 
 
 ## Adds the level scene at `path` and a camera on its start basin.
+# @spec-link [[req_loop_and_world]]
 func _load_level(path: String) -> void:
 	level = load(path).instantiate()
 	add_child(level)
@@ -157,9 +158,9 @@ func _load_level(path: String) -> void:
 ## its collision terrain.
 func _new_simulation(seed_value: int) -> Simulation:
 	var fresh := Simulation.new(seed_value)
-	if level != null:
-		fresh.level = level.data
 	fresh.slimes.terrain = _terrain
+	if level != null:
+		fresh.load_level(level.data)
 	return fresh
 
 

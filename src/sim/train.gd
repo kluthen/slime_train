@@ -1,0 +1,535 @@
+class_name Train
+extends RefCounted
+## The train: moves the train slimes along the loop (master spec §5.1-5.3).
+## Plain data and pure logic over SlimeBodies, no scene nodes.
+##
+## Progress. Each train slime has a progress along the current loop: a
+## distance from the loop's start plus the laps it has completed. The loop is
+## a target, not a constraint: the slime is a soft body moved by physics
+## (squish, bumps, landing short), and its progress is re-derived after every
+## tick by projecting its centre onto the loop. The projection only looks at
+## a window just ahead of the last progress (PROGRESS_WINDOW), so progress
+## never goes back and never jumps across the level to a part of the loop that
+## happens to pass close by (the slide runs under the outgoing route). Past
+## the end of the loop it wraps: the slide ends at the start, a lap is done.
+##
+## Hops. The slime still hops on its own seeded timer (SlimeBodies); the train
+## only aims each hop: at the point of the loop hop_reach() ahead of its
+## progress, with a ballistic take-off that tops out hop_apex() above the
+## highest point of the route between the two and lands on the target (see
+## aim()). Where the route ahead rises steeply (a step it crosses in the air),
+## the slime first hops to the foot of the step, then over it, onto the top
+## (take-off from the foot keeps it clear of an overhang, and a big hop from
+## further back would fly into whatever hangs above). Where it drops steeply
+## (the slide entrance at the frontier, which falls back under the route), the
+## slime hops DROP_OVER px out past the top of the drop and falls in. The
+## take-off speed is capped (hop_cap()), so a big rise takes several hops.
+##
+## Grip. Rings roll freely (chunk 5), but "on a steep slope its hops can't
+## hold it and it may roll" (master spec §5.2): on anything gentler they do.
+## So while a train slime stands on the ground between hops, on a stretch of
+## the route no steeper than GRIP_MAX_SLOPE, the train takes GRIP of its rigid
+## motion away each tick (SlimeBodies.brake: no sliding or rolling, the squish
+## is kept). Steeper, it rolls.
+##
+## The slide. Placeholder (O22): on a return route the slime doesn't hop (it
+## is held) and, while it touches the ground, it is carried along the route at
+## SLIDE_SPEED. The real slide comes with the level art.
+##
+## Knocked off the route. A slime more than OFF_ROUTE px from the route point
+## at its progress (bounced back out of a chute onto the ledge above, say)
+## steers from the route point nearest it within PROGRESS_WINDOW behind its
+## progress: it hops for the chute again instead of being held on the ledge.
+## Its recorded progress never goes back.
+##
+## Lost. Placeholder until chunk 15 settles it: a train slime is lost when its
+## centre leaves `bounds` (the level's extent) or when its progress hasn't
+## moved LOST_STALL_ADVANCE px in LOST_STALL_SECONDS. Lost slimes are only
+## recorded in `lost`, for tests and the debug view; nothing happens to them.
+##
+## Tick order (Simulation.step): steer() before the bodies tick (aims the
+## coming hops, holds and carries slimes on the slide), follow() after it and
+## after the split zones (re-derives progress, notices new and lost slimes).
+# @spec-link [[req_loop_and_world]]
+# @spec-link [[req_hopping_behavior]]
+# @spec-link [[rule_loop_travelable_with_no_input]]
+# @spec-link [[rule_all_sizes_travel_loop_v1]]
+
+## How far ahead of its last progress (px) a slime's progress may move in one
+## projection. A slime moves at most max_speed / 60 = 20 px per tick.
+const PROGRESS_WINDOW := 400.0
+## How far ahead along the loop a size-1 slime aims its hops, px.
+const HOP_REACH := 150.0
+## Extra reach per size above 1 (bigger slimes hop further).
+const HOP_REACH_PER_SIZE := 0.2
+## How high above the higher end of a hop a size-1 slime tops out, px.
+const HOP_APEX := 34.0
+## Extra apex height per size above 1 (bigger slimes hop higher).
+const HOP_APEX_PER_SIZE := 0.25
+## The hop take-off speed cap, as a share of SlimeBodies.hop_velocity's
+## strength-1 speed for the size.
+const HOP_CAP := 1.15
+## A route edge rising steeper than this (rise over run) is a step: the hop
+## target moves past it.
+const STEEP_RISE := 1.5
+## Within this distance (px along the loop) of a step's foot, a slime hops
+## over the step; further back, it hops to STEP_FOOT px before the foot.
+const STEP_NEAR := 40.0
+const STEP_FOOT := 10.0
+## How far past the top of a step the target moves, px along the loop.
+const STEP_LANDING := 80.0
+## How far past the top of a drop (a route edge falling steeper than
+## STEEP_RISE) a slime aims, px, carrying on the way it was going.
+const DROP_OVER := 40.0
+## The furthest a target moves past a step, as a share of the reach.
+const MAX_REACH_FACTOR := 2.5
+## Share of a standing train slime's rigid motion taken away per tick.
+const GRIP := 0.5
+## The steepest stretch of route (rise over run) a standing slime grips: 45°.
+const GRIP_MAX_SLOPE := 1.0
+## Placeholder slide: the speed slimes are carried at on a return route, px/s.
+const SLIDE_SPEED := 360.0
+## Placeholder slide: share of the gap to SLIDE_SPEED closed per tick.
+const SLIDE_GRIP := 0.2
+## How far (px) from the route point at its progress a slime is knocked off
+## the route, and steers from the nearest route point behind (see the class doc).
+const OFF_ROUTE := 36.0
+## A slime whose progress doesn't advance LOST_STALL_ADVANCE px in
+## LOST_STALL_SECONDS is lost (specs/tuning.md: 1 min).
+const LOST_STALL_SECONDS := 60.0
+const LOST_STALL_ADVANCE := 24.0
+## How far past the level's extent a slime is lost, px: at the sides and
+## bottom, and at the top (a big hop may leave the screen).
+const BOUNDS_MARGIN := 64.0
+const BOUNDS_TOP_MARGIN := 2000.0
+const LOST_STALLED := "stalled"
+const LOST_OUT_OF_BOUNDS := "out_of_bounds"
+
+## The loop, and the gates opened so far (they pick the current loop).
+var loop: LoopData
+var open_gates: Array = []
+## Where train slimes may be: outside, they are lost. No area: no check.
+var bounds := Rect2()
+## The slimes lost so far: {"id", "tick", "reason"}, in order.
+var lost: Array[Dictionary] = []
+
+## Slime id -> {"distance" (px, 0 to length()), "laps", "on_slide",
+## "mark" (the progress last counted as an advance), "marked_at" (its tick,
+## -1 before the first follow), "lost"}.
+var _records := {}
+## The current loop flattened into one closed polyline: points, cumulative
+## distances, and for each edge whether it is on a return route.
+var _pts := PackedVector2Array()
+var _dist := PackedFloat64Array()
+var _slide := PackedByteArray()
+var _len := 0.0
+
+
+func _init(loop_data: LoopData = null, gates: Array = []) -> void:
+	loop = loop_data
+	open_gates = gates.duplicate()
+	_flatten()
+
+
+## The level's extent, grown by the margins: terrain plus loop.
+static func bounds_for(terrain: TerrainSegments, loop_data: LoopData) -> Rect2:
+	var box := Rect2()
+	var started := false
+	var points := PackedVector2Array()
+	if terrain != null:
+		points.append_array(terrain.seg_a)
+	if loop_data != null:
+		for segment in loop_data.segments:
+			points.append_array(segment["points"])
+	for point in points:
+		if not started:
+			box = Rect2(point, Vector2.ZERO)
+			started = true
+		else:
+			box = box.expand(point)
+	if not started:
+		return Rect2()
+	return Rect2(box.position - Vector2(BOUNDS_MARGIN, BOUNDS_TOP_MARGIN),
+			box.size + Vector2(2.0 * BOUNDS_MARGIN, BOUNDS_MARGIN + BOUNDS_TOP_MARGIN))
+
+
+# --- Sizes ------------------------------------------------------------------
+
+## How far ahead along the loop a slime of `size` aims its hops, px.
+static func hop_reach(size: int) -> float:
+	return HOP_REACH * (1.0 + HOP_REACH_PER_SIZE * (size - 1))
+
+
+## How high above the route a slime of `size` tops out, px.
+static func hop_apex(size: int) -> float:
+	return HOP_APEX * (1.0 + HOP_APEX_PER_SIZE * (size - 1))
+
+
+## The take-off speed cap for a slime of `size`, px/s.
+static func hop_cap(size: int) -> float:
+	return SlimeBodies.hop_velocity(size, Vector2.UP, 1.0).length() * HOP_CAP
+
+
+## The take-off velocity of a ballistic hop (no drag) from `from` that tops
+## out `apex` px above the higher of its two ends and comes down on `to`,
+## under `gravity` (px/s², downward). Faster than `cap`, the upward part is
+## kept (clamped to 97 % of the cap) and the forward part reduced: the hop
+## lands short.
+static func aim(from: Vector2, to: Vector2, apex: float, gravity: float, cap: float) -> Vector2:
+	var top := minf(from.y, to.y) - maxf(apex, 1.0)
+	var rise := from.y - top
+	var fall := to.y - top
+	var vy := -sqrt(2.0 * gravity * rise)
+	var flight := sqrt(2.0 * rise / gravity) + sqrt(2.0 * fall / gravity)
+	var vx := (to.x - from.x) / flight
+	if vx * vx + vy * vy > cap * cap:
+		vy = maxf(vy, -cap * 0.97)
+		vx = signf(vx) * minf(absf(vx), sqrt(cap * cap - vy * vy))
+	return Vector2(vx, vy)
+
+
+# --- The current loop -------------------------------------------------------
+
+## The length of the current loop, px.
+func length() -> float:
+	return _len
+
+
+## The length of the current loop's outgoing part, px.
+func outgoing_length() -> float:
+	var total := 0.0
+	for k in _slide.size():
+		if _slide[k] == 0:
+			total += _dist[k + 1] - _dist[k]
+	return total
+
+
+## The length of the current loop's return route, px.
+func slide_length() -> float:
+	return _len - outgoing_length()
+
+
+## The point `distance` px along the current loop (wraps).
+func position_at(distance: float) -> Vector2:
+	if _pts.size() < 2 or _len <= 0.0:
+		return Vector2.ZERO
+	var d := fposmod(distance, _len)
+	var k := _edge_at(d)
+	var span := _dist[k + 1] - _dist[k]
+	var t := (d - _dist[k]) / span if span > 0.0 else 0.0
+	return _pts[k].lerp(_pts[k + 1], t)
+
+
+## Whether `distance` along the current loop is on a return route (a slide).
+func is_slide_at(distance: float) -> bool:
+	if _slide.is_empty() or _len <= 0.0:
+		return false
+	return _slide[_edge_at(fposmod(distance, _len))] != 0
+
+
+## The unit direction of the current loop at `distance`.
+func direction_at(distance: float) -> Vector2:
+	if _slide.is_empty() or _len <= 0.0:
+		return Vector2.RIGHT
+	var k := _edge_at(fposmod(distance, _len))
+	return (_pts[k + 1] - _pts[k]).normalized()
+
+
+## Changes the gates opened so far, and with them the current loop. Progress
+## is kept as a distance from the start (it stays on the part of the loop
+## that doesn't change, which is all a slime can be on when a gate opens).
+func set_open_gates(gates: Array) -> void:
+	open_gates = gates.duplicate()
+	_flatten()
+
+
+## The progress on the loop closest to `point`, looking only from
+## `from_distance` to PROGRESS_WINDOW px ahead of it: from_distance or more
+## (never backward), and past length() once it goes round the end. Ties go to
+## the nearer progress, or with `latest` to the further one.
+func project(from_distance: float, point: Vector2, latest := false) -> float:
+	if _pts.size() < 2 or _len <= 0.0:
+		return from_distance
+	var base := fposmod(from_distance, _len)
+	var end := base + minf(PROGRESS_WINDOW, _len)
+	var best := base
+	var best_gap := point.distance_squared_to(position_at(base))
+	var k := _edge_at(base)
+	var wrap := 0.0
+	var edges := _slide.size()
+	for step in edges + 1:
+		var d0 := _dist[k] + wrap
+		var d1 := _dist[k + 1] + wrap
+		if d0 > end:
+			break
+		var span := d1 - d0
+		if span > 0.0:
+			var a := _pts[k]
+			var along := (point - a).dot(_pts[k + 1] - a) / (span * span)
+			var d := clampf(d0 + along * span, maxf(d0, base), minf(d1, end))
+			var at := a.lerp(_pts[k + 1], (d - d0) / span)
+			var gap := point.distance_squared_to(at)
+			if gap < best_gap or (latest and gap <= best_gap):
+				best_gap = gap
+				best = d
+		k += 1
+		if k >= edges:
+			k = 0
+			wrap += _len
+	return from_distance + (best - base)
+
+
+## Where a slime at `point` whose progress is `distance` steers from: its
+## progress, or, knocked more than OFF_ROUTE px off the route, the route point
+## nearest it within PROGRESS_WINDOW behind (see the class doc).
+func steering_distance(distance: float, point: Vector2) -> float:
+	if _len <= 0.0 or point.distance_to(position_at(distance)) <= OFF_ROUTE:
+		return distance
+	var back := minf(PROGRESS_WINDOW, _len)
+	# Where the route runs back over itself (the slide's end across the start
+	# basin), the point nearest the progress wins.
+	return fposmod(project(distance - back, point, true), _len)
+
+
+## Where a slime at `progress` aims its next hop, `reach` px ahead along the
+## loop, or at a step's foot, or over it (see the class doc).
+func hop_target(progress: float, reach: float) -> Vector2:
+	var target := progress + reach
+	# The first step (steep rise) or drop starting before the target, if any.
+	var k := _edge_at(fposmod(progress, _len))
+	var wrap := progress - fposmod(progress, _len)
+	var found := false
+	for step in _slide.size():
+		if _dist[k] + wrap > target:
+			break
+		if _is_steep(k):
+			found = true
+			break
+		if _is_drop(k) and _dist[k] + wrap > progress:
+			var run := _pts[k] - _pts[k - 1 if k > 0 else _slide.size() - 1]
+			return _pts[k] + run.normalized() * DROP_OVER
+		k += 1
+		if k >= _slide.size():
+			k = 0
+			wrap += _len
+	if not found:
+		return position_at(target)
+	var foot := maxf(_dist[k] + wrap, progress)
+	if foot - progress > STEP_NEAR:
+		return position_at(foot - STEP_FOOT)
+	# Over the step: STEP_LANDING px beyond its top.
+	for step in _slide.size():
+		if not _is_steep(k):
+			break
+		k += 1
+		if k >= _slide.size():
+			k = 0
+			wrap += _len
+	return position_at(minf(_dist[k] + wrap + STEP_LANDING, progress + reach * MAX_REACH_FACTOR))
+
+
+## The highest point (lowest y) of the loop between `from` and `to` (px along
+## it, from <= to), ends included.
+func highest_between(from: float, to: float) -> float:
+	var top := minf(position_at(from).y, position_at(to).y)
+	var k := _edge_at(fposmod(from, _len))
+	var wrap := from - fposmod(from, _len)
+	for step in _slide.size():
+		var d := _dist[k + 1] + wrap
+		if d >= to:
+			break
+		top = minf(top, _pts[k + 1].y)
+		k += 1
+		if k >= _slide.size():
+			k = 0
+			wrap += _len
+	return top
+
+
+# --- Slimes -----------------------------------------------------------------
+
+## Starts following slime `slime_id` at `distance` px along the loop.
+func track(slime_id: int, distance: float) -> void:
+	var d := fposmod(distance, _len) if _len > 0.0 else 0.0
+	_records[slime_id] = {"distance": d, "laps": 0, "on_slide": false,
+			"mark": d, "marked_at": -1, "lost": false}
+
+
+func tracks(slime_id: int) -> bool:
+	return _records.has(slime_id)
+
+
+## The ids followed, ascending.
+func tracked_ids() -> PackedInt32Array:
+	var out := PackedInt32Array(_records.keys())
+	out.sort()
+	return out
+
+
+## The slime's distance along the loop from its start, 0 to length().
+func distance_of(slime_id: int) -> float:
+	return _records[slime_id]["distance"] if _records.has(slime_id) else 0.0
+
+
+func laps_of(slime_id: int) -> int:
+	return _records[slime_id]["laps"] if _records.has(slime_id) else 0
+
+
+## The slime's progress, laps included: it never goes back.
+func progress_of(slime_id: int) -> float:
+	if not _records.has(slime_id):
+		return 0.0
+	var record: Dictionary = _records[slime_id]
+	return record["laps"] * _len + record["distance"]
+
+
+## Re-derives a slime's progress from its centre at `tick`, and checks
+## whether it is lost.
+func advance(slime_id: int, centre: Vector2, tick: int) -> void:
+	var record: Dictionary = _records[slime_id]
+	var progress := project(record["distance"], centre)
+	if progress >= _len:
+		progress -= _len
+		record["laps"] += 1
+	record["distance"] = progress
+	if record["lost"]:
+		return
+	var now := progress_of(slime_id)
+	if record["marked_at"] < 0 or now - record["mark"] >= LOST_STALL_ADVANCE:
+		record["mark"] = now
+		record["marked_at"] = tick
+	elif tick - record["marked_at"] >= int(LOST_STALL_SECONDS * Simulation.TICK_RATE):
+		_lose(slime_id, tick, LOST_STALLED)
+		return
+	if bounds.has_area() and not bounds.has_point(centre):
+		_lose(slime_id, tick, LOST_OUT_OF_BOUNDS)
+
+
+## Split parts carry on from where the slime was: `parts` from
+## SlimeBodies.split, the original id first.
+func inherit(parts: PackedInt32Array) -> void:
+	if parts.is_empty() or not _records.has(parts[0]):
+		return
+	for k in range(1, parts.size()):
+		_records[parts[k]] = _records[parts[0]].duplicate()
+
+
+## Before the bodies tick: aims the hops about to happen, and holds and
+## carries the slimes on a slide.
+func steer(bodies: SlimeBodies, dt: float) -> void:
+	for slime_id in tracked_ids():
+		var s := bodies.index_of(slime_id)
+		if s < 0 or bodies.state[s] != SlimeBodies.TRAIN:
+			continue
+		var record: Dictionary = _records[slime_id]
+		var from := bodies.centre_of(slime_id)
+		var progress := steering_distance(record["distance"], from)
+		var on_slide := is_slide_at(progress)
+		if on_slide != record["on_slide"]:
+			record["on_slide"] = on_slide
+			bodies.set_hop_held(slime_id, on_slide)
+		if on_slide:
+			if bodies.supported[s] != 0:
+				_carry(bodies, slime_id, progress)
+			continue
+		if bodies.supported[s] != 0:
+			var slope := direction_at(progress)
+			if absf(slope.y) <= absf(slope.x) * GRIP_MAX_SLOPE:
+				bodies.brake(slime_id, GRIP)
+		if bodies.hop_timer[s] > dt * 1.5:
+			continue
+		var size := bodies.size[s]
+		var target := hop_target(progress, hop_reach(size))
+		var high := minf(highest_between(progress, progress + hop_reach(size)), target.y)
+		var apex := hop_apex(size) + maxf(0.0, minf(from.y, target.y) - high)
+		bodies.set_hop_aim(slime_id, aim(from, target, apex, bodies.gravity.y, hop_cap(size)))
+
+
+## After the bodies tick (and the split zones): follows every train slime,
+## adopting new ones where the loop passes closest, and drops the others.
+func follow(bodies: SlimeBodies, tick: int) -> void:
+	for slime_id in tracked_ids():
+		if bodies.state_of(slime_id) != SlimeBodies.TRAIN:
+			_records.erase(slime_id)
+	for slime_id in bodies.ids():
+		var s := bodies.index_of(slime_id)
+		if bodies.state[s] != SlimeBodies.TRAIN:
+			continue
+		var centre := bodies.centre_of(slime_id)
+		if not _records.has(slime_id):
+			track(slime_id, _closest_distance(centre))
+		advance(slime_id, centre, tick)
+
+
+## The train's state as plain data, for Simulation.dump().
+func dump() -> Dictionary:
+	var slimes := []
+	for slime_id in tracked_ids():
+		var record: Dictionary = _records[slime_id]
+		slimes.append({"id": slime_id, "distance": snappedf(record["distance"], 0.01),
+				"laps": record["laps"], "on_slide": record["on_slide"],
+				"mark": snappedf(record["mark"], 0.01), "marked_at": record["marked_at"],
+				"lost": record["lost"]})
+	return {"open_gates": open_gates.duplicate(), "slimes": slimes, "lost": lost.duplicate(true)}
+
+
+# --- Internals --------------------------------------------------------------
+
+func _lose(slime_id: int, tick: int, reason: String) -> void:
+	_records[slime_id]["lost"] = true
+	lost.append({"id": slime_id, "tick": tick, "reason": reason})
+
+
+## Placeholder slide: pulls the slime's speed along the route toward SLIDE_SPEED.
+func _carry(bodies: SlimeBodies, slime_id: int, distance: float) -> void:
+	var tangent := direction_at(distance)
+	var velocity := bodies.velocity_of(slime_id)
+	var along := velocity.dot(tangent)
+	if along >= SLIDE_SPEED:
+		return
+	bodies.set_velocity(slime_id, velocity + tangent * (SLIDE_SPEED - along) * SLIDE_GRIP)
+
+
+func _closest_distance(point: Vector2) -> float:
+	if loop == null:
+		return 0.0
+	return loop.closest(point, open_gates)["distance"]
+
+
+## The index of the edge holding `distance` (0 to length()).
+func _edge_at(distance: float) -> int:
+	var k := _dist.bsearch(distance, false) - 1
+	return clampi(k, 0, _slide.size() - 1)
+
+
+func _is_steep(k: int) -> bool:
+	var d := _pts[k + 1] - _pts[k]
+	return -d.y > absf(d.x) * STEEP_RISE
+
+
+func _is_drop(k: int) -> bool:
+	var d := _pts[k + 1] - _pts[k]
+	return d.y > absf(d.x) * STEEP_RISE
+
+
+func _flatten() -> void:
+	_pts = PackedVector2Array()
+	_dist = PackedFloat64Array()
+	_slide = PackedByteArray()
+	_len = 0.0
+	if loop == null:
+		return
+	for segment in loop.current_segments(open_gates):
+		var points: PackedVector2Array = segment["points"]
+		var is_return := 1 if segment["kind"] == LoopData.RETURN else 0
+		for k in points.size():
+			if _pts.is_empty():
+				_pts.append(points[k])
+				_dist.append(0.0)
+				continue
+			if k == 0:
+				continue  # the join: the previous segment's last point
+			_len += _pts[_pts.size() - 1].distance_to(points[k])
+			_pts.append(points[k])
+			_dist.append(_len)
+			_slide.append(is_return)

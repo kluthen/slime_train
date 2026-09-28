@@ -3,9 +3,11 @@ class_name FirstSlime
 extends Node2D
 ## Where the first awake slime starts, on the loop in the start basin
 ## (master spec §5.2). The first sleeper is placed near it (rule 6).
-## Placeholder: marks the spot; the slime itself comes with chunk 5.
+## The game wakes the slime here at the start of a fresh game: Simulation.
+## load_level creates it (size 1, a train slime, of this species).
 # @spec-link [[rule_first_sleeper_near_first_awake_slime]]
 # @spec-link [[req_level_design_rules]]
+# @spec-link [[req_slime_states]]
 
 ## The stable ID, `start.first-slime`.
 @export var stable_id := "start.first-slime":

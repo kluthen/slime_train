@@ -82,9 +82,10 @@ scaling and skipping in one place.
 
 ### State
 
-`Simulation` holds the whole game state. For now that is the tick, the
-master `Rng`, an empty slime list and a record of the input received (the
-fingers down, the last tilt, the last 64 input events). Each later chunk adds
+`Simulation` holds the whole game state: the tick, the master `Rng`, the
+slimes (`SlimeBodies`), the train (`Train`: each train slime's progress
+along the loop, see "Train"), the level's split zones, and a record of the
+input received (the fingers down, the last tilt, the last 64 input events). Each later chunk adds
 its state there and **must add it to `dump()`**, or the state hash won't see
 it.
 
@@ -326,8 +327,8 @@ no state a save would need.
 | `LoopSegment` | `Path2D` | `stable_id`, `section`, `kind` (`outgoing` or `return`), `gate_id`, `show_route` | Draw it in the direction of travel. A return route names the gate whose opening retires it |
 | `RouteBack` | `Path2D` | `stable_id`, `serves` (a branch ID), `show_route` | From inside the branch down to a point on the loop (D69) |
 | `ExplorationBranch` | `Area2D` | `stable_id`, `size` | The box a free slime in the branch can be in |
-| `SplitZone` | `Area2D` | `stable_id`, `size` | At the start of the loop (rule 4) |
-| `FirstSlime` | `Node2D` | `stable_id` (`start.first-slime`), `species` | Where the first awake slime starts |
+| `SplitZone` | `Area2D` | `stable_id`, `size` | At the start of the loop (rule 4). `SplitZones` in the simulation splits every slime inside it (see "Train") |
+| `FirstSlime` | `Node2D` | `stable_id` (`start.first-slime`), `species` | Where the first awake slime starts: the game wakes it there in a fresh game (see "Train") |
 | `Sleeper` | `Node2D` | `stable_id`, `species` (A to E) | Always size 1 |
 | `Switch` | `Area2D` | `stable_id`, `size`, `basket_id` | |
 | `Basket` | `Area2D` | `stable_id`, `size`, `quota` (weight), `on_full_object`, `on_full_action` | Holds its rule (below) |
@@ -338,9 +339,10 @@ no state a save would need.
 `size` is a box centred on the node's position. The `Area2D`s make their
 rectangle collision shape at load; the `Path2D`s draw their curve. Nodes a
 component makes at load (terrain bakes, shapes) have no owner, so they are
-never saved into the level scene. **No behaviour yet**: splitting, waking,
+never saved into the level scene. The split zone splits and the first
+slime is woken (chunk 6, see "Train"). **No behaviour yet** for the others:
 the switch, the basket's counting, the gate opening and the camera reading
-the framing zones come in later chunks; this chunk places them, gives them
+the framing zones come in later chunks; the level places them, gives them
 IDs and checks the references.
 
 ### The rule format
@@ -366,8 +368,10 @@ accepts the action. Executing rules comes with chunk 14.
 At load the level turns the loop into plain data for the simulation:
 `level.data` is a `LevelData` (`src/sim/level_data.gd`): the level ID and
 version, the loop (`LoopData`, `src/sim/loop_data.gd`) and the routes back,
-all as polylines in level pixels. The game root hands it to the simulation
-(`simulation.level`); `simulation.dump()` records the level's ID and version.
+all as polylines in level pixels, the split zones (ID to `Rect2`) and the
+first slime (`{id, species, position}`). The game root hands it to the
+simulation (`simulation.load_level(data)`, which builds the train and the
+split zones from it); `simulation.dump()` records the level's ID and version.
 
 `LoopData` holds the segments in order, each `{id, section, kind, gate,
 points, lengths, length}`. Which segments are in use depends on the open
@@ -393,6 +397,25 @@ greybox that follows `specs/levels/test/README.md`: the start basin with the
 split zone and the first slime, the hills, the fusion dip, the high step, the
 tree (an exploration branch with its route back and framing zone), frontier
 set 1 and slide 1 back to the basin. Sections 2 and 3 come later.
+
+Chunk 6 adjusted the greybox where a train slime couldn't pass (the
+tables in the generator say where):
+
+- the lip's nose moved right (0.60 to 0.64) and the loop's rise to the lip
+  is at 0.58-0.59, in the open; the tunnel floor has a hump under the lip,
+  so a slime falling short of the lip rolls back out to the basin;
+- the loop starts at 0.3, not against the basin's left wall (a slime could
+  not reach the old start, so its progress never wrapped); the slide ends
+  there and the first slime starts there;
+- the crust top runs on to 6.49, closing the 58 px notch over basket 1's
+  pit where a slime wedged (the pit has no entrance yet: the switch chunk
+  decides it);
+- the high step's underside is at -210 (was -170) and the tree's climb
+  starts at 4.72, -208 (was 4.62, -140): a size-2 or size-3 slime hopping
+  under them wedged on their corners;
+- the chute into slide 1 is wider at the top (the near wall starts at 7.5,
+  was 7.56) and its far wall is upright down to y = 30, so a slime falling
+  in isn't thrown back up onto the ledge.
 
 The scene is generated by `tools/greybox_test_level.gd` from tables of
 points (x in screens, y in px):
@@ -511,6 +534,12 @@ rises about 114 px and covers about 224 px; a size-3 hop 176 px and 336 px.
 `hop(id, dir, strength)` is the direct form (switches, taps later); it
 refuses a slime that isn't supported or whose state doesn't hop.
 `set_hop_held` pauses the timer (a queued slime at a gate, later).
+`set_hop_aim(id, velocity)` aims the next automatic hop, if it comes this
+tick: that take-off velocity instead of a plain hop along the heading (the
+strength is still drawn, so the stream doesn't shift). It is cleared by
+every tick, so it isn't state. `brake(id, share)` removes that share of a
+slime's mean velocity and spin, keeping its squish: how the train makes a
+slime grip the ground between hops.
 
 ### Merge and split
 
@@ -566,6 +595,85 @@ Heavier than the spike: terrain segments instead of a flat floor, friction,
 touch tracking and a denser pile. In GDScript the tick alone is most of a
 60 Hz frame at 200 slimes: fine for development and a handful of slimes,
 but the full count needs the native tick (spike 1's conclusion).
+
+## Train
+
+`Train` (`src/sim/train.gd`, `simulation.train`) moves the train slimes
+along the loop. It reads the loop in use (`LoopData.current_segments`,
+flattened into one polyline with a per-edge "slide" flag) and keeps, per
+train slime, its progress: a distance along the loop and a lap count.
+Each tick, `Simulation.step()` runs the input, `train.steer()` (grip, carry
+and hop aim, before the bodies move), `slimes.tick()`, the split zones
+(`SplitZones.apply`, whose parts `train.inherit()` their parent's
+progress), then `train.follow()` (progress, laps, lost). `train.dump()` is
+in the state dump.
+
+![The first slime hopping along the loop from the start basin](img/train-first-slime.png)
+
+**Progress.** A slime's progress is re-derived every tick by projecting its
+centre onto the loop, but only onto a window from its last progress to
+`PROGRESS_WINDOW` (400 px) ahead. It never goes back (a slime bumped back
+keeps its progress), and it can't snap to a part of the loop that is close
+in space but far along it (the slide runs back under the outgoing route).
+Past the end it wraps and counts a lap. A slime knocked more than
+`OFF_ROUTE` (36 px) off the route at its progress (thrown back out of the
+chute onto the ledge, pushed back across the start basin) steers from the
+route point nearest it within the window behind; its recorded progress
+doesn't move. New train slimes (split parts, later sleepers) are adopted
+where the loop passes closest (`LoopData.closest`).
+
+**Hop targeting.** When a slime's next hop is due, the train aims it:
+`Train.aim(from, to, apex, gravity, cap)` gives the take-off velocity of a
+ballistic arc from the slime's centre to a point `hop_reach(size)` (150 px,
++20 % per size) ahead along the route, whose top clears the higher end by
+`hop_apex(size)` (34 px, +25 % per size) plus any route point in between
+that stands higher. The speed is capped at 1.15 x the size's plain hop
+speed. Two cases change the target:
+
+- a **steep rise** (a step the route crosses in the air): the slime first
+  hops to its foot (`STEP_FOOT` px short of it), then from within
+  `STEP_NEAR` of the foot over it, to `STEP_LANDING` px along the top;
+- a **steep drop** (the chute into a slide): it aims `DROP_OVER` (40 px)
+  past the top of the drop, along the way it was going, and falls in.
+
+**Grip.** Soft bodies roll down any slope (a size-1 slime rolled 317 px in
+3 s down a 30° slope). The spec lets a slime roll where its hops can't
+hold it (master spec §5.2), so the train only grips where the route is at
+most 45° steep: a supported slime there is braked by half each tick
+(`GRIP`), so it stays put between hops.
+
+**The slide (placeholder, O22).** On a return route a slime doesn't hop
+(it is held) and, while it touches the ground, its velocity along the
+route is pulled towards `SLIDE_SPEED` (360 px/s) by a fifth each tick. The
+real slide comes with the level art.
+
+**Lost (placeholder until chunk 15).** A slime is lost when its centre
+leaves the level's bounds (the terrain and the loop, plus 64 px, plus 2000
+px above), or when its progress hasn't advanced 24 px in 60 s. Lost slimes
+are listed in `train.lost` with the tick and the reason (`stalled`,
+`out_of_bounds`); nothing is done about them yet.
+
+**Split zones.** `SplitZones` (`src/sim/split_zones.gd`) holds the level's
+split zone boxes. Every tick, every slime above size 1 whose centre is in a
+zone is split (`SlimeBodies.split`) into base slimes, which keep its
+species and state: train slimes stay on the train. Nothing else splits.
+
+**Waking the first slime.** `Simulation.load_level` creates the level's
+first slime (size 1, its species, a train slime) at its marker when the
+state is fresh (tick 0, no slimes): a restored state keeps its own slimes.
+There are no sleepers on the level yet (chunk 9).
+
+**Tests.** `tests/unit/test_train_progress.gd` (progress window, wrap,
+laps, lost, aim, targets, off-route steering) and
+`tests/unit/test_split_zones.gd`; `tests/e2e/test_train_in_game.gd`
+(the first slime woken, each size 1 to 3 completes a lap and comes back as
+base slimes, a size 3 and a size 2 entering the split zone leave as five
+base slimes on the train); `tests/e2e/test_train_session_e2e.gd` runs a
+15-minute session (54 000 ticks) with no input and checks the first slime
+is never lost, its progress never goes back, it makes at least 4 laps (0.7
+of the ideal pace; it makes 5) and the same seed gives the same hash twice.
+It takes about 2 s per run, 4-5 s for the test. Several slimes at once in
+the start basin can still jam (see chunk 6's choices).
 
 ## Technical choices
 
@@ -659,6 +767,30 @@ but the full count needs the native tick (spike 1's conclusion).
   Headless runs draw direct.
 - **Measured tick cost** is in "Slimes", "Demo and bench": GDScript is
   10-15 ms per tick for 200 slimes.
+
+### Chunk 6: train and split zone
+
+- **Progress by windowed projection, not by path following:** the bodies
+  stay free soft bodies; the train only reads where they are and aims their
+  hops. The window (never back, 400 px ahead) keeps progress monotonic and
+  stops it jumping between parts of the loop that pass close.
+- **Aimed ballistic hops** through `SlimeBodies.set_hop_aim`, with the
+  timing and strength still from the slime's own stream: the hops land on
+  the route, and the stream doesn't shift.
+- **Grip by braking** (`SlimeBodies.brake`) on route slopes up to 45°,
+  because soft bodies otherwise roll back down between hops.
+- **Placeholders:** the slide carry and the "lost" rule (60 s without
+  progress, or out of bounds) are simple stand-ins until the level art and
+  chunk 15.
+- **Greybox fixes, not special cases:** where a slime couldn't pass, the
+  generator changed (see "The test level"), never the scene by hand.
+- **Known limit:** the slide ends across the start basin, where the
+  outgoing route starts back the other way. Several slimes arriving at once
+  can jam there, and two slimes shoved into each other by the carry can end
+  up overlapping for good (the contact model can't separate two rings with
+  the same centre). One slime per size passes on every seed tried; three at
+  once jammed on 1 of 6 seeds. Chunk 9 (sleepers joining) has to settle the
+  crowd at the start.
 
 ### Chunk 2: spike: vector look
 
