@@ -21,3 +21,11 @@
 
 # ATD local caches
 docs/.atd_audit.db
+
+# Native tick (docs/dev/native.md): built libraries and SCons state.
+# native/godot-cpp is a submodule; its own .gitignore covers its gen/ and bin/.
+/native/bin/
+/native/slime_native/**/*.os
+/native/slime_native/**/*.o
+/native/slime_native/.sconsign*.dblite
+/native/slime_native/compile_commands.json

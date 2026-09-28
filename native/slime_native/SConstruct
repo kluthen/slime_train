@@ -1,0 +1,44 @@
+#!/usr/bin/env python
+# Builds the slime_native GDExtension (see docs/dev/native.md).
+# Run it through tools/build_native.sh, which passes the platform, target and
+# NDK options. Output: native/bin/libslime_native.<platform>.<target>.<arch>.so
+
+# Optimisation is set here, not by godot-cpp's presets (-O2 for debug, -O3 for
+# release): one level for every build, so debug and release ticks agree.
+ARGUMENTS.setdefault("optimize", "custom")
+
+env = SConscript("../godot-cpp/SConstruct", {"api_version": "4.7"})
+
+# Determinism (D96): no fused multiply-add. Clang contracts a * b + c into one
+# FMA instruction by default on arm64, which rounds once instead of twice, so
+# the same tick would give different results from one build to another. No
+# -ffast-math either (it reorders and approximates float operations).
+# These flags reach godot-cpp's own objects too: SCons expands CCFLAGS when it
+# builds, after this Append.
+env.Append(CCFLAGS=["-O2", "-ffp-contract=off", "-fno-fast-math"])
+
+if env["platform"] == "android":
+    # Link the C++ runtime statically, so the extension doesn't depend on the
+    # libc++_shared.so that Godot's Android template ships (built with another NDK).
+    env.Append(LINKFLAGS=["-static-libstdc++"])
+
+# The extension's own sources only (a define on the shared env would rebuild
+# godot-cpp whenever it changes).
+ext_env = env.Clone()
+# Objects per platform, target and arch, so Linux and Android builds sit side by side.
+ext_env["SHOBJSUFFIX"] = env["suffix"] + ".os"
+ext_env.Append(
+    CPPDEFINES=[
+        ("SLIME_NATIVE_BUILD", '\\"%s.%s.%s\\"' % (env["platform"], env["target"], env["arch"])),
+    ]
+)
+ext_env.Append(CPPPATH=["src/"])
+sources = Glob("src/*.cpp")
+
+library = ext_env.SharedLibrary(
+    "../bin/libslime_native{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
+    source=sources,
+)
+
+ext_env.NoCache(library)
+Default(library)
