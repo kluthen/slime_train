@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v20
+Status: draft v21
 
 ## One-liner
 
@@ -102,7 +102,9 @@ and any minor update ships with its migration (D72).
   can affect the train only indirectly and slightly.
 - **Level rule:** the loop can be travelled with no input at all.
 - **Tapping** the screen **calls** nearby slimes toward that point (D46).
-  Hold-and-drag isn't used for the call. Its radius and duration are O21.
+  Hold-and-drag isn't used for the call. Each called slime's call ends when it
+  reaches the point, or after about 8 s if it can't. A new tap replaces the
+  call (D73). The radius is a tuning value.
   Taps on objects, on the edge buttons, or at the top of the screen (parent
   access) don't call (D15, D33, D57).
 - **Every tap gets a visible answer:** a ripple where the finger touched, and

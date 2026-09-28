@@ -43,6 +43,8 @@ Items are settled unless tagged (proposed). The decision IDs point to
 **Controls and camera**
 - Tap-to-call. Every tap shows a ripple, and on the very first play a wordless
   hint appears near the first sleeper (D46, D65). The first touch wins (D66).
+  A call lasts until a slime reaches the point, capped at about 8 s, and a new
+  tap replaces it (D73).
 - The camera runs on rails along the loop, moved with buttons at the left and
   right edges. By default it follows the main stream at forks (D33).
 - A call drags the camera toward it (D45).
@@ -84,4 +86,4 @@ Items are settled unless tagged (proposed). The decision IDs point to
 
 ## Open for v1
 
-O14, O21, O22, O40, O50 (see `../../open-questions.md`).
+O14, O22, O40, O50 (see `../../open-questions.md`).

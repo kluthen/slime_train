@@ -17,7 +17,8 @@ value to try. When a value is tuned, update it here and log the result in
 | Screensaver and idle zoom | 10–20% wider than normal play | D60, D62 |
 | Delay before leaving a framing zone | a bit longer than a normal move | D61 |
 | Camera drag toward a call: speed, and when it goes back | slow and steady; to try | D45 |
-| Call radius | about half the screen width (proposed) | O21 |
+| Call radius | about half the screen width (proposed) | D46 |
+| Call cap (a slime that can't reach the point gives up) | about 8 s | D73 |
 | How often a slime hops, and how far | every few seconds; grows with size | D21, O40 |
 | Tilt | ±45° cap, about 10° dead zone | D19 |
 | Session length | 15 min (fixed in v1) | D29 |

@@ -588,3 +588,13 @@ Resolves O20.
 - **Any level update must ship with its migration.**
 - (proposed) To make that possible, the save records the level's version, and
   slimes, objects and gates keep stable IDs across versions.
+
+## D73 — How long a call lasts (2026-09-28)
+Resolves O21.
+- **Each called slime's call ends on its own**, when it reaches the call point
+  or after a cap of about **8 s** if it can't get there. That slime then goes
+  into its unsure phase (D27).
+- **A new tap replaces the call.** The new point takes over for every slime in
+  range of it (D66).
+- Called slimes gather in a clump at the call point. That is the natural way
+  to get same-species fusion going (D20, D37).

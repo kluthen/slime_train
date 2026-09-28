@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v7
+Status: draft v8
 
 ## States
 
@@ -13,7 +13,9 @@ Status: draft v7
 
 ## Free slime phases (D27)
 
-1. **Answering the call:** hops toward the call point.
+1. **Answering the call:** hops toward the call point, until it reaches it or
+   for about 8 s at most. A new tap replaces the call point (D73). Slimes
+   gather in a clump there, which is how fusion usually starts.
 2. **Unsure:** after the call ends, for up to about 15 s (to be tuned). It stays
    put or hops around, without straying far from the last call point.
 3. **Heading back:** makes for the loop, hopping mostly downhill but knowing
