@@ -1,6 +1,6 @@
 # Test level
 
-Status: draft v1
+Status: draft v2
 
 A compact level that puts nearly every v1 gameplay item in one place (D76).
 It is the testing ground while the game is built, and the level the
@@ -17,7 +17,7 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
 
 ## Conventions
 
-- **Side view, landscape.** This assumes O54's proposal.
+- **Side view, landscape, locked** (D78).
 - **Distances are in screens.** 1 screen = the width of the view at normal
   zoom. Screen 0 is the left edge of the level. The level is about 16.5
   screens wide.
@@ -26,18 +26,18 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
   surface and comes out in the start basin.
   - The slides are a **placeholder for testing only**. They do **not** settle
     how the real level brings slimes back to the start (O22).
-- **Camera rails** follow only the outgoing surface route. The slides are not
-  on the rails. This assumes O53's proposal.
+- **Camera rails** follow the whole loop: the outgoing surface route and each
+  slide, which has its own rail (D79). Which way the edge buttons move on a
+  slide is O66.
 - **Species** are labelled A to E, with placeholder colours: A red, B blue,
-  C yellow, D green, E purple. If O56's proposal is accepted, each placeholder
-  also gets its own shape detail.
+  C yellow, D green, E purple. Species differ by colour only (D81).
 - Every sleeper is size 1. The level holds exactly **200 base slimes** (D67).
 
 ## Overview
 
 | Section | Screens | Species | Areas |
 |---|---|---|---|
-| S1 "Meadow" | 0–8 | A, B, C | start basin, hills, fusion dip, size fork, the tree, frontier set 1 |
+| S1 "Meadow" | 0–8 | A, B, C | start basin, hills, fusion dip, size filter, the tree, frontier set 1 |
 | S2 "Caves" | 8–13 | adds D | descent, parade, second dip, the cave branch, frontier set 2 |
 | S3 "Big bowl" | 13–16.5 | adds E | entry ramp, the bowl, the high rim, frontier set 3 |
 
@@ -48,7 +48,7 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
   return slide comes out here.
 - The game wakes the **first slime** (species A) in the basin.
 - The **first sleeper** (B) sits about a third of a screen to the right, on
-  a small ledge just above the loop (rules 15, 16). On the very first play,
+  a small ledge just above the loop (rules 17, 18). On the very first play,
   the wordless hint pulses next to it after about 10 s without a call (D65).
 
 **1.2 Hills (1–2.5).**
@@ -65,16 +65,16 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
 - Exercises: fusion on its own, fusion reset by a hop, and bumping when a
   fusion would go past size 3 (for example 3 + 1) (D49).
 
-**1.4 Size fork (3.5–4.5).**
+**1.4 Size filter (3.5–4.5).**
 - The loop forks. The **upper branch** starts with a step that only a size-3
   slime can hop up. The **lower branch** runs underneath for every size.
   Both branches join again at 4.5 (rules 2, 3, D26).
 - A **signpost** at the fork points along the lower branch, which is the main
   stream. The rails follow the lower branch (rule 6, D33, D47).
-- A framing zone shows both branches at once (rule 17).
-- How a drawn route picks a branch by size is not specified yet (see the new
-  questions at the end). (proposed) The route picks the upper branch for size
-  3, and the geometry matches.
+- A framing zone shows both branches at once (rule 19).
+- The fork is a **size filter** (D88): size 3 takes the upper branch, and the
+  terrain matches. Whether the size filter is in v1 is O61; if it moves to
+  v2, this fork becomes a plain fork that every size takes the same way.
 
 **1.5 The tree (4.5–5.8).** An exploration branch.
 - A **lower platform** high above the loop, holding 6 sleepers (A, B and C, 2
@@ -139,7 +139,7 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
 
 ## Section 3 — Big bowl (screens 13–16.5)
 
-This is the stress area (rule 14, D67, O14).
+This is the stress area (rule 16, D67, O14).
 
 **3.1 Entry ramp (13–13.5).**
 - Past gate 2, a ramp leads down to the bowl. 10 E sleepers sit on side
@@ -163,10 +163,10 @@ This is the stress area (rule 14, D67, O14).
 
 **3.4 Frontier set 3 (15.5–16.5).**
 - The basket is a wide, flat-bottomed pit. Slimes resting in it don't hop, so
-  a big pile sits still (rule 14).
+  a big pile sits still (rule 16).
 - A framing zone shows the switch and the whole pit on one screen.
 - Its target is the **level-complete celebration** instead of a gate. This
-  depends on O52; it follows O52's proposal. (proposed) After the
+  is D77. (proposed) After the
   celebration, the basket releases its slimes into the section 3 slide, and
   the loop stays complete.
 
@@ -184,7 +184,7 @@ sits on the loop:
 |---|---|---|---|---|---|---|
 | 1 | 6.5 | 7.0, just below the onward path, in view from the switch | 6 | 7.8 | entrance at 7.6 | gate 1 |
 | 2 | 11.0 | 12.5, in a pit under the gate, **off screen from the switch** | 15 | 12.8 | entrance at 12.6 | gate 2 |
-| 3 | 15.6 | 16.0, a pit | 60 | — | entrance at 16.4 | celebration (O52) |
+| 3 | 15.6 | 16.0, a pit | 60 | — | entrance at 16.4 | celebration (D77) |
 
 **When the basket fills:**
 1. The reward animation plays. It waits until the basket is in view
@@ -194,11 +194,12 @@ sits on the loop:
 3. As part of the reward, the old slide entrance closes. Only the route back
    to the start is replaced: the next section's slide takes over.
 4. The basket releases its slimes.
+5. The switch and basket become inert for good (D86).
 
 **Opting out (D70):** flipping the switch back before the basket is full stops
 the filling. (proposed) The slimes inside go back to the loop.
 
-**Outlet (proposed):** each basket has one outlet that drops slimes onto the
+**Outlet (proposed; the basket's own design, O62):** each basket has one outlet that drops slimes onto the
 onward path just before the slide entrance. While the gate is closed, the
 path leads into the slide. Once the gate is open, it leads through the gate.
 Releasing after firing and emptying after an opt-out both use the same
@@ -210,7 +211,7 @@ outlet.
 
 | ID | Screens | Shows | Tests |
 |---|---|---|---|
-| `s1.frame.size-fork` | 3.5–4.5 | both branches of the fork | framing on a fork |
+| `s1.frame.size-filter` | 3.5–4.5 | both branches of the fork | framing on a fork |
 | `s1.frame.tree` | 4.5–5.5 | the loop and the tree's lower platform | zoom out and shift up; the exit delay |
 | `s2.frame.parade` | 9–10 | the parade, slightly wider | combining with the idle and screensaver zoom-out |
 | `s2.frame.gate` | 12.2–13 | gate 2, the slide entrance and the basket pit | reward waiting for view |
@@ -259,7 +260,7 @@ The quotas leave plenty of room:
 - **Examples:**
   - `start.split-zone`, `start.first-slime`
   - `s1.sleeper.01` … `s1.sleeper.29`
-  - `s1.switch`, `s1.basket`, `s1.gate`, `s1.slide`, `s1.signpost.size-fork`
+  - `s1.switch`, `s1.basket`, `s1.gate`, `s1.slide`, `s1.signpost.size-filter`
   - `s1.branch.tree`, `s1.route-back.tree`, `s1.frame.tree`
 - IDs belong to placed things. How a fused slime keeps an identity in the
   save is up to the save format (tech-direction).
@@ -290,13 +291,13 @@ The quotas leave plenty of room:
 | Left alone (10 s) and rejoining | 2.4 |
 | Lost (1 min), teleported to the start | fixture only (see below) |
 | Framing zones and their exit delay | 1.4, 1.5, 2.2, 2.5, 3.2, 3.4 |
-| Idle camera, its cue, and switching slimes at a slide (O53) | 2.2; any slide entrance |
+| Idle camera and its cue; following a slime through a slide on its rail | 2.2; any slide |
 | Screensaver mode zoom | 2.2, or anywhere |
 | Tilt as a bonus only | 1.5 (helps; never needed) |
 | First touch wins | anywhere, with scripted double touches |
 | 200 base slimes; many on one screen, mostly still | 3.2, 3.4 |
 | Save, reload, mid-air placement, the level version and migration | fixtures |
-| Level completion | 3.4 (O52) |
+| Level completion | 3.4 (D77) |
 
 **Session items don't depend on the level:** the timer, bedtime and the
 wind-down, sunrise, screensaver mode, the cooldown, the parent gate, setup and
@@ -337,7 +338,7 @@ spot a free slime can reach leads back to the loop (rule 7).
 |---|---|
 | 1 Travelled with no input | the loop and slides need no input; the frontier switches default to onward |
 | 2 Any size | lower branch at 1.4; the bowl walls are hoppable at size 1 |
-| 3 No dead ends | both size-fork branches join again; the tree and cave branches rejoin through their routes back; every slide returns to the start |
+| 3 No dead ends | both size-filter branches join again; the tree and cave branches rejoin through their routes back; every slide returns to the start |
 | 4 Split zone at the start | 1.1 |
 | 5 Fusion dips | 1.3, 2.3 |
 | 6 Signpost at every fork | 1.4, and each frontier switch |
@@ -347,12 +348,14 @@ spot a free slime can reach leads back to the loop (rule 7).
 | 10 Tilt is a bonus | tilt only helps at 1.5; nothing needs it |
 | 11 Species per section | S1: A, B, C; S2 adds D; S3 adds E |
 | 12 Switch-plus-basket | all 3 frontier sets |
-| 13 Return route to the start per section | slides 1, 2 and 3 (a placeholder; O22) |
-| 14 At most 200; piles mostly still | exactly 200; the big piles sit in basket pits |
-| 15 No sleepers on the loop | every sleeper sits on a ledge, bump, shelf or platform |
-| 16 First sleeper close | 1.1, a third of a screen away |
-| 17 Framing zones | see "Framing zones" |
-| 18 No changes after release | not applicable: never released. The `old-version` fixture exercises migrations. |
+| 13 Return route to the start per section | slides 1, 2 and 3, each with its own rail (a placeholder; O22) |
+| 14 Return-route exploration stays reachable | none placed on the slides yet |
+| 15 Frontier sets inert once open | all 3 sets (D86) |
+| 16 At most 200; piles mostly still | exactly 200; the big piles sit in basket pits |
+| 17 No sleepers on the loop | every sleeper sits on a ledge, bump, shelf or platform |
+| 18 First sleeper close | 1.1, a third of a screen away |
+| 19 Framing zones | see "Framing zones" |
+| 20 No changes after release | not applicable: never released. The `old-version` fixture exercises migrations. |
 
 ## What this level does not settle
 
@@ -361,7 +364,5 @@ spot a free slime can reach leads back to the loop (rule 7).
 - **The real first level:** its size (4 sections, 6 species), pacing, theme
   and tuning. The test level is deliberately compact, and has 3 sections and 5
   species.
-- **O52:** the celebration at 3.4 follows its proposal, and changes if O52
-  does.
-- **O53, O54:** assumed as proposed. If they change, the camera rows and the
-  side-view layout change with them.
+- **O66:** which way the edge buttons move the camera on a slide.
+- **O62:** the basket outlet is assumed, pending the basket's own design.

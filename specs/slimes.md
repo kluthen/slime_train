@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v10
+Status: draft v11
 
 ## States
 
@@ -65,7 +65,11 @@ Slimes move only by hopping.
 - The first section has 3 native species, and each new section adds one. For a
   first release of 4 sections that makes 6 species (D48).
 - Species differ by **colour** and **voice**, which for now is closer to a kind
-  of instrument (D40). v1 has no sound, so there it's colour only (D50). Behaviour quirks per species may come later.
+  of instrument (D40). v1 has no sound, so there it's colour only (D50, D81). Later versions may
+  add a texture or styling per species, other colour palettes (for
+  colour-blind players), and behaviour quirks.
+- (proposed) Pick v1's 6 colours so they also differ clearly in lightness,
+  which helps colour-blind players at no cost.
 
 ## Fusion (D20)
 

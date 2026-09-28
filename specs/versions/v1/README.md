@@ -44,6 +44,9 @@ Items are settled unless tagged (proposed). The decision IDs point to
 - A split zone at the start of the loop, where fused slimes split back into
   base slimes (D23, D54).
 - (proposed) Plain signposts at forks, which only show directions (D47).
+- Once its gate opens, a frontier set is inert for good (D86). Completing the
+  level brings a one-time celebration; the world stays open (D77).
+- Size filter: whether it is in v1 is O61 (D88).
 
 **Controls and camera**
 - Tap-to-call. Every tap shows a ripple, and on the very first play a wordless
@@ -71,7 +74,10 @@ Items are settled unless tagged (proposed). The decision IDs point to
   timeout applies there, while the screen stays on during a session (D53).
 - The parent gate is a 6-digit code, chosen during a one-time setup at first
   launch. It is recovered through the phone's own screen lock, with no external
-  service (D30, D55). Screen pinning is best effort (D1).
+  service (D30, D55). Screen pinning is best effort (D1). It is requested
+  each time the app opens; setup recommends "Ask for PIN before unpinning"
+  (D84, D85). A wrong code: shake and clear, a 30 s wait after 5 wrong tries
+  (D83).
 - A tap at the top of the screen reveals the parent buttons: wake early, leave,
   settings (change the code, delete a level's save). Every button asks for the
   code (D57).
@@ -80,7 +86,9 @@ Items are settled unless tagged (proposed). The decision IDs point to
   D43).
 
 **Platform and business**
-- Godot 4, Android. A Linux build for tests (D5).
+- Godot 4, Android. A Linux build for tests (D5). Landscape, locked (D78).
+- 60 fps on the reference phone; at least 30 fps on the floor phone with 200
+  slimes on one screen (D82).
 - A paid app, about $3–5 (D31).
 
 ## Explicitly not in v1
@@ -91,4 +99,4 @@ Items are settled unless tagged (proposed). The decision IDs point to
 
 ## Open for v1
 
-O14, O22, O52–O65 (see `../../open-questions.md`).
+O14, O22, O61, O62, O65, O66 (see `../../open-questions.md`).

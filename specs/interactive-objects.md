@@ -1,6 +1,6 @@
 # Interactive objects
 
-Status: draft v7
+Status: draft v8
 
 **Versions (D50, D54):** v1 has only the frontier-gate set (switch, basket,
 gate) and the split zone at the start of the loop. Every other object comes in
@@ -45,6 +45,12 @@ Its outlines fill by weight, so a fused slime fills several at once.
   stops the filling. (proposed: the slimes inside go back to the loop, and the
   basket empties)
 
+- **Outlet:** where it releases its slimes, after firing or after an opt-out,
+  belongs to the basket's own design, still to be planned (O62).
+- **After its gate opens (D86):** the switch and basket are inert for good.
+  They may be removed or turned into a landscape feature (art and level
+  design).
+
 ### Gate (D9, D14)
 The barrier at the end of the loop. Opening it extends the loop into the new
 area. It stays open for good.
@@ -73,9 +79,11 @@ interactive. (proposed: in v1)
 A larger signpost. Tapping it chooses which branch the camera follows. (proposed:
 v2, since it is tapped)
 
-### Filter (D47)
-A kind of fork that sends slimes down a branch by species ("all blue slimes go
-this way"). It usually has a signpost next to it.
+### Filter (D47, D88)
+A kind of fork that sends slimes down a branch by **species** ("all blue
+slimes go this way") or by **size** ("size 3 goes up here"). It usually has a
+signpost next to it. It isn't tapped. Whether the size filter is in v1 is
+O61.
 
 ### Species-fusion device (D25, later)
 Presence-activated. Fuses slimes of the right species inside its area into a

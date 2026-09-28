@@ -634,3 +634,81 @@ Resolves O32.
   be worked out (O59).
 - **Everything except the real first level's design goes into the v1 master
   spec now.**
+
+## D77 — Completing a level (2026-09-28)
+Resolves O52.
+- When a level's last basket fires, nothing ends. The loop is complete and the
+  world stays open, with a **one-time celebration**. Moving on to another level
+  waits for paid levels.
+
+## D78 — Orientation (2026-09-28)
+Resolves O54.
+- **Landscape, locked.** Side view, like Cocoreccho!.
+
+## D79 — The return route is part of the loop (2026-09-28)
+Resolves O53.
+- A section's **return route** (from its unopened frontier gate back to the
+  start) is part of the loop. It has **its own camera rail**, and the idle
+  camera follows its slime through it like anywhere else.
+- A return route **may carry exploration opportunities**.
+- **Level rule:** opening a later frontier gate must never make such an
+  exploration opportunity unreachable. (What "reachable" means is up to each
+  level's design.)
+- Term adopted: **return route** (it was proposed in draft).
+
+## D80 — Idle and screensaver zoom, and framing zones (2026-09-28)
+Resolves O64. Refines D60 and D62.
+- Screensaver mode and the idle camera use **the same zoom**. It doesn't stack
+  with anything.
+- While the idle camera or screensaver mode is locked on a slime, **framing
+  zones are ignored**.
+- When the child takes back control, framing resumes if the camera's centre is
+  still inside a framing zone.
+
+## D81 — Species look: colour only in v1 (2026-09-28)
+Resolves O56.
+- In v1, species differ by **colour only**.
+- Later versions may give each species its own texture or styling, and may
+  offer other colour palettes (for colour-blind players). Behaviour quirks per
+  species were already planned for later.
+
+## D82 — Performance targets (2026-09-28)
+Resolves O57.
+- **60 fps** on the reference phone. **At least 30 fps** on the floor phone in
+  the worst case of 200 slimes on one screen.
+
+## D83 — A wrong parent code (2026-09-28)
+Resolves O55.
+- The entry shakes and clears. Tries are unlimited, but 5 wrong tries in a row
+  bring a 30 s wait.
+- The code prompt closes after about 15 s with no input. The settings screen
+  also closes by itself after a short time with no input.
+
+## D84 — If the parent declines screen pinning (2026-09-28)
+Resolves O58.
+- The game still works without pinning, every parent button still asks for the
+  code, and the setup screen explains the difference.
+
+## D85 — When the app asks for screen pinning (2026-09-28)
+Resolves O60.
+- The app asks for pinning **each time it opens**. Android's own confirmation
+  can't be skipped, and the parent is normally the one opening the app and
+  handing the phone over.
+- Setup recommends turning on Android's **"Ask for PIN before unpinning"**,
+  since otherwise anyone can unpin with a gesture.
+
+## D86 — The frontier set once its gate is open (2026-09-28)
+Resolves O63.
+- Once a frontier gate has opened, its switch and basket are **inert for
+  good**. They may be removed or turned into a landscape feature; that is up
+  to art and level design.
+
+## D87 — What a level's folder is for (2026-09-28)
+Resolves O59.
+- `levels/<id>/` is mostly storage for that level's **design requirements and
+  the discussion about it**.
+
+## D88 — Size forks are a kind of filter (2026-09-28)
+Partly resolves O61; the version question stays open (O61).
+- A fork that sends slimes down a branch **by size** is a filter, like the
+  species filter, but by size. "Filter" now covers both.

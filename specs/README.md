@@ -4,13 +4,13 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 | Document | Purpose | Status |
 |---|---|---|
-| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v23 |
-| `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v10 |
-| `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v7 |
+| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v24 |
+| `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v12 |
+| `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v8 |
 | `tech-direction.md` | Engine, level authoring, slime simulation, saving, testability, session lock implementation | draft v11 |
 | `versions/` | Scope per version (v1–v4…) plus `timeline.md` for features with no version yet (D52) | live |
-| `level-design.md` | Rules every level must follow; the checklist for level design sessions | draft v5 |
-| `levels/` | One folder per level (D76): `test/` (the test level, draft v1), `01/` (the real first level, not started) | live |
+| `level-design.md` | Rules every level must follow; the checklist for level design sessions | draft v6 |
+| `levels/` | One folder per level (D76): `test/` (the test level, draft v2), `01/` (the real first level, not started) | live |
 | `versions/v1/master-spec.md` | The v1 master spec, consolidated early (D76), plus `access-model.md` | consolidated |
 | `personas.md` | Who the game is for: P1 the newcomer (3), P2 the watching sibling (2), P3 the early player (4), P4 the parent; goal IDs | draft v5 |
 | `tuning.md` | Every number left to prototypes, with its starting value | live |
@@ -92,6 +92,13 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 - A test level (`levels/test/`) exercises the v1 gameplay and drives the end-to-end tests. Each level gets its own folder; the real first level (`levels/01/`) is designed later. Everything else is consolidated into the v1 master spec and access model (D76).
 - Proposed tech additions: seeded randomness, a test mode (fixtures, time skip, scripted taps), atomic saves with one backup, no network permission.
 
+- Completing a level: a one-time celebration; the world stays open (D77). Landscape, locked (D78).
+- The return route is part of the loop, with its own rail; it may carry exploration, which later gates must never cut off (D79).
+- Screensaver and idle share one zoom and ignore framing zones; framing resumes when control comes back (D80).
+- Species: colour only in v1; texture, styling and other palettes later (D81). 60 fps reference, 30 fps floor (D82).
+- Wrong code: shake, clear, a 30 s wait after 5 wrong tries; prompt and settings close by themselves (D83). Pinning declined: the game still works (D84). Pinning asked at every launch; setup recommends "Ask for PIN before unpinning" (D85).
+- A frontier set is inert once its gate opens (D86). A level's folder stores its design requirements and discussion (D87). Size forks are a size filter (D88).
+
 ## Where to resume
 
-The v1 master spec is consolidated early; its Known gaps mirror the open questions. Open and answerable in conversation: O52 (completing a level), O53 (rails where the loop doubles back), O54 (orientation), O55 (wrong code, settings timeout), O56 (colour blindness), O57 (performance targets), O58 (pinning declined), O60 (when to ask for pinning), O61–O65 (raised by the test level: size forks, basket outlet, frontier set after opening, zoom stacking, minimum zoom), O59 (how level design is run). Needs prototypes: O14. For the first level's design: O22. Parked: O12, O13. When a gap is settled, update both the drafts and the master spec. Handoffs (ux-writer, documentalist, coding-leader) wait for the user's go-ahead.
+The v1 master spec and access model are consolidated early and kept in step with the drafts. Open and answerable in conversation: O61 (is the size filter in v1?), O66 (edge buttons on a return route). Deferred to a planned design: O62 (basket outlet, with the basket's own design). For prototypes: O14, O65 (minimum zoom). For the first level's design: O22. Parked: O12, O13. The master spec's (proposed) defaults still await the user's batch confirmation. Handoffs (ux-writer, documentalist, coding-leader) wait for the user's go-ahead.

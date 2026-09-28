@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v11
+Status: draft v12
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 
@@ -48,6 +48,9 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
 
 - Reference: Samsung Galaxy S20 FE. Floor: a budget phone (Galaxy A14 class).
   If the floor can't hold 200 slimes, the floor rises and the cap stays.
+- **Performance targets (D82):** 60 fps on the reference phone; at least 30 fps
+  on the floor phone with 200 slimes on one screen.
+- **Landscape, locked** (D78).
 
 ## Test environments (proposed)
 
@@ -85,7 +88,9 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
 
 ## Camera (D33, D60)
 
-- The camera runs on rails along the loop. Zoom and framing are computed from
+- The camera runs on rails along the loop, return routes included (D79).
+  Framing zones are ignored while the idle camera or screensaver mode follows
+  a slime (D80). Zoom and framing are computed from
   the camera's position and the mode (screensaver mode is about 10–20% wider).
 - (proposed) Framing zones are a reusable level component with properties for
   zoom, position and the delay before the camera leaves (D61). They are authored like
@@ -103,6 +108,10 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
 - `startLockTask()` screen pinning through a small Godot Android plugin, plus
   an in-app parent gate and a timer stored on disk (wall clock plus the
   monotonic clock). There is no device-owner kiosk mode.
+- **Pinning is requested each time the app opens** (D85). Android's
+  confirmation can't be skipped. Setup recommends Android's "Ask for PIN
+  before unpinning". If the parent declines pinning, the game still works and
+  the code still guards the parent buttons (D84).
 - Recovering the parent code uses Android's device-credential prompt
   (BiometricPrompt, which also accepts the PIN or pattern). There is no server
   (D55).

@@ -32,9 +32,9 @@ condition used only to reset a forgotten code (§6).
 - **Revocation:** `parent` authority ends as soon as the action it was
   entered for is done. For **wake early** and **leave**, that is immediate.
   For **settings**, it lasts while the settings screen stays open, and ends
-  when the settings screen closes. (proposed: settings also closes by itself
-  after a short time with no input, so a phone handed back to the child is
-  never left in settings.)
+  when the settings screen closes. Settings also closes by itself after a
+  short time with no input, so a phone handed back to the child is never left
+  in settings.
 - There is no "remember me". Every new parent action asks for the code again.
 - **Changing the code** takes effect immediately. The old code stops working.
 - **The last and only code holder:** there is exactly one code. If it's
@@ -98,7 +98,7 @@ prompt, which is what turns a `child` into a `parent`.
 | Operation | `child` | `parent` | `game` |
 |---|---|---|---|
 | `leave` | deny | allow | deny |
-| `pin` | deny | deny | `at-setup-or-launch` |
+| `pin` | deny | deny | `app-opening` |
 
 **Parent code**
 
@@ -135,7 +135,7 @@ edits a save directly.
 | `setup-done` | The first-launch setup has been completed and a code exists |
 | `first-launch` | No parent code exists yet (a fresh install, or after the app's data was cleared) |
 | `passes-phone-lock` | The person has just passed the phone's own screen lock through Android's system prompt, reached from "forgot the code?" |
-| `at-setup-or-launch` | The first-launch setup is running, or the app is opening (exactly when is a known gap, §11) |
+| `app-opening` | The app is opening, including its very first launch. Android then shows its own confirmation, which the app can't skip |
 
 ## 7. Denial behaviour
 
@@ -144,13 +144,14 @@ edits a save directly.
 | A tap during bedtime (`call`, `operate-object`, `tilt`) | **Visible but inert.** The ripple still shows (proposed); slimes stay asleep; nothing else happens. No text, no sound. | Every tap gets an answer, but bedtime must stay calm and nudge the child to put the phone down. |
 | `move-camera` during bedtime | The edge buttons do nothing (proposed: they are hidden during bedtime). | Nothing to explore while everyone sleeps. |
 | Any parent-only operation (`wake-early`, `leave`, `change`, `delete`) by `child` | **Visible but blocked:** the button is shown, and pressing it raises the code prompt. Without the correct code, nothing happens. | The parent has to find the buttons without instructions; the code is the only guard. |
-| A wrong code | Proposed: the entry shakes and clears; unlimited tries, with a 30 s wait after 5 wrong tries in a row; the prompt closes after about 15 s with no input. (Known gap) | A 3-year-old pressing digits must not lock the parent out for long. |
+| A wrong code | The entry shakes and clears. Tries are unlimited, but 5 wrong tries in a row bring a 30 s wait. The prompt closes after about 15 s with no input. | A 3-year-old pressing digits must not lock the parent out for long. |
 | `wake-early` pressed outside bedtime | Proposed: the button is shown only during bedtime. | There is nothing to wake. |
 | Home and back while the screen is pinned | Android ignores them. | Screen pinning. |
+| Pinning declined by the parent | The game still works; every parent button still asks for the code; setup explains the difference. | Pinning is a courtesy, not a requirement. |
 | The child leaves the app anyway (pinning declined or escaped, or the power button) | Nothing is blocked in the app: the session keeps counting in real time, and reopening the app resumes where it was. | Best effort by design; the timer can't be dodged by leaving. |
 
 No denial is logged, and nothing is ever locked for good. The only slowdown is
-the proposed short wait after repeated wrong codes.
+the 30 s wait after 5 wrong codes in a row.
 
 ## 8. Elevation, delegation and non-human actors
 
@@ -185,20 +186,13 @@ the proposed short wait after repeated wrong codes.
   and a code before any purchase, come with later versions.
 - Turning the parent code off entirely (a later version).
 - Android's own controls: the phone's screen lock, the "Ask for PIN before
-  unpinning" setting, app data clearing, uninstalling, and Google Family Link.
+  unpinning" setting (which setup recommends turning on, since otherwise
+  anyone can unpin with Android's gesture), app data clearing, uninstalling, and Google Family Link.
   There is no public way for the app to read or set Family Link limits.
 
 ## 11. Known gaps
 
-1. **A wrong parent code:** the proposed behaviour in §7 is not confirmed.
-2. **If the parent declines screen pinning at setup.** Proposed: the game
-   still works, the parent buttons still ask for the code, and setup explains
-   the difference.
-3. **When the app asks for screen pinning.** Android shows its own "use screen
-   pinning?" confirmation every time an app asks, and it can't be skipped.
-   Pinning also ends when the phone restarts. Proposed: ask each time the app
-   opens (normally the parent opens it and hands the phone over), and have
-   setup recommend turning on Android's "Ask for PIN before unpinning", since
-   otherwise anyone can unpin with a gesture.
-4. **Settings timing out:** the proposed automatic close of settings (§3) and
-   its delay.
+- None about access itself. The items tagged (proposed) above (the ripple and
+  hidden edge buttons during bedtime, the wake-early button shown only during
+  bedtime, the second confirmation before deleting a save, play carrying on
+  while a parent prompt is open, no network) await the owner's confirmation.

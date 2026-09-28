@@ -10,7 +10,9 @@ is assigned, it moves to that version's README (D52).
 | Parent chooses the session length | D29 | v1 is fixed at 15 min |
 | Parent chooses the cooldown length | D44 | 10 min is the default; the user called it a "default delay" (proposed) |
 | Freeform camera, moved by hold-and-drag | D46 | would replace the edge buttons |
-| Species behaviour quirks | D40 | |
+| Species behaviour quirks | D40, D81 | |
+| A texture or styling per species | D81 | v1 is colour only |
+| Other colour palettes (for colour-blind players) | D81 | |
 | Maximum size 5 | D39 | v1 caps it at 3 |
 | Other frontier-gate patterns (for example switches hidden along forks, reachable only by certain species) | D35 | |
 | Cross-species fusion device | D25 | "not in the first few iterations" |

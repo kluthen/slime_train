@@ -14,7 +14,10 @@ value to try. When a value is tuned, update it here and log the result in
 | Lost (left alone, not back) | 1 min | D10 |
 | Idle camera takes over | 45 s with no input | D32 |
 | Idle camera cue | starts 10 s before | D32, D62 |
-| Screensaver and idle zoom | 10–20% wider than normal play | D60, D62 |
+| Screensaver and idle zoom | 10–20% wider than normal play; one zoom for both, no stacking | D60, D62, D80 |
+| Minimum zoom inside framing zones | to find with the prototype | O65 |
+| Wrong-code wait | 30 s after 5 wrong tries in a row | D83 |
+| Code prompt and settings close by themselves | about 15 s with no input (settings: short, to try) | D83 |
 | Delay before leaving a framing zone | a bit longer than a normal move | D61 |
 | Camera drag toward a call: speed, and when it goes back | slow and steady; to try | D45 |
 | Call radius | about half the screen width (proposed) | D46 |

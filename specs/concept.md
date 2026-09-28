@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v23
+Status: draft v24
 
 ## One-liner
 
@@ -26,9 +26,12 @@ The slimes stand in for LocoRoco.
   camera is decides the zoom, and sometimes the position. An area that needs a
   wider view pulls the camera gently into place, and leaving it through the
   edge buttons takes a slightly longer delay than usual, to be tested (D61).
-  Screensaver mode and the in-session idle camera are both about 10–20% more
-  zoomed out than normal play. The idle cue is the start of that zoom-out
-  (D62). Numbers to tune are in `tuning.md`.
+  Screensaver mode and the in-session idle camera share one zoom, about
+  10–20% wider than normal play; it doesn't stack. While either is locked on a
+  slime, framing zones are ignored. When the child takes back control, framing
+  resumes if the camera's centre is still in a framing zone (D80). The idle
+  cue is the start of that zoom-out (D62). Numbers to tune are in `tuning.md`.
+- **Landscape, locked** (D78): a side view, like Cocoreccho!.
 - **Manual camera** (D33). The child moves the camera along the loop, like on
   rails, using left and right buttons at the screen edges. At forks,
   signposts show the directions, and by default the camera follows the main
@@ -56,6 +59,10 @@ The slimes stand in for LocoRoco.
   handles the squish and the bumps.
 - Opening a gate makes the loop grow to take in the new area. Only the way
   back to the start is replaced (D9).
+- A section's **return route**, from its unopened frontier gate back to the
+  start, is part of the loop. It has its own camera rail, and it may carry
+  exploration opportunities, which opening later gates must never make
+  unreachable (D79). Which way the edge buttons move on it is O66.
 - Attracting slimes away from the loop makes them **free**: they are driven
   by physics alone.
 - A free slime makes its way back to the loop by physics and rejoins the
@@ -137,6 +144,8 @@ pattern is a switch plus a basket (D14).
 - The only way to open a frontier gate is the switch-plus-basket pattern.
 - **No failure states.** The worst case is a lost slime, teleported back to the
   start of the loop.
+- **Completing the level** (D77): when the last basket fires, nothing ends. The
+  loop is complete and the world stays open, with a one-time celebration.
 - 6 species (D48). No sound (D50). The only objects are the frontier-gate set
   and the split zone at the start of the loop (D54). The full v1 scope is in `versions/v1/README.md`.
 - Business model (D31): the base game is paid (about $3–5), and new levels
@@ -214,7 +223,7 @@ survives the app being killed.
 | level | a whole world with its own loop, sections and save file; the first release ships one |
 | signpost | a sign at a fork showing which way the loop goes |
 | large signpost | a signpost that also lets the child pick which branch the camera follows |
-| filter | a fork that sends slimes down a branch by species; usually has a signpost next to it |
+| filter | a fork that sends slimes down a branch by species or by size (D88); usually has a signpost next to it |
 | screensaver mode | the world running with no session, after sunrise and before the first tap |
 | framing zone | an area of the level that sets the camera's zoom and position when the camera reaches it |
 | sunrise | the end of bedtime: slimes wake up and screensaver mode begins |
@@ -226,6 +235,6 @@ survives the app being killed.
 | section | the part of a level opened by one gate |
 | split zone | a place that splits slimes back into base slimes; the start of the loop has one (replaces "defusing spot") |
 | route back | the route an exploration branch provides back to the loop |
-| return route | the way a section sends the flow from its unopened frontier gate back to the start (proposed term; how it works is O22) |
+| return route | the part of the loop that takes the flow from a section's unopened frontier gate back to the start; has its own rail (D79; how it works is O22) |
 | parent gate | the 6-digit code an adult enters to leave, change settings, or end bedtime early |
 | bedtime | the end of a session: slimes fall asleep until sunrise (parent code or 10 min); not the same as a sleeper |

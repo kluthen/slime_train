@@ -1,6 +1,6 @@
 # Level design requirements
 
-Status: draft v5
+Status: draft v6
 
 Rules every level must follow, whoever builds it. These rules make up the
 checklist for every level's design (see `levels/`). Levels are
@@ -36,28 +36,33 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     (D22).
 12. A frontier gate opens through the **switch-plus-basket set** (D14, D35).
 13. **Each section needs its own return route to the start** from its unopened
-    frontier gate. How that route works is O22.
+    frontier gate. It is part of the loop and has its own camera rail (D79).
+    How that route works is O22.
+14. **A return route may carry exploration opportunities, but opening a later
+    frontier gate must never make them unreachable** (D79).
+15. **Once its gate is open, a frontier set is inert for good**; it may be
+    removed or become a landscape feature (D86).
 
 ## Population
 
-14. **At most 200 slimes per level**, counted in base slimes (D67). Scenes
+16. **At most 200 slimes per level**, counted in base slimes (D67). Scenes
     where many slimes pile up on one screen should keep them mostly still,
     such as a basket being filled.
-15. **Sleepers never sit on the loop itself.** Waking always takes a call
+17. **Sleepers never sit on the loop itself.** Waking always takes a call
     (D70).
 
 ## Onboarding
 
-16. **The first sleeper is placed close to the first awake slime**, so the
+18. **The first sleeper is placed close to the first awake slime**, so the
     first-play hint and the first call pay off quickly (D65).
 
 ## Camera
 
-17. Wherever a wider view is needed, place a **framing zone** that sets the
+19. Wherever a wider view is needed, place a **framing zone** that sets the
     zoom and position (D60, D61).
 
 ## After release
 
-18. **A released level isn't meant to change.** Any update must be minor and
+20. **A released level isn't meant to change.** Any update must be minor and
     ship with a save migration. Keep the stable IDs of slimes, objects and
     gates (D72).
