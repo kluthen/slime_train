@@ -54,8 +54,8 @@ Slimes move only by hopping.
 - **Size** = the number of base slimes a slime is made of. That number is also
   its **weight**, which is what presence objects respond to.
 - Bigger slimes are heavier and a little more powerful: they jump higher.
-- Level rule (D26): a slime of any size can travel the loop, but different
-  sizes may take different forks.
+- Level rule (D26): a slime of any size can travel the loop. From v2, size
+  filters may send sizes down different forks (D89).
 - The maximum size is **3** for now, maybe 5 later (D39). What happens when a
   fusion would go over it: they just bump (D49).
 
