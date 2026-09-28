@@ -16,8 +16,6 @@ Each entry has a stable ID. Once resolved, an entry moves to `decisions.md`.
 | O32 | Terminology still proposed: "section", "unsure", "heading back", "level" (a whole world with its own loop, sections and save file), "signpost", "filter", "screensaver mode" (the world running with no session), "sunrise" (the end of bedtime). | concept |
 | O34 | Parent code: who sets it and when (proposed: the parent, at first launch, typed twice), and how it's recovered if forgotten. | concept |
 | O40 | Hop decision: when and in which direction a slime hops (its rhythm, what stops it, as with a covered slime per D37). | slimes |
-| O45 | Screensaver mode: does opening the app from scratch also show screensaver mode until the first tap (proposed: yes)? Does the screen stay awake in screensaver mode, or does the phone's usual screen timeout apply (proposed: the usual timeout outside a session, and the screen stays on during a session)? | concept |
-| O46 | v1 objects: the v1 frontier gate opens through a switch and a basket (D35), so do those two come with v1? And does the split zone at the start of the loop (D23, D38) stay in v1? Without it, fused slimes never split, and everything drifts toward size 3. | versions/v1 |
 
 ## Parked (deferred on purpose; revisit later)
 

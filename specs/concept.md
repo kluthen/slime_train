@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v11
+Status: draft v12
 
 ## One-liner
 
@@ -110,12 +110,11 @@ pattern is a switch plus a basket (D14).
   game's mechanics.
 - Pacing: a lap takes a slime a few minutes, but the slimes are spread along
   the loop. Moving the camera along the loop keeps showing travelling slimes.
-- The only way to open a frontier gate is the switch-plus-basket pattern (O46
-  asks whether it ships in v1 as is).
+- The only way to open a frontier gate is the switch-plus-basket pattern.
 - **No failure states.** The worst case is a lost slime, teleported back to the
   start of the loop.
-- 6 species (D48). No sound (D50). Interactive objects come in v2, except the
-  frontier gate (D50, O46). The full v1 scope is in `versions/v1/README.md`.
+- 6 species (D48). No sound (D50). The only objects are the frontier-gate set
+  and the split zone at the start of the loop (D54). The full v1 scope is in `versions/v1/README.md`.
 - Business model (D31): the base game is paid (about $3–5), and new levels
   come later as paid unlocks (about $2).
 
@@ -140,7 +139,9 @@ survives the app being killed.
   the phone down.
 - **Sunrise:** the slimes wake up and the world runs in **screensaver mode**,
   with no session. A new session begins only at the **first tap** (D44).
-  Details are O45.
+  Opening the app from scratch also starts in screensaver mode. The phone's
+  usual screen timeout applies there, and the screen stays on during a
+  session (D53).
 - The parent gate is a **6-digit code** (D30). Setting and recovering the code
   is O34.
 - Open: O6 (background behaviour, and the parent's other options).

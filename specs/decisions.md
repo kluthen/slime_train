@@ -391,3 +391,20 @@ Resolves O44.
 - Each version's scope lives in `versions/<version>/README.md`.
 - Features that don't have a version yet go in `versions/timeline.md`.
 - Features can be moved to a later version at any time. A move is logged here.
+
+## D53 — Screensaver mode details (2026-09-28)
+Resolves O45.
+- Opening the app from scratch also shows **screensaver mode** until the first
+  tap starts a session.
+- In screensaver mode the phone's **usual screen timeout** applies. During a
+  session the screen stays on.
+- (proposed) Screensaver mode shows the idle camera straight away.
+
+## D54 — v1 objects (2026-09-28)
+Resolves O46. Refines D50.
+- v1 ships the **frontier-gate set**: a switch, a basket and a gate, plus a
+  **split zone at the start of the loop** (D23, D38), so fused slimes still
+  split back into base slimes.
+- Every other object moves to v2: bending pathways, filters, large signposts,
+  tilt objects, reveal zones, and other split zones or defusing spots.
+- Plain signposts are not interactive and stay in v1 (proposed, D47).

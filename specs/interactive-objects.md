@@ -1,9 +1,10 @@
 # Interactive objects
 
-Status: draft v4
+Status: draft v5
 
-**Versions (D50):** interactive objects come in v2, except the frontier gate,
-which is in v1 (what it includes is O46).
+**Versions (D50, D54):** v1 has only the frontier-gate set (switch, basket,
+gate) and the split zone at the start of the loop. Every other object comes in
+v2.
 
 Every interactive object is a reusable, programmed component configured
 through its properties in the Godot editor (D6). Its state is part of the
@@ -56,7 +57,7 @@ A walkway that bends under load. Activation: presence.
 
 ### Defusing spot (precursor, D38)
 A split object or zone. It instantly splits slimes back into base slimes.
-(proposed) The start of the loop carries one (D23). Not specified in detail yet.
+The start of the loop carries one (D23, D54). Not specified in detail yet.
 
 ### Signpost (D47)
 Stands at every fork in the loop and shows which way the loop goes. Not

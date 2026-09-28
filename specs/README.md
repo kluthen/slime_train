@@ -4,9 +4,9 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 | Document | Purpose | Status |
 |---|---|---|
-| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v11 |
-| `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v5 |
-| `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v4 |
+| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v12 |
+| `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v6 |
+| `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v5 |
 | `tech-direction.md` | Engine, level authoring, slime simulation, saving, session lock implementation | draft v3 |
 | `versions/` | Scope per version (v1, v2, v3…) plus `timeline.md` for features with no version yet (D52) | live |
 | `open-questions.md` | Register of unresolved decisions (O1…) | live |
@@ -50,6 +50,9 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 - Signposts at every fork; larger signposts steer the camera; filters send slimes by species (D47). 6 species in v1 (D48). No fusion over the maximum size (D49).
 - Versions (D50, D52): v1 has no sound and only the frontier gate as an object. Objects come in v2, sound around v3. Features with no version yet are in `versions/timeline.md`.
 
+- Screensaver mode also on a fresh app start; usual screen timeout there, screen on during a session (D53).
+- v1 objects: the frontier-gate set (switch, basket, gate) plus the split zone at the start of the loop. Everything else is v2 (D54).
+
 ## Where to resume
 
-Most pressing: O46 (which objects v1 really needs), then O45 (screensaver mode details), O34 (the parent code), O6. After that: personas (O15), then a dedicated session on the first level's design (O22).
+Next: O34 (setting and recovering the parent code), then O6 (background, the parent's other options). After that: personas (O15), then a dedicated session on the first level's design (O22).

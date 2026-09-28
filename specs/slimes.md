@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v5
+Status: draft v6
 
 ## States
 
@@ -63,7 +63,7 @@ on the slime's size (see below). A slime covered by other slimes doesn't hop
 - Only specific **split objects or zones** split slimes (D38). The defusing
   spot is one of them, and it splits a slime back into base slimes instantly.
 - Slimes reaching the start of the loop split back into base slimes (D23).
-  (proposed) This is because the start of the loop carries a split zone.
+  This is because the start of the loop carries a split zone (D54).
 
 ## Fusing different species (D25, later)
 

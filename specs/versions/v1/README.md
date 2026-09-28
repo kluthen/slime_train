@@ -33,8 +33,9 @@ Items are settled unless tagged (proposed). The decision IDs point to
   (proposed: in v1. It's a control, not an object.)
 
 **Objects**
-- The frontier gate (D50). Whether its switch and basket come with it, and
-  whether the start of the loop keeps its split zone, is O46.
+- The frontier-gate set: a switch, a basket and a gate (D14, D54).
+- A split zone at the start of the loop, where fused slimes split back into
+  base slimes (D23, D54).
 - (proposed) Plain signposts at forks, which only show directions (D47).
 
 **Controls and camera**
@@ -49,7 +50,9 @@ Items are settled unless tagged (proposed). The decision IDs point to
 - Bedtime: in the last minute the light turns to dusk and hops slow down (there
   is no sound in v1). Then the slimes fall asleep (D28).
 - After bedtime, a 10 min cooldown, or the parent code, leads to **sunrise**:
-  the slimes wake and the world runs in screensaver mode (D44).
+  the slimes wake and the world runs in screensaver mode (D44). Opening the app
+  from scratch also starts in screensaver mode. The phone's usual screen
+  timeout applies there, while the screen stays on during a session (D53).
 - The parent gate is a 6-digit code (D30). Screen pinning is best effort (D1).
 - Progress is saved every 15 s and when the app goes to the background. There
   is one save per level, and the user can delete a level's save (D7, D12,
@@ -62,9 +65,9 @@ Items are settled unless tagged (proposed). The decision IDs point to
 ## Explicitly not in v1
 
 - Sound of any kind (v3).
-- Interactive objects other than the frontier gate (v2).
+- Any other interactive object (v2).
 - Everything in `../timeline.md`.
 
 ## Open for v1
 
-O4, O6, O14, O15, O20, O21, O22, O34, O45, O46 (see `../../open-questions.md`).
+O4, O6, O14, O15, O20, O21, O22, O34 (see `../../open-questions.md`).
