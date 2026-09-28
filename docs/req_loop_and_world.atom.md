@@ -11,6 +11,7 @@ layer: BUSINESS
 dependents:
   - [[req_controls_tap_zones]]
   - [[req_interactive_objects_general]]
+  - [[req_level_completion_celebration]]
   - [[req_offscreen_simulation]]
   - [[req_persistence_and_saves]]
   - [[req_session_lifecycle]]
