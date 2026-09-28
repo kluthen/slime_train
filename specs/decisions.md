@@ -549,3 +549,31 @@ Settles the level-of-detail approach proposed with D67.
 - Side benefit: off-screen positions are just a place along the loop. That is
   easy to save (D7) and repeatable in automated tests.
 - Rules for what happens off screen are O51.
+
+## D70 — Off-screen rules (2026-09-28)
+Resolves O51. Refines D13 and D14.
+- **Free slimes off screen:** a free slime that leaves the screen is placed on
+  the nearest point of its area's route back (D51) and follows it at the
+  deterministic pace. If there's no route nearby, it is lost (D10). "Lost" is
+  now a safety net.
+- **Fusion and waking happen only on screen.**
+- **Waking (refines D13):** a sleeper wakes only when a **free slime** touches
+  it, meaning a slime that answered a call. Train slimes never wake sleepers.
+- **Level rule:** sleepers never sit on the loop itself.
+- **Baskets:** a basket can reach its quota off screen. It still needs a final
+  activation: filling it earns a **reward animation**, and the basket fires
+  its target (usually the gate). (proposed) The reward and the firing wait
+  until the basket is in view.
+- **Opting out:** the player can stop filling a basket at any time before it's
+  full, by flipping the switch back. (proposed) The slimes already inside are
+  released back to the loop, and the basket empties.
+- **v2 objects:** each one must define how it behaves off screen.
+
+## D71 — Target phones (2026-09-28)
+Resolves O50.
+- The **S20 FE** (late 2020, roughly mid-range by today's standards) is the
+  reference phone for development and playtests.
+- The **performance floor** is a budget phone from a few years back (Galaxy
+  A14 class), reached through physics only near the screen (D69).
+- If the O14 prototype can't hold 200 slimes on the floor phone, the floor
+  rises to S20 FE class. The 200 cap (D67) stays.

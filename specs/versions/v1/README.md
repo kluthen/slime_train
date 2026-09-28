@@ -33,7 +33,9 @@ Items are settled unless tagged (proposed). The decision IDs point to
   (proposed: in v1. It's a control, not an object.)
 
 **Objects**
-- The frontier-gate set: a switch, a basket and a gate (D14, D54).
+- The frontier-gate set: a switch, a basket and a gate (D14, D54). A full
+  basket earns a reward animation. The player can opt out before it's full by
+  flipping the switch back (D70).
 - A split zone at the start of the loop, where fused slimes split back into
   base slimes (D23, D54).
 - (proposed) Plain signposts at forks, which only show directions (D47).

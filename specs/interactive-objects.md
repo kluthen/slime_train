@@ -1,6 +1,6 @@
 # Interactive objects
 
-Status: draft v5
+Status: draft v6
 
 **Versions (D50, D54):** v1 has only the frontier-gate set (switch, basket,
 gate) and the split zone at the start of the loop. Every other object comes in
@@ -38,6 +38,12 @@ Collects slimes and shows the ones it still needs as empty slime outlines.
 Activation: presence (weight). When full, it fires its target (usually a gate)
 and then releases its slimes. Properties: the weight it needs, and its target.
 Its outlines fill by weight, so a fused slime fills several at once.
+- **Off screen (D70):** it can still reach its quota. Filling it earns a
+  **reward animation**, then it fires. (proposed: the reward and the firing
+  wait until the basket is in view)
+- **Opting out (D70):** flipping the switch back before the basket is full
+  stops the filling. (proposed: the slimes inside go back to the loop, and the
+  basket empties)
 
 ### Gate (D9, D14)
 The barrier at the end of the loop. Opening it extends the loop into the new
@@ -74,6 +80,11 @@ this way"). It usually has a signpost next to it.
 ### Species-fusion device (D25, later)
 Presence-activated. Fuses slimes of the right species inside its area into a
 new species. Not in the first iterations.
+
+## Off-screen behaviour (D70)
+
+Physics stops off screen (D69), so every object must say how it behaves
+there. For example, a bending pathway counts the weight crossing it.
 
 ## Open points
 

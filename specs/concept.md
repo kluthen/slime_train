@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v18
+Status: draft v19
 
 ## One-liner
 
@@ -73,8 +73,10 @@ The slimes stand in for LocoRoco.
 
 ## Waking sleepers (D13)
 
-Tapping a sleeper calls nearby awake slimes toward it. One of them touching it
-wakes it, and the woken slime, being free, in time rejoins the train. Slime
+Tapping a sleeper calls nearby awake slimes toward it. A sleeper wakes only
+when a **free slime** (one that answered a call) touches it. Train slimes
+never wake sleepers, and sleepers never sit on the loop (D70). Waking happens
+only on screen. The woken slime, being free, in time rejoins the train. Slime
 states, movement, size, species and fusion are in `slimes.md`.
 - **Level rule:** from anywhere a free slime can reach, following gravity down
   leads back to the loop. Every exploration branch has its own route back

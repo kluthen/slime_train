@@ -1,6 +1,6 @@
 # Level design requirements
 
-Status: draft v2
+Status: draft v3
 
 Rules every level must follow, whoever builds it. These rules make up the
 checklist for the dedicated first-level design session (O22). Levels are
@@ -43,6 +43,9 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
 16. **At most 200 slimes per level**, counted in base slimes (D67). Scenes
     where many slimes pile up on one screen should keep them mostly still,
     such as a basket being filled.
+
+17. **Sleepers never sit on the loop itself.** Waking always takes a call
+    (D70).
 
 ## Onboarding
 

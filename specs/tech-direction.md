@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v8
+Status: draft v9
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 
@@ -41,7 +41,22 @@ Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-
   - Slimes resting in a basket may get a simplified state.
   - (proposed) Sleepers stop simulating until something touches them. Slimes
     on screen may use fewer points per ring when zoomed out.
-  - Off-screen rules for free slimes, fusion, waking and objects are O51.
+  - Off-screen rules (D70): free slimes follow their area's route back, fusion
+    and waking happen only on screen, and baskets count weight off screen.
+
+## Target phones (D71)
+
+- Reference: Samsung Galaxy S20 FE. Floor: a budget phone (Galaxy A14 class).
+  If the floor can't hold 200 slimes, the floor rises and the cap stays.
+
+## Test environments (proposed)
+
+| Environment | Good for | Not good for |
+|---|---|---|
+| Linux desktop build | gameplay, level logic, saves, automated end-to-end tests; fastest to iterate | anything Android-specific |
+| Android emulator | the Android lifecycle (background, phone-call interruptions), screen pinning, the parent-gate flow, save and restore, rough tilt through virtual sensors | **performance** (it runs on the PC's processor and graphics), audio latency, how touch and tilt feel |
+| Real phones (S20 FE, a floor phone) | performance (O14), audio latency, touch and tilt feel, playtests with children | fast iteration |
+| Google Play pre-launch report (later) | automatic smoke tests on a range of real phones when uploading to a test track | detailed performance work |
   - The O14 prototype tests the worst case: 200 slimes on one screen on the
     floor phone (O50).
 

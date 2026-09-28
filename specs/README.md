@@ -4,12 +4,12 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 | Document | Purpose | Status |
 |---|---|---|
-| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v18 |
-| `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v6 |
-| `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v5 |
-| `tech-direction.md` | Engine, level authoring, slime simulation, saving, session lock implementation | draft v8 |
+| `concept.md` | Concept, design stance, gameplay layers, controls, session/parental framing, terminology | draft v19 |
+| `slimes.md` | Slime states, movement, size and weight, species, fusion, splitting | draft v7 |
+| `interactive-objects.md` | Catalogue of interactive components and how they're activated | draft v6 |
+| `tech-direction.md` | Engine, level authoring, slime simulation, saving, session lock implementation | draft v9 |
 | `versions/` | Scope per version (v1–v4…) plus `timeline.md` for features with no version yet (D52) | live |
-| `level-design.md` | Rules every level must follow; the checklist for level design sessions | draft v2 |
+| `level-design.md` | Rules every level must follow; the checklist for level design sessions | draft v3 |
 | `personas.md` | Who the game is for: the newcomer (3), the watching sibling (2), the early player (4), the parent | draft v4 |
 | `tuning.md` | Every number left to prototypes, with its starting value | live |
 | `open-questions.md` | Register of unresolved decisions (O1…) | live |
@@ -76,6 +76,9 @@ Starting brief: `../precursor.md`. Research: `../docs/research/` (verbatim repor
 
 - Physics only near the screen. Off-screen slimes follow the loop at a deterministic pace and are spawned properly when the view nears them (D69).
 
+- Off-screen rules: free slimes follow their route back, fusion and waking happen only on screen, only free slimes wake sleepers, and sleepers never sit on the loop. Baskets fill off screen, earn a reward animation, and can be abandoned before they're full (D70).
+- Phones: S20 FE is the reference; the floor is Galaxy A14 class; if needed the floor rises and the 200 cap stays (D71). Test environments proposed in `tech-direction.md`.
+
 ## Where to resume
 
-Next: O51 (off-screen rules) and O50 (target phone, awaiting a yes). Then O20, O21, O40. After that: a dedicated session on the first level's design (O22).
+Next: O20 (save versioning). Then O21 (how long a call lasts), O40 (hop decision), O32 (terms). After that: a dedicated session on the first level's design (O22), and the O14 prototypes.

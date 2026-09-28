@@ -1,12 +1,12 @@
 # Slimes
 
-Status: draft v6
+Status: draft v7
 
 ## States
 
 | State | Meaning |
 |---|---|
-| sleeper | asleep, not moving. Wakes **only** when an awake slime touches it (D13). The game wakes the very first slime. |
+| sleeper | asleep, not moving. Wakes **only** when a free slime touches it, on screen (D13, D70). Never on the loop. The game wakes the very first slime. |
 | train slime | awake and following the loop (D8, D11). Ignores tilt (D19). |
 | bedtime-asleep | asleep because the session ended (D28). The game wakes it at the next session. Not a sleeper. |
 | free slime | awake and away from the loop after answering a call. Physics always applies and it feels tilt (D8, D19). Can become left alone or lost (D10). Goes through the phases below. |
@@ -23,6 +23,13 @@ Status: draft v6
 
 Physics applies in every phase. On a steep slope its hopping can't hold it,
 and it may roll downhill. Phase names are proposed (O32).
+
+## Off screen (D69, D70)
+
+- Physics runs only for slimes on or near the screen. Off screen, a train slime
+  follows the loop at a deterministic pace, and a free slime follows its area's
+  route back (if there is none, it is lost).
+- Fusion and waking happen only on screen.
 
 ## Movement (D21)
 
