@@ -16,10 +16,11 @@ limits play to 15 minutes at most, and the session ends with a gentle
 
 ## Status
 
-**Build preparation.** The v1 master spec is in
-`specs/versions/v1/master-spec.md`, with a proposed build plan next to it. The
-Godot project has just been created; there is no game code yet. UX design
-(`ui_ux/`) has an inventory and open questions, no design yet.
+**Building v1.** The v1 master spec is in
+`specs/versions/v1/master-spec.md`, with the build plan next to it. Chunk 0
+(tooling and project setup) is done: the Godot project settings, the code
+layout and a headless test runner are in place. There is no game code yet.
+UX design (`ui_ux/`) has an inventory and open questions, no design yet.
 
 ## Direction so far
 
@@ -43,7 +44,25 @@ Godot project has just been created; there is no game code yet. UX design
 | `specs/` | Working spec: concept, slimes, interactive objects, tech direction, plus the open-questions register and the decisions log. Start at [`specs/README.md`](specs/README.md). |
 | `docs/research/` | Research reports with their sources: the reference game, the tech stack, level authoring and the kid lock. Index: [`docs/research/README.md`](docs/research/README.md). |
 | `docs/*.atom.md` | Declared intent, as ATD atoms (see `.atd`) |
+| `docs/dev/` | Developer notes: the code layout, how to run the tests, and the technical choices with their reasons. Start at [`docs/dev/README.md`](docs/dev/README.md). |
+| `src/` | Game code: the main scene, the simulation core (`src/sim/`) and the reusable level components (`src/components/`) |
+| `levels/` | One folder per level, with its scenes; `levels/test/` is the test level |
+| `tests/` | Unit tests (`tests/unit/`) and end-to-end tests (`tests/e2e/`), run with GUT |
+| `tools/` | Developer scripts, such as `tools/test.sh` |
+| `spikes/` | Throwaway prototypes |
+| `addons/gut/` | GUT, the test framework (vendored) |
 | `CLAUDE.md` | Conventions for AI-assisted sessions, including the project vocabulary |
+
+## Running the tests
+
+With Godot 4.7.2 on the `PATH` as `godot`:
+
+```sh
+tools/test.sh
+```
+
+It runs the whole suite headless and exits with a non-zero code when any
+test fails. Details in [`docs/dev/README.md`](docs/dev/README.md).
 
 ## Vocabulary
 
@@ -54,14 +73,6 @@ is the reference.
 
 ## Next steps
 
-1. Settle the remaining session and parent questions: timer settings and the
-   parent gate design.
-2. Decide the idle camera, the failure states, the personas, and the scope of
-   the first release.
-3. Build throwaway prototypes to test the main risks:
-   - tap-to-call vs hold-and-drag, with real children
-   - Android audio latency in Godot
-   - how many soft-body slimes a low-end phone can handle
-   - how tilt feels in the hand
-   - running end-to-end tests without a screen on Linux
-4. Put together a master spec and hand it off for building.
+The build follows `specs/versions/v1/build-plan.md`, chunk by chunk. Each
+chunk lands with its tests. The real first level, the interface design and
+playtests with children come after the test level has been built and played.

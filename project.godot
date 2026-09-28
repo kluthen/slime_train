@@ -10,14 +10,20 @@ config_version=5
 
 [application]
 
-config/name="slime_train"
+config/name="Slime Train"
+run/main_scene="res://src/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [display]
 
+window/handheld/orientation=0
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
 
 [rendering]
 

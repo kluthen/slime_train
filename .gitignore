@@ -2,6 +2,11 @@
 .godot/
 /android/
 
+# GUT (test framework): per-developer editor panel settings.
+# Its run output goes to user://, outside the repository.
+.gut_editor_config.json
+.gut_editor_shortcuts.cfg
+
 # Agent/tooling logs
 .agent/
 
