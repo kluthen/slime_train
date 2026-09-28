@@ -45,6 +45,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `src/sim/` | The simulation core: pure logic, with no scene dependencies, so it can be unit tested |
 | `src/test_mode_guard.gd` | The one check that keeps test mode out of release builds |
 | `src/test_mode/` | Test mode: scripted input, time control, fixtures and saves to start from, the on-screen marker |
+| `src/debug/` | The debug overlay, debug builds only: speed, reset, slime labels, the kill tool, the woken/available counter (see "Debug overlay") |
 | `src/save/` | The save files (`SaveStore`: one per level, never wiped), autosave timing (`Autosave`) and the real clocks sessions count on (`SessionClock`); the save format itself is `src/sim/save_data.gd` (see "Saves and fixtures") |
 | `src/session/` | The session's screen effects (`SessionScreen`: the dusk tint, keeping the screen on); the session logic itself is `src/sim/session.gd` (see "Sessions (chunk 17)") |
 | `src/frontier/` | Frontier set drawing (`FrontierView`: doors, arrows, the basket's outlines, the celebration); the logic itself is `src/sim/frontier_sets.gd` (see "Frontier sets (chunk 14)") |
@@ -288,8 +289,9 @@ command-line flags, and no script outside `src/test_mode/` names a
 test-mode class.
 
 When export presets exist (chunk 20), the release presets must exclude
-`src/test_mode/*`, `tests/*`, `addons/gut/*`, `levels/test/*` and
-`spikes/*`, and a CI check must confirm it:
+`src/test_mode/*`, `src/debug/*` (the debug overlay, same guard, see "Debug
+overlay"), `tests/*`, `addons/gut/*`, `levels/test/*` and `spikes/*`, and a
+CI check must confirm it:
 
 1. Export the release build.
 2. List the files in its pack and check that none is under
@@ -1776,8 +1778,113 @@ keeps catching up one comparison per limit. The clock rule trusts the
 larger of the two clocks inside an epoch and the wall clock across one; a
 player who moves the wall clock forward while the app is closed shortens
 the cooldown (accepted: the monotonic clock can't survive a restart).
-Bedtime-asleep slimes stay simulated (gravity, contacts) rather than
-becoming walls, as chunk 9 already settled for that state.
+Bedtime-asleep slimes fall and settle like any body, then rest as a pile
+(chunk 15's resting-pile rule: a settled pile stops simulating and is a
+wall until something disturbs it; bedtime and sunrise, as state changes,
+wake it), and off screen they are parked like every slime.
+
+## Debug overlay
+
+Developer tooling for playing the test level, not a build-plan chunk: a bar
+of controls under the parent band, in debug builds only. The code is all
+in `src/debug/`; the game root has a few hooks (`add_debug_overlay()`,
+`restart_fresh()`, the speed factor in `_process`, the first line of
+`_unhandled_input`). Tests: `tests/unit/test_debug_overlay.gd` and
+`tests/e2e/test_debug_overlay_e2e.gd`.
+
+![The debug overlay at 2x with labels on and Kill armed, seed 91 from the bump fixture](img/debug-overlay.png)
+
+The screenshot is from a debug run with a display (`xvfb-run`, `--fixed-fps
+60`, `-- --test-mode --seed=91 --fixture=bump`), with a scratch script turning
+labels on and 2x at frame 3 and arming Kill at frame 150: tick 299 at frame
+152. The magenta banner above is test mode's; its "time x1.0" is test mode's
+`time_scale`, and the overlay's speed multiplies it.
+
+| Control | What it does |
+|---|---|
+| **1x / 2x / 5x / 10x** | The simulation speed. Each frame runs that many times the ticks (the same ticks, see below) |
+| **Reset** | Asks ("Reset? click again"). A second click within 2 s starts the level over and replaces its save |
+| **Labels** | Draws each slime's runtime id and state under it (`#12 train`) and its stable ID on a second line (`s1.sleeper.04 +2`: its first member and how many more) |
+| **Kill** | Arms the kill tool (red, "Kill: tap a slime"). The next tap sends the slime under it to the start of the loop, as a lost slime |
+| **Woken n / available m** | The counter, in base slimes (see below) |
+
+The last action's result shows after the counter for 4 s ("Kill: #12 sent
+to the start of the loop", "Reset: fresh level, save replaced") and Reset
+also prints it.
+
+**Speed and the clocks.** The game root multiplies its frame time by the
+overlay's `speed` before `FixedStep`, like test mode's `time_scale` (they
+multiply), and raises the hitch cap with it (8 ticks a frame times the
+speed, so 80 at 10x). The ticks are the very same ticks: a run at 10x has
+the same state hash as at 1x after the same tick. The sessions' clock runs
+at the same speed: `DebugClock` wraps the game root's `session_clock` and
+adds (speed - 1) x the real time elapsed to both its wall and monotonic
+readings, so at 10x a session reaches bedtime in 1 min 30 s. The offset
+only grows (back at 1x the time already gained stays), so a session never
+sees its clock go back. After a restart the real clock has no offset, and
+the new epoch counts no time away until real time catches up (the rule is
+`max(0, wall - saved wall)`). In test mode the session clock is test mode's
+tick-counting `TestClock`, which already follows the speed. Autosave stays
+on real time (every 15 s of wall time, whatever the speed): it guards
+against losing real play, not simulated time.
+
+**Reset.** `main.restart_fresh()` starts the level over as a first launch
+does: a fresh simulation from a new random seed in normal play (sessions
+open, so the next tap starts one), or from the run's seed in test mode (no
+fixture, sessions open when the run has them; a test script carries on by
+tick number from the new tick 0).
+Then, when the game autosaves (normal play, or test mode with `autosave`),
+the overlay saves at once through `SaveStore.write`: the fresh state is
+written over the level's file, by the usual side file and rename, never by
+deleting it. A save SaveStore has blocked (unreadable or unusable at
+launch) is still never written over: the reset happens, the file stays, and
+the overlay says "save not written". The 2 s window is real time.
+
+**The counter.** "Woken" and "available" count base slimes, by the members
+each slime carries (D72), so fusing and splitting don't move them; a slime
+with no members (one a test spawns) counts its size, in section 1.
+Available: every base slime from an accessible section. Woken: those not in
+the sleeper state (train, free, in a basket, asleep at bedtime). Sections
+aren't recorded per slime, so a member's section is its stable ID's prefix:
+`sN.` is section N, and anything else (`start.first-slime`) is section 1.
+The accessible sections are section 1 plus every section in the loop's
+current segments with the open gates (`LoopData.current_segments`): a
+section's entrance is the previous section's return-route gate, so opening
+`s1.gate` makes section 2 accessible. The open gates are the train's
+(`Train.open_gates`, kept in step by the frontier sets).
+
+**Kill.** The tap is intercepted before the simulation: the game root's
+`_unhandled_input` asks `DebugOverlay.intercept()` first, and while Kill is
+armed the next press anywhere (and its release) is the overlay's. So no
+tap, ripple, call or session start reaches the simulation, even with test
+mode's `block_real_input` on. `DebugKill.slime_at` picks the slime whose
+drawn body, grown by the tap zones' 24 px margin, holds the point (the
+nearest centre if several). The move is chunk 15's own lost-slime move,
+`Offscreen._lose` (called by name: its public `lose` if it gets one): the
+slime goes to distance 0 lifted by its size, back on the train, and is
+logged in `offscreen.lost`. Any slime can be sent, a sleeper too: it
+becomes a train slime (that's what makes it useful for testing). One use,
+a tap on no slime, or any other control disarms it; a click on Kill again
+does too.
+
+**Input.** The controls are Buttons with `mouse_filter` STOP and consume
+their mouse clicks before the game sees them. The game root also swallows
+a touch on a control (on a phone the touch comes besides the emulated
+click). The bar, the counter and the labels ignore the mouse: the rest of
+the screen plays as usual. The bar sits under the parent band
+(`TapDispatcher.TOP_BAND_HEIGHT`), so it never eats a parent-zone tap and
+the band keeps its meaning; a control over the world takes that spot's
+taps, which is fine for a debug tool. The overlay is a CanvasLayer (layer
+50) above the HUD; the labels are a world-space Node2D beside
+`TapFeedback`, and only read the simulation.
+
+**The release guard.** The game root adds the overlay only when
+`TestModeGuard` allows it (a debug build) and only when it is the running
+main scene; a game a test adds gets one only through
+`add_debug_overlay()`. It names the overlay by path only
+(`DEBUG_OVERLAY_SCRIPT`), and no script outside `src/debug/` names a debug
+class (a lint in `tests/unit/test_debug_overlay.gd`), so a release export
+loads nothing from `src/debug/` and its preset can leave it out.
 
 ## Saves and fixtures
 

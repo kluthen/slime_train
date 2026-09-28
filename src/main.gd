@@ -53,6 +53,9 @@ const MAX_TICKS_PER_FRAME := 8
 ## The export feature tag that swaps the game for spike 1's benchmark.
 const SPIKE_SOFT_SLIMES_FEATURE := "spike_soft_slimes"
 const SPIKE_SOFT_SLIMES_SCENE := "res://spikes/soft-slimes/spike.tscn"
+## The debug overlay (speed, reset, labels, kill, counter). Debug builds only,
+## named by path like test mode (see add_debug_overlay()).
+const DEBUG_OVERLAY_SCRIPT := "res://src/debug/debug_overlay.gd"
 
 var simulation: Simulation
 ## The loaded level, or null (a release build has none yet).
@@ -87,6 +90,9 @@ var save_store: SaveStore = null
 ## in test mode only when the run asks.
 # @spec-link [[req_persistence_and_saves]]
 var autosave := Autosave.new()
+## The debug overlay, or null (a release build, or a game a test adds).
+## Loosely typed: src/debug/ is named by path only.
+var debug_overlay: Node = null
 
 var _clock := FixedStep.new()
 ## The level's collision terrain for the slimes, or null without a level.
@@ -124,6 +130,8 @@ func _ready() -> void:
 	session_screen = SessionScreen.new()
 	session_screen.name = "SessionScreen"
 	add_child(session_screen)
+	if get_tree().current_scene == self:
+		add_debug_overlay()
 	_use_simulation(_new_simulation(Rng.random_seed()))
 	var user_args := OS.get_cmdline_user_args()
 	if TestModeGuard.requested(user_args):
@@ -142,6 +150,8 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	var scale: float = test_mode.time_scale if test_mode != null else 1.0
+	if debug_overlay != null:
+		scale *= debug_overlay.speed
 	var max_ticks := MAX_TICKS_PER_FRAME * maxi(1, ceili(scale))
 	for i in _clock.advance(delta * scale, max_ticks):
 		step_simulation()
@@ -172,6 +182,8 @@ func _exit_tree() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if debug_overlay != null and debug_overlay.intercept(event):
+		return
 	if test_mode != null and test_mode.block_real_input:
 		return
 	if event is InputEventScreenTouch:
@@ -338,6 +350,30 @@ func _resume_play() -> void:
 					% [save_store.path_for(level_id), reason])
 	autosave.enabled = true
 	autosave.start(_now())
+
+
+## Adds the debug overlay (src/debug/debug_overlay.gd) on its own layer, if
+## this build is a debug build (TestModeGuard) and it has none yet. The main
+## scene does in _ready; tests may.
+func add_debug_overlay() -> void:
+	if debug_overlay != null or not test_mode_guard.allows():
+		return
+	debug_overlay = load(DEBUG_OVERLAY_SCRIPT).new()
+	add_child(debug_overlay)
+
+
+## Starts the level over as on a first launch: a fresh simulation (a new
+## random seed; test mode's run seed in test mode), sessions open in normal
+## play (in test mode when the run has them), the frame clock and autosave
+## counting from now. Writes no save (the debug overlay's reset saves after
+## it). Returns the new simulation.
+func restart_fresh() -> Simulation:
+	_use_simulation(_new_simulation(test_mode.seed_value if test_mode != null else Rng.random_seed()))
+	_clock.reset()
+	if test_mode == null or test_mode.sessions:
+		simulation.session.open(simulation)
+	autosave.start(_now())
+	return simulation
 
 
 ## Wall-clock seconds, for autosave.
