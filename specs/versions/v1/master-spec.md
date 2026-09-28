@@ -409,7 +409,8 @@ reopening the app → the state the stored timers give (proposed)
 
 ### 5.8 Parent gate and parent access
 
-- The **parent code** has 6 digits.
+- The **parent code** has 6 digits. It is stored only on the phone, and
+  **never in plain text**.
 - **First launch:** a one-time setup screen appears before anything else. The
   parent types the code twice. The screen explains screen pinning, and says
   plainly that on a phone with no screen lock, a forgotten code can only be
@@ -549,7 +550,23 @@ Every level, the test level included, follows these rules.
 - **Soft slimes:** each slime is a ring of points joined by
   springs, in our own code, drawn with a shader that blends nearby shapes into
   smooth blobs. Fusion and splitting are operations on rings. No engine gives
-  this out of the box.
+  this out of the box. Slimes meet the curved terrain through the
+  simulation's own test against the baked terrain outlines, not the engine's
+  collision shapes.
+- **The slime simulation's tick may move to native code if the performance
+  pass on the phones demands it; its interface is ready for it.** Measured on
+  the reference phone, the tick written in Godot's scripting language can't
+  hold 60 fps with 200 slimes all simulated, and gets slower once the phone
+  throttles after a few minutes. In play, though, a big crowd is mostly a
+  still pile, and resting slimes, sleepers and a full basket's slimes stop
+  being fully simulated, so the tick stays in the scripting language. A C++
+  extension (the rings, the contacts, the terrain), built for the Linux
+  desktop and for Android, is prepared and verified, and is adopted only if
+  the real game at the endgame misses its targets on either phone. The
+  behaviour around the tick (hops, the call's phases, fusion timing) stays
+  in the scripting language either way. Drawing costs little and is not the
+  problem. The renderer is Godot's Compatibility renderer, which reaches the
+  most Android phones.
 - **Physics only near the screen.** Up to 200 slimes on a mid-range phone
   rules out simulating every slime all the time. Off-screen slimes move along
   authored paths at a deterministic pace; that is also what makes off-screen
@@ -570,7 +587,9 @@ Every level, the test level included, follows these rules.
 - **One save per level, never wiped.** A parent can reset one level without
   losing others; level updates migrate saves rather than breaking them.
 - **Testability:** all gameplay randomness comes from one seeded
-  generator so test runs repeat exactly. A test mode, only in the Linux build
+  generator so test runs repeat exactly within one build (a desktop and an
+  Android build aren't promised to give identical results if the tick ever
+  moves to native code). A test mode, only in the Linux build
   and debug Android builds, loads fixture saves, speeds up or skips time, and
   injects taps and tilt from a script.
 
@@ -581,8 +600,14 @@ This is a new project; there is no existing code base to fit into.
 - **Reference phone:** Samsung Galaxy S20 FE. **Floor:** a budget phone of the
   Galaxy A14 class. If the floor phone can't hold 200 slimes, the floor rises;
   the 200 cap stays.
-- **Performance targets:** 60 frames per second on the reference phone; at
-  least 30 on the floor phone in the worst case of 200 slimes on one screen.
+- **Performance targets:** 60 frames per second on the reference phone in
+  normal play; at least 30 on the floor phone with the level's largest
+  realistic pile on one screen (a full basket plus the train, mostly still).
+  The 200-slime cap stays.
+- **Measured so far:** the reference phone, with 200 slimes all simulated
+  and nothing else (see section 6). The floor phone still has to be bought,
+  and the whole game at the endgame is measured on both phones before
+  release; that measurement decides whether the tick moves to native code.
 - Test environments:
 
 | Environment | Used for | Not used for |
@@ -726,7 +751,9 @@ later) passes the level-rules check.
 **Performance and quality**
 
 30. At least 60 fps on the reference phone in normal play, and at least 30
-    fps on the floor phone with 200 slimes on one screen.
+    fps on the floor phone with the level's largest realistic pile on one
+    screen (a full basket plus the train, mostly still), both cold and after
+    5 minutes of play.
 31. The automated end-to-end suite on the test level passes on the Linux
     build.
 32. A playtest with the primary persona shows her finding the call on her
@@ -757,11 +784,15 @@ Still undecided.
    Checked on the desktop: the vector look (curves baked into polygons and
    lines; imported SVGs blur when zoomed), soft slimes at 200 with the
    blending shader and the Compatibility renderer, and running end-to-end
-   tests on Linux without a screen. Still waiting for the phones: 200 slimes
-   (many on one screen) on the reference phone and on the floor phone, which
-   also decides whether the slime simulation's tick moves to native code, and
-   tilt input. A floor phone has to be bought for this. Android audio latency
-   matters only from the version that adds sound.
+   tests on Linux without a screen. Checked on the reference phone: 200
+   slimes all simulated miss 60 fps, so the tick stays in the scripting
+   language with cheaper states for resting slimes first, and native code
+   is a prepared contingency (section 6). The floor phone's target now
+   applies to the largest realistic pile, not 200 slimes on one screen
+   (Definition of done, 30). Still waiting: the floor phone (it has to be
+   bought), the whole game measured on both phones, which decides the
+   native code, and tilt input. Android audio
+   latency matters only from the version that adds sound.
 6. **Interaction details raised by the first UX review** now have
    **proposed defaults**, written into the sections above and tagged
    (proposed), pending the user's approval (D95). The build follows them

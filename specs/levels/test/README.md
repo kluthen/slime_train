@@ -315,7 +315,7 @@ Named save states that tests load through test mode (tech-direction).
 | `s2-cave-return` | 3 free slimes starting down the cave's route back, camera away | projection, respawn, left alone and rejoining |
 | `bump` | size-2 and size-3 slimes of one species meeting in a dip | 2 + 2 and 3 + 1 bumping |
 | `stress-still` | 200 awake base slimes, 60 in basket 3 and the rest piled in the bowl | the worst still case on one screen (O14, O57) |
-| `stress-moving` | 200 train slimes spread through the bowl | the worst moving case; beyond what normal play produces |
+| `stress-moving` | 200 train slimes spread through the bowl | the worst moving case; beyond what normal play produces, so a measurement, not a target (D96) |
 | `lost` | a free slime placed off screen, outside any area's route back | left alone at 10 s, then lost at 1 min and teleported to the start |
 | `midair` | a save taken with slimes in mid-air | placement on reload (D12) |
 | `old-version` | a save from an earlier test-level version with a moved sleeper | migration: the displaced slime counts as lost (D72) |

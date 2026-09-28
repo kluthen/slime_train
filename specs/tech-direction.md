@@ -1,32 +1,36 @@
 # Technical direction
 
-Status: draft v13
+Status: draft v14
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
-Spike write-ups (desktop): `docs/dev/spike-vector-look.md` (chunk 2),
-`docs/dev/spike-soft-slimes.md` (chunk 1).
+Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
+`docs/dev/spike-soft-slimes.md` (chunk 1, desktop and reference phone).
 
 ## Engine
 
 - **Godot 4** is the engine (D5). Unity and Unreal are excluded.
 - Primary target: native Android. A Linux desktop and/or web build of the
   same project exists to iterate faster and to run end-to-end tests.
-- **Renderer: Compatibility** (D94). Forward Mobile gave the same look and
-  frame rate on the desktop; Compatibility reaches the most Android phones.
-  To confirm on the phones (O14).
+- **Renderer: Compatibility** (D94, D96). Forward Mobile gave the same look
+  and frame rate on the desktop; Compatibility reaches the most Android
+  phones. On the reference phone both renderers hold 60 fps on drawing
+  alone, and Forward Mobile saves under 1 ms of render CPU time. The Mali-GPU
+  floor phone is still the real test of the choice (O14).
 - Choosing Godot came with risks to test with small prototypes. Where they
   stand:
   - **Vector look: settled (D93).** Level art is drawn from curves baked into
     polygons and lines (see "Level authoring"). Godot turns imported SVGs into
     images, which blur when the camera zooms in, and no runtime vector plugin
     exists for Godot 4.7.
-  - **Soft slimes at 200: settled on the desktop (D94),** phones pending (see
+  - **Soft slimes at 200: settled on the desktop (D94) and measured on the
+    reference phone (D96):** the tick stays in GDScript with the fallbacks
+    first, native code as the contingency; the floor phone is pending (see
     "Simulation performance").
   - **Running tests without a screen: settled** in chunk 3 (headless Godot,
     see `docs/dev/README.md`).
-  - **Still to test on real phones (O14):** 200 slimes on the reference and
-    floor phones, tilt input, and Android audio latency (only from v3, when
-    sound arrives).
+  - **Still to test on real phones (O14):** the floor phone, the real game
+    on both phones (chunk 22), tilt input, and Android audio latency
+    (only from v3, when sound arrives).
 
 ## Level authoring
 
@@ -40,8 +44,13 @@ Spike write-ups (desktop): `docs/dev/spike-vector-look.md` (chunk 2),
   bakes one curve into both the drawing and the collision shape from the same
   points, so an author draws one curve per terrain piece. The bake interval is
   fixed at load, fine enough for the closest zoom the camera reaches.
-- How the slime simulation (our own code, not Godot's physics) collides with
-  that curved terrain is still open (O78).
+- **Slimes against terrain (D97):** the slime simulation (our own code, not
+  Godot's physics) tests ring points against the baked terrain itself. At
+  level load the baked terrain polygons become segment arrays with outward
+  normals and a static grid of cells; each ring point is pushed out of the
+  nearest segment. Godot's collision shapes are not used for slimes. This
+  code is part of the tick, and would move to native code with it if the
+  contingency fires (D96).
 - Every interactive element (gate, basket, switch, reveal zone, split zone…)
   is a **reusable, programmed component** configured through its properties
   in the editor. There are no per-level scripts, so extra levels (possible
@@ -63,20 +72,23 @@ Spike write-ups (desktop): `docs/dev/spike-vector-look.md` (chunk 2),
   (position, previous position, rest offset); each slime is a range of points
   (first point, point count) plus its own packed per-slime values (size,
   species, radius, rest area…). Fusing and splitting rewrite ranges. This
-  layout is chosen so the tick can move to native code without changing its
-  interface (see "Simulation performance").
+  layout would let the tick move to native code without changing its interface
+  (see "Simulation performance").
 - **Solver (D94):** Verlet integration with position constraints (edge
   springs, area preservation, shape matching, internal damping), 2 substeps
   per 60 Hz tick. Contact pairs between slimes come from a uniform grid on
   slime centres, rebuilt once per tick. The spike's settings are a starting
-  point, tuned for stability, not yet for the game's feel.
+  point, tuned for stability, not yet for the game's feel. The tick is
+  GDScript; native code is the contingency (D96).
 - **Drawing (D94):** each slime is drawn as a soft field blob into two
   SubViewports (one species per colour channel, three per viewport), one draw
   call per viewport. A full-screen composite shader thresholds the fields and
   colours each pixel by the strongest species, so same-species slimes that
   touch merge into one blob and different species stay separate. About 1 ms
-  of GPU time for 200 slimes on the desktop's integrated GPU; half-resolution
-  fields look the same and are the lever if phones need it. Where two species'
+  of GPU time for 200 slimes on the desktop's integrated GPU. On the
+  reference phone at 2400×1080: about 5 ms with full-resolution fields and
+  2.6 ms at half resolution, which looks the same and is what the game uses
+  (it saves battery and heat; the frame rate isn't at stake). Where two species'
   fields are equal the colour can flicker; a tie-break is needed.
 - **Scale:** up to 200 slimes per level (D67), with many possibly on one screen.
 - **Physics only near the screen** (D69):
@@ -89,43 +101,62 @@ Spike write-ups (desktop): `docs/dev/spike-vector-look.md` (chunk 2),
   - Off-screen rules (D70): free slimes follow their area's route back, fusion
     and waking happen only on screen, and baskets count weight off screen.
 
-## Simulation performance (D94)
+## Simulation performance (D94, D96)
 
 - **The simulation tick is the bottleneck, not drawing.** On the desktop, the
   GDScript tick takes about 11 ms for 200 slimes at 16 points per ring (about
   8–9 ms at 12), with no game logic around it; contacts between slimes are more
   than half of it. A line-for-line C++ port of the same tick is 20–25× faster
   (about 0.35–0.5 ms).
-- Extrapolated phone costs (estimated, **not measured**) put a pure GDScript
-  tick over budget for 200 slimes on one screen on both the reference and the
-  floor phone.
-- **Chunk 5 builds the simulation in GDScript**, with the spike's struct-of-
-  arrays layout, so the tick can later move to a GDExtension without changing
-  its interface.
-- **Native code is the planned contingency.** It is decided at the first
-  measurement on the reference phone (Galaxy S20 FE), which needs the Android
-  build (chunk 20). If adopted: a GDExtension in C++ (godot-cpp), built with
-  `-ffp-contract=off` so ticks repeat exactly from one build to another, and
-  the Android NDK in the Android build.
-- **Cheaper fallbacks, tried first:**
-  - resting slimes stop being simulated, contact solving included, until
-    something disturbs them. The 200-on-screen case is mostly still by level
-    rule 16, and covered slimes don't hop;
+- **Measured on the reference phone (D96)**, Galaxy S20 FE 5G, 200 slimes,
+  pure GDScript, Compatibility:
+  - at 12 points per ring, about 17–18 ms per tick cold (48–53 fps with
+    nothing else in the frame); only 8 points reaches 60 fps, leaving about
+    3 ms for the rest of the game;
+  - after about 4 minutes of load the phone throttles (big cores capped at
+    1.75 GHz) and the 12-point tick settles at about 27 ms (33 fps), steady;
+  - the phone is 2.0–2.1× slower than the desktop cold, 3.4× throttled;
+  - the game's real tick (chunk 5: terrain contact, friction, touch
+    tracking) costs 1.7× the spike's: about 31 ms cold, 50 ms throttled;
+  - drawing is not the problem (see "Slimes": at most 5 ms of GPU time,
+    alongside the CPU).
+- **The tick stays in GDScript (D96)**, on chunk 5's struct-of-arrays layout,
+  whose interface is ready for native code.
+- **Fallbacks first,** built in chunk 15 (cheaper states):
+  - resting slimes (a pile) stop being simulated, contact solving included,
+    until something disturbs them;
+  - sleepers don't simulate;
   - fewer points per ring when zoomed out;
-  - a 30 Hz tick, with the drawing interpolated.
-- **Pending:** measurements on the reference phone now and on the floor phone
-  once it is bought (O14); the floor decision rests on them (D71). The
-  200-slime cap stays (D67).
-- Not covered by the spike: collisions with curved terrain (only a flat floor
-  and walls were simulated, O78), game logic, the camera and the UI, all of
-  which share the same frame budget.
+  - slimes in a full basket are simplified.
+- **The realistic worst case in play is a mostly still pile** (level rule
+  16): a full basket plus the train, not 200 moving slimes. The
+  `stress-moving` fixture stays as a measurement, not a target.
+- **Native code is the documented, verified contingency, not fired.** A
+  GDExtension in C++ (godot-cpp), built with `-ffp-contract=off` so ticks
+  repeat from one build to another, for the Linux desktop and, through the
+  Android NDK, for Android arm64. Its toolchain and a trivial extension are
+  checked in under `native/` (see `docs/dev/native.md`), kept out of the
+  test suite and the exports. Estimated on the reference phone: about
+  0.8–1.0 ms per tick cold, 1.2–1.6 ms throttled.
+- **What would fire it:** chunk 22 measures the real game at the endgame
+  (the bowl, a full basket, the train) on both phones, cold and after
+  5 minutes. If either phone misses its target (60 fps on the reference
+  phone in normal play; at least 30 fps on the floor phone with the largest
+  realistic pile), chunk 5N moves the tick (ring solver, contacts, terrain
+  contact) to native code behind the same GDScript interface, and chunk 22
+  is repeated.
+- **Pending:** the floor phone, once it is bought (O14). The floor decision
+  rests on its measurement (D71). The 200-slime cap stays (D67).
+- Not covered by the spike: game logic, the camera and the UI, which share
+  the same frame budget (chunk 22 measures the whole game).
 
 ## Target phones (D71)
 
 - Reference: Samsung Galaxy S20 FE. Floor: a budget phone (Galaxy A14 class).
   If the floor can't hold 200 slimes, the floor rises and the cap stays.
-- **Performance targets (D82):** 60 fps on the reference phone; at least 30 fps
-  on the floor phone with 200 slimes on one screen.
+- **Performance targets (D82, D96):** 60 fps on the reference phone in normal
+  play; at least 30 fps on the floor phone with the level's largest
+  realistic pile on one screen (a full basket plus the train, mostly still).
 - **Landscape, locked** (D78).
 
 ## Test environments (D91)
@@ -136,8 +167,8 @@ Spike write-ups (desktop): `docs/dev/spike-vector-look.md` (chunk 2),
 | Android emulator | the Android lifecycle (background, phone-call interruptions), screen pinning, the parent-gate flow, save and restore, rough tilt through virtual sensors | **performance** (it runs on the PC's processor and graphics), audio latency, how touch and tilt feel |
 | Real phones (S20 FE, a floor phone) | performance (O14), audio latency, touch and tilt feel, playtests with children | fast iteration |
 | Google Play pre-launch report (later) | automatic smoke tests on a range of real phones when uploading to a test track | detailed performance work |
-  - The O14 prototype tests the worst case: 200 slimes on one screen on the
-    floor phone (D71).
+  - Chunk 22 tests the realistic worst case on the floor phone: the largest
+    pile on one screen (D96).
 
 ## Saving (D7, D12, D43)
 
@@ -156,6 +187,10 @@ Spike write-ups (desktop): `docs/dev/spike-vector-look.md` (chunk 2),
 - **Seeded randomness:** all gameplay randomness (hop timing, unsure hops)
   comes from one random generator with a seed, so a test run can be repeated
   exactly.
+- **Repeatable runs:** state hashes are compared between runs of the same
+  build. If the native contingency is ever adopted (D96), a native build
+  won't match the GDScript version bit for bit, nor Linux match Android, so
+  tests compare runs within one build.
 - **Test mode** (Linux build and debug Android builds only, never in the
   release build): load a named fixture save, speed up or skip time (session
   timer, cooldown, phase timers), and inject taps and tilt from a script.

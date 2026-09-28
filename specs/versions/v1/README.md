@@ -88,8 +88,9 @@ Items are settled. The decision IDs point to
 
 **Platform and business**
 - Godot 4, Android. A Linux build for tests (D5). Landscape, locked (D78).
-- 60 fps on the reference phone; at least 30 fps on the floor phone with 200
-  slimes on one screen (D82).
+- 60 fps on the reference phone in normal play; at least 30 fps on the floor
+  phone with the level's largest realistic pile on one screen, a full basket
+  plus the train, mostly still (D82, amended by D96).
 - A paid app, about $3–5 (D31).
 
 ## Explicitly not in v1

@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v5 (proposed; waiting for the user's review)
+Status: draft v6 (proposed; waiting for the user's review)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -70,9 +70,11 @@ in this order. A chunk isn't finished until step 6 is done.
 
 **Technical chunks skip the ATD steps (1 and 6).** They build tooling or
 technology, not business behaviour:
-- chunk 0 (tooling), chunk 3 (test backbone) and chunk 21 (the end-to-end
-  suite) still go test first. Chunk 0's only test is a trivial one, seen red
-  then green, which proves the runner reports failures.
+- chunk 0 (tooling), chunk 3 (test backbone), chunk 5N (the native
+  simulation tick, a contingency) and chunk 21 (the end-to-end suite) still
+  go test first. Chunk 5N changes no behaviour: the existing suite is its
+  test. Chunk 0's only test is a trivial one, seen red then green, which proves the runner
+  reports failures.
 - The spikes (chunks 1 and 2) are throwaway code, so they also skip the
   test-first step. They end by writing their outcome (the numbers, the
   approach chosen) into the project documentation, and into
@@ -80,6 +82,13 @@ technology, not business behaviour:
   spec's technical direction.
 - Chunk 22 (performance) checks a business target, the frame rates promised
   on the reference and floor phones, so it keeps both ATD steps.
+
+## Progress
+
+- **Done:** 0, 2, 3, 4, 5, 6; 1 on the desktop and the reference phone (the
+  floor phone waits for its purchase).
+- **In progress:** 7.
+- **Next:** 8. (5N is a contingency, run only if chunk 22 fails, D96.)
 
 ## Overview
 
@@ -91,6 +100,7 @@ technology, not business behaviour:
 | 3 | Test backbone | M | 0 | two identical scripted runs give identical state |
 | 4 | Level scaffolding and Meadow greybox | M | 3 | the loop, terrain and IDs load in a test |
 | 5 | Slime body | L | 1, 4 | unit tests on rings; a visual demo |
+| 5N | Native simulation tick (contingency, only if 22 fails) | M | 22 failing | the whole suite on the native tick; chunk 22 repeated |
 | 6 | Train and split zone | M | 5 | [DoD 1 partial, 7] |
 | 7 | Taps and the call | L | 6 | [DoD 3, 4, 15, 17] |
 | 8 | Save format and fixtures | M | 7 | kill-and-reload tests; the first fixtures load [DoD 28 partial] |
@@ -109,8 +119,9 @@ technology, not business behaviour:
 | 21 | End-to-end suite | M | 19 | [DoD 31] |
 | 22 | Performance pass on phones | M | 20 | [DoD 30] |
 
-Chunks 1 and 2 can run in parallel with 3. Chunks 9, 10 and 11 are
-independent of each other. Chunk 17 can start as soon as 8 is done, in
+Chunks 1 and 2 can run in parallel with 3. Chunk 5N is not in the
+sequence: it runs only if chunk 22's measurement fails (D96). Chunks 9, 10
+and 11 are independent of each other. Chunk 17 can start as soon as 8 is done, in
 parallel with the camera and objects work.
 
 ## Chunks
@@ -121,8 +132,7 @@ parallel with the camera and objects work.
   "Before starting").
 - Project settings match the spec: landscape locked, 2D. The 3D physics
   engine setting that project creation added is irrelevant.
-  The renderer choice (the "Compatibility" renderer is the current default)
-  is confirmed by spike 1.
+  The renderer is Compatibility, confirmed by spike 1 (D94, D96).
 - A folder layout for components, levels, the simulation core, and tests.
 - A test framework picked by the implementer, runnable headless from the
   command line.
@@ -135,6 +145,9 @@ parallel with the camera and objects work.
   screen: still (piled) and moving.
 - Measure on the desktop first, then on the reference phone, and on a floor
   phone once one is bought.
+- **Status:** done on the desktop (D94) and on the reference phone (D96: the
+  tick stays in GDScript, fallbacks first, native code as the contingency).
+  The floor phone waits for its purchase.
 - **Background reading:** the performance targets and the 200-slime cap in the master spec (no ATD step: technical).
 - **Done when:** the numbers are written down, with a go/no-go for the
   approach and the renderer. A no-go comes back to spec-writer before
@@ -167,6 +180,8 @@ parallel with the camera and objects work.
 - The shared rule format that components use ("when this basket is full,
   open that gate"), at least as an interface.
 - Section 1 (Meadow) of the test level as a greybox with placeholder art.
+- **Built:** a terrain component that bakes one curve into both the drawing
+  and the collision polygon (D93).
 - **Atoms (preflight start):** `req_loop_and_world`, `req_interactive_objects_general`, `req_level_design_rules` and its rules (`rule_no_dead_ends`, `rule_exploration_branch_has_route_back`, `rule_gravity_leads_back_to_loop`, `rule_start_carries_split_zone`, `rule_sleepers_never_on_loop`, `rule_first_sleeper_near_first_awake_slime`), `rule_released_level_stable_with_migration`.
 - **Done when:** a test loads the level and finds the loop, the route back and
   every stable ID of section 1.
@@ -177,6 +192,9 @@ parallel with the camera and objects work.
   colours (differing in lightness too), hopping as the only movement, and
   hop cadence from the seeded generator.
 - Fusion and splitting as ring operations, exposed for later chunks.
+- **Built:** the spike's struct-of-arrays layout and 12/15/18 points per
+  ring (D94), and the slimes' own contact with the baked terrain segments,
+  `TerrainSegments` (D97).
 - **Atoms (preflight start):** `req_slime_states`, `req_hopping_behavior`, `req_species_and_colour`, `rule_max_size_three`, `rule_first_section_species_count`.
 - **Done when:** unit tests cover ring creation, merging and splitting, and a
   demo scene shows slimes of each size and species hopping.
@@ -287,8 +305,10 @@ parallel with the camera and objects work.
 - Free slimes that leave the screen follow their area's route back. Left
   alone at 10 s, lost at 1 min, and moved to the start.
 - Baskets count weight off screen. Fusion and waking happen on screen only.
-- Cheaper states: sleepers don't simulate, slimes in a full basket are
-  simplified, and zoomed-out slimes use fewer points.
+- Cheaper states (the fallbacks that come before native code, D96): resting
+  slimes (a pile) stop being simulated, contact solving included, until
+  something disturbs them; sleepers don't simulate; slimes in a full basket
+  are simplified; and zoomed-out slimes use fewer points.
 - **Atoms (preflight start):** `req_offscreen_simulation`, `rule_left_alone_and_lost`, `req_switch_basket_gate_set` (off-screen filling).
 - **Done when:** [DoD 5, 10] pass, with `s2-cave-return`, `lost` and
   `s2-basket-offscreen`. Needs section 2 in greybox, pulled forward from
@@ -364,11 +384,48 @@ parallel with the camera and objects work.
 
 ### 22. Performance pass on phones (M)
 
-- `stress-still` and `stress-moving`, plus normal play, on the reference
-  phone and the floor phone.
+- The real game at the endgame (the bowl, a full basket, the train) on the
+  reference phone and the floor phone, each cold and after 5 minutes of play
+  (once the phone has throttled), plus normal play.
+- `stress-still` and `stress-moving` are measured too and recorded; they are
+  measurements, not targets (D96).
 - **Atoms (preflight start):** `req_platform_and_performance_targets`, `rule_max_200_slimes_per_level`.
-- **Done when:** [DoD 30] holds. If the floor phone can't hold 200 slimes, the
-  floor rises. The 200 cap stays.
+- **Done when:** [DoD 30] holds: 60 fps on the reference phone in normal
+  play, and at least 30 fps on the floor phone in the realistic worst case
+  (the level's largest pile on one screen: a full basket plus the train,
+  mostly still). **If either fails, chunk 5N runs and this chunk is
+  repeated.** If the floor phone still can't hold it, the floor rises (D71).
+  The 200 cap stays.
+
+### 5N. Native simulation tick (contingency, only if chunk 22 fails)
+
+Size M. Not in the ordered sequence: **chunk 22 is its trigger** (D96). It
+runs only if chunk 22's measurement of the real game fails on either phone,
+and chunk 22 is then repeated. Technical: no ATD steps. It must not run
+while another chunk edits the slime body code.
+
+- **Already in place (the verified contingency):** the toolchain and a
+  trivial extension under `native/`, documented in `docs/dev/native.md`,
+  kept out of the test suite and the exports.
+- The simulation tick moves to a GDExtension in C++ (godot-cpp): the ring
+  solver, the contacts between slimes, and the terrain contact against
+  `TerrainSegments` (D97).
+- The simulation keeps its GDScript interface. Behaviour code (hops, phases,
+  calls, fusion timing) stays in GDScript, unchanged.
+- Built with `-ffp-contract=off`, for the Linux desktop and, through the
+  Android NDK, for Android arm64, both from one build script, and included
+  in the Android export.
+- Determinism: hashes are compared within one build and platform. The
+  native results don't match the GDScript version bit for bit, and tests
+  compare runs within one build. Whether the GDScript tick is kept alongside
+  (for instance as a reference) is the implementer's call, written down in
+  the project documentation.
+- **Background reading:** `../../tech-direction.md` "Simulation performance"
+  and the reference phone numbers in `docs/dev/spike-soft-slimes.md`.
+- **Done when:** the Linux and Android arm64 extensions build from one
+  script; the whole suite passes on the native tick; the bench numbers
+  (desktop and phone, native against GDScript) are recorded in the project
+  documentation; and chunk 22, repeated, passes.
 
 ## Not in this plan
 
@@ -403,5 +460,8 @@ overrules them.
 - Godot 4.7.2 is reachable as `godot` (a symlink in `~/.local/bin`). The
   project skeleton is committed, without the 3D physics setting. Its other
   settings are adjusted to the spec in chunk 0.
-- A floor phone (Galaxy A14 class) has to be bought before spike 1 can finish
-  and before chunk 22.
+- A floor phone (Galaxy A14 class) has to be bought before spike 1's floor
+  run and before chunk 22.
+- The native contingency (chunk 5N) uses a C++ toolchain on Linux,
+  godot-cpp matching Godot 4.7, and the Android NDK (installed:
+  `ndk/28.2.13676358`, per the spike); see `docs/dev/native.md`.

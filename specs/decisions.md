@@ -872,3 +872,79 @@ access model, tagged (proposed).
   is never stuck (P4.G3, P4.G4), and the 2-year-old's poke changes nothing
   for his sister (P2.G2). The one exception to "every touch is answered" is
   the second finger (O67), where "the first touch wins" (D66) comes first.
+
+## D96 — Native tick deferred; fallbacks first (2026-09-28)
+Answers D94's question (decided at the reference phone measurement), and
+amends D82's floor-phone worst case. Partly resolves O14 (the reference
+phone is measured; the floor phone is not). Measurement: chunk 1,
+`docs/dev/spike-soft-slimes.md`, "Reference phone (Galaxy S20 FE 5G)".
+- **What the reference phone showed** (200 slimes, pure GDScript,
+  Compatibility):
+  - at 12 points per ring the tick alone takes about 17–18 ms cold
+    (48–53 fps with nothing else in the frame), and about 27 ms once the
+    phone throttles after about 4 minutes of load (33 fps, steady);
+  - only 8 points per ring reaches 60 fps cold, leaving about 3 ms for the
+    rest of the game;
+  - the game's real tick from chunk 5 (terrain contact, friction, touch
+    tracking) costs 1.7× the spike's, so about 31 ms cold and 50 ms
+    throttled on this phone;
+  - the phone runs the GDScript tick 2.0–2.1× slower than the desktop (3.4×
+    throttled). The floor phone (A14 class) is estimated at 40–88 ms per
+    tick for 200 simulated slimes;
+  - drawing is not the problem: the blend costs at most 5 ms of GPU time at
+    full-resolution fields and 2.6 ms at half, and the GPU works alongside
+    the CPU.
+- **The tick stays in GDScript**, on chunk 5's native-ready layout.
+- **The cheap fallbacks come first,** built where the plan already places
+  them (chunk 15, cheaper states):
+  - resting slimes (a pile) stop being simulated, contact solving included,
+    until something disturbs them;
+  - sleepers don't simulate;
+  - fewer points per ring when zoomed out;
+  - slimes in a full basket are simplified.
+- **The realistic worst case in play is a mostly still pile** (level rule
+  16), such as a full basket plus the train, not 200 moving slimes. The
+  `stress-moving` fixture stays as a measurement, not a target.
+- **Amends D82 (floor phone):** at least 30 fps on the floor phone with the
+  level's largest realistic pile on one screen (a full basket plus the
+  train, mostly still), instead of "200 slimes on one screen". 60 fps on the
+  reference phone in normal play is unchanged. The 200 cap stays (D67).
+- **The native GDExtension is the documented, verified contingency:** C++
+  with godot-cpp, `-ffp-contract=off`, for the Linux desktop and Android
+  arm64. Its toolchain and a trivial extension are checked in under
+  `native/`, documented in `docs/dev/native.md`, and kept out of the test
+  suite and the exports. The simulation's GDScript interface is ready for it.
+- **What would fire it:** chunk 22's measurement of the real game at the
+  endgame (the bowl, a full basket, the train), cold and after 5 minutes,
+  failing on either phone. Then chunk 5N moves the tick (ring solver,
+  contacts, terrain contact, D97) to native code, and chunk 22 is repeated.
+- **The renderer stays Compatibility** (D94). On the reference phone both
+  renderers hold 60 fps on drawing alone, and Forward Mobile saves under
+  1 ms of render CPU time. The Mali-GPU floor phone is still the real test
+  of the choice.
+- **Still pending:** the floor phone, once bought (O14), and with it the
+  floor decision (D71).
+- Why: the measurement is of 200 simulated slimes, the case the fallbacks
+  are designed to remove, since in play most of a big crowd rests in a pile
+  or a basket. The real game at the endgame is what decides, and the
+  checked-in, verified contingency keeps the switch cheap if it fails.
+
+## D97 — Slimes against curved terrain: the simulation's own test (2026-09-28)
+Resolves O78, with the default it proposed.
+- The slime simulation tests ring points against the **baked terrain
+  segments itself**, not through Godot's collision shapes. At level load the
+  baked terrain polygons (D93) become segment arrays with outward normals
+  and a static grid of cells (chunk 5's `TerrainSegments`).
+- This code is part of the tick, so it would move to native code with it
+  if the contingency fires (D96).
+- Why: it keeps the whole simulation in one place with one data layout, so
+  it could move to native code in one piece; chunk 5 built it this way and it
+  works on the test level.
+
+## D98 — The parent code is never stored in plain text (2026-09-28)
+- The parent code is stored only on the phone, and **never in plain text**.
+- A security guarantee, already in the build plan (chunk 18) and in the
+  declared intent; now also stated in the master spec (§5.8) and the access
+  model.
+- Why: anyone who can read the app's files (a backup, a debugging tool)
+  mustn't learn the code, and with it the parent buttons.

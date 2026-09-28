@@ -38,6 +38,8 @@ condition used only to reset a forgotten code (§6).
   in settings.
 - There is no "remember me". Every new parent action asks for the code again.
 - **Changing the code** takes effect immediately. The old code stops working.
+- **Storing the code:** the code is stored only on the phone, and never in
+  plain text, so reading the app's files doesn't reveal it.
 - **The last and only code holder:** there is exactly one code. If it's
   forgotten, the phone's own screen lock lets anyone who passes it set a new
   one. If the phone has no screen lock, clearing the app's data in Android
