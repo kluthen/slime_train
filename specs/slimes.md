@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v15
+Status: draft v16
 
 ## States
 
@@ -50,6 +50,15 @@ and it may roll downhill. Phase names were adopted in D75.
 - **Stuck** is its own state, distinct from lost (D10): it doesn't count as
   a lost slime, but it has the same effect, and every case is logged with
   the reason "stuck".
+
+## Stalled train slimes (D118, proposed)
+
+- A train slime whose progress along the loop hasn't advanced 24 px in
+  60 s, on screen or off, or whose centre leaves the level's bounds, is
+  **stalled**. It is logged once (reasons `stalled`, `out_of_bounds`).
+- Nothing happens to it in play: it stays a train slime where it is. It is
+  not lost (D10) and not moved to the start. Whether it should be is O95.
+- DoD 1's "no slime ever becomes lost" includes stalled train slimes.
 
 ## Movement (D21, D74)
 

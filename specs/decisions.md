@@ -1176,3 +1176,62 @@ From ui_ux Q11, which the user deferred to v2.
 - Parked for v2: a demonstrating hand instead of a pulse (O92); whether the
   personas and setup may count on the parent showing the first tap (O93);
   making "the first sleeper is close" measurable as a level rule (O94).
+
+## D116 — The test level's start basin and cave framing zone as built (chunk 16) (2026-09-29)
+**Proposed, pending the user's approval** (the build's choices, recorded as
+with D95 and D108; the build follows them unless the user overrules them).
+Written into `levels/test/README.md` and `tuning.md`, tagged (proposed).
+- **The start basin (1.1) is rebuilt (chunk 16e):** the loop's start sits at
+  0.21 screens at the top of a ramp, with a pocket behind it where the first
+  slime starts; the loop's first stretch runs on a raised terrace; the
+  slides' shared tail runs under the terrace and up the ramp into the
+  pocket. `FirstLedge` is at 0.42 to 0.5 (top y 335), the first sleeper at
+  0.46 (0.27 screens from the first slime, "about a quarter of a screen"
+  rather than "about a third"). The split zone spans 0.03 to 0.54, past the
+  first sleeper's ledge, so only base slimes pass under it.
+- **Why:** the old tail ran home along the basin floor against the loop's
+  first stretch and shoved the outgoing train back; slimes queued there
+  fused past the split zone and a size 3 crawled under the first sleeper's
+  ledge. A train slime was lost as stalled (D118) in 5 of 10 fifteen-minute
+  sessions with no input, so DoD 1 failed. After the rebuild, 18 sessions
+  (seeds 1 to 8 and 16, from `gate1-open` and `gate2-open`) lost none.
+- **`s2.frame.cave` (chunk 16d):** a framing zone over the cave branch
+  (centre 11.25 screens, y -150, 1.3 screens by 500 px, zoom 0.7, offset
+  (0, -140)), so the rails' view shows the loop and the cave pocket's
+  sleepers at once (rule 9).
+- **`stress-still`** rests about 670 ticks (about 11 s) after loading, not
+  about 8 s: 16d's terrain-contact fix changed how the pile settles.
+
+## D117 — Where a return route meets the start: the test level's lesson (2026-09-29)
+**Proposed, pending the user's approval.** From the start basin jam (chunk
+16, D116). A constraint on O22's answer, not its answer: O22 stays open, and
+the test level's slides are still a placeholder. If approved, a candidate
+for a level rule in `level-design.md`.
+- **A return route delivers slimes into the start behind the loop's start,
+  travelling the loop's way.** It never runs along the loop's first stretch
+  against the flow: slimes coming home join behind the train, they don't
+  meet it head on.
+- **Nothing a base slime must be called up to overhangs the loop where
+  larger slimes pass.** A ledge low enough for a called size-1 slime to hop
+  onto is too low for a size 2 or 3 to pass under at its hop's height, and
+  one high enough for them is out of the called slime's reach. Such a ledge
+  sits where only base slimes pass (inside the split zone's reach, as the
+  test level's first sleeper does) or off the loop's path altogether.
+
+## D118 — A train slime that stalls (2026-09-29)
+**Proposed, pending the user's approval.** Records the build's rule (chunk
+6's placeholder, `Train`, unchanged since); the spec had no rule for it:
+"lost" (D10) covers free slimes only. Raises O95.
+- **Stalled:** a train slime whose progress along the loop hasn't advanced
+  24 px in 60 s, on screen or off (parked slimes included), or whose centre
+  leaves the level's bounds (the terrain and the loop, plus 64 px, plus
+  2000 px above). The build logs it in the train's lost log with the reason
+  `stalled` or `out_of_bounds`, once per slime.
+- **Nothing happens to it in play:** it stays a train slime where it is
+  and the train keeps steering it. Unlike a lost (D10) or stuck (D100)
+  slime, it isn't moved to the start of the loop. The log is for the tests
+  and the debug view.
+- **DoD 1's "no slime ever becomes lost" includes it:** the whole-level
+  DoD 1 test fails on any entry in the train's lost log.
+- "Stalled" is the spec's term for it (the build says "lost as stalled");
+  "lost" keeps D10's meaning.
