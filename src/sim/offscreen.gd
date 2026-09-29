@@ -26,7 +26,16 @@ extends RefCounted
 ##              gates growing the loop all work unchanged. (Lifted straight
 ##              up on a downhill stretch, the centre projected behind its
 ##              progress, which never goes back: a big slime stopped there
-##              and was lost as stalled.) Over an open
+##              and was lost as stalled.) Single file: it never moves
+##              closer than the two slimes' widths (ring radius plus EDGE,
+##              each) behind the train slime ahead of it along the loop,
+##              parked or not; it waits there, as it would bump into it on
+##              screen (_train_room(); from the distances at the start of
+##              the tick, so the order the proxies move in doesn't matter;
+##              on one spot, the higher id is ahead). (Without it, a parked
+##              slime faster than the one ahead, on the slide or bigger, ran
+##              through it, and the two came back on screen on one spot,
+##              where two rings never come apart.) Over an open
 ##              trapdoor (its box grown ENTRY_REACH upward) it drops into
 ##              the basket instead: it is put in the basket box's next free
 ##              clear slot (a grid its own width plus SLOT_GAP apart,
@@ -92,6 +101,10 @@ const SLOT_GAP := 4.0
 ## Below this zoom rings use fewer points; from FULL_ZOOM up the full count.
 const LOW_ZOOM := 0.8
 const FULL_ZOOM := 0.85
+## Single file (_train_room()): train slimes are ordered along the loop by
+## their distance in 1/ORDER_SCALE px, then by id (the low 32 bits).
+const ORDER_SCALE := 64.0
+const ORDER_ID_MASK := 0xFFFFFFFF
 ## How many lost slimes `lost` keeps.
 const LOST_LOG_SIZE := 16
 ## How much closer than a slime's width two queued proxies may sit before
@@ -162,12 +175,13 @@ func step(sim: Simulation) -> void:
 	for slime_id in proxies.keys():
 		if not bodies.is_parked(slime_id) or bodies.state_of(slime_id) != SlimeBodies.FREE:
 			proxies.erase(slime_id)
+	var room := _train_room(sim)
 	for slime_id in bodies.ids():
 		if not bodies.is_parked(slime_id):
 			continue
 		match bodies.state_of(slime_id):
 			SlimeBodies.TRAIN:
-				_train_proxy(sim, slime_id)
+				_train_proxy(sim, slime_id, room)
 			SlimeBodies.FREE:
 				_free_proxy(sim, slime_id)
 	_count_away(sim, shown)
@@ -227,8 +241,9 @@ func _detail(sim: Simulation) -> void:
 
 ## Moves parked train slime `slime_id` on along the loop (see the class doc):
 ## its progress first, from the loop point itself, then its centre, lifted
-## along the loop's normal.
-func _train_proxy(sim: Simulation, slime_id: int) -> void:
+## along the loop's normal. It moves at most `room[slime_id]` px when `room`
+## (_train_room()) has it: single file.
+func _train_proxy(sim: Simulation, slime_id: int, room: Dictionary) -> void:
 	var train := sim.train
 	if train == null or not train.tracks(slime_id) or train.length() <= 0.0:
 		return
@@ -236,7 +251,10 @@ func _train_proxy(sim: Simulation, slime_id: int) -> void:
 	var size := bodies.size_of(slime_id)
 	var distance := train.distance_of(slime_id)
 	var speed := Train.SLIDE_SPEED if train.is_slide_at(distance) else pace(size, bodies.hop_rate)
-	var ahead := distance + speed * Simulation.TICK_SECONDS
+	var step := speed * Simulation.TICK_SECONDS
+	if room.has(slime_id):
+		step = minf(step, room[slime_id])
+	var ahead := distance + step
 	var on := train.position_at(ahead)
 	# The point on the loop projects onto itself: the progress moves the whole
 	# step, whatever the slope and the lift (a lifted point could project
@@ -249,6 +267,49 @@ func _train_proxy(sim: Simulation, slime_id: int) -> void:
 	bodies.translate(slime_id, at - bodies.centre_of(slime_id))
 
 
+## Single file for the parked train slimes (see the class doc): parked
+## train slime id -> how far it may move on this tick, px: its gap along the
+## loop to the train slime ahead of it (parked or not) less both slimes'
+## widths, never below 0. Read from the distances at the start of the tick.
+## Empty when no train slime is parked or there is only one.
+func _train_room(sim: Simulation) -> Dictionary:
+	var room := {}
+	var train := sim.train
+	if train == null or train.length() <= 0.0:
+		return room
+	var bodies := sim.slimes
+	# Along the loop, back to front, as one sortable integer per slime (a
+	# native sort: a sort_custom here cost 1 ms a tick with 200 train
+	# slimes): the distance in 1/ORDER_SCALE px, then the id, so on one spot
+	# the higher id is ahead.
+	var order := PackedInt64Array()
+	var any_parked := false
+	for slime_id in train.tracked_ids():
+		if bodies.state_of(slime_id) == SlimeBodies.TRAIN:
+			order.append((int(train.distance_of(slime_id) * ORDER_SCALE) << 32) | slime_id)
+			any_parked = any_parked or bodies.is_parked(slime_id)
+	if not any_parked or order.size() < 2:
+		return room
+	order.sort()
+	var count := order.size()
+	for k in count:
+		var slime_id := int(order[k] & ORDER_ID_MASK)
+		if not bodies.is_parked(slime_id):
+			continue
+		var next := int(order[(k + 1) % count] & ORDER_ID_MASK)
+		var gap := train.distance_of(next) - train.distance_of(slime_id)
+		if k == count - 1:
+			gap += train.length()
+		var widths := SlimeBodies.ring_radius_for(bodies.size_of(slime_id)) \
+				+ SlimeBodies.ring_radius_for(bodies.size_of(next)) + 2.0 * SlimeBodies.EDGE
+		# Two within 1/ORDER_SCALE px may come in id order: a gap a hair
+		# below 0, no room.
+		room[slime_id] = maxf(0.0, gap - widths)
+	return room
+
+
+## Moves parked free slime `slime_id` along its way back (see the class
+## doc), and puts it back on the train at the way's end.
 func _free_proxy(sim: Simulation, slime_id: int) -> void:
 	var bodies := sim.slimes
 	var centre := bodies.centre_of(slime_id)

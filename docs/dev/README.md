@@ -436,13 +436,15 @@ is open, is kept, so the loop always closes.
 
 ### The test level
 
-`levels/test/level.tscn` holds section 1, Meadow (screens 0 to 8), as a
-greybox that follows `specs/levels/test/README.md`: the start basin with the
-split zone and the first slime, the hills, the fusion dip, the high step, the
-tree (an exploration branch with its route back and framing zone), frontier
-set 1 and slide 1 back to the basin; and section 2, Caves (screens 8 to
-12.66, chunk 15, see "Off-screen simulation (chunk 15)"). Section 3 comes
-later (chunk 16): only a stub of its loop and slide is there.
+`levels/test/level.tscn` holds the whole test level as a greybox that
+follows `specs/levels/test/README.md`, with its 200 base slimes: section 1,
+Meadow (screens 0 to 8): the start basin with the split zone and the first
+slime, the hills, the fusion dip, the high step, the tree (an exploration
+branch with its route back and framing zone), frontier set 1 and slide 1
+back to the basin; section 2, Caves (screens 8 to 12.66, chunk 15, see
+"Off-screen simulation (chunk 15)"); and section 3, Big bowl (screens 12.66
+to 16.55, chunk 16, see "Test level sections 2 and 3, full population
+(chunk 16)").
 
 Chunk 6 adjusted the greybox where a train slime couldn't pass (the
 tables in the generator say where):
@@ -486,16 +488,23 @@ godot --headless -s res://tools/greybox_test_level.gd
 It is still a normal scene that opens and edits in the editor, but a
 re-run overwrites hand edits. Once the level is edited by hand for real,
 delete the generator. `tests/e2e/test_test_level.gd` checks the scene
-against the design and the level rules: every ID, the population, sleepers
-off the loop, the first sleeper near the first slime, the loop and the
-slide, the split zone at the start, routes back that start in their branch,
-end on the loop and only go down, the frontier set and the terrain bake.
+against the design and the level rules: every ID of sections 1 to 3, the
+population (200 base slimes by species and section), sleepers off the loop,
+the first sleeper near the first slime, the loop and the slides, the split
+zone at the start, routes back that start in their branch, end on the loop
+and only go down, the frontier sets, the framing zones and the terrain bake.
+The level rules over the whole level are in `tests/e2e/test_level_rules.gd`
+and `tests/e2e/test_level_ways_back_e2e.gd`, and DoD 1 in
+`tests/e2e/test_level_dod1_e2e.gd` (chunk 16).
 
-**Adding a section** (for example section 2): add its terrain; add its
-outgoing `LoopSegment`s (`section = 2`) after `S1Slide` in the `Loop`, the
-first starting where `s1.loop` ends (behind gate 1), then its slide
-(`kind = return`, `gate_id = "s2.gate"`) ending at the start of the loop;
-place its things with `s2.` IDs; extend the tests' expected IDs.
+**Adding a section** (as sections 2 and 3 were): add its terrain; add its
+outgoing `LoopSegment`s (`section = n`) after the previous section's
+outgoing segments in the `Loop`, the first starting where the previous
+section's loop ends (behind its gate), then its slide (`kind = return`,
+with the section's own gate as `gate_id`, none for the last section)
+ending at the start of the loop, joining the previous slide's tail; place
+its things with `s<n>.` IDs; extend the tests' expected IDs and the
+fixtures (`tools/make_fixture.gd`).
 
 ## Slimes
 
@@ -1572,7 +1581,18 @@ pace (`Offscreen.pace(size)`: a hop's reach per mean hop interval, about
   a big slime stopped there (section 3's ramp, 2.3 screens in section 1)
   and was lost as stalled 60 s later; uphill it ran up to 3.5 times too
   fast. `tests/unit/test_offscreen_slopes.gd` and
-  `tests/e2e/test_offscreen_slopes_e2e.gd` cover it;
+  `tests/e2e/test_offscreen_slopes_e2e.gd` cover it.
+  Single file (chunk 16): a parked train slime never moves closer than the
+  two slimes' widths (ring radius plus `EDGE`, each) behind the train slime
+  ahead of it along the loop, parked or simulated; it waits there, as on
+  screen it would bump into it (`Offscreen._train_room`, from the distances
+  at the start of the tick, so the order doesn't matter; on one spot the
+  higher id is ahead). Before, a parked slime faster than the one ahead (at
+  the slide's speed behind one sliding slower on screen, or a bigger slime's
+  pace) ran through it; the two came back on screen on one spot, where two
+  rings never come apart, and crawled, blocking the train behind them until
+  one was lost as stalled (found by the DoD 1 test from `gate1-open`).
+  `tests/unit/test_offscreen_single_file.gd` covers it;
   over an open trapdoor it drops into that basket's box, in the first clear
   slot of a grid its own width plus `SLOT_GAP` (4 px) apart, bottom row
   first. Baskets so keep counting weight off screen; the reward and firing
@@ -1660,42 +1680,11 @@ ms/tick). `tools/bench_slimes.gd` is unchanged by design (it settles only
 moving 10.796; mix still 12.865, moving 12.300 (before: 10.494, 10.077,
 11.773, 11.161; the spread is run-to-run noise).
 
-**The whole level, 200 slimes (chunk 16).** `tools/bench_level.gd` runs
-`Simulation.step` as the game does (the view follows the camera, off-screen
-simulation on, no input) and times every tick:
-
-```sh
-godot --headless --path . -s res://tools/bench_level.gd  # -- --ticks=600
-```
-
-- `start`: the level as new (the first slime and 199 sleepers), the camera
-  at the start; 600 ticks untimed first.
-- `stress-still`: the fixture, the camera where it puts it (the bowl, zoom
-  0.5); timed from tick 670, when the loaded pile rests, and over before the
-  idle camera's cue (35 s without a touch) changes the zoom. The script
-  prints `camera_steady=true` when the zoom and the rails held throughout.
-- `stress-moving`: the fixture, the camera on the bowl; 60 ticks untimed
-  (the rings take shape from the saved centres), then the train climbing out
-  of the bowl. Train slimes fuse on the way, so the bodies drop (200 to 137;
-  138 before chunk 16d's terrain corner fix) while the base slimes stay 200.
-
-One run, 2026-09-29, same machine (Ryzen 5 PRO 8640HS, Godot 4.7.2,
-headless; another Godot process was running a test suite alongside, so
-treat the numbers as a little high), 600 timed ticks each:
-
-| Case | Base slimes | Bodies | Median ms/tick | p95 ms/tick | Mean ms/tick | Notes |
-|---|---|---|---|---|---|---|
-| `start` | 200 | 200 | 1.067 | 1.315 | 1.117 | 196 parked |
-| `stress-still` | 200 | 200 | 1.422 | 1.832 | 1.491 | the 140 in the bowl resting all along, basket 3's 60 parked |
-| `stress-moving` | 200 | 200 to 138 | 15.398 | 19.695 | 15.870 | 1 parked; fusing as it goes |
-
-The first reading of `stress-still` (8.5 ms/tick, a scratch probe right after
-loading, before 16b) was the pile not resting yet; resting, it costs about
-as much as the level's start. `stress-moving` is the worst moving case, a
-measurement rather than a target (D96): beyond what normal play produces.
+**The whole level, 200 slimes.** `tools/bench_level.gd` and its numbers
+are in "Test level sections 2 and 3, full population (chunk 16)".
 
 **Tests.**
-- `tests/unit/test_offscreen.gd` (20 tests, synthetic level): parking and
+- `tests/unit/test_offscreen.gd` (21 tests, synthetic level): parking and
   the margins, the train pace and the loop, dropping into a basket and the
   clear slot, the route back and single file, left alone and lost, never
   lost on screen, zoomed-out detail, the call and tilt wakes, saves, same
@@ -1712,6 +1701,10 @@ measurement rather than a target (D96): beyond what normal play produces.
   at 600, lost at 4200 to the loop start; followed, never lost), the camera
   coming back, a save keeping the state, same hash in process and in a
   child process.
+- `tests/unit/test_offscreen_single_file.gd` (4 tests, synthetic level;
+  chunk 16): parked train slimes keep single file: off the slide behind a
+  slower one, a bigger one behind a smaller one, two on one spot coming
+  apart, and a parked one behind a simulated one between the margins.
 - `tests/e2e/test_offscreen_slopes_e2e.gd` (1 test, game scene, chunk
   16s): from `gate2-open`, a size-3 train slime spawned at 12.9 screens
   with the camera on the start basin stays parked and moves on at least
@@ -1730,6 +1723,261 @@ step and shelf. The off-screen pace is an ideal pace (no stalls). Queued
 proxies whose place is before the route's start wait at its start. When a
 basket has no clear slot left, the slot falls back to the top row's centre
 and can overlap.
+
+## Test level sections 2 and 3, full population (chunk 16)
+
+Build plan chunk 16 (`req_level_design_rules` and the level rule atoms,
+`req_scope_one_level_four_sections`, `rule_max_200_slimes_per_level`,
+`req_test_level_and_test_mode`): section 3 in greybox, the full population
+of 200 base slimes, the fixtures for the whole loop, the level rules
+checked over the whole level, DoD 1 over the whole level, and the tick cost
+measured. Section 2 came with chunk 15 ("Off-screen simulation (chunk
+15)"). Sub-steps: 16a/16b (section 3, the population, the fixtures), 16s
+(the off-screen stall), 16c-A (the level rule tests, the bench), 16d (the
+terrain-contact fix, the cave's framing zone), 16c-B (the DoD 1 test, the
+parked train slimes' single file, these notes).
+
+**Section 3, Big bowl (greybox).** `tools/greybox_test_level.gd`
+(`_build_section_3`, the `S3_*` tables, `_on_ledge`), regenerated into
+`levels/test/level.tscn`:
+
+- the loop: from gate 2 (12.66 screens) down the entry ramp (13.0 to 13.6),
+  across the bowl's floor (13.6 to 15.05, ground y 100), up the far wall
+  (15.05 to 15.62) to the plateau (ground y -120), over basket 3's trapdoor
+  to slide 3's entrance at 16.4 (loop y -144). `s3.slide`, the level's last
+  return route (no gate), drops down a chute at 16.4 and runs back under
+  sections 2 and 1, joining slide 2's and then slide 1's tail; section 2's
+  pillar 2 was taken out to make room;
+- the terrain: `S3Crust`; two flat ramp ledges (y -210 and -160); six
+  shelves floating in the bowl, three tiers a side (tops about -90/-105,
+  -250/-265, -410/-425, tilted down toward the bowl's middle); the rim over
+  the far wall and the plateau (15.05 to 16.19, top -300 to -310); all
+  25 px thick;
+- 130 sleepers `s3.sleeper.01` to `.130` (numbered left to right; three
+  digits past 99, so sort them by number, not as text): 10 E on the ramp
+  ledges, 15 on each shelf and 30 on the rim, species cycling A E B E C D;
+- frontier set 3: signpost `s3.signpost` (15.62), switch `s3.switch`
+  (15.67), basket `s3.basket` (centre 16.01, 0.58 screens by 220 px, pit
+  floor y 100, quota 60, no rule: the celebration is its target; outlet a
+  point 200 px before slide 3's entrance), trapdoor 15.72 to 16.3; no gate;
+- framing zones `s3.frame.bowl` (centre 14.375, 1.85 screens wide, zoom
+  0.5) and `s3.frame.basket` (centre 15.875, 1.15 screens, zoom 0.8);
+- three exploration branches with their routes back into the bowl:
+  `s3.branch.left-shelves`, `s3.branch.right-shelves`, `s3.branch.rim`
+  (`s3.route-back.*`), in groups Bowl/LeftShelves, Bowl/RightShelves and
+  Bowl/Rim.
+
+16d added `s2.frame.cave` to section 2 (Section2/Cave; centre 11.25
+screens, y -150, 1.3 screens by 500 px, zoom 0.7, offset (0, -140)): on the
+rails from 10.6 to 11.9 the view spans y -767 to 159, the loop and the
+cave pocket's 14 sleepers (y -724) at once (rule 9). It stays clear of
+`s2.frame.gate` and above O65's 0.6 floor.
+
+**Population.** 1 first slime (A) and 199 size-1 sleepers:
+
+| Section | A | B | C | D | E | Total |
+|---|---|---|---|---|---|---|
+| S1 (first slime included) | 10 | 9 | 11 | | | 30 |
+| S2 | 7 | 7 | 7 | 19 | | 40 |
+| S3 | 20 | 20 | 20 | 20 | 50 | 130 |
+| Level | 37 | 36 | 38 | 39 | 50 | 200 |
+
+**Fixtures** (the table in "Fixtures"): `gate1-open`, `gate2-open` (added:
+the whole loop), `stress-still` and `stress-moving` are new; `bump` was
+rebuilt with two size-2, one size-3 and one size-1 C train slime on the
+dip's floor (both bumps, 2 + 2 and 3 + 1, on seeds 1 to 8, never a
+fusion). `stress-still` is the slow one to build (see "Fixtures"): size-1
+slimes don't stack, so a 140-slime pile spreads for about a minute before
+it rests; the builder settles it at the zoomed-out detail its camera shows,
+reloads it and settles it again 6 times, and keeps the state whose reload
+rests soonest (670 ticks today). Every fixture is regenerated when the
+level changes.
+
+**The level rules over the whole level** (numbered as in
+`specs/level-design.md`):
+
+- `tests/e2e/test_level_rules.gd`: rule 11 (S1 A, B, C; each later section
+  adds one), the species total (3 + sections - 1: the test level's 3 give
+  5, v1's 4 would give 6), rule 9 (every exploration branch shows a sleeper,
+  or for the high step the top of its route back, in a settled rail view of
+  its section, framing zones included), rule 3 (in every gate state the
+  section's slide takes the frontier back to the start, every segment joins
+  the next), rule 5 (the dips at 2.5 to 3.5 and 10 to 10.5 are at least
+  80 px below both rims).
+- `tests/e2e/test_level_ways_back_e2e.gd`: rules 7 and 8 by behaviour. From
+  both ends of every row of sleepers (58 spots), with the level as the loop
+  first reaches that section (`fresh`, `gate1-open`, `gate2-open`) and every
+  other slime taken out, the sleeper's slime is made free and heading back,
+  and must rejoin the train within 70 s (left alone, then lost). Slowest
+  after 16d: section 1 17.7 s, section 2 46.4 s (the cave's route), section
+  3 26.6 s. About 11 s.
+- `tests/e2e/test_level_dod1_e2e.gd`: rules 1 and 2 and DoD 1 (below).
+- Already covered: rules 4, 6, 8, 12, 13 and 16 to 19 by
+  `test_test_level.gd` and `test_frontier_level.gd` (tags added in 16c-A:
+  `rule_max_200_slimes_per_level`, `rule_framing_zone_wherever_wider_view_needed`,
+  `rule_gate_opens_via_switch_basket_set`); rule 15 by `test_frontier_sets.gd`
+  and `test_frontier_e2e.gd` (and over a session by the DoD 1 test); rule 10
+  (nothing needs tilt) by `test_frontier_level.gd` and `test_tilt_e2e.gd`;
+  rule 14 (no exploration on the slides yet) by `test_frontier_level.gd`;
+  rule 20 by `test_level_registry.gd` and `test_test_level.gd`.
+- Not tested: rule 21 (every interactive object below the parent zone at
+  the rails' framing, D111) comes with build plan item 23.9. Rule 16's
+  "piles mostly still" is measured (the bench), not asserted.
+
+**The off-screen stall (16s).** A parked size-2 or size-3 train slime
+stopped on a downhill stretch and was lost as stalled: its centre was
+lifted straight up and projected behind its progress. `Offscreen` now moves
+the progress itself and lifts the centre along the loop's normal (see
+"Off-screen simulation (chunk 15)").
+
+**Terrain contact at sharp corners (16d).** Seven sleeper spots broke
+rule 7 (the dip hollows, the hills' bumps 2, 4 and 6): a heading-back slime
+stayed stuck. The cause was the terrain contact, not the heading-back aim:
+at a sharp convex corner both segments are equally near, and when the
+other face's segment was listed first a wedge outside the corner counted
+as inside, so ring points passing there were pulled onto the corner. Now
+a vertex's own normal (the mean of its two segments') decides there, in
+`TerrainSegments.resolve` and `SlimeBodies._solve_against` (see "Terrain
+contact"). No level tweak was needed. It changed `stress-still`'s settling
+(its reloads rest in 670 to 910 ticks, were under 600) and
+`test_tilt_e2e.gd`'s neutral-tilt comparison (15 s instead of 20: the
+called slime now reaches the call point and is back on the train by 19 s).
+
+**Parked train slimes keep single file (16c-B).** Found by the DoD 1 test:
+a parked train slime going faster than the one ahead ran through it, and
+the two came back on screen on one spot, where two rings never come apart.
+Now a parked train slime waits a slime's width behind the train slime ahead
+(see "Off-screen simulation (chunk 15)").
+
+**Tick cost: the whole level, 200 slimes.** `tools/bench_level.gd` runs
+`Simulation.step` as the game does (the view follows the camera, off-screen
+simulation on, no input) and times every tick:
+
+```sh
+godot --headless --path . -s res://tools/bench_level.gd  # -- --ticks=600
+```
+
+- `start`: the level as new (the first slime and 199 sleepers), the camera
+  at the start; 600 ticks untimed first.
+- `stress-still`: the fixture, the camera where it puts it (the bowl, zoom
+  0.5); timed from tick 670 (`REST_TICK`), when the loaded pile rests, and
+  over before the idle camera's cue changes the zoom. The script prints
+  `camera_steady=true` when the zoom and the rails held throughout.
+- `stress-moving`: the fixture, the camera on the bowl; 60 ticks untimed
+  (the rings take shape from the saved centres), then the train climbing out
+  of the bowl. Train slimes fuse on the way, so the bodies drop while the
+  base slimes stay 200.
+
+Runs on the same machine (Ryzen 5 PRO 8640HS, Godot 4.7.2, headless),
+600 timed ticks each. 16c-A ran beside a test suite (a little high); 16d
+and 16c-B ran alone:
+
+| Case | Base slimes | Bodies | 16c-A median (p95) | 16d median (p95) | 16c-B median (p95), mean | Notes |
+|---|---|---|---|---|---|---|
+| `start` | 200 | 200 | 1.067 (1.315) | 0.962 (1.008) | 0.980 (1.027), 0.991 | 196 parked |
+| `stress-still` | 200 | 200 | 1.422 (1.832) | 1.323 (1.396) | 1.329 (1.399), 1.338 | the 140 in the bowl resting all along, basket 3's 60 parked |
+| `stress-moving` | 200 | 200 to 137 | 15.398 (19.695) | 15.094 (18.904) | 14.821 (18.599), 15.385 | 1 parked; fusing as it goes (138 bodies left before 16d) |
+
+All in ms per tick. The single file (16c-B) orders the train slimes with a
+native sort: a first version with `sort_custom` cost about 1 ms a tick in
+`stress-moving` (200 train slimes, one parked).
+
+`stress-still` resting costs about as much as the level's start (a first
+reading of 8.5 ms/tick, before 16b, was the pile not resting yet).
+`stress-moving` is the worst moving case, a measurement rather than a
+target (D96): beyond what normal play produces.
+
+**DoD 1 over the whole level** (`tests/e2e/test_level_dod1_e2e.gd`, 4
+tests). A 15-minute session with no input, through the game scene and test
+mode (off-screen simulation on, the camera left to itself, so the idle
+camera follows the train), from `gate2-open` and from `gate1-open` (20
+train slimes each), checked every 30 ticks: no train slime's progress goes
+back; no gate closes, no basket's phase goes back, no switch flips, the
+train's open gates never shrink; the level keeps its 200 base slimes;
+nothing is in the train's lost log (stalled, out of bounds) nor in the
+off-screen one; every train slime makes at least 2 laps. The run repeats:
+a second in-process run gives the same hash at 2 minutes, and a child
+process (`--test-mode --seed= --fixture= --run-ticks=54000`, started first
+and run alongside, its pipe drained as the test goes) gives the same hash
+at 15 minutes. Then every size laps the whole loop: from `gate2-open` with
+its train slimes taken out, a size-1 A, a size-2 B and a size-3 C (so they
+don't fuse) each complete a lap, once with the camera left to itself (so
+partly off screen) and once with the camera held on the size-3 slime.
+The file takes about 4.5 minutes (275 s alone: the sessions 91 s from
+`gate2-open` and 101 s from `gate1-open` in process, plus the 2-minute
+rerun, the child running alongside; the laps 28 s and 30 s, each size
+lapping in 21 000 to 23 500 ticks, about 6 minutes of play). It is the
+slowest test file; if the suite's time matters, it is the one to run apart.
+
+**DoD 1 does not hold yet: the start basin jams.** On seed 2 both sessions
+lose a train slime as stalled; probes on seeds 1 to 4 and 16 lost one in 5
+of 10 sessions (`gate2-open`'s seed 16 ran before the single file) (`gate1-open` about 4 min in, `gate2-open` about 11 min in),
+always in the start basin. The session tests are pending
+(`KNOWN_BREAKS`): they check that this is the only break (nothing else goes
+back, every loss is a stall in the start basin) and the repeatability, and
+fail once the basin no longer jams, so the entry must then be taken out.
+The cause, from traces of the lost slimes:
+
+- the placeholder slide's tail runs back along the basin floor (0.62 to
+  0.3 screens, `SLIDE`), over the loop's first stretch (0.3 to 0.58,
+  `LOOP_START`) the other way. Each slime coming home is carried left at up
+  to the slide's speed and shoves the train slimes heading right for the
+  rise back toward the loop's start, 100 to 250 px at a time. With 20
+  slimes one comes home every 15 to 20 s;
+- slimes queued in the basin fuse (mostly A: the first slime and the
+  section's A sleepers) past the split zone (which ends at 0.4), under the
+  first sleeper's ledge (`FirstLedge`, 0.44 to 0.52, underside y 420, 80 px
+  over the floor). A size-3 slime there can't hop (its ring is 78 px wide)
+  and crawls: alone, from 0.43 screens it made 37 px in 20 s (a size 2
+  325 px, a size 1 1213 px); from 0.52 it goes on normally. Rule 2 breaks
+  there;
+- a slime shoved back behind its recorded progress (which never goes back)
+  has to pass that point again before its stall count restarts; behind a
+  crawling fused slime, or shoved back again, it doesn't within 60 s and is
+  lost as stalled.
+
+Widening the split zone to just short of the rise (0.57) removed the crawl (seed 2's
+`gate1-open` session then held) but not the shoving (seed 16's lost a slime
+at 10.4 min). A fix is a level-design call (spec-writer): end the slides
+somewhere that doesn't cross the loop's start (for example into the basin
+from its left), lift `FirstLedge` or widen the split zone under it; it also
+bears on O22 (how the real level brings slimes home). The train's stall
+rule (`Train.LOST_STALL_*`) is chunk 6's placeholder and is not changed.
+
+**Known problems still open.**
+- The start basin jam above (DoD 1, rules 1 and 2).
+- On screen, woken bowl slimes crowd: a rejoin probe lost 6 train slimes to
+  stalls and left one free slime stuck at 14.57 screens, y 26; 40 size-1
+  slimes in the bowl for 5 min lost 0, 1, 0 on seeds 1 to 3.
+- Reach: ramp ledge 1 (y -210) and the upper shelves only by a size 2 or 3;
+  the rim only by a size 3 from the plateau's right end (16.3 to 16.4).
+- Big piles outside a basket rest slowly: the rest rule's anchor is where
+  the count started, so in a large touching group of size-1 slimes (which
+  don't stack) some member always creeps past 1 px until the whole pile has
+  stopped spreading. Kept for v1 and revisited in chunk 22 (O87, D107).
+- A centre can end up inside a terrain outline when a ring hits the end of
+  a floating piece thinner than the 32 px `TerrainSegments` needs (the
+  level's are 20 to 25 px): its points end up on both faces. No spot of the
+  level triggers it since 16d; pieces of 32 px or more would remove it
+  (O91, D100).
+
+**Deviations from `specs/levels/test/README.md`** (for spec-writer):
+- `s2.frame.cave` (16d, above) is not in the README's framing-zone table,
+  its stable IDs, or `specs/tuning.md`'s zone values.
+- `stress-still` rests about 670 ticks (11 s) after loading since 16d; the
+  README says about 8 s.
+- Rule 1 and rule 2 in its rules checklist ("the loop and slides need no
+  input", "every size takes the same loop") don't hold in the start basin
+  (above).
+
+**Running.**
+```sh
+godot --headless --path . -s res://tools/greybox_test_level.gd   # the level
+godot --headless --path . -s res://tools/make_fixture.gd         # all fixtures
+godot --headless --path . -s res://tools/make_fixture.gd -- stress-still
+godot --headless --path . -s res://tools/bench_level.gd          # tick cost
+tools/test.sh -gdisable_colors -gselect=test_level_dod1_e2e      # DoD 1
+```
 
 ## Sessions (chunk 17)
 
@@ -2091,12 +2339,14 @@ save `<name>.json` in the hand-made form above.
 | `s2-cave-return` | Gate 1 open; 3 free size-1 slimes (A, B, C, the cave pocket's sleepers) on the cave tunnel's first shelf, down its route back; the camera on the start basin: off screen they follow the route back, are left alone at 10 s and rejoin the train (DoD 5) |
 | `lost` | The fresh level with one free size-1 D (a parade sleeper) on the parade's first ledge beyond closed gate 1, with no route back or loop near: left alone at 10 s, lost at 70 s and moved to the start of the loop (DoD 5) |
 | `gate1-open` | Gate 1 open as after basket 1 fired (switch 1 inert, slide 1 shut): the loop runs into section 2. 20 size-1 train slimes (the first slime and `s1.sleeper.01` to `.19`) spread along the outgoing loop from 60 px past the split zone to 400 px before its end; the other 180 asleep; the camera at section 2's start (8.3 S) |
-| `gate2-open` | Gates 1 and 2 open as after baskets 1 and 2 fired (slides 1 and 2 shut): the loop runs through section 3 to slide 3. The same 20 train slimes, spread along the whole outgoing loop; the camera at section 3's start (13.0 S). Added for the whole loop (not in the test level README) |
+| `gate2-open` | Gates 1 and 2 open as after baskets 1 and 2 fired (slides 1 and 2 shut): the loop runs through section 3 to slide 3. The same 20 train slimes, spread along the whole outgoing loop; the camera at section 3's start (13.0 S). Added in chunk 16 for the whole loop (DoD 1) |
 | `stress-still` | Gates 1 and 2 open, all 200 base slimes woken, none left asleep: 60 size-1 slimes in basket 3 (switch 3 flipped, the basket full, waiting to be in view: out of it, they park), and 140 piled at the bottom of section 3's bowl, asleep at bedtime (a session at bedtime: outside a basket, a pile rests only asleep); the camera on the bowl (its framing zone zooms to 0.5, so the rings are zoomed-out). The pile comes to rest about 670 ticks (11 s) after loading and stays resting (the worst still case on one screen; see below) |
 | `stress-moving` | Gates 1 and 2 open, all 200 base slimes as size-1 train slimes spread through section 3's bowl from its bottom up (the floor, the slopes, the shelves; x 13.5 to 15.33 S, inside the view), each following the loop from its nearest point; the camera on the bowl. The worst moving case: a measurement, not a target (D96) |
 
 To make or remake them: `godot --headless -s res://tools/make_fixture.gd`
-(all) or `... -- bump` (one). Each fixture is a builder function in the
+(all) or `... -- bump` (one). `gate1-open`, `gate2-open`, `stress-still`
+and `stress-moving` came with the whole level (chunk 16); `gate1-open` and
+`gate2-open` start the DoD 1 sessions (`tests/e2e/test_level_dod1_e2e.gd`). Each fixture is a builder function in the
 tool that sets up a simulation on the test level and saves it; the tool
 looks the stable IDs up in the level scene and checks the save loads back.
 To add one, add an entry to `FIXTURES` and its builder. Fixtures follow
@@ -2364,295 +2614,3 @@ adb logcat -v time -s godot:*
   throttles after ~4.5 minutes: short of 60 fps without native code. The
   blend costs ≤ 5 ms of GPU at full-resolution fields, 2.6 ms at half.
   Reported for spec-writer as the D94 native-contingency trigger.
-
-## Chunk 16 in progress (hand-off 2026-09-28, 16b, 16c part A and 16d 2026-09-29)
-
-Chunk 16 ("Test level sections 2 and 3, full population") stopped part-way
-at the end of a session; sub-step 16b (the fixtures right, the suite green
-with the full population) followed. This section is the hand-off: fold it
-into a proper "Chunk 16" section (and the "The test level" and "Fixtures"
-text) when the chunk closes.
-
-**Done.**
-- Section 3 "Big bowl" greybox in `tools/greybox_test_level.gd`
-  (`_build_section_3`, S3_* constants, `_on_ledge`), regenerated into
-  `levels/test/level.tscn` (loads with no errors):
-  - loop: from gate 2 (12.66) down the ramp (13.0 to 13.6), across the bowl
-    floor (13.6 to 15.05, ground y 100), up the far wall (15.05 to 15.62,
-    ground y -120), over basket 3's trapdoor to slide 3's entrance at 16.4
-    (loop y -144); `s3.slide` drops down a chute at 16.4 and runs back under
-    sections 2 and 1 (`S3_SLIDE` + slide 2's tail + slide 1's tail); pillar 2
-    removed from section 2 to make room.
-  - terrain: `S3Crust`, 2 ramp ledges (-210, -160), 6 shelves (3 per inner
-    wall, tops about -90/-105, -250/-265, -410/-425, tilted inward), the rim
-    (15.05 to 16.19, top -300 to -310, over the far wall's plateau),
-    25 px thick.
-  - 130 sleepers `s3.sleeper.01` to `.130` (A 20, B 20, C 20, D 20, E 40):
-    ramp ledges 10 E, shelves 90 (15 each, species cycle A E B E C D), rim 30
-    (0.038 S apart); level total 200 (1 first slime + 199 sleepers).
-  - frontier set 3: signpost `s3.signpost` (15.62), switch `s3.switch`
-    (15.67, y -144), basket `s3.basket` (centre 16.01, 0.58 S x 220, pit
-    floor y 100, quota 60, `on_full_object` "" so no rule, outlet "point"
-    200 px before slide 3's entrance), trapdoor 15.72 to 16.3; no gate.
-  - framing zones `s3.frame.bowl` (centre 14.375, 1.85 S x 500, zoom 0.5)
-    and `s3.frame.basket` (centre 15.875, 1.15 S x 400, zoom 0.8).
-  - 3 exploration branches with routes back into the bowl:
-    `s3.branch.left-shelves`, `s3.branch.right-shelves`, `s3.branch.rim`
-    (and `s3.route-back.*`), in groups Bowl/LeftShelves, Bowl/RightShelves,
-    Bowl/Rim.
-- Fixtures, in `tools/make_fixture.gd`, all regenerated
-  (`levels/test/fixtures/`):
-  - `bump` rebuilt: four C train slimes, sizes 2, 2, 3, 1 at x 2.95, 3.0,
-    3.05, 3.1 screens on the dip's floor, made of the 8 C sleepers nearest
-    the dip. A scratch probe (before the sleepers were removed) gave, seed 5,
-    20 s, camera (3456, 150): 2+2 twice, 3+1 six times, no fusion.
-    Rechecked on the fixture in 16b (below).
-  - new `gate1-open` (gate 1 open, the first slime and s1.sleeper.01 to .19
-    as size-1 train slimes spread along the outgoing loop from 60 px past
-    the split zone to 400 px before its end; camera (8.3 S, -124)).
-  - new `gate2-open` (added, not in the README table: gates 1 and 2 open,
-    same 20 slimes along the whole loop; camera (13.0 S, -44)).
-  - new `stress-still`: gates 1 and 2 open, all 200 base slimes woken: 60 in
-    basket 3 (phase full, waiting out of view), 140 piled at the bowl's
-    bottom, asleep at bedtime (a session at bedtime), settled until it rests
-    (16b, below); camera on the bowl (zoom 0.5).
-  - new `stress-moving`: gates 1 and 2 open, all 200 as size-1 train slimes
-    through the bowl, lowest spots first (`_bowl_spots` scans the terrain in
-    50 px columns); camera on the bowl.
-  - `s2-basket-offscreen`'s description: the celebration now waits for
-    basket 3.
-- Parse checks: `godot --headless --path . --check-only --script
-  tools/make_fixture.gd` and `... tools/greybox_test_level.gd`, both exit 0.
-- 16b, `stress-still` rests. Why it didn't: size-1 slimes don't stack (a
-  pyramid of them flattens into one row), so the 140-slime pile, stacked
-  3 deep and up the ramp, kept spreading: every slime still crept 0.5 to
-  1.5 px/s after 30 s. The rest rule needs every member of a touching group
-  within `REST_DRIFT` (1 px) of its anchor for `REST_TICKS` at once; in one
-  140-member group some member always crossed its 1 px, so the group never
-  rested (a probe: none of the 140 rested in 2100 ticks). Also, the pile was
-  settled at full detail, but the fixture's camera (the bowl's framing zone,
-  zoom 0.5) switches every ring to the zoomed-out count on loading, and a
-  fixture keeps only centres, so the pile started over from round bodies
-  anyway. The rest rule is not changed (it behaves as documented). The
-  builder now settles the pile at the zoomed-out detail until every slime
-  rests (at most 2 min; it rests at about 64 s), reloads it from its save
-  and settles it again 4 times, and keeps the state whose reload rests
-  soonest; loaded in the game the pile rests at tick 490 and stays resting.
-  The bowl's columns now run from 13.5 to 15.33 S (were 13.05 to 15.55), in
-  the view (13.375 to 15.375 S at zoom 0.5); the settled pile spreads left
-  to the view's edge (its last two centres within 30 px past it).
-  `stress-moving` regenerated with the new columns. The other fixtures
-  regenerate byte for byte.
-- 16b, `bump` rechecked on the fixture itself (camera on the dip, 20 s):
-  seed 5: 2 + 2 once, 3 + 1 six times, 3 + 2 once, no fusion; seeds 1 to 8:
-  2 + 2 one to three times and 3 + 1 six times on every seed, never a
-  fusion. No change needed.
-- 16b, tests updated to the new level (each was an old expectation, not a
-  code bug):
-  - `test_test_level.gd`: extended to section 3: every stable ID of sections
-    1 to 3 (the s3 stub IDs replaced), section 3's 130 sleepers by species
-    (A 20, B 20, C 20, D 20, E 50) in 12.66 to 16.5 S, the level's 200 base
-    slimes (A 37, B 36, C 38, D 39, E 50), sleepers numbered left to right
-    (["s3", 130]), 6 branches and 6 routes back (with route_back_for), tap
-    targets sleepers + 6, frontier set 3 (switch 15.67, basket 16.01,
-    signpost 15.62, quota 60, no rule, no gate), framing zones `s3.frame.bowl`
-    (14.375, zoom 0.5) and `s3.frame.basket` (15.875, zoomed out).
-  - `test_sleepers_e2e.gd`: 199 sleepers, species A 36, B 36, C 38, D 39,
-    E 50.
-  - `test_frontier_level.gd`: three switches and baskets, still two gates
-    and two rules (set 3 has neither).
-  - `test_frontier_e2e.gd`: basket 2 firing (from `s2-basket-offscreen`) is
-    no longer the celebration; the celebration test now starts from
-    `stress-still` (basket 3 full) with the camera on basket 3.
-  - `test_fixtures_e2e.gd`: bump is five awake, four C sizes 2, 2, 3, 1
-    left to right, 0.05 S apart; new load checks for `gate1-open`,
-    `gate2-open` (gates, 20 train slimes, 180 sleepers, camera),
-    `stress-still` (200 awake, 60 in basket 3 full, 140 asleep at bedtime in
-    the bowl, the pile rests within 900 ticks and stays resting) and
-    `stress-moving` (200 train slimes in the bowl).
-  - `test_fusion_e2e.gd`: the bump fixture test replaced by one watching all
-    four for 20 s: a 2 + 2 and a 3 + 1 bump, nothing fused.
-
-- 16s, the off-screen stall fixed (was under "Known problems found"): a
-  parked size-2 or size-3 train slime stopped on a downhill stretch and was
-  lost as stalled. `Offscreen._train_proxy` now moves the progress itself
-  and lifts the centre along the loop's normal (see "Off-screen
-  simulation"). New tests `tests/unit/test_offscreen_slopes.gd` (4) and
-  `tests/e2e/test_offscreen_slopes_e2e.gd` (1), both failing before the
-  fix. No other expectation changed.
-
-
-**Done in 16c (part A).**
-- Level rule tests over sections 1 to 3, tagged by hand:
-  - new `tests/e2e/test_level_rules.gd`: rule 11 (S1 A, B, C; each later
-    section adds exactly one: D, then E), the species total 3 + sections - 1
-    (`req_scope_one_level_four_sections`: v1's 4 sections give 6; the test
-    level's 3 give 5), rule 9 (every exploration branch shows a sleeper, or
-    for the high step the top of its route back, in a settled rail view of
-    its section, framing zones included), rule 3 (in every gate state the
-    section's slide takes the frontier back to the start, and every segment
-    joins the next), rule 5 (the dips at 2.5 to 3.5 and 10 to 10.5 are at
-    least 80 px below both rims).
-  - new `tests/e2e/test_level_ways_back_e2e.gd`: rules 7 and 8 by behaviour.
-    From both ends of every row of sleepers (58 spots), with the level as
-    the loop first reaches that section (`fresh`, `gate1-open`,
-    `gate2-open`) and every other slime taken out, the sleeper's slime is
-    made free, heading back, and must rejoin the train within 70 s (left
-    alone, then lost). Slowest: section 1 24 s, section 2 46 s (the cave),
-    section 3 27 s. About 11 s.
-  - tags added on existing tests: `rule_max_200_slimes_per_level` (the
-    level's 200 in `test_test_level.gd`; the resting `stress-still` pile in
-    `test_fixtures_e2e.gd`), `rule_framing_zone_wherever_wider_view_needed`
-    (`test_framing_zones`), `rule_gate_opens_via_switch_basket_set` (one set
-    per section with its rule, `test_frontier_level.gd`).
-- `tools/bench_level.gd` and its numbers (above, "Tick cost").
-- Rule breaks the tests found, kept visible as GUT *pending* results rather
-  than failures (each list, `KNOWN_HINTLESS` and `KNOWN_STUCK`, is checked
-  to still break the rule, so a fixed entry must be taken out); all fixed
-  in 16d (below), both lists now empty:
-  - rule 9, `s2.branch.cave`: the pocket's 14 sleepers sit at y -724, above
-    every rail view of section 2 (their top is about y -488 at zoom 1), and
-    no framing zone widens the view there.
-  - rule 7, the dip hollows (`s1.sleeper.14`, `.15`, `s2.sleeper.15`,
-    `.16`): a slime heading back aims at the loop far below and its hop is
-    too flat to clear the hollow's 20 px lip; it stays in the hollow.
-  - rule 7, the hills' bumps 2, 4 and 6, whose tops rise the way the loop
-    runs (`s1.sleeper.04`, `.08`, `.13`): the slime hops toward its high end
-    and snags on it (for `.04` its centre ends inside the 25 px slab's
-    outline). Tried and reverted: 60 px bumps and 10 px lips still left
-    `.08`, `.09`, `.14`, `.15`, `s2.sleeper.15`, `.16` stuck, so a level
-    tweak is not the whole fix; the heading-back aim (`FreeSlimes._way_back`)
-    is involved. (16d found it was not the aim: see below.)
-
-**Done in 16d (the rule breaks).**
-- Rule 7, the seven stuck spots: the cause was the terrain contact, not the
-  heading-back aim. At a vertex, inside or outside was the side of the
-  nearest segment's own normal; at a sharp convex corner both segments are
-  equally near, and when the other face's segment was listed first a wedge
-  outside the corner counted as inside. Ring points passing there were
-  pulled onto the corner: in a dip hollow the slime's hop cleared the 20 px
-  lip, but its ring was caught on the lip's corner and thrown back in; off
-  a bump's high end the slime drifted toward the next bump, was caught on
-  its top corner, thrown back at about 540 px/s into the first bump's end,
-  and its ring wrapped round that 25 px slab (the `.04` centre inside the
-  outline). Now a vertex's own normal (the mean of its two segments')
-  decides there, in `TerrainSegments.resolve` and in the solver
-  (`SlimeBodies._solve_against`); see "Terrain contact". `FreeSlimes` is
-  unchanged. With the fix, the 58 row ends all get back (slowest: section 1
-  17.7 s, section 2 46.4 s by the cave's route, section 3 26.6 s), and a
-  scratch sweep of all 199 sleepers' spots on seeds 1, 2, 3 and 909 left
-  none stuck. No level tweak.
-- Tests first, each failing before the fix: `test_terrain_segments.gd`
-  (points past a sharp corner are outside whichever segment is listed
-  first), `test_slime_physics.gd` (a ring falling past a sharp corner is
-  not caught on it; before, it was flung up to 470 px sideways),
-  new `tests/unit/test_heading_back.gd` (2 tests: a heading-back slime gets
-  out of a hollow with 20 px lips, and off a thin ledge's high end past the
-  next one, on synthetic worlds copied from the dip hollow and bumps 2 and
-  3). `KNOWN_STUCK` emptied.
-- Rule 9, `s2.branch.cave`: new framing zone `s2.frame.cave` in
-  `tools/greybox_test_level.gd` (Section2/Cave; centre 11.25 S, y -150,
-  1.3 S x 500 px, so the rail point frames it from 10.6 to 11.9 S; zoom 0.7,
-  offset (0, -140)): settled on the rails there the view spans y -767 to
-  159, the loop and the pocket's 14 sleepers (y -724) at once. It stays clear
-  of `s2.frame.gate` (12.2 to 13) and above O65's 0.6 floor (the tree's zone
-  has the same zoom). `KNOWN_HINTLESS` emptied; `test_test_level.gd` has the
-  new stable ID and checks the zone (centre, zoom between 0.6 and 1, shifted
-  up).
-- Level and fixtures regenerated. The level's only change is the new zone
-  (the rest of the `.tscn` diff is the builder's fresh `unique_id`s). Every
-  fixture but `stress-still` came out byte for byte. `stress-still` changed
-  with the physics: its reloads now rest in 670 to 910 ticks (were under
-  600), so the builder takes the best of 6 rounds (was 4) and allows 750
-  ticks (was 600); it rests at 670, the load test allows 900.
-  `tools/bench_level.gd`'s `REST_TICK` is 670 (was 490). Bench after the
-  fix (alone on the machine, 600 timed ticks): `start` 0.962 ms/tick
-  median (p95 1.008), `stress-still` 1.323 (1.396; the 140 resting
-  throughout), `stress-moving` 15.094 (18.904; 200 to 137 bodies), the
-  same or a little under the 16c-A table above (which ran beside a suite).
-- One test's setup changed with the physics: `test_tilt_e2e.gd`'s
-  `test_tilt_at_neutral_changes_nothing` now runs 15 s, not 20. It compares
-  a run with no tilt to one with tilt at neutral while the called slime is
-  still free; before the fix that slime never reached the call point (it
-  gave up at 8 s up by the lip's nose), and now it reaches it at about 4 s,
-  so it is back on the train at 19 s. What it tests is unchanged (and held
-  at 20 s too). `test_fixtures_e2e.gd`'s comment has the new 670.
-- How a centre ends up inside an outline (for O91 and D100's stuck state,
-  chunk 23): two ways seen. A ring point in the false wedge outside a sharp
-  convex corner was pulled onto the corner (fixed here); and the level's
-  floating pieces are 20 to 25 px thick, under the 32 px `TerrainSegments`
-  needs, so a point that gets more than half a piece's thickness in is
-  pushed out of the far face, and a ring that hits a thin piece's end hard
-  can end up with points on both faces and its centre inside. The second is
-  not fixed (no spot of the level triggers it once the corner fix is in);
-  thickening the pieces to 32 px or more would remove it.
-
-**Not done yet (in order).**
-1. A whole-level DoD 1 e2e (new file): 15 minutes from `gate2-open` (and
-   `gate1-open`), no input, progress never goes back, nothing lost, same
-   hash twice in process and in a child process
-   (`--test-mode --seed= --fixture= --run-ticks=`, as
-   `test_offscreen_e2e._run_child`); an all-sizes lap with the camera on the
-   slime.
-2. docs: the "Chunk 16" section (section 3 geometry, population table,
-   fixtures, rule tests, measurement), "The test level" (the "Fixtures"
-   table has the chunk 16 rows since 16b).
-
-**Known problems found.**
-- On screen, woken bowl slimes crowd: a rejoin probe lost 6 train slimes
-  to stalls and left one free slime stuck at (14.57, 26) (the known crowd
-  limitation). 40 size-1 slimes in the bowl for 5 min lost 0, 1, 0 on seeds
-  1 to 3.
-- Reach: ramp ledge 1 (-210) and the upper shelves only by size 2 or 3; the
-  rim only by a size 3 from the plateau's right end (16.3 to 16.4).
-- Big piles outside a basket rest slowly (16b): the rest rule's anchor is
-  where the count started, so a member that creeps even 0.5 px/s resets
-  while it waits for the rest of its group, and a large touching group of
-  size-1 slimes (which don't stack) rests only once the whole pile has
-  stopped spreading. Not a bug against the documented rule (dev docs:
-  "within 1 px of its anchor for 30 ticks"); `REST_DRIFT`'s own comment
-  says "where it was REST_TICKS ticks ago", which reads like a sliding
-  window. Worth a look in the performance pass: a bedtime pile in the open
-  may stay simulated for a minute.
-
-**Deviations from `specs/levels/test/README.md` to report.** The rim sits
-over the far wall's plateau (15.05 to 16.19), reached from the plateau's
-end, not "15 to 15.5 from the far wall"; sleeper IDs run to 3 digits
-(`.100` sorts before `.11`); the bowl has 3 exploration branches with routes
-back; basket 3's outlet is a point 200 px before slide 3; the shelves float
-inside the bowl; `gate2-open` is an added fixture; `stress-still` puts its
-140 bowl slimes asleep at bedtime (the only state besides a basket in which
-a pile rests), read as "awake" = woken, not sleepers. And in the README's population
-table the **S3** row gives E 40, but its area rows add up to E 50 (ramp 10,
-shelves 30, rim 10), which is what the level has and what the **Level** row
-(E 50, 200 in all) needs: the S3 row's E is a typo for 50 (for spec-writer).
-
-**Working tree.** The session's work is the WIP commit 199500d on branch
-`chunk-16-wip` (the level, the builder, all fixtures). 16b changed
-`tools/make_fixture.gd` (stress-still's settling, the bowl's columns), the
-`stress-still` save and sidecar and the `stress-moving` save, six tests
-(`test_test_level.gd`, `test_sleepers_e2e.gd`, `test_frontier_level.gd`,
-`test_frontier_e2e.gd`, `test_fixtures_e2e.gd`, `test_fusion_e2e.gd`) and
-this file (this section, the "Fixtures" table). (`CODING_RULE.md` at the
-root is untracked and not this chunk's.) 16d changed
-`src/sim/terrain_segments.gd` and `src/sim/slime_bodies.gd` (the vertex
-normals), `tools/greybox_test_level.gd` and `levels/test/level.tscn`
-(`s2.frame.cave`), `tools/make_fixture.gd` and the `stress-still` save
-(6 rounds, 750 ticks), `tools/bench_level.gd` (`REST_TICK`), the tests
-named in "Done in 16d" and this file.
-
-**Suite after 16b.** `tools/test.sh -gdisable_colors`: 58 scripts, 640
-tests, 640 passing, exit 0 (274 s). Before 16b: 632 tests, 11 failing, each
-an old expectation of the smaller level or the old `bump` (see "Done").
-After 16s: 60 scripts, 645 tests, 645 passing, exit 0 (285 s).
-After 16d: 63 scripts, 659 tests, 659 passing, none pending, exit 0 (292 s;
-16c-A's 3 pending results now pass, and 16d added 4 tests).
-
-**Resume.**
-```
-godot --headless --path . -s res://tools/greybox_test_level.gd   # the level
-godot --headless --path . -s res://tools/make_fixture.gd         # all fixtures
-godot --headless --path . -s res://tools/make_fixture.gd -- stress-still
-tools/test.sh -gdisable_colors                                   # full suite
-tools/test.sh -gdisable_colors -gselect=test_test_level          # one script
-```

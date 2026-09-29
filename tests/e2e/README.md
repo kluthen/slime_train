@@ -63,3 +63,15 @@ pattern; `scripts/` holds the JSON run files. How to write one:
   route; the gate on section 2's route and its lid over slide 1's
   entrance; a return route per section; every route back still ends on
   the loop with gate 1 open.
+- `test_level_rules.gd` and `test_level_ways_back_e2e.gd` (chunk 16) check
+  the level rules over the whole test level, sections 1 to 3: species per
+  section, hints seen from the loop, a slide back in every gate state, the
+  fusion dips; and, by behaviour, the way back to the train from both ends
+  of every row of sleepers (rules 7 and 8).
+- `test_level_dod1_e2e.gd` (chunk 16) runs DoD 1 over the whole level: a
+  15-minute session with no input from `gate2-open` and from `gate1-open`
+  (nothing goes back, nothing is lost, every slime laps; the same hash in a
+  second run and in a child process), then a size-1, size-2 and size-3
+  slime each lapping the whole loop, with the camera left alone and held on
+  the size 3. The sessions are pending while the start basin jams (see
+  `docs/dev/README.md`, chunk 16). About 4.5 minutes.
