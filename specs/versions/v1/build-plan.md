@@ -452,7 +452,8 @@ needs and its own done-when. It runs **after chunk 22**, so it doesn't
 disturb the performance measurement; an issue can be pulled forward if it
 blocks testing. Each issue is small (S) and can land on its own. An issue
 tagged **(proposed)** still waits for the user's approval; 23.1 to 23.9 are
-decided (D99 to D101, D103, D105, D109 to D111).
+decided (D99 to D101, D103, D105, D109 to D111, D113); 23.10 to 23.12
+come from the master spec's alignment with ux D4 and ux D5.
 
 **23.1 Call camera dead zone** (reported and decided 2026-09-29; D101;
 master spec 5.6).
@@ -569,6 +570,48 @@ rule 21). From the UX review (Q8).
   fully below the parent zone, on the whole test level.
 - **Done when:** the test passes on the test level and fails on a synthetic
   level with a switch under the band.
+
+**23.10 Showing a gate open** (master spec 5.6; ux D4, Q14). Not built:
+the camera never moves on its own when a basket fires.
+- When a basket fires and its gate is off screen, the camera glides to the
+  gate (about 1.5 s) to show it opening, then stays there under normal
+  control. Input stays live: a touch takes control back and does its
+  normal job. A gate already in view: nothing moves.
+- **Done when:** from `s1-basket-5of6` with the camera placed so gate 1 is
+  off screen, the basket fires and the camera ends with gate 1 in view
+  within about 1.5 s; a scripted tap during the glide calls and takes the
+  camera back; with gate 1 already in view the camera doesn't move; same
+  seed, same hash.
+
+**23.11 The celebration's lasting mark** (master spec 5.1; ux D4, Q15).
+Built: the 4 s burst of rings over the view, with input live and the camera
+left alone (nothing in chunk 14 blocks input or moves the camera). Not
+built: the lasting mark.
+- Once the celebration has played (the level's saved done mark), a small
+  lasting mark at the start of the loop shows the level is complete,
+  visible to anyone who passes, after a reload too. Its look is ux-writer's
+  (ux D4 names bunting as an example; placeholder art until then). Also
+  from ux D4: every awake slime on screen does a double hop during the
+  burst.
+- **Done when:** from `stress-still` (basket 3 full) the celebration plays
+  and the mark appears at the start of the loop; it is still there after a
+  save and reload, and absent on a level whose celebration hasn't played;
+  a tap during the celebration calls as usual and the camera doesn't move
+  on its own.
+
+**23.12 The idle camera at bedtime** (master spec 5.6; ux D5, Q18).
+Mostly built by the way chunk 13 picks its target: the idle camera starts
+only on a train slime, and at bedtime there are none, so it never starts;
+one already following keeps the id of a slime that is now asleep and
+doesn't move. What isn't checked: the cue or the follow in progress when
+bedtime begins.
+- At bedtime the idle camera follows no one and the camera travels
+  nowhere; it may settle at the idle zoom.
+- **Done when:** from `wind-down` with no input, the camera is idle when
+  bedtime begins and doesn't travel through the whole cooldown (its
+  position stays put; only the zoom may settle); the same with bedtime
+  beginning during the idle cue; at sunrise the idle camera follows a train
+  slime again.
 
 ### 5N. Native simulation tick (contingency, only if chunk 22 fails)
 
