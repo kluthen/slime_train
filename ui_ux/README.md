@@ -14,7 +14,9 @@ a tap at the top of the screen. The spec that fixes this behaviour is
 ## Status
 
 **Preparation only. There is no design yet.** The spec has been read and its
-interaction surfaces inventoried. Design work starts later, with the user.
+interaction surfaces inventoried. Every open interface question carries a
+proposed answer for the user to accept or change; none is decided. Design
+work starts later, with the user.
 The root is working toward v1. No version has been approved, so there is no
 `versions/` folder yet.
 
@@ -23,7 +25,7 @@ The root is working toward v1. No version has been approved, so there is no
 | Document | What it is for |
 |---|---|
 | `todo.md` | Where the work stands and what comes next. Read it first. |
-| `open-questions.md` | Unresolved questions, with stable IDs. |
+| `open-questions.md` | Unresolved questions, with stable IDs, each with a proposed answer pending the user. |
 | `decisions.md` | Append-only log of what was decided and why. |
 | `surface-inventory.md` | Every interaction surface the v1 spec implies, traced to persona goals and access-model operations. Input for the first design pass, not a design. |
 
