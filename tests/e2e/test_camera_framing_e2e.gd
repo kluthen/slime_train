@@ -6,7 +6,10 @@ extends GutTest
 ## presses stay inside it and a long hold leaves it. Left alone for 45 s the
 ## camera starts following the first slime, after a 10 s zoom-out cue; a tap
 ## takes the camera back and still calls. Screensaver mode starts on the idle
-## camera. A seeded run is repeatable.
+## camera. A seeded run is repeatable. The idle zoom never zooms in (item
+## 23.4, D103): in the tree's zone (zoom 0.7) the cue and the idle camera
+## keep its zoom; in section 2's gate zone (0.9, narrower) the cue zooms out
+## to the shared zoom as before.
 
 # @test-link [[req_camera_rails_and_framing]]
 # @test-link [[rule_framing_zone_wherever_wider_view_needed]]
@@ -206,3 +209,42 @@ func test_a_seeded_framing_and_idle_run_is_repeatable() -> void:
 		cameras.append(StateHash.canonical_json(game.simulation.dump()["camera"]))
 	assert_eq(hashes[0], hashes[1], "same seed, same presses: same hash")
 	assert_eq(cameras[0], cameras[1])
+
+
+# --- The idle zoom never zooms in (item 23.4, D103) ------------------------------------------
+
+## Puts the camera on the rails nearest `point`, framed by `zone` there at
+## once, and lets it idle 50 s with no input. Returns the highest zoom seen.
+func _idle_from(game: Node, point: Vector2, zone: String) -> float:
+	var sim: Simulation = game.simulation
+	sim.camera.start(sim.level.loop, sim.train.open_gates, point)
+	assert_eq(sim.camera.frame_zone, zone, "framed by %s" % zone)
+	var highest := sim.camera.zoom
+	for i in int((Camera.IDLE_SECONDS + 5.0) * TICK_RATE):
+		game.test_mode.run_ticks(1)
+		highest = maxf(highest, sim.camera.zoom)
+	assert_eq(sim.camera.mode, Camera.FOLLOW, "the idle camera took over")
+	return highest
+
+
+func test_in_the_tree_zone_the_cue_and_the_idle_camera_keep_its_zoom() -> void:
+	var game := _boot()
+	var sim: Simulation = game.simulation
+	var tree_zoom := float(sim.level.framing_zones[TREE]["zoom"])
+	assert_eq(tree_zoom, 0.7)
+	var highest := _idle_from(game, Vector2(TREE_MIDDLE_X, -80), TREE)
+	assert_true(highest <= tree_zoom, "the zoom never went above 0.7 (%.4f)" % highest)
+	assert_eq(sim.camera.zoom, tree_zoom, "the idle camera keeps the tree's zoom")
+
+
+func test_in_a_zone_narrower_than_the_idle_zoom_the_cue_zooms_out_as_before() -> void:
+	var game: Node = load(MAIN_SCENE).instantiate()
+	add_child_autofree(game)
+	assert_eq(game.enable_test_mode({"seed": SEED, "time_scale": 0, "fixture": "gate1-open"}), PackedStringArray())
+	var sim: Simulation = game.simulation
+	var zone := "s2.frame.gate"
+	var zone_zoom := float(sim.level.framing_zones[zone]["zoom"])
+	assert_gt(zone_zoom, Camera.IDLE_ZOOM, "a zone narrower than the idle zoom")
+	var box: Rect2 = sim.level.framing_zones[zone]["box"]
+	_idle_from(game, box.get_center(), zone)
+	assert_eq(sim.camera.zoom, Camera.IDLE_ZOOM, "the cue zoomed out to the shared zoom")

@@ -1024,7 +1024,8 @@ the distance left per second, never faster than `PACE` nor slower than
 moves exactly one `STEP`.
 
 **Call drag.** A call (`hit["call"]` in `_tap`) calls
-`camera.follow_call(point, tick)`: the camera leaves the rails and moves
+`camera.on_call(point, tick, view)`, which outside the call's dead zone
+(chunk 23C, below) calls `camera.follow_call(point, tick)`: the camera leaves the rails and moves
 toward the call point at `DRAG_PACE` (a fifth of a screen a second,
 230.4 px/s, "slow and steady"), for `DRAG_SECONDS` (the call's 8 s,
 counted in ticks as `FreeSlimes` counts it) or until a new call replaces
@@ -1145,7 +1146,7 @@ over the 1 s). Zones are entered freely.
 ### Idle camera and screensaver mode (chunk 13)
 
 Master spec §5.6, §5.7, DoD 19 (`req_idle_camera_and_screensaver_zoom`).
-`Camera.watch(slimes, touching, screensaver)` runs once a tick before
+`Camera.watch(slimes, touching, screensaver, bedtime)` runs once a tick before
 `step()`: `touching` is whether a finger is down (a finger held down counts
 all along), and `Simulation._apply_input` calls `camera.touched()` for every
 touch that counts, before the tap does its job. `quiet` counts the ticks
@@ -1178,7 +1179,14 @@ steers free slimes, it doesn't take the camera.
   open ground drags it toward the call. The idle clock starts again.
 - **One zoom.** `IDLE_ZOOM` = 1/1.15 (15 % wider than normal play, within the
   spec's 10-20 %) is the only zoom while following, in idle and screensaver
-  mode alike: it replaces a zone's zoom, it never stacks with one.
+  mode alike: it replaces a zone's zoom, it never stacks with one. It never
+  zooms in (chunk 23C, D103): where the camera is already wider (a zone
+  under 0.8696, like the tree's 0.7), the cue and the idle camera keep that
+  zoom (`_idle_zoom()`).
+- **At bedtime** (chunk 23C) the idle camera follows no one: `watch()`'s
+  `bedtime` drops the followed slime and the camera stays where it is
+  (`FOLLOW` with `follow_id` -1), and no idle camera starts; the cue may
+  still settle the zoom. At sunrise it follows the train slime nearest it.
 - **Screensaver mode.** `simulation.screensaver` (true: screensaver mode).
   Turning it on starts the idle camera at once, at `IDLE_ZOOM`, with no cue.
   A touch takes the camera back as above; it idles again after the usual
@@ -1189,7 +1197,8 @@ steers free slimes, it doesn't take the camera.
   (see "Sessions (chunk 17)"). It is a mode set from outside, so it is not in `Simulation.dump()` nor in saves; the
   camera's own dump records what it did (`screensaver` as last seen,
   `quiet`, `cue_from`, `follow_id`, `follow_species`, `follow_point`,
-  `frame_zone`, `frame_shift`, `zone_hold`).
+  `frame_zone`, `frame_shift`, `zone_hold`, and since chunk 23C
+  `show_distance`, `show_tick`).
 
 `camera.place()` (tests, debugging) also ends following, restarts the idle
 clock and frames the camera by the zone its centre is in.
@@ -1229,7 +1238,7 @@ through a fusion (either id) and a split (with `SlimeBodies` directly), a
 touch taking control back and restarting the clock, a touch stopping the
 cue, an edge press from following, zones ignored while following, framing
 resumed on touch only inside a zone, screensaver mode starting at once
-(also inside a zone, no stacking), one shared zoom, and through the
+(also inside a wide zone, keeping its zoom since chunk 23C), one shared zoom, and through the
 simulation the zones handed over, screensaver mode, tilt not counting, a
 tap on open ground taking control and still calling, an edge tap taking
 control and moving the camera, dump and restore.
@@ -1250,6 +1259,101 @@ point rather than a slower pace, so short presses behave the same inside a
 zone and a long hold is not slowed. Tilt is not input for the idle clock.
 `screensaver` stays out of the dump so a reload in normal play still
 matches the saved hash.
+
+### Chunk 23C: call dead zone, idle zoom, showing a gate open, idle camera at bedtime
+
+Build plan items 23.1, 23.4, 23.10 and 23.12 (master spec §5.6; D101,
+D103; ux D4, D5). All in `Camera`, plus one accessor on `FrontierSets` and
+three lines in `Simulation`.
+
+- **Call dead zone (23.1, D101).** `Simulation._tap` hands a call to
+  `camera.on_call(point, tick, view)`. `Camera.in_dead_zone(point, view)`:
+  the call point shows inside a box centred on the screen, `DEAD_ZONE`
+  (0.2) of its width by 0.2 of its height (230.4 × 129.6 px on the
+  1152 × 648 viewport), measured on the screen, so the same at every zoom.
+  Inside it the call happens as usual (the slimes answer, the ripple) and
+  the camera doesn't move: on the rails nothing changes; off them (a drag,
+  a return, the idle camera or a gate's show just taken back) the camera
+  is held where it is for the call's window (a `DRAG` toward its own
+  position), then glides back to the rails as after any call. So a call
+  inside the box during a drag stops the drag where it is. Outside the
+  box, `follow_call()` as before. The box's edge counts as inside.
+- **The idle zoom never zooms in (23.4, D103).** The cue goes from its
+  starting zoom to `_idle_zoom(from)` = `min(IDLE_ZOOM, from)`, and
+  following (and screensaver mode's start) keeps `min(IDLE_ZOOM, zoom)`.
+  In the tree's zone (0.7) the zoom stays 0.7; in a zone narrower than the
+  idle zoom (section 2's gate zone, 0.9) the cue zooms out to 0.8696 as
+  before. The zoom a followed camera keeps stays with it out of the zone
+  (framing is ignored while following).
+- **Showing a gate open (23.10).** `FrontierSets._open_gate` records the
+  tick in a transient `_opened_on` (emptied by `start()`, not saved), and
+  `frontier.gates_fired_open(sim)` returns the gates a basket fired open
+  on this tick. `Simulation.step` hands each to
+  `camera.show_gate(box, view, loop, open_gates, tick)`, after
+  `camera.watch()`: unless the gate's box is wholly in view (or an edge
+  button is held), the camera enters `SHOW` and glides in `SHOW_SECONDS`
+  (1.5 s) to the rail point nearest the gate's centre on the grown loop,
+  framed by the zone there (the zoom and shift ease on the way), a
+  straight glide timed to arrive on the 90th tick; then it is on the rails
+  there (`RAILS`), under normal control, and stays. Any touch takes it back
+  (`_take_back()`, as from the idle camera): a call drags it, an edge press
+  moves on from the nearest rail point, another tap sends it back to the
+  rails. The show ends the idle camera and restarts the idle clock, so it
+  stays at the gate rather than going back to a slime. A gate saved open
+  (a fixture, a reload) shows nothing: only a firing in this run counts.
+- **The idle camera at bedtime (23.12).** `watch()` gets
+  `session.phase == Session.BEDTIME`. Following at bedtime, the camera
+  drops its slime (`_follow_no_one()`: `follow_id` -1, `follow_point` its
+  own point) and `step()` holds it still; no idle camera starts at
+  bedtime. The cue may still run to the idle zoom. At sunrise (screensaver
+  mode) it follows the train slime nearest it again. Before, a camera
+  still gliding to its slime when bedtime began kept gliding to the
+  now-asleep slime.
+
+**Values (proposed; the spec gives none).** The dead zone's edge counts
+as inside. The glide to a gate is a straight, even glide of exactly 1.5 s
+to the rail point nearest the gate's centre (not the gate's centre
+itself), so the camera ends on the rails. "In view" for a gate is its
+whole box inside the view. No show while an edge button is held. The show
+restarts the idle clock (a following idle camera, or screensaver mode's,
+gives way to it and resumes 45 s later).
+
+**Tests.** `tests/unit/test_camera_dead_zone.gd`: the box's size and
+edges, the same on the screen at six zooms, a call inside it leaving the
+camera on the rails through its window, one just outside dragging at the
+drag's pace, one inside during a drag stopping it for the new window then
+the return, one inside a return holding it, and through the simulation a
+call inside the box answered by the slime in range with the camera still.
+`tests/unit/test_camera_gate_show.gd` (synthetic loop, gate at 3000 px):
+a gate off screen shown in 1.5 s without a jump and ending on the rail
+point, staying there then moving on with the edge buttons, easing into a
+zone's framing at the gate, a gate in view moving nothing, a gate half in
+view shown, a call, a touch and an edge press during the glide, no show
+while a button is held, the idle clock restarted and the cue stopped, the
+idle camera giving way, dump and restore mid-glide; and through the
+simulation `gates_fired_open()` on the firing tick only, a basket saved
+fired showing nothing after a load, a basket firing showing its gate
+within 1.5 s, and a gate in view keeping the camera still.
+`tests/unit/test_camera_idle.gd` adds: screensaver mode inside a wide zone
+keeping its zoom (this test expected `IDLE_ZOOM` before D103, and was
+changed with the spec), the cue and the idle camera keeping a wide zone's
+zoom, a narrower zone's cue zooming out, and at bedtime following no one
+and staying put (then following at sunrise) and no idle camera from a cue
+at bedtime. End to end on the test level:
+`tests/e2e/test_camera_dead_zone_e2e.gd` (seed 23: inside and just outside
+the box, the box in every framing zone (seven) from `gate2-open`, stopping a
+drag, a repeatable hash); `test_camera_framing_e2e.gd` adds the tree's zone
+(the zoom never above 0.7 over 50 s alone) and section 2's gate zone
+(zooming out to the shared zoom); `tests/e2e/test_camera_gate_show_e2e.gd`
+(seed 14, `s1-basket-5of6`: gate 1 in view within 1.5 s of the firing and
+staying, a tap during the glide calling and dragging, gate 1 already in
+view leaving the camera still, a repeatable hash);
+`tests/e2e/test_camera_bedtime_e2e.gd` (seed 4242, `wind-down` with
+sessions: the camera idle, or in its cue, when bedtime begins stays put
+through the whole 10-minute cooldown, 30 s ticked, 9 min skipped, the rest
+ticked, then follows a train slime after sunrise; a repeatable hash). The
+e2e runs set `camera.quiet` at the start so the camera is idle when bedtime
+comes 10 s in.
 
 ## Fusion and bumping
 

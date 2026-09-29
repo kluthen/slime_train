@@ -30,7 +30,12 @@ extends RefCounted
 ## stopped, and is on the rails again (the return is a tuning value the spec
 ## leaves open; this is the reading taken). An edge-button press while off
 ## the rails puts it straight back on them at the nearest rail point, and
-## the view catches up (CATCH_UP) while the press moves it on.
+## the view catches up (CATCH_UP) while the press moves it on. The dead zone
+## (D101, on_call()): a call whose point is already inside a box centred on
+## the screen, DEAD_ZONE of its width by DEAD_ZONE of its height (measured on
+## the screen, whatever the zoom), doesn't move the camera; off the rails
+## (a drag, a return) it holds the camera where it is for the call's window,
+## then the camera glides back as after any call.
 ##
 ## Framing zones (FramingZone, LevelData.framing_zones). While the camera's
 ## rail point (the rails' place, before any framing) is inside a zone's box,
@@ -64,7 +69,19 @@ extends RefCounted
 ## a call drags it. Screensaver mode (Simulation.screensaver, driven by
 ## sessions in chunk 17) starts on the idle camera at once, at IDLE_ZOOM; a
 ## touch takes the camera back there too, and it idles again after the usual
-## IDLE_SECONDS.
+## IDLE_SECONDS. The idle zoom never zooms in (D103): where the camera is
+## already wider (inside a wide framing zone), the cue and the idle camera
+## keep that zoom (_idle_zoom()). At bedtime (watch()'s `bedtime`) the idle
+## camera follows no one: it drops its slime and stays where it is, and none
+## starts; the cue may still settle the zoom. At sunrise it follows the train
+## slime nearest it again.
+##
+## Showing a gate open (§5.6, show_gate()). When a basket fires and its gate
+## isn't wholly in view, the camera glides (SHOW) in SHOW_SECONDS to the rail
+## point nearest the gate, framed by the zone there, and is on the rails
+## there: it stays under normal control. A touch takes it back as from the
+## idle camera. The show ends the idle camera and restarts the idle clock, so
+## the camera stays at the gate. No show while an edge button is held.
 ##
 ## The zoom is the camera's: no input sets it (DoD 18); framing zones, the
 ## cue and the idle camera do.
@@ -73,6 +90,7 @@ extends RefCounted
 # @spec-link [[rule_return_route_per_section]]
 # @spec-link [[rule_framing_zone_wherever_wider_view_needed]]
 # @spec-link [[req_idle_camera_and_screensaver_zoom]]
+# @spec-link [[req_camera_shows_gate_opening]]
 
 ## On the rails.
 const RAILS := "rails"
@@ -82,6 +100,8 @@ const DRAG := "drag"
 const RETURN := "return"
 ## The idle camera: following a train slime.
 const FOLLOW := "follow"
+## Gliding to a gate a basket fired open, to show it opening.
+const SHOW := "show"
 
 ## The camera's point on a rail, from the loop's point: up a little, so the
 ## view shows the world above the route more than the ground under it. One
@@ -134,8 +154,14 @@ const IDLE_ZOOM := 1.0 / 1.15
 ## speed, so it keeps up.
 const FOLLOW_EASE := 2.0
 const FOLLOW_PACE := LevelData.SCREEN * 0.5
+## The call's dead zone: a box centred on the screen, this fraction of its
+## width by this fraction of its height (§5.6, D101).
+const DEAD_ZONE := 0.2
+## How long the glide to a gate a basket fired open lasts, s (§5.6: about
+## 1.5 s).
+const SHOW_SECONDS := 1.5
 
-## RAILS, DRAG, RETURN or FOLLOW.
+## RAILS, DRAG, RETURN, FOLLOW or SHOW.
 var mode := RAILS
 ## Screen pixels per level pixel, as ScreenView.zoom. No input changes it:
 ## framing zones, the cue and the idle camera do.
@@ -195,6 +221,10 @@ var follow_point := Vector2.ZERO
 ## Screensaver mode as last seen (watch()): turning it on starts the idle
 ## camera.
 var screensaver := false
+## The glide to a gate (SHOW): the rail distance it ends on, and the tick it
+## began, or -1.
+var show_distance := -1.0
+var show_tick := -1
 
 ## The side of a press not yet applied: press() records it, step() applies it
 ## (a press needs the loop, and may be lifted on the same tick).
@@ -222,6 +252,8 @@ func start(loop: LoopData, open_gates: Array, near: Variant = null) -> void:
 	cue_from = -1.0
 	_stop_following()
 	screensaver = false
+	show_distance = -1.0
+	show_tick = -1
 	_touched = false
 	frame_zone = ""
 	frame_shift = Vector2.ZERO
@@ -266,6 +298,57 @@ func follow_call(point: Vector2, tick: int) -> void:
 	rail_gap = Vector2.ZERO
 
 
+## A call at `point` (level px) on `tick`, `view` showing the camera: inside
+## the dead zone it doesn't move the camera (on the rails it stays as it is;
+## off them it is held where it is for the call's window, which stops a
+## drag); outside, the call drag (follow_call()).
+# @spec-link [[req_camera_rails_and_framing]]
+# @spec-link [[req_call_mechanic]]
+func on_call(point: Vector2, tick: int, view: ScreenView) -> void:
+	if not in_dead_zone(point, view):
+		follow_call(point, tick)
+		return
+	_take_back()
+	if mode == RAILS:
+		return
+	follow_call(position, tick)
+
+
+## Whether level point `point` shows inside the call's dead zone of `view`:
+## the box centred on the screen, DEAD_ZONE of its width by DEAD_ZONE of its
+## height, on the screen whatever the zoom.
+static func in_dead_zone(point: Vector2, view: ScreenView) -> bool:
+	var half := view.screen_size * DEAD_ZONE * 0.5
+	var off := view.world_to_screen(point) - view.screen_size * 0.5
+	return absf(off.x) <= half.x and absf(off.y) <= half.y
+
+
+## A basket fired open the gate whose box is `box` (level px) on `tick`, the
+## player seeing `view`: unless the whole gate is in view (or an edge button
+## is held), the camera glides to the rail point nearest it on `loop`'s
+## current segments for `open_gates` (the gate already open), framed by the
+## zone there. It ends the idle camera and restarts the idle clock.
+# @spec-link [[req_camera_shows_gate_opening]]
+func show_gate(box: Rect2, view: ScreenView, loop: LoopData, open_gates: Array, tick: int) -> void:
+	if hold_finger >= 0 or not _has_rails(loop, open_gates):
+		return
+	if Fusion.view_rect(view).encloses(box):
+		return
+	_stop_following()
+	mode = SHOW
+	show_distance = loop.closest(box.get_center(), open_gates)["distance"]
+	show_tick = tick
+	rail_left = 0.0
+	rail_gap = Vector2.ZERO
+	drag_tick = -1
+	return_distance = -1.0
+	_pressed = 0
+	quiet = 0
+	cue_from = -1.0
+	frame_zone = zone_at(rail_point(loop, open_gates, show_distance))
+	zone_hold = 0
+
+
 ## Puts the camera at `centre` (level px), off the rails, at `view_zoom`: it
 ## glides back to the rails as after a call, framed by the zone its centre
 ## is in, if any (the zoom eases from `view_zoom` to that zone's). It ends the
@@ -300,9 +383,12 @@ func touched() -> void:
 
 
 ## Once a tick, before step(): whether a finger is `touching` the screen,
-## whether the game is in `screensaver_mode`, and the slimes (`bodies`) for
-## the idle camera. Runs the idle clock, the cue, and which slime to follow.
-func watch(bodies: SlimeBodies, touching: bool, screensaver_mode: bool) -> void:
+## whether the game is in `screensaver_mode`, whether it is `bedtime`, and
+## the slimes (`bodies`) for the idle camera. Runs the idle clock, the cue,
+## and which slime to follow (no one at bedtime).
+# @spec-link [[req_idle_camera_and_screensaver_zoom]]
+# @spec-link [[req_session_lifecycle]]
+func watch(bodies: SlimeBodies, touching: bool, screensaver_mode: bool, bedtime: bool) -> void:
 	var idle_ticks := int(IDLE_SECONDS * Simulation.TICK_RATE)
 	var cue_ticks := int(CUE_SECONDS * Simulation.TICK_RATE)
 	var starting := screensaver_mode and not screensaver
@@ -317,15 +403,19 @@ func watch(bodies: SlimeBodies, touching: bool, screensaver_mode: bool) -> void:
 			quiet = maxi(quiet, idle_ticks)
 	_touched = false
 	if mode == FOLLOW:
-		_keep_following(bodies)
+		if bedtime:
+			_follow_no_one()
+		else:
+			_keep_following(bodies)
 		return
 	if quiet < idle_ticks - cue_ticks:
 		return
 	if cue_from < 0.0:
 		cue_from = zoom
+	var goal := _idle_zoom(cue_from)
 	var t := clampf(float(quiet - (idle_ticks - cue_ticks)) / cue_ticks, 0.0, 1.0)
-	zoom = IDLE_ZOOM if t >= 1.0 else lerpf(cue_from, IDLE_ZOOM, smoothstep(0.0, 1.0, t))
-	if quiet >= idle_ticks:
+	zoom = goal if t >= 1.0 else lerpf(cue_from, goal, smoothstep(0.0, 1.0, t))
+	if quiet >= idle_ticks and not bedtime:
 		_start_following(bodies)
 
 
@@ -334,7 +424,10 @@ func watch(bodies: SlimeBodies, touching: bool, screensaver_mode: bool) -> void:
 func step(loop: LoopData, open_gates: Array, dt: float, tick: int) -> void:
 	if mode == FOLLOW:
 		_pressed = 0
-		zoom = IDLE_ZOOM
+		zoom = _idle_zoom(zoom)
+		if follow_id < 0:
+			# Following no one (bedtime): it stays where it is.
+			return
 		var goal := follow_point + RAIL_OFFSET
 		var speed := clampf(position.distance_to(goal) * FOLLOW_EASE, SETTLE, FOLLOW_PACE)
 		position = position.move_toward(goal, speed * dt)
@@ -343,7 +436,7 @@ func step(loop: LoopData, open_gates: Array, dt: float, tick: int) -> void:
 	var has_rails := _has_rails(loop, open_gates)
 	if not has_rails:
 		_pressed = 0
-		if mode == RETURN:
+		if mode == RETURN or mode == SHOW:
 			mode = RAILS
 		if mode == DRAG and _call_over(tick):
 			mode = RAILS
@@ -387,6 +480,8 @@ func step(loop: LoopData, open_gates: Array, dt: float, tick: int) -> void:
 				return_distance = -1.0
 			else:
 				position = position.move_toward(drag_point, DRAG_PACE * dt)
+		SHOW:
+			_glide_to_gate(loop, open_gates, tick)
 	if mode == RETURN:
 		if return_distance < 0.0:
 			return_distance = loop.closest(position - frame_shift - RAIL_OFFSET, open_gates)["distance"]
@@ -401,8 +496,8 @@ func step(loop: LoopData, open_gates: Array, dt: float, tick: int) -> void:
 			_frame_at(rail_point(loop, open_gates, distance))
 
 
-## Whether the camera is on the rails (not dragged by a call, returning nor
-## following).
+## Whether the camera is on the rails (not dragged by a call, returning,
+## following nor showing a gate).
 func is_on_rails() -> bool:
 	return mode == RAILS
 
@@ -462,6 +557,8 @@ func dump() -> Dictionary:
 		"follow_species": follow_species,
 		"follow_point": follow_point,
 		"screensaver": screensaver,
+		"show_distance": show_distance,
+		"show_tick": show_tick,
 	}
 
 
@@ -490,6 +587,8 @@ func restore(data: Dictionary) -> void:
 	follow_species = int(data.get("follow_species", -1))
 	follow_point = _vector(data.get("follow_point", Vector2.ZERO))
 	screensaver = bool(data.get("screensaver", false))
+	show_distance = float(data.get("show_distance", -1.0))
+	show_tick = int(data.get("show_tick", -1))
 	_pressed = 0
 	_touched = false
 
@@ -582,7 +681,7 @@ func _start_following(bodies: SlimeBodies) -> void:
 		return
 	mode = FOLLOW
 	_follow(bodies, chosen)
-	zoom = IDLE_ZOOM
+	zoom = _idle_zoom(zoom)
 	cue_from = -1.0
 	frame_zone = ""
 	frame_shift = Vector2.ZERO
@@ -623,6 +722,40 @@ func _follow(bodies: SlimeBodies, slime_id: int) -> void:
 	follow_point = bodies.centre_of(slime_id)
 
 
+## At bedtime the idle camera follows no one: it drops its slime and stays
+## where it is; after it, the train slime nearest the camera's point is
+## followed (_keep_following()'s last resort, from follow_point).
+func _follow_no_one() -> void:
+	if follow_id < 0:
+		return
+	_stop_following()
+	follow_point = position
+
+
+## The zoom the cue and the idle camera go to from `from`: IDLE_ZOOM, or
+## `from` where that is already wider (it never zooms in, D103).
+static func _idle_zoom(from: float) -> float:
+	return minf(IDLE_ZOOM, from)
+
+
+## One tick of the glide to a gate (SHOW): the camera closes on the framed
+## rail point at show_distance so as to reach it SHOW_SECONDS after the show
+## began, then is on the rails there.
+func _glide_to_gate(loop: LoopData, open_gates: Array, tick: int) -> void:
+	var base := rail_point(loop, open_gates, show_distance)
+	var target := base + frame_shift
+	var left := show_tick + roundi(SHOW_SECONDS * Simulation.TICK_RATE) - tick
+	if left > 1:
+		position += (target - position) / left
+		return
+	mode = RAILS
+	distance = show_distance
+	show_distance = -1.0
+	show_tick = -1
+	position = target
+	_frame_at(base)
+
+
 ## The train slime whose centre is nearest `point`, or -1 (the smaller id on
 ## a tie).
 static func _nearest_train(bodies: SlimeBodies, point: Vector2) -> int:
@@ -638,13 +771,15 @@ static func _nearest_train(bodies: SlimeBodies, point: Vector2) -> int:
 	return nearest
 
 
-## Ends the idle camera, if on: it glides back to the rails as after a call,
-## framed by the zone its point is in, if any.
+## Ends the idle camera or the glide to a gate, if on: the camera glides back
+## to the rails as after a call, framed by the zone its point is in, if any.
 func _take_back() -> void:
-	if mode != FOLLOW:
+	if mode != FOLLOW and mode != SHOW:
 		return
 	mode = RETURN
 	return_distance = -1.0
+	show_distance = -1.0
+	show_tick = -1
 	_stop_following()
 	frame_zone = zone_at(position)
 	zone_hold = 0
