@@ -13,6 +13,8 @@ extends GutTest
 ## sleeper past the loop's end (x = -1800).
 
 # @test-link [[req_session_lifecycle]]
+# @test-link [[rule_time_left_shown_only_behind_code]]
+# @test-link [[req_persistence_and_saves]]
 
 const Support := preload("res://tests/unit/slime_test_support.gd")
 const FIRST_ID := "t.first-slime"
