@@ -104,8 +104,12 @@ pattern; `scripts/` holds the JSON run files. How to write one:
   the normal debug game still loads the test level.
 - `test_level_checker.gd` (chunk LD1) checks the level-rules checker
   (`tools/level_check/`): each rule it can check fails on a synthetic
-  level that breaks it, the test level passes (but for its known rule-22
-  break, pending), and the command line's output and exit codes.
+  level that breaks it, the test level passes every rule (its rule-22
+  break was fixed in chunk R22), and the command line's output and exit
+  codes.
+- `test_dip2_hollow_e2e.gd` (chunk R22) checks that the second dip's hollow,
+  moved over the dip's far slope for rule 22 (b), is still reached by a
+  call: a base slime called from the far rim wakes `s2.sleeper.16`.
 - `test_new_level_e2e.gd` (chunk LD1) scaffolds throwaway levels with
   `tools/new_level.gd` (1, 2 and 4 sections), checks they load, pass the
   checker and their generated test, appear in test mode, and that the

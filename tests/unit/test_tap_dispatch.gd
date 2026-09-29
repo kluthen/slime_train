@@ -148,6 +148,22 @@ func test_hit_area_is_the_drawing_plus_5_mm_a_side_at_least_20_mm() -> void:
 			"the density followed")
 
 
+# A zoom of 0 or less can only be a caller's bug (ScreenView.set_to refuses
+# one; `zoom` itself is a plain field): hit_area() refuses it loudly, for an
+# object and a sleeper alike, and nothing is hit (an empty area), rather than
+# an infinite or flipped one.
+func test_a_zoom_of_0_or_less_is_refused_loudly() -> void:
+	var box := Rect2(100, 100, 80, 80)
+	for zoom in [0.0, -0.5]:
+		var view := ScreenView.new()
+		view.zoom = zoom
+		for kind in [TapDispatcher.KIND_SWITCH, TapDispatcher.KIND_SLEEPER]:
+			var area := TapDispatcher.hit_area(kind, box, view)
+			assert_push_error("zoom must be above 0")
+			assert_false(area.has_area(), "%s at zoom %s: no hit area, got %s" % [kind, zoom, area])
+			assert_false(area.has_point(box.get_center()), "%s at zoom %s: nothing is hit" % [kind, zoom])
+
+
 func _assert_rect(got: Rect2, want: Rect2, what: String) -> void:
 	assert_almost_eq(got.position, want.position, Vector2(1e-3, 1e-3), what + ": position")
 	assert_almost_eq(got.size, want.size, Vector2(1e-3, 1e-3), what + ": size")

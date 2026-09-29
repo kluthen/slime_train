@@ -125,8 +125,13 @@ static func dispatch(at: Vector2, view: ScreenView, tap_targets: Dictionary, edg
 ## centre to HIT_FLOOR_MM where it would be smaller, both measured on the
 ## screen: at a lower zoom the drawing shrinks on the screen, the floor
 ## doesn't. A sleeper's is its box grown by SLEEPER_HIT_MARGIN screen px.
+## A `view` zoomed 0 or less is a caller's bug: refused loudly, with an
+## empty area (nothing is hit) instead of an infinite or flipped one.
 # @spec-link [[req_interactive_objects_general]]
 static func hit_area(kind: String, box: Rect2, view: ScreenView) -> Rect2:
+	if view.zoom <= 0.0:
+		push_error("TapDispatcher.hit_area: the view's zoom must be above 0, got %s" % view.zoom)
+		return Rect2()
 	if kind == KIND_SLEEPER:
 		return box.grow(SLEEPER_HIT_MARGIN / view.zoom)
 	var grown := box.grow(view.mm_to_px(HIT_MARGIN_MM) / view.zoom)

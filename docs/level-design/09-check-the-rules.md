@@ -82,22 +82,30 @@ Other FAILs met in this tutorial: a duplicated stable ID (rule 20,
 section (rules 1, 3, 12, 13, [03](03-add-a-section.md)), a decoration in
 front of a sleeper (rule 9, [07](07-decoration.md)).
 
-## The test level has one known FAIL
+## The test level passes
 
-On `test` (the default level), everything passes but rule 22:
+On `test` (the default level), every rule passes:
 
 ```sh
 godot --headless --path . -s res://tools/check_level.gd -- --rule=22
 ```
 
 ```
-rule 22  FAIL    Slimes come home behind the loop's start; no called ledge overhangs the loop
-         - s2.sleeper.15 (x 9.97): it rests on Terrain/Dip2Hollow, which overhangs the loop from x 9.93 to 10.01 only 110 px over the loop's ground (a size-3 train slime's hop reaches 130 px), its top 130 px up, within a called base slime's reach (133 px): move the ledge off the loop's path or out of reach, or extend the split zone over it
-         - s2.sleeper.16 (x 10.05): ...
+rule 22  PASS    Slimes come home behind the loop's start; no called ledge overhangs the loop
+         manual: only terrain holding a sleeper is checked for a low overhang: a ledge a slime is called up to for anything else (a bough, a lookout) is checked by eye
+         note: called ledges over the loop inside a split zone (only base slimes pass): s1.sleeper.01
+         note: a called ledge: its top at most 133 px over the loop's ground, its underside under 130 px
 ```
 
-A fix is queued; until then the checker exits 1 on the test level. It isn't
-yours to fix while building your level.
+It once failed this rule, a worked example of the fix. The second dip's
+hollow (`Terrain/Dip2Hollow`, holding `s2.sleeper.15` and `.16`) sat on the
+dip's near rim, 110 px over the loop's flat ground, where a called base
+slime could reach it. It was moved over the dip's far slope, where the
+ground falls away: its underside is now at least 136 px over the loop
+(a size-3 hop clears it), and its floor is 115 px over the far rim a called
+slime hops up from. After such a move, check in test mode that a call still
+wakes the sleepers (`--at=s2.sleeper.16`): the checker can't tell. If the
+test level fails a rule, it is news: report it.
 
 ## What the checker doesn't know
 

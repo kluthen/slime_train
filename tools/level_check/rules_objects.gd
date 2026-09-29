@@ -93,7 +93,7 @@ static func inert_once_open(_c: LevelChecker) -> Dictionary:
 ## its density, where the band is 7 mm, about 67 px). The return routes'
 ## rails (the slides) aren't checked: from them the camera frames the
 ## objects from below, not where the child meets them (a reading taken,
-## proposed). parent_zone_findings() does the check on any views.
+## proposed, D126). parent_zone_findings() does the check on any views.
 # @spec-link [[rule_objects_below_parent_zone]]
 static func below_parent_zone(c: LevelChecker) -> Dictionary:
 	var frames: Array[Dictionary] = []
@@ -108,9 +108,9 @@ static func below_parent_zone(c: LevelChecker) -> Dictionary:
 				("framed from the rail point here, its top is %.0f screen px into the parent zone "
 				+ "(the top %.0f px): ") % [one["band"] - one["top"], one["band"]]
 				+ "move it down, or frame it lower with a framing zone"))
-	return LevelChecker.result(21, findings, "", ["the settled views of the outgoing routes' rails only (D111), "
-			+ "framing zones included, on the reference phone; the slides' rails and views while the camera "
-			+ "moves (a call's drag, the idle camera, a gate being shown) aren't checked"])
+	return LevelChecker.result(21, findings, "", ["the settled views of the outgoing routes' rails only "
+			+ "(proposed, D126), framing zones included, on the reference phone; the slides' rails and views "
+			+ "while the camera moves (a call's drag, the idle camera, a gate being shown) aren't checked"])
 
 
 ## The interactive objects rule 21 checks: stable ID -> drawn box (Rect2,

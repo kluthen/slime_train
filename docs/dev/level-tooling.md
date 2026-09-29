@@ -104,10 +104,9 @@ check_level: level test (version 1): 3 sections, 200 base slimes
 load     PASS    The level loads
 rule 1   PASS    The loop can be travelled with no input at all
          note: ...
-rule 22  FAIL    ...
-         - s2.sleeper.15 (x 9.97): it rests on Terrain/Dip2Hollow, which overhangs the loop ...
+rule 22  PASS    Slimes come home behind the loop's start; no called ledge overhangs the loop
          manual: ...
-check_level: 21 PASS, 1 FAIL, 0 MANUAL, 0 N/A, 21.0 s
+check_level: 22 PASS, 0 FAIL, 0 MANUAL, 0 N/A, 16.4 s
 ```
 
 `--json` prints one object instead (`level`, `version`, `fast`, `load`,
@@ -162,14 +161,17 @@ Rule 22 (b)'s numbers come from the simulation: the reach is
 `FreeSlimes.max_rise(1, gravity)`, a size-3 train slime's hop top is
 `2 * (ring radius + edge) + Train.hop_apex(3)`.
 
-**On the test level** everything passes but rule 22 (b):
-`s2.sleeper.15` and `.16` rest on `Dip2Hollow`, whose underside is 110 px
-over the loop from x 9.93 to 10.0, outside the split zone, and whose floor
-is 130 px up (a called base slime reaches 133). A size 3's hop is clipped
-there by about 20 px but not stopped (the rule 2 laps pass). It is
-reported, not hidden: `tests/e2e/test_level_checker.gd` lists it in
-`KNOWN_BREAKS` (the test is pending until the level or the rule's reading
-changes), and the checker exits 1 on the test level meanwhile.
+**On the test level** every rule passes since chunk R22. LD1's checker
+found one break of rule 22 (b) there: `s2.sleeper.15` and `.16` rested on
+`Dip2Hollow`, whose underside was 110 px over the loop from x 9.93 to 10.0,
+outside the split zone, and whose floor was 130 px up (a called base slime
+reaches 133). Chunk R22 moved the hollow over the second dip's far slope
+(x 10.26 to 10.42, floor y -135): its underside is at least 136 px over the
+loop's ground and its floor 115 px over the far rim it is called up from
+(docs/dev/README.md, "Chunk R22"). `tests/e2e/test_level_checker.gd` keeps
+its `KNOWN_BREAKS` table (empty) for any later break, reported rather than
+hidden: such a test is pending, and the checker exits 1 on the level, until
+the level or the rule's reading changes.
 
 The existing level-rule tests (`test_level_rules.gd`,
 `test_level_ways_back_e2e.gd`, `test_test_level.gd`,

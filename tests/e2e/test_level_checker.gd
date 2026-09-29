@@ -34,19 +34,17 @@ const BASE_STATUSES := {
 const TEST_LEVEL_STATUSES := {
 	1: "PASS", 2: "PASS", 3: "PASS", 4: "PASS", 5: "PASS", 6: "PASS", 7: "PASS", 8: "PASS",
 	9: "PASS", 10: "PASS", 11: "PASS", 12: "PASS", 13: "PASS", 14: "PASS", 15: "PASS",
-	16: "PASS", 17: "PASS", 18: "PASS", 19: "PASS", 20: "PASS", 21: "PASS", 22: "FAIL",
+	16: "PASS", 17: "PASS", 18: "PASS", 19: "PASS", 20: "PASS", 21: "PASS", 22: "PASS",
 }
 ## Known breaks of the rules in the test level, reported rather than hidden:
 ## rule -> {"ids": the stable IDs its findings name, "why"}. Each is checked
 ## to still break the rule with exactly those findings (so a fixed one can't
-## linger here) and marked pending instead of failing.
-const KNOWN_BREAKS := {
-	22: {"ids": ["s2.sleeper.15", "s2.sleeper.16"],
-		"why": "the second fusion dip's hollow (Dip2Hollow, x 9.93 to 10.09) holds two sleepers a called base "
-				+ "slime reaches (its floor 130 px over the loop's ground; reach 133 px) and overhangs the loop's "
-				+ "flat at x 9.93 to 10.0 only 110 px over the ground, under a size-3 hop's 130 px, outside the "
-				+ "split zone (the size-3 lap test still passes: the hop is clipped, not stopped)"},
-}
+## linger here) and marked pending instead of failing. None since chunk R22:
+## the one LD1 found (rule 22 (b): the second dip's hollow, `Dip2Hollow`,
+## overhung the loop's flat at x 9.93 to 10.0 only 110 px over the ground,
+## within a called base slime's reach, `s2.sleeper.15`, `.16`) was fixed by
+## moving the hollow over the dip's far slope.
+const KNOWN_BREAKS := {}
 
 
 # --- The base level --------------------------------------------------------------
@@ -507,6 +505,7 @@ func test_the_text_and_json_forms() -> void:
 
 # --- The test level --------------------------------------------------------------
 
+# @test-link [[rule_no_called_ledge_over_loop]]
 func test_the_test_level_fails_no_rule_but_its_known_breaks() -> void:
 	var level: Level = load(TEST_LEVEL).instantiate()
 	add_child_autofree(level)

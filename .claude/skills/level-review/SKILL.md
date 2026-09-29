@@ -113,10 +113,9 @@ and put the by-eye checklist first.
 
 ## Known on the test level
 
-The test level fails rule 22 on `s2.sleeper.15` and `.16` (both rest on
-`Terrain/Dip2Hollow`, which overhangs the loop 110 px over its ground): a
-fix is queued, and the checker exits 1 there meanwhile. Report it as known,
-not as news, unless the IDs or the ledge change.
+The test level passes every rule the checker runs (since chunk R22, which
+moved `Terrain/Dip2Hollow` off the loop's path to fix rule 22 (b)), and the
+checker exits 0 there. A FAIL on it is news: report it as such.
 
 ## Don'ts
 

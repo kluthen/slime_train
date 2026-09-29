@@ -16,6 +16,7 @@ extends SceneTree
 # @spec-link [[req_level_design_rules]]
 # @spec-link [[rule_first_section_species_count]]
 # @spec-link [[rule_hints_visible_from_loop]]
+# @spec-link [[rule_no_called_ledge_over_loop]]
 
 const OUT := "res://levels/test/level.tscn"
 ## The builder's static helpers (at, ride_over, on_ledge, outlet_at).
@@ -89,8 +90,13 @@ const S2_PIECES := {
 	# 2.2 Parade: the overhang ledges.
 	"ParadeLedge1": [[9.15, -240], [9.36, -240], [9.36, -215], [9.15, -215]],
 	"ParadeLedge2": [[9.6, -240], [9.81, -240], [9.81, -215], [9.6, -215]],
-	# 2.3 The hollow on the second dip's rim.
-	"Dip2Hollow": [[9.93, -170], [9.95, -150], [10.07, -150], [10.09, -170], [10.09, -130], [9.93, -130]],
+	# 2.3 The hollow over the second dip's far slope, reached from its far
+	# rim (y -20 at 10.5): its floor 115 px over the rim, its underside at
+	# least 136 px over the loop's ground, above a size-3 hop's 130 (level
+	# rule 22 (b), chunk R22: on the near rim, 9.93 to 10.09, it overhung
+	# the loop's flat only 110 px up). Open toward the rim, a lip at the
+	# back.
+	"Dip2Hollow": [[10.26, -155], [10.28, -135], [10.42, -135], [10.42, -115], [10.26, -115]],
 	# 2.4 The cave: the stepped climb, the pocket, then the tunnel's two
 	# shelves (each with a lip where the way turns) down to the loop.
 	"CaveStep1": [[10.5, -180], [10.62, -180], [10.62, -155], [10.5, -155]],
@@ -276,8 +282,8 @@ const S2_SLEEPERS := [
 	# 2.2 Parade: A, B, C and D, 2 of each, on the overhang ledges.
 	[9.18, -264, "A"], [9.23, -264, "B"], [9.28, -264, "C"], [9.33, -264, "D"],
 	[9.63, -264, "A"], [9.68, -264, "B"], [9.73, -264, "C"], [9.78, -264, "D"],
-	# 2.3 Second dip: 2 D in the hollow on its rim.
-	[9.97, -174, "D"], [10.05, -174, "D"],
+	# 2.3 Second dip: 2 D in the hollow over its far slope.
+	[10.3, -159, "D"], [10.38, -159, "D"],
 	# 2.5 Frontier set 2, the ledge by the switch.
 	[10.775, -254, "A"], [10.818, -254, "B"], [10.861, -254, "C"], [10.904, -254, "D"],
 	# 2.4 The cave pocket: A 3, B 3, C 3, D 5.

@@ -2230,7 +2230,9 @@ stepped climb, the pocket at y -700, shelves A and B, its branch
 slide 2 back along the tunnel, two framing zones (`s2.frame.parade`,
 `s2.frame.gate`) and 40 sleepers (A 7, B 7, C 7, D 19, numbered left to
 right). Section 3 is a stub (`s3.loop`, `s3.slide`). Basket 2 is now the
-level's last basket: the celebration waits for it.
+level's last basket: the celebration waits for it. The second dip's hollow
+has sat over the dip's far slope since chunk R22 (see "Chunk R22: the
+second dip's hollow off the loop's path").
 
 **Fixtures.** `s2-basket-offscreen`, `s2-cave-return` and `lost` (see
 "Fixtures"). All fixtures were regenerated for the new level.
@@ -2574,6 +2576,73 @@ godot --headless --path . -s res://tools/make_fixture.gd -- stress-still
 godot --headless --path . -s res://tools/bench_level.gd          # tick cost
 tools/test.sh -gdisable_colors -gselect=test_level_dod1_e2e      # DoD 1
 ```
+
+### Chunk R22: the second dip's hollow off the loop's path
+
+LD1's checker found that the test level broke level rule 22 (b)
+(`specs/level-design.md`, D117, D123; D126): `Terrain/Dip2Hollow`, holding
+`s2.sleeper.15` and `.16`, sat on the second dip's near rim (x 9.93 to
+10.09, floor y -150, underside y -130), overhanging the loop's flat ground
+(y -20) from 9.93 to 10.0 only 110 px up, where a size-3 hop reaches about
+130 px, with its floor 130 px up, within a called base slime's reach (about
+133 px), outside the split zone.
+
+**The fix** (D126's proposed default: move the hollow off the loop's path).
+The hollow now sits over the dip's far slope, reached from the far rim
+(y -20 from x 10.5), where the ground falls away under it. Raising it in
+place would have put its floor out of a called base slime's reach.
+
+| | Before | After (chunk R22) |
+|---|---|---|
+| `Dip2Hollow` outline (x in screens, y in px) | (9.93, -170), (9.95, -150), (10.07, -150), (10.09, -170), (10.09, -130), (9.93, -130): lips at both ends | (10.26, -155), (10.28, -135), (10.42, -135), (10.42, -115), (10.26, -115): a lip at the back (left), open toward the far rim |
+| Floor, underside | y -150, y -130 | y -135, y -115 |
+| `s2.sleeper.15` | (9.97, -174) | (10.3, -159) |
+| `s2.sleeper.16` | (10.05, -174) | (10.38, -159) |
+| Underside over the loop's ground | 110 px at 9.93 to 10.0 | at least 136 px (at 10.42; the slope's ground is y 21 there) |
+| Floor over the ground it is called up from | 130 px (the near rim, straight below) | 115 px (the far rim, 0.08 screens to the right) |
+
+Stable IDs are unchanged (rule 20) and still numbered left to right
+(`.14` at 9.78, `.17` at 10.775). The dip itself, the loop and every other
+piece are unchanged.
+
+**How the spot was chosen** (a throwaway probe, not kept: the level's
+section 2 start state, only one sleeper and one caller left, the call
+centred on the sleeper, seeds 1 to 3, one caller of each size from ten
+spots between 9.6 and 10.9). Before, a called base slime woke `.15` only
+from the near rim, and `.16` only a size-3 caller woke. After, a called
+base slime wakes `.16` from the far rim (6 of its 7 spots, x 10.52 to
+10.9, most seeds), and size-2 and size-3 callers from there wake `.15`
+from about half of them. Placements over the near slope (x 10.06 to 10.10,
+floor y -120 to -140) passed rule 22 too, but a called slime hopped past
+the rim into the dip: a base slime woke `.15` from 2 spots of 8 and `.16`
+from none, and at x 10.06 a woken slime didn't get back (rule 7).
+
+**Checks.** `check_level --level=test` (full): 22 PASS, 0 FAIL, exit 0
+(rule 7: section 2's 16 row ends back within 45.8 s; rules 9, 17 and 18
+pass). A woken `.15` or `.16` falls into the dip, which is the loop, back
+in about 7 s and 3 s. `tests/e2e/test_level_checker.gd`: `KNOWN_BREAKS` is
+empty (the table stays for any later break), rule 22 PASS in
+`TEST_LEVEL_STATUSES`, and the command line exits 0 on the test level.
+`tests/e2e/test_dip2_hollow_e2e.gd` (new) checks the hollow sits over the
+far slope and that a base slime called from the far rim (x 10.52, 10.6 and
+10.8, seed 1) wakes `s2.sleeper.16` (in 0.9 to 3.6 s); both fail on the old
+geometry.
+
+**Fixtures.** Regenerated: every save moved only the two sleepers' centres
+(4 lines each). `fresh` and `stress-moving` came out byte for byte.
+`stress-still` doesn't come out byte for byte, but not because of this
+change (it has no sleeper, and the old level makes the same output): since
+chunk 23D baskets stand still at bedtime, so the fixture's settling at
+bedtime leaves basket 3 `filling` (weight 60, trapdoor open) instead of
+`full` (trapdoor shut), which `tests/e2e/test_fixtures_e2e.gd` expects.
+The committed `stress-still` is kept; making `make_fixture.gd` build it
+full again is left open. `levels/test/level.tscn`'s other changed lines are
+Godot's regenerated `unique_id`s.
+
+**For spec-writer** (`specs/levels/test/README.md`, section 2 as built and
+its "Planned change" paragraph, rule 22's row): the hollow is now at 10.26
+to 10.42 over the second dip's far slope, floor y -135, its 2 D sleepers at
+10.3 and 10.38 (y -159); rule 22 (b) passes on the test level.
 
 ## Sessions (chunk 17)
 
@@ -2985,8 +3054,8 @@ the project skills built on these tools come in part 2
 - **The level-rules checker:** `tools/check_level.gd -- --level=<id>`,
   rules 1 to 22, PASS / FAIL / MANUAL / N/A, on the library
   `tools/level_check/`. The level-rule tests of the test level call it. It
-  finds one break of rule 22 on the test level (`Dip2Hollow`, section 2),
-  reported in [level-tooling.md](level-tooling.md), not fixed here.
+  found one break of rule 22 on the test level (`Dip2Hollow`, section 2),
+  reported in [level-tooling.md](level-tooling.md), fixed in chunk R22.
 - **The scaffolder:** `tools/new_level.gd -- --id=<id> [--sections=N]`
   writes a skeleton level that passes the checker, its `fresh` fixture and
   its test script `tests/e2e/levels/test_level_<id>.gd`.
