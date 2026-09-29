@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v30
+Status: draft v31
 
 ## One-liner
 
@@ -256,6 +256,7 @@ survives the app being killed.
 | section | the part of a level opened by one gate |
 | split zone | a place that splits slimes back into base slimes; the start of the loop has one (replaces "defusing spot") |
 | route back | the route an exploration branch provides back to the loop |
+| decoration | level art that isn't simulated: scenery such as plants and rocks, drawn as curves (D93), that isn't terrain or an object. How it behaves toward slimes, taps and hints is O96 |
 | return route | the part of the loop that takes the flow from a section's unopened frontier gate back to the start; has its own rail (D79; how it works is O22) |
 | parent gate | the 6-digit code an adult enters to leave, change settings, or end bedtime early |
 | bedtime | the end of a session: slimes fall asleep until sunrise (parent code or 10 min); not the same as a sleeper |

@@ -1,6 +1,6 @@
 # Test level
 
-Status: draft v10
+Status: draft v11
 
 A compact level that puts nearly every v1 gameplay item in one place (D76).
 It is the testing ground while the game is built, and the level the
@@ -442,6 +442,7 @@ The quotas leave plenty of room:
 | Maximum size 3 and bumping (3 + 1, 2 + 2) | 1.3, 2.3 |
 | Size = weight, filling baskets by weight | each basket |
 | Split zone at the loop start | 1.1, whenever a slide returns fused slimes |
+| Return routes coming home behind the loop's start (rule 22) | 1.1, every slide's tail |
 | Train with no slots; a lone slime keeps going | the whole loop |
 | Signpost at every fork; the rails follow the main stream | each frontier switch |
 | Frontier set: switch, basket, gate, the loop growing, the slide replaced | 1.6, 2.5 |
@@ -530,12 +531,13 @@ spot a free slime can reach leads back to the loop (rule 7).
 | 19 Framing zones | see "Framing zones" |
 | 20 No changes after release | not applicable: never released. The `old-version` fixture exercises migrations. |
 | 21 Objects below the parent zone | the three switches sit on the loop, well below the parent zone at the rails' framing (D111); a level-rule test checks it (chunk 23) |
+| 22 Where slimes come home; no low overhang on the loop | 1.1 as built (D116): the slides' tail runs under the terrace and up the ramp into the pocket behind the loop's start, so slimes coming home join behind the train; the first sleeper's ledge overhangs the terrace only inside the split zone's reach, where only base slimes pass (D117) |
 
 ## What this level does not settle
 
 - **O22:** how the real level brings slimes back to the start. The slides are
   a stand-in. What the test level taught about it (where a return route
-  meets the loop's start) is D117.
+  meets the loop's start) is now level rule 22 (D117, D123).
 - **The real first level:** its size (4 sections, 6 species), pacing, theme
   and tuning. The test level is deliberately compact, and has 3 sections and 5
   species.

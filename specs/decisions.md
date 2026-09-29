@@ -1309,3 +1309,41 @@ Replaces D118's "nothing happens to it in play".
 ## D122 — The coding-rule health review runs last (2026-09-29)
 The user's call on `CODING_RULE.md`'s health and clean-up list: it runs as
 the build plan's closing step, after chunk 23, not now.
+
+## D123 — Chunk 23 runs next; a level-design toolkit; D117 becomes level rule 22 (2026-09-29)
+The user's calls on 2026-09-29.
+- **Chunk 23 (small issues, 23.1 to 23.13) runs next, before chunk 18.**
+  It used to run after chunk 22, with 23.5 (baskets at bedtime) pulled
+  before 22. Why: its items are mechanics fixes and decided behaviour, and
+  running it before 22 means chunk 22 measures the finished behaviour
+  (baskets at bedtime, the safety nets). The list stays open: new reports
+  are still added. Chunk 23 now depends on 17 and 16, and chunk 22 also on
+  23. It runs as sub-chunks: 23A safety nets (23.3, 23.13), 23B taps and
+  strips (23.2, 23.6b, 23.8), 23C camera (23.1, 23.4, 23.10, 23.12), 23D
+  bedtime baskets and the celebration's mark (23.5, 23.11), then 23E
+  objects and taps (23.6, 23.7, 23.9).
+- **A new chunk, "LD. Level-design toolkit",** asked for by the user. It
+  runs in parallel with chunk 23. It is technical (tooling, no Definition
+  of done item), so it skips the ATD steps. It brings tools (a level-rules
+  checker usable on any level, a new-level scaffolder, and other tools
+  that make level design easier), a tutorial for level designers in
+  `docs/level-design/`, and project skills in `.claude/skills/`. Its
+  content and done-when are in the build plan.
+- **Decoration** (non-simulated scenery) had no spec: O96 opens, with a
+  proposed default (decoration never collides, never takes a tap, never
+  hides an interactive object or a hint). The LD chunk's decoration tools
+  build to it until the user decides.
+- **D117 becomes level rule 22** in `level-design.md` (approved: "agreed").
+  A return route delivers slimes into the start behind the loop's start,
+  travelling the loop's way, never along the loop's first stretch against
+  the flow; and nothing a base slime must be called up to overhangs the
+  loop where larger slimes pass. O22 stays open (what a return route is
+  made of); the rule constrains its answer. The master spec's level rules
+  (5.11), its Known gaps 2, the test level's rules checklist and O22's note
+  now point to it.
+- **D121's three details are confirmed by the user,** not only approved as
+  a suggested default: each case is logged; the 60 s count starts again
+  from the move; a slime asleep at bedtime is never counted as stalled or
+  moved. Item 23.13 builds them as written.
+- **The coding-rule health review stays the plan's closing step** (D122),
+  after chunk 23 and the rest of the plan.

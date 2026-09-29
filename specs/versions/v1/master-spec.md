@@ -10,7 +10,7 @@ The defaults for the interaction details raised by the first UX review, and
 the points the build raised while building, were approved by the user on
 2026-09-29, as were the points chunk 16 added (the stalled train slime and
 its safety net, 5.2 and Definition of done 1; where a return route meets
-the start, Known gaps 2). Nothing here is tagged (proposed).
+the start, now level rule 22 in 5.11). Nothing here is tagged (proposed).
 
 ## 1. Concept and objective
 
@@ -611,6 +611,11 @@ Every level, the test level included, follows these rules.
     save migration, and keeps stable IDs.
 21. At the rails' framing, every interactive object sits fully below the
     parent zone.
+22. A return route delivers slimes into the start behind the loop's start,
+    travelling the loop's way, never along the loop's first stretch against
+    the flow; and nothing a base slime must be called up to overhangs the
+    loop where larger slimes pass (a ledge a called size 1 can reach is too
+    low for a size 2 or 3 to pass under).
 
 ### 5.12 Levels and the test level
 
@@ -884,11 +889,9 @@ Still undecided.
    in `levels/01/`, once the test level has been built and checked.
 2. **How each section's return route works** (a slide, wind, a conveyor…).
    Decided with the first level's design. The test level uses underground
-   slides as placeholders. Whatever it is made of (from the test level): a return route delivers slimes into the start behind the loop's
-   start, travelling the loop's way, never along the loop's first stretch
-   against the flow; and nothing a base slime must be called up to
-   overhangs the loop where larger slimes pass (a ledge a called size 1
-   can reach is too low for a size 2 or 3 to pass under).
+   slides as placeholders. Whatever it is made of, it follows level rule
+   22 (5.11), the test level's lesson: it delivers slimes into the start
+   behind the loop's start, travelling the loop's way.
 3. **Where a basket releases its slimes,** after firing and after an opt-out.
    It belongs to the basket object's own design, which is still to be
    planned. The test level assumes one outlet onto the onward route.

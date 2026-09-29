@@ -1,6 +1,7 @@
 # Slime Train v1 — Build plan
 
-Status: draft v11 (approved by the user, 2026-09-29, D108)
+Status: draft v12 (approved by the user, 2026-09-29, D108; chunk 23 moved
+before 18 and chunk LD added, D123)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -71,8 +72,8 @@ in this order. A chunk isn't finished until step 6 is done.
 **Technical chunks skip the ATD steps (1 and 6).** They build tooling or
 technology, not business behaviour:
 - chunk 0 (tooling), chunk 3 (test backbone), chunk 5N (the native
-  simulation tick, a contingency) and chunk 21 (the end-to-end suite) still
-  go test first. Chunk 5N changes no behaviour: the existing suite is its
+  simulation tick, a contingency), chunk 21 (the end-to-end suite) and
+  chunk LD (the level-design toolkit, D123) still go test first. Chunk 5N changes no behaviour: the existing suite is its
   test. Chunk 0's only test is a trivial one, seen red then green, which proves the runner
   reports failures.
 - The spikes (chunks 1 and 2) are throwaway code, so they also skip the
@@ -100,11 +101,17 @@ technology, not business behaviour:
   Chunks 15 and 16 raised O87 (the rest rule's anchor), settled in D107;
   chunk 16 raised D116–D119, approved in D120, and O95, settled in D121
   (item 23.13).
-- **Next:** 18. (5N is a contingency, run only if chunk 22 fails,
-  D96.) Chunk 23 (small issues from play) is an open list, run after 22;
-  its item 23.5 (baskets at bedtime) lands before 22.
+- **Next:** chunk 23 (small issues from play, an open list), before 18
+  (D123), as five sub-chunks in this order: **23A** safety nets (23.3,
+  23.13); **23B** taps and strips (23.2, 23.6b, 23.8); **23C** camera
+  (23.1, 23.4, 23.10, 23.12); **23D** bedtime baskets and the
+  celebration's mark (23.5, 23.11); **23E** objects and taps (23.6, 23.7,
+  23.9). New reports added to the list are placed in a sub-chunk or run
+  after 23E. **In parallel:** chunk LD (the level-design toolkit, D123).
+  Then 18 onward. (5N is a contingency, run only if chunk 22 fails, D96.)
 - **Closing step, last of all:** the coding-rule health review
-  (`CODING_RULE.md`'s health and clean-up list), after chunk 23 (D122).
+  (`CODING_RULE.md`'s health and clean-up list), after every other chunk
+  (D122, kept by D123).
 
 ## Overview
 
@@ -133,13 +140,15 @@ technology, not business behaviour:
 | 19 | Persistence hardening | M | 16, 18 | [DoD 28]; `midair`, `old-version` |
 | 20 | Android build and platform integration | L | 18 | [DoD 25, 26, 27]; emulator |
 | 21 | End-to-end suite | M | 19 | [DoD 31] |
-| 22 | Performance pass on phones | M | 20 | [DoD 30] |
-| 23 | Small issues (open list) | S per issue | 22 | each issue's own done-when |
+| 22 | Performance pass on phones | M | 20, 23 | [DoD 30] |
+| 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
+| LD | Level-design toolkit (technical) | L | 16 | the checker agrees with the level-rule tests on the test level; a scaffolded level loads, passes its generated tests and appears in test mode |
 
 Chunks 1 and 2 can run in parallel with 3. Chunk 5N is not in the
 sequence: it runs only if chunk 22's measurement fails (D96). Chunks 9, 10
 and 11 are independent of each other. Chunk 17 can start as soon as 8 is done, in
-parallel with the camera and objects work.
+parallel with the camera and objects work. Chunk 23 runs first among the
+remaining chunks, before 18 (D123), and chunk LD runs in parallel with it.
 
 ## Chunks
 
@@ -454,9 +463,11 @@ parallel with the camera and objects work.
 
 Small issues the user finds while playing the build. The list stays open:
 new reports are added here as they come, each with the spec change it
-needs and its own done-when. It runs **after chunk 22**, so it doesn't
-disturb the performance measurement; an issue can be pulled forward if it
-blocks testing. Each issue is small (S) and can land on its own. An issue
+needs and its own done-when. It runs **next, before chunk 18** (D123): its
+items are mechanics fixes and decided behaviour, and landing them before
+chunk 22 means the performance pass measures the finished behaviour
+(baskets at bedtime, the safety nets). It runs as sub-chunks 23A to 23E
+(see "Progress"). Each issue is small (S) and can land on its own. An issue
 tagged **(proposed)** still waits for the user's approval; 23.1 to 23.9 are
 decided (D99 to D101, D103, D105, D109 to D111, D113); 23.10 to 23.12
 come from the master spec's alignment with ux D4 and ux D5; 23.13 is
@@ -520,8 +531,8 @@ spec 5.6). A change to chunk 13's idle camera.
   the idle zoom, the cue zooms out as before; [DoD 19] still passes.
 
 **23.5 Baskets at bedtime** (decided 2026-09-29; D105; master spec 5.4
-and 5.7). A change to chunks 14 and 17. **Pull it forward: land it before
-chunk 22**, which measures bedtime piles.
+and 5.7). A change to chunks 14 and 17. Chunk 22 measures bedtime piles
+with it in place (sub-chunk 23D).
 - At bedtime a basket's releases pause and resume at sunrise; the slimes in
   it sleep in place (they stay in the basket, shown asleep) and sunrise
   doesn't move them out; a reward that is due or playing waits for sunrise,
@@ -639,6 +650,47 @@ which settles O95; master spec 5.2). A change to chunk 6's stall check in
   DoD 1 test still fails on any logged stall (its meaning is unchanged:
   no train slime stalls in 15 minutes with no input).
 
+### LD. Level-design toolkit (L, technical)
+
+Asked for by the user (D123). Tooling for whoever designs a level: no
+Definition of done item and no business behaviour, so no ATD steps; it
+still goes test first. It runs in parallel with chunk 23 and builds on what
+chunk 16 left: the test level, its level-rule tests and the level bench.
+Large: a candidate to split when it starts (tools, then tutorial and
+skills).
+
+- **Tools.**
+  - **A level-rules checker, usable on any level.** For every rule in
+    `../../level-design.md` (1 to 22), its report says either *checked by
+    code* (pass or fail, with where) or *manual review* (what to look at),
+    so no rule is left out silently. It reuses the existing level-rule
+    tests' checks rather than duplicating them.
+  - **A new-level scaffolder.** It creates a level's tree under
+    `levels/<id>/` from the level components, its fixtures, a per-level
+    test script (the checker plus a load test), and the level's
+    integration into the app, so it can be loaded in test mode.
+  - **Other tools that make level design easier**, the implementer's
+    proposal, written down in the project documentation (for instance a
+    debug overlay of rails, framing zones and routes back, or a quick
+    fixture maker).
+- **A tutorial for level designers:** a series of short, targeted Markdown
+  files in `docs/level-design/` (one topic each: starting a level, the
+  loop and sections, exploration branches and routes back, frontier sets,
+  framing zones, decoration, checking a level against the rules).
+- **Project skills in `.claude/skills/`:** start a new level; add a
+  section, an interactive object, or a decorative asset; review a level
+  against the level-design rules (it runs the checker and walks through the
+  manual-review rules).
+- **Decoration** has no settled spec yet: O96. The toolkit builds to its
+  proposed default (decoration never collides, never takes a tap, never
+  hides an interactive object or a hint) and changes if the user decides
+  otherwise.
+- **Done when:** the checker reports on the test level and agrees with the
+  existing level-rule tests (a rule those tests fail, on a synthetic level,
+  the checker fails too); the scaffolder creates a level that loads, passes
+  its generated tests and appears in test mode; the tutorial and the
+  skills exist and walk through creating a small level end to end.
+
 ### 5N. Native simulation tick (contingency, only if chunk 22 fails)
 
 Size M. Not in the ordered sequence: **chunk 22 is its trigger** (D96). It
@@ -682,7 +734,8 @@ while another chunk edits the slime body code.
 
 ## Open questions that block chunks
 
-None. The questions the first UX review raised (O67–O77, which chunks 7, 9,
+None. O96 (decoration) shapes part of chunk LD, which builds to its
+proposed default until it is decided. The questions the first UX review raised (O67–O77, which chunks 7, 9,
 12, 17, 18 and 20 built to) were settled as proposed in D102, and the
 build's own points O79–O87 in D103–D107.
 

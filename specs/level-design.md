@@ -1,6 +1,6 @@
 # Level design requirements
 
-Status: draft v8
+Status: draft v9
 
 Rules every level must follow, whoever builds it. These rules make up the
 checklist for every level's design (see `levels/`). Levels are
@@ -39,7 +39,7 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
 12. A frontier gate opens through the **switch-plus-basket set** (D14, D35).
 13. **Each section needs its own return route to the start** from its unopened
     frontier gate. It is part of the loop and has its own camera rail (D79).
-    How that route works is O22.
+    How that route works is O22; where it meets the start is rule 22.
 14. **A return route may carry exploration opportunities, but opening a later
     frontier gate must never make them unreachable** (D79). A gate may shut
     the old return route's entrance with a lid (D105); any exploration on
@@ -77,3 +77,14 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     parent zone** (the band along the top of the screen), so the child can
     operate it: the call drag is the only way to move the camera up
     (D111).
+
+## The start
+
+22. **A return route delivers slimes into the start behind the loop's
+    start, travelling the loop's way**, never along the loop's first stretch
+    against the flow: slimes coming home join behind the train, they don't
+    meet it head on. **Nothing a base slime must be called up to overhangs
+    the loop where larger slimes pass**: a ledge a called size 1 can reach
+    is too low for a size 2 or 3 to pass under, so such a ledge sits where
+    only base slimes pass (inside the split zone's reach) or off the loop's
+    path (D117, D123).
