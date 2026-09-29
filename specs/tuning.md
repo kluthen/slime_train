@@ -120,6 +120,19 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | Basket 3 quota | 60 (weight) | test level |
 | Basket 3 outlet | a point 200 px before slide 3's entrance (no gate, so no default outlet) | O62 |
 
+### Small issues from play (chunk 23)
+
+All **(proposed)**: the user's reports of 2026-09-29, with the details this
+spec proposes.
+
+| Value | Start at | Source |
+|---|---|---|
+| Call camera dead zone | a box centred on the screen, 20% of its width by 20% of its height; a call point inside it doesn't move the camera | O88 |
+| Edge-button strips | 10% of the screen's width from the left and right edges, the whole height below the parent zone's top band | O89 |
+| Stuck-slime check | every 30 ticks (0.5 s) | O90 |
+| Stuck: overlapping | centres closer than a quarter of the smaller slime's radius | O90 |
+| Stuck: how long | 4 checks in a row (about 2 s) | O90 |
+
 ### Session, wind-down, bedtime and sunrise (chunk 17)
 
 | Value | Start at | Source |
@@ -145,8 +158,9 @@ monotonic clock doesn't survive a restart (accepted in master spec §5.7).
 
 These stand in until `ui_ux/` designs them.
 
-- **Edge buttons:** 96 × 192 screen px rectangles at mid-height on each side
-  (whether they should be full-height edge strips is O81).
+- **Edge buttons:** built as 96 × 192 screen px rectangles at mid-height
+  on each side; (proposed, O89) to become whole-height strips 10% of the
+  screen's width (chunk 23). How they are drawn stays with `ui_ux/`.
 - **Top band** (the parent zone): 64 screen px.
 - **An object's hit box:** its drawn box grown by 24 px.
 - **Dusk colour** (`DUSK_COLOUR`): the tint at full dusk, RGB (0.55, 0.52,

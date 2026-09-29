@@ -209,6 +209,11 @@ One term per concept, used everywhere in the code and documents.
   the start of the loop. A free slime that stays on screen is never lost.
   Because of the level rules, "lost" is a safety net rather than something
   that happens in normal play.
+- (proposed, temporary) **Stuck slimes:** two slimes that can't fuse whose
+  centres stay almost on top of each other for about 2 s are stuck; the
+  smaller one (a train or free slime) is moved to the start of the loop and
+  rides the train again. This is a logged safety net, not "lost", until the
+  cause is found and fixed.
 
 **Waking**
 
@@ -315,7 +320,11 @@ The screen has four tap zones, checked in this order:
 
 1. **The top of the screen:** reveals the parent buttons. Doesn't call.
 2. **The left and right edge buttons:** move the camera along the loop.
-   Don't call.
+   Don't call. (proposed) Each is a strip over the screen's whole height,
+   10% of the screen's width from its edge, below the top of the screen
+   (which wins where they overlap). A tap anywhere in a strip is a press: it
+   neither calls nor operates an object under it. While the edge buttons are
+   hidden (bedtime), a tap there is an ordinary tap.
 3. **An interactive object:** operates it. Doesn't call.
 4. **Anywhere else:** a call.
 
@@ -357,6 +366,9 @@ The screen has four tap zones, checked in this order:
 - **Call drag.** A call pulls the camera toward the call point at a slow,
   steady pace. This is how the child looks off the loop; there is no
   joystick. When and how the camera returns to the rails is a tuning value.
+  (proposed) If the call point is already inside a box centred on the
+  screen, 20% of its width by 20% of its height, the call happens but the
+  camera doesn't move.
 - **Automatic framing.** The child never controls the zoom. The camera's place
   decides the zoom, and sometimes the position. **Framing zones** are a level
   component: when the camera reaches one, it gently moves and zooms to that
@@ -717,6 +729,10 @@ later) passes the level-rules check.
     change the zoom; entering a framing zone reframes the camera smoothly.
     (proposed) A press moves at least one fixed step, holding keeps the
     camera moving, and leaving a framing zone takes about 1 s of holding.
+    (proposed) A tap anywhere in an edge strip (the screen's whole height
+    below the top zone, 10% of its width from the edge) moves the camera and
+    never calls; a call whose point is inside the central box (20% by 20%
+    of the screen) leaves the camera where it is.
 19. After 45 s with no input the idle camera follows a train slime, with the
     zoom-out cue starting 10 s earlier; any touch takes back control and does
     its normal job.
@@ -839,3 +855,7 @@ Still undecided.
    may take about a minute to rest, for example at bedtime. Proposed: keep
    the rule for v1 and look at it again in the performance pass on the
    phones.
+9. **Why slimes of different species sometimes end up inside each other.**
+   The build moves one of them back to the start of the loop as a temporary
+   safety net (5.2, proposed); the cause is still to be found and prevented.
+   Not urgent.
