@@ -13,6 +13,8 @@ extends SceneTree
 ## hand edits. Once the level is edited by hand for real, delete this script.
 # @spec-link [[req_test_level_and_test_mode]]
 # @spec-link [[req_level_design_rules]]
+# @spec-link [[rule_first_section_species_count]]
+# @spec-link [[rule_hints_visible_from_loop]]
 
 const OUT := "res://levels/test/level.tscn"
 const COMPONENTS := "res://src/components/%s.tscn"
