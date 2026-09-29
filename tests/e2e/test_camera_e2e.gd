@@ -32,7 +32,7 @@ func _boot(steps: Array = []) -> Node:
 
 
 func _button(side: int) -> Array:
-	var at := TapDispatcher.edge_button_rect(side, SCREEN).get_center()
+	var at := TapDispatcher.edge_button_rect(side, ScreenView.new(Vector2.ZERO, 1.0, SCREEN)).get_center()
 	return [at.x, at.y]
 
 
@@ -70,6 +70,17 @@ func test_the_camera_starts_on_the_rails_by_the_first_slime() -> void:
 	assert_eq(sim.camera.mode, Camera.RAILS)
 	assert_almost_eq(sim.camera.distance, 0.0, 1.0, "the first slime starts at the start of the loop")
 	_assert_scene_mirrors(game)
+
+
+func test_in_test_mode_the_view_has_the_reference_phones_density() -> void:
+	# Chunk 23B: the scene layer sets the view's millimetres every sync; test
+	# mode (like the desktop) uses the reference phone's, so runs match.
+	var game := _boot()
+	var sim: Simulation = game.simulation
+	sim.view.px_per_mm = 1.0
+	game.sync_view()
+	assert_eq(sim.view.px_per_mm, ScreenView.REFERENCE_PX_PER_MM)
+	assert_eq(game.screen_px_per_mm(), ScreenView.REFERENCE_PX_PER_MM)
 
 
 func test_holding_the_right_button_goes_round_the_loop_through_the_frontier_turn() -> void:

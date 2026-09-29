@@ -227,15 +227,37 @@ func step_simulation() -> void:
 ## Makes the simulation's view show what its camera shows (taps are
 ## dispatched through the view), and the scene's Camera2D show the view. The
 ## screen's size is test mode's "screen_size" in test mode (a headless window
-## reports a wrong size), else the viewport's.
+## reports a wrong size), else the viewport's; its density is
+## screen_px_per_mm().
 # @spec-link [[req_controls_tap_zones]]
 # @spec-link [[req_camera_rails_and_framing]]
 func sync_view() -> void:
 	var size: Vector2 = test_mode.screen_size if test_mode != null else get_viewport_rect().size
 	simulation.camera.apply_to(simulation.view, size)
+	simulation.view.px_per_mm = screen_px_per_mm()
 	if camera != null:
 		camera.position = simulation.view.centre
 		camera.zoom = Vector2(simulation.view.zoom, simulation.view.zoom)
+
+
+## Viewport px per millimetre on this screen, for the sizes measured on the
+## screen (the parent zone's 7 mm). On a phone: the display's density
+## (DisplayServer.screen_get_dpi()) over the stretch's physical px per
+## viewport px. In test mode and on the desktop: the reference phone's, so
+## runs are the same everywhere and the desktop shows the phone's layout. A
+## phone reading of 0 or less is reported and the reference phone's used.
+# @spec-link [[req_controls_tap_zones]]
+func screen_px_per_mm() -> float:
+	if test_mode != null or not OS.has_feature("mobile"):
+		return ScreenView.REFERENCE_PX_PER_MM
+	var dpi := DisplayServer.screen_get_dpi()
+	var shown := get_viewport_rect().size.x
+	var physical := float(DisplayServer.window_get_size().x)
+	if dpi <= 0 or shown <= 0.0 or physical <= 0.0:
+		push_error("Screen density unreadable (dpi %d, %s physical px for %s viewport px): using the reference phone's"
+				% [dpi, physical, shown])
+		return ScreenView.REFERENCE_PX_PER_MM
+	return ScreenView.px_per_mm_for(dpi, physical / shown)
 
 
 ## Saves the running simulation to its level's file now. Returns "" or why

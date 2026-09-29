@@ -108,7 +108,7 @@ func test_a_call_hides_a_showing_hint() -> void:
 
 func test_a_tap_that_does_not_call_leaves_it_due() -> void:
 	var sim := _sim()
-	var edge := TapDispatcher.edge_button_rect(-1, sim.view.screen_size).get_center()
+	var edge := TapDispatcher.edge_button_rect(-1, sim.view).get_center()
 	_tap_screen(sim, edge)
 	assert_false(sim.taps[-1]["call"])
 	_tap_screen(sim, Vector2(sim.view.screen_size.x * 0.5, 10.0))  # the parent zone

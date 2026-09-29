@@ -386,7 +386,7 @@ func _sim() -> Simulation:
 
 
 func _right_button() -> Vector2:
-	return TapDispatcher.edge_button_rect(1, SCREEN).get_center()
+	return TapDispatcher.edge_button_rect(1, ScreenView.new(Vector2.ZERO, 1.0, SCREEN)).get_center()
 
 
 func test_the_simulation_starts_its_camera_on_the_rails() -> void:

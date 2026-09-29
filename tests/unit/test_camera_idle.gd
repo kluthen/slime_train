@@ -381,7 +381,7 @@ func test_an_edge_tap_takes_back_control_and_moves_the_camera() -> void:
 	sim.screensaver = true
 	sim.run(2 * TICK_RATE)
 	sim.camera.apply_to(sim.view, SCREEN)
-	sim.push_input(Simulation.touch_down(0, TapDispatcher.edge_button_rect(-1, SCREEN).get_center()))
+	sim.push_input(Simulation.touch_down(0, TapDispatcher.edge_button_rect(-1, sim.view).get_center()))
 	sim.push_input(Simulation.touch_up(0, null))
 	sim.step()
 	assert_eq(sim.camera.mode, Camera.RAILS)

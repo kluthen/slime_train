@@ -3,11 +3,14 @@ extends RefCounted
 ## Which tap zone a tap lands in (master spec §5.5, D15, D33, D57), checked
 ## in the spec's order:
 ##
-##   1. the top band of the screen (TOP_BAND_HEIGHT): the parent zone. It
-##      reveals the parent buttons (chunk 18) and never calls;
-##   2. the left and right edge buttons (EDGE_BUTTON_SIZE, vertically
-##      centred on the screen's sides): they move the camera (chunk 12) and
-##      never call;
+##   1. the parent zone: a band PARENT_ZONE_MM (7 mm, D113) high along the
+##      top of the screen, measured on the screen (ScreenView.mm_to_px), full
+##      width. It reveals the parent buttons (chunk 18) and never calls;
+##   2. the left and right edge buttons: strips EDGE_STRIP_SHARE (10%, D99)
+##      of the screen's width from each side, from the parent zone down to
+##      the bottom (the parent zone wins in the top corners). A strip takes
+##      the whole tap: it moves the camera (chunk 12), never calls and
+##      operates no object under it. Hidden (at bedtime), they are no zone;
 ##   3. an interactive object's hit area: the object's box grown by
 ##      OBJECT_HIT_MARGIN screen pixels on every side (generous for small
 ##      fingers, D91). It operates the object (chunks 9 and 14) and never
@@ -19,23 +22,22 @@ extends RefCounted
 ## areas overlap, the object whose box centre is nearest the tap wins (ties:
 ## the smaller stable ID). Pure functions over plain data.
 ##
-## Placeholder sizes: the top band and the edge buttons are interface design
-## (ux-writer); they are tuning constants here until the ui_ux tree settles
-## them.
+## How the strips and the parent zone are drawn (the arrows, any marking) is
+## interface design (ux-writer); src/taps/edge_buttons.gd draws placeholders.
 # @spec-link [[req_controls_tap_zones]]
 # @spec-link [[req_interactive_objects_general]]
+# @spec-link [[req_parent_gate_and_access]]
+# @spec-link [[req_camera_rails_and_framing]]
 
 const ZONE_PARENT := "parent_zone"
 const ZONE_EDGE := "edge_button"
 const ZONE_OBJECT := "object"
 const ZONE_GROUND := "open_ground"
 
-## Placeholder: the height of the parent zone at the top of the screen,
-## screen pixels.
-const TOP_BAND_HEIGHT := 64.0
-## Placeholder: each edge button's size, screen pixels. They sit against the
-## left and right sides, vertically centred.
-const EDGE_BUTTON_SIZE := Vector2(96, 192)
+## The parent zone's height, millimetres on the screen (D113).
+const PARENT_ZONE_MM := 7.0
+## Each edge strip's width, as a share of the screen's width (D99).
+const EDGE_STRIP_SHARE := 0.1
 ## How much larger than the object's box its hit area is, on every side,
 ## screen pixels.
 const OBJECT_HIT_MARGIN := 24.0
@@ -46,12 +48,22 @@ const KIND_BASKET := "basket"
 const KIND_SLEEPER := "sleeper"
 
 
-## The left (side -1) or right (side 1) edge button's rectangle on a screen
-## of `screen_size`, screen pixels.
-static func edge_button_rect(side: int, screen_size: Vector2) -> Rect2:
-	var y := (screen_size.y - EDGE_BUTTON_SIZE.y) * 0.5
-	var x := 0.0 if side < 0 else screen_size.x - EDGE_BUTTON_SIZE.x
-	return Rect2(Vector2(x, y), EDGE_BUTTON_SIZE)
+## The parent zone's height on `view`'s screen, screen pixels: 7 mm at its
+## density, whatever the zoom. The band runs from y = 0 down to it; level
+## rule 21 (objects below the parent zone) measures against it.
+# @spec-link [[req_parent_gate_and_access]]
+static func parent_zone_height(view: ScreenView) -> float:
+	return view.mm_to_px(PARENT_ZONE_MM)
+
+
+## The left (side -1) or right (side 1) edge strip's rectangle on `view`'s
+## screen, screen pixels: a tenth of the screen's width against that side,
+## from the parent zone down to the bottom.
+static func edge_button_rect(side: int, view: ScreenView) -> Rect2:
+	var top := parent_zone_height(view)
+	var width := view.screen_size.x * EDGE_STRIP_SHARE
+	var x := 0.0 if side < 0 else view.screen_size.x - width
+	return Rect2(x, top, width, maxf(view.screen_size.y - top, 0.0))
 
 
 ## The zone of a tap at `at` (screen pixels) with the view `view`, the level's
@@ -66,12 +78,12 @@ static func dispatch(at: Vector2, view: ScreenView, tap_targets: Dictionary, edg
 	var world := view.screen_to_world(at)
 	var result := {"zone": ZONE_GROUND, "world": world, "side": 0, "object": "", "kind": "",
 			"call": true, "call_point": world}
-	if at.y < TOP_BAND_HEIGHT:
+	if at.y < parent_zone_height(view):
 		result["zone"] = ZONE_PARENT
 		result["call"] = false
 		return result
 	for side in [-1, 1]:
-		if edge_buttons and edge_button_rect(side, view.screen_size).has_point(at):
+		if edge_buttons and edge_button_rect(side, view).has_point(at):
 			result["zone"] = ZONE_EDGE
 			result["side"] = side
 			result["call"] = false

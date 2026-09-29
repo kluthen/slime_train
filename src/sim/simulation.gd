@@ -24,7 +24,10 @@ extends RefCounted
 ## The first touch wins (D66, O67's proposed default): a touch that starts
 ## while any finger is down is ignored entirely (no ripple, no call) until it
 ## lifts, even if the finger that was first lifts before it. `fingers_down`
-## still records every finger.
+## still records every finger. One exception, a resting thumb (D110, to
+## check in a playtest): a finger that pressed an edge strip and has been
+## down RESTING_THUMB_TICKS (5 s) keeps holding the strip but no longer
+## counts as down for that rule (`edge_holds`).
 ##
 ## load_level() hands the simulation its level: it builds the train and the
 ## split zones and, in a fresh state, wakes the first slime (a base slime of
@@ -82,6 +85,10 @@ const INPUT_TILT := "tilt"
 const RIPPLE_TICKS := 36
 ## How many dispatched taps `taps` keeps.
 const TAP_LOG_SIZE := 16
+## How long a finger pressing an edge strip stays down before it rests: it
+## keeps holding the strip but stops blocking other touches, ticks (5 s,
+## D110; to check in a playtest).
+const RESTING_THUMB_TICKS := 5 * TICK_RATE
 
 ## Ticks run since the simulation started.
 var tick := 0
@@ -114,6 +121,10 @@ var fingers_down: Dictionary = {}
 ## The finger whose touch counts (the first touch wins), or -1.
 # @spec-link [[req_controls_tap_zones]]
 var active_finger := -1
+## The fingers down whose tap was an edge-strip press: finger index -> the
+## tick it touched down. After RESTING_THUMB_TICKS such a finger rests.
+# @spec-link [[req_controls_tap_zones]]
+var edge_holds: Dictionary = {}
 ## The last INPUT_LOG_SIZE input events consumed, each stamped with its "tick".
 var input_log: Array[Dictionary] = []
 ## What the player sees: the scene layer copies its camera here before every
@@ -333,6 +344,9 @@ func dump() -> Dictionary:
 	var fingers := {}
 	for finger in fingers_down:
 		fingers[str(finger)] = fingers_down[finger]
+	var holds := {}
+	for finger in edge_holds:
+		holds[str(finger)] = edge_holds[finger]
 	var facings := []
 	var facing_ids := facing.keys()
 	facing_ids.sort()
@@ -364,6 +378,7 @@ func dump() -> Dictionary:
 			"tilt": phone_tilt.dump(),
 			"fingers_down": fingers,
 			"active_finger": active_finger,
+			"edge_holds": holds,
 			"log": input_log.duplicate(true),
 		},
 	}
@@ -383,8 +398,9 @@ func _apply_input(event: Dictionary) -> void:
 	match event["kind"]:
 		INPUT_TOUCH_DOWN:
 			var finger: int = event["finger"]
-			# The first touch wins: only a touch on an empty screen counts.
-			var counts := fingers_down.is_empty()
+			# The first touch wins: only a touch on a screen with no finger
+			# down counts, a resting thumb aside.
+			var counts := _no_finger_blocks()
 			fingers_down[finger] = event["at"]
 			if counts:
 				active_finger = finger
@@ -392,6 +408,7 @@ func _apply_input(event: Dictionary) -> void:
 				_tap(finger, event["at"])
 		INPUT_TOUCH_UP:
 			fingers_down.erase(event["finger"])
+			edge_holds.erase(event["finger"])
 			camera.release(event["finger"])
 			if event["finger"] == active_finger:
 				active_finger = -1
@@ -402,6 +419,17 @@ func _apply_input(event: Dictionary) -> void:
 	input_log.append(logged)
 	if input_log.size() > INPUT_LOG_SIZE:
 		input_log.pop_front()
+
+
+## Whether a touch starting now counts under the first-touch rule: no finger
+## is down, or every finger down is a resting thumb (an edge-strip press held
+## RESTING_THUMB_TICKS or longer, D110).
+# @spec-link [[req_controls_tap_zones]]
+func _no_finger_blocks() -> bool:
+	for finger in fingers_down:
+		if not edge_holds.has(finger) or tick - int(edge_holds[finger]) < RESTING_THUMB_TICKS:
+			return false
+	return true
 
 
 ## An accepted tap at screen point `at`: dispatched, answered with a ripple
@@ -424,6 +452,7 @@ func _tap(finger: int, at: Vector2) -> void:
 		session.start(self)
 	if hit["zone"] == TapDispatcher.ZONE_EDGE:
 		camera.press(hit["side"], finger)
+		edge_holds[finger] = tick
 	if hit["kind"] == TapDispatcher.KIND_SWITCH:
 		frontier.tap_switch(self, hit["object"])
 	var world: Vector2 = hit["world"]

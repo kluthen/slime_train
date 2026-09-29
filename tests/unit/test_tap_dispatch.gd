@@ -3,11 +3,15 @@ extends GutTest
 ## applies: the four zones in the spec's order (parent zone, edge buttons,
 ## objects, open ground), the generous hit areas, a ripple on every tap,
 ## slimes in range turning toward every tap, and "the first touch wins"
-## (D66, O67's proposed default: a second finger gets nothing at all).
+## (D66, O67's proposed default: a second finger gets nothing at all). Since
+## chunk 23B: the edge buttons are whole-height strips a tenth of the
+## screen's width (D99) and the parent zone is 7 mm high on the screen
+## (D113), at the view's density.
 
 # @test-link [[req_controls_tap_zones]]
 # @test-link [[req_call_mechanic]]
 # @test-link [[req_interactive_objects_general]]
+# @test-link [[req_parent_gate_and_access]]
 
 const SCREEN := Vector2(1152, 648)
 
@@ -58,9 +62,24 @@ func test_an_edge_button_wins_over_an_object() -> void:
 	assert_eq(right["side"], 1)
 
 
-func test_the_edge_buttons_are_only_mid_height() -> void:
-	var hit := _dispatch(Vector2(40, SCREEN.y - 20))
-	assert_eq(hit["zone"], TapDispatcher.ZONE_GROUND, "below the left button is open ground")
+func test_the_edge_strips_run_the_whole_height_below_the_parent_zone() -> void:
+	# D99 (chunk 23B): whole-height strips, replacing the mid-height buttons.
+	var band := TapDispatcher.parent_zone_height(ScreenView.new())
+	for y in [band + 1.0, SCREEN.y * 0.5, SCREEN.y - 1.0]:
+		assert_eq(_dispatch(Vector2(40, y))["zone"], TapDispatcher.ZONE_EDGE, "left strip at y %s" % y)
+		assert_eq(_dispatch(Vector2(SCREEN.x - 40, y))["zone"], TapDispatcher.ZONE_EDGE, "right strip at y %s" % y)
+	assert_eq(_dispatch(Vector2(40, band - 1.0))["zone"], TapDispatcher.ZONE_PARENT, "the parent zone wins")
+
+
+func test_an_edge_strip_is_a_tenth_of_the_screens_width() -> void:
+	var view := ScreenView.new()
+	var left := TapDispatcher.edge_button_rect(-1, view)
+	var right := TapDispatcher.edge_button_rect(1, view)
+	var band := TapDispatcher.parent_zone_height(view)
+	assert_eq(left, Rect2(0, band, SCREEN.x * 0.1, SCREEN.y - band))
+	assert_eq(right, Rect2(SCREEN.x * 0.9, band, SCREEN.x * 0.1, SCREEN.y - band))
+	var wide := ScreenView.new(Vector2.ZERO, 1.0, ScreenView.REFERENCE_PHONE_SIZE)
+	assert_eq(TapDispatcher.edge_button_rect(1, wide).size.x, 144.0, "10% of whatever width the screen has")
 
 
 func test_an_object_is_not_a_call() -> void:
@@ -204,3 +223,47 @@ func test_taps_are_in_the_state() -> void:
 	assert_eq(a.dump()["ripples"].size(), 1)
 	assert_eq(a.dump()["taps"].size(), 1)
 	assert_eq(a.dump()["free_slimes"]["call"]["tick"], 0)
+
+
+# --- The parent zone at 7 mm (chunk 23B, D113) -----------------------------------
+
+## A view of the reference phone's screen (its size and density).
+func _phone_view() -> ScreenView:
+	return ScreenView.new(ScreenView.REFERENCE_PHONE_SIZE * 0.5, 1.0, ScreenView.REFERENCE_PHONE_SIZE)
+
+
+func test_the_parent_zone_is_7_mm_high_on_the_screen() -> void:
+	var view := _phone_view()
+	assert_almost_eq(TapDispatcher.parent_zone_height(view), 7.0 * ScreenView.REFERENCE_PX_PER_MM, 1e-6)
+	view.zoom = 0.5
+	assert_almost_eq(TapDispatcher.parent_zone_height(view), 7.0 * ScreenView.REFERENCE_PX_PER_MM, 1e-6,
+			"measured on the screen: the zoom doesn't change it")
+	view.px_per_mm = 20.0
+	assert_eq(TapDispatcher.parent_zone_height(view), 140.0, "a denser screen, more pixels for the same 7 mm")
+
+
+func test_on_the_reference_phone_6_mm_from_the_top_is_the_parent_zone_and_8_mm_calls() -> void:
+	var view := _phone_view()
+	var mid := view.screen_size.x * 0.5
+	var six := TapDispatcher.dispatch(Vector2(mid, view.mm_to_px(6.0)), view, {})
+	assert_eq(six["zone"], TapDispatcher.ZONE_PARENT)
+	assert_false(six["call"])
+	var eight := TapDispatcher.dispatch(Vector2(mid, view.mm_to_px(8.0)), view, {})
+	assert_eq(eight["zone"], TapDispatcher.ZONE_GROUND)
+	assert_true(eight["call"], "just below the band: a call")
+	var on_strip := TapDispatcher.dispatch(Vector2(20, view.mm_to_px(8.0)), view, {})
+	assert_eq(on_strip["zone"], TapDispatcher.ZONE_EDGE, "on a strip, just below the band: a press")
+	var corner := TapDispatcher.dispatch(Vector2(20, view.mm_to_px(6.0)), view, {})
+	assert_eq(corner["zone"], TapDispatcher.ZONE_PARENT, "the parent zone wins in the corner")
+	var band_edge := TapDispatcher.parent_zone_height(view)
+	assert_eq(TapDispatcher.dispatch(Vector2(mid, band_edge - 0.01), view, {})["zone"], TapDispatcher.ZONE_PARENT)
+	assert_eq(TapDispatcher.dispatch(Vector2(mid, band_edge), view, {})["zone"], TapDispatcher.ZONE_GROUND)
+
+
+func test_the_parent_zone_follows_the_density_the_view_is_given() -> void:
+	var view := _phone_view()
+	view.px_per_mm = 3.78  # a desktop monitor, about 96 dpi at scale 1
+	var at := Vector2(view.screen_size.x * 0.5, 40.0)  # 10.6 mm down: below its band
+	assert_eq(TapDispatcher.dispatch(at, view, {})["zone"], TapDispatcher.ZONE_GROUND)
+	view.px_per_mm = ScreenView.REFERENCE_PX_PER_MM
+	assert_eq(TapDispatcher.dispatch(at, view, {})["zone"], TapDispatcher.ZONE_PARENT, "4.2 mm down on the phone")

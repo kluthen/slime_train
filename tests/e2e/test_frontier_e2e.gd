@@ -96,14 +96,18 @@ func _count(game: Node, state: int) -> int:
 	return n
 
 
-## Taps the middle of switch 1 on the screen.
+## Taps the middle of switch 1 on the screen, the camera first aimed at it:
+## from BASKET_VIEW the switch shows about 80 px from the left edge, inside
+## the left edge strip, which takes the whole tap (D99, chunk 23B).
 func _tap_switch(game: Node) -> void:
 	var sim: Simulation = game.simulation
 	var box: Rect2 = sim.level.switches[SWITCH]["box"]
+	_aim(game, box.get_center())
 	var at := sim.view.world_to_screen(box.get_center())
 	sim.push_input(Simulation.touch_down(0, at))
 	sim.push_input(Simulation.touch_up(0, at))
 	game.test_mode.run_ticks(1)
+	assert_eq(sim.taps[-1]["kind"], TapDispatcher.KIND_SWITCH, "the tap lands on the switch")
 
 
 # --- DoD 9: switch, basket, gate, the loop grows --------------------------------------
