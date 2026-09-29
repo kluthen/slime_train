@@ -155,7 +155,7 @@ What each rule checks by code, and what it leaves to a person:
 | 18 | the nearest sleeper within 1/3 screen of the first slime | |
 | 19 | every framing zone meets the loop, zoom in (0, 1]; MANUAL with none | where a wider view is needed |
 | 20 | stable IDs well-formed and unique, version >= 1, sleepers numbered from .01 left to right | once released, compare IDs and migrate |
-| 21 | every switch and basket below the parent zone (7 mm at the reference phone's density, `TapDispatcher.parent_zone_height`, D113) in every rail view that shows it | |
+| 21 | every switch, basket and gate below the parent zone (7 mm at the reference phone's density, `TapDispatcher.parent_zone_height`, D113) in every rail view of every section's outgoing route whose width holds it, on the reference phone's 1440 × 648 screen; an object framed above the screen fails too (chunk 23E) | |
 | 22 | (a) no return route within 48 px of the loop's first 1.5 screens outside the 80 px join; (b) no sleeper's ledge within a called base slime's reach (133 px) overhangs the loop lower than a size-3 hop (130 px) outside a split zone | ledges holding no sleeper |
 
 Rule 22 (b)'s numbers come from the simulation: the reach is

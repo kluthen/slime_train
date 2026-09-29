@@ -19,6 +19,7 @@ extends GutTest
 # @test-link [[req_camera_rails_and_framing]]
 # @test-link [[req_session_lifecycle]]
 # @test-link [[req_denial_and_stepup_behavior]]
+# @test-link [[req_parent_gate_and_access]]
 
 const Support := preload("res://tests/unit/slime_test_support.gd")
 const SCREEN := ScreenView.DEFAULT_SIZE

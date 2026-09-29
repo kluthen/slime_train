@@ -402,6 +402,68 @@ func test_a_switch_in_the_parent_zone_band_fails_rule_21() -> void:
 	assert_true(str(result["findings"]).contains("parent zone"), str(result["findings"]))
 
 
+## Rule 21 on the base level's rails (chunk 23E): the rail point is at
+## y -24 and the camera frames it 120 px under the middle of the view
+## (Camera.RAIL_OFFSET), so at zoom 1 on the reference phone (648 px high)
+## the screen's top is at y -468 and the band (7 mm, about 67 px) reaches
+## y -401. The base switch is 200 x 100 px, centred on its position.
+const RAIL_SCREEN_TOP := -468.0
+const SWITCH_HALF_HEIGHT := 50.0
+
+
+# @test-link [[rule_objects_below_parent_zone]]
+func test_rule_21_holds_1_px_below_the_band_and_fails_1_px_inside_it() -> void:
+	var band := TapDispatcher.parent_zone_height(ScreenView.new())
+	var level := _base()
+	_node(level, "s1.switch").position = Vector2(2300, RAIL_SCREEN_TOP + band + 1.0 + SWITCH_HALF_HEIGHT)
+	assert_eq(_checker(level).check(21, true)["status"], LevelChecker.PASS, "1 px below the band")
+	level = _base()
+	_node(level, "s1.switch").position = Vector2(2300, RAIL_SCREEN_TOP + band - 1.0 + SWITCH_HALF_HEIGHT)
+	_assert_fails(level, 21, "s1.switch")
+
+
+# @test-link [[rule_objects_below_parent_zone]]
+func test_a_gate_in_the_band_or_an_object_above_the_screen_fails_rule_21() -> void:
+	var level := _base()
+	var gate := Gate.new()
+	gate.stable_id = "s1.gate"
+	gate.position = Vector2(2450, -420)
+	level.add_child(gate)
+	_assert_fails(level, 21, "s1.gate")
+	level = _base()
+	_node(level, "s1.switch").position = Vector2(2300, -700)
+	var result := _assert_fails(level, 21, "s1.switch")
+	assert_true(str(result["findings"]).contains("parent zone"), "framed above the screen: not below the band")
+
+
+# @test-link [[rule_objects_below_parent_zone]]
+func test_a_framing_zone_s_framing_counts_for_rule_21() -> void:
+	# The switch's top at y -330 is below the band on the plain rails. A zone
+	# over it at zoom 0.5, shifted 400 px down, frames the view's top at
+	# y -144 + 400 - 648 = -392 and the band (134 level px) down to y -258.
+	var level := _base()
+	_node(level, "s1.switch").position = Vector2(2300, -330 + SWITCH_HALF_HEIGHT)
+	assert_eq(_checker(level).check(21, true)["status"], LevelChecker.PASS, "the plain rails")
+	level = _base()
+	_node(level, "s1.switch").position = Vector2(2300, -330 + SWITCH_HALF_HEIGHT)
+	var zone := FramingZone.new()
+	zone.stable_id = "s1.frame.switch"
+	zone.position = Vector2(2300, -100)
+	zone.size = Vector2(800, 400)
+	zone.zoom = 0.5
+	zone.offset = Vector2(0, 400)
+	level.add_child(zone)
+	_assert_fails(level, 21, "s1.switch")
+
+
+# @test-link [[rule_objects_below_parent_zone]]
+func test_rule_21_checks_the_switches_baskets_and_gates() -> void:
+	var checker := _checker(_base())
+	var ids := LevelRulesObjects.parent_zone_objects(checker.data).keys()
+	ids.sort()
+	assert_eq(ids, ["s1.basket", "s1.switch"], "not the signpost, not the sleepers")
+
+
 # @test-link [[rule_return_route_joins_start_behind_train]]
 func test_a_return_route_along_the_loops_first_stretch_fails_rule_22() -> void:
 	var level := _base()

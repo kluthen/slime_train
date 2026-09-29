@@ -4,7 +4,8 @@ extends GutTest
 ## rule is about the level's layout rather than a behaviour: species per
 ## section [rule 11] and what it gives the level [v1 scope], the hints seen
 ## from the loop [rule 9], the loop closed by a slide in every gate state [rule
-## 3], the fusion dips [rule 5]. The checks themselves are the level-rules
+## 3], the fusion dips [rule 5], the objects below the parent zone [rule 21,
+## chunk 23E]. The checks themselves are the level-rules
 ## checker's (LevelChecker, chunk LD1); this file holds what the test level's
 ## design fixes (S2 adds D, 6 branches, the bowl's zoom, the designed dips).
 ## The other layout rules are checked in test_test_level.gd and
@@ -142,3 +143,33 @@ func test_the_fusion_dips_are_low_points_of_the_loop() -> void:
 		assert_eq(found.size(), 1, "the dip at %s to %s screens: %s" % [dip[0], dip[1], dips])
 		if found.size() == 1:
 			assert_gt(found[0]["depth"], DIP_DEPTH, "the dip at %s to %s screens" % [dip[0], dip[1]])
+
+
+# --- Rule 21: objects below the parent zone ------------------------------------------
+
+# @test-link [[rule_objects_below_parent_zone]]
+func test_every_interactive_object_sits_below_the_parent_zone() -> void:
+	# Item 23.9 (D111): on the reference phone, from every section's outgoing
+	# rails, framing zones included.
+	var result := checker.check(21)
+	assert_eq(result["status"], LevelChecker.PASS, str(result["findings"]))
+	assert_eq(result["findings"], [])
+
+
+# @test-link [[rule_objects_below_parent_zone]]
+func test_every_interactive_object_is_on_screen_in_some_rail_view() -> void:
+	# Rule 21 is checked where the camera shows each object: none passes
+	# because no rail view frames it.
+	var objects := LevelRulesObjects.parent_zone_objects(data)
+	assert_eq(objects.size(), 8, "3 switches, 3 baskets, 2 gates")
+	var views: Array[ScreenView] = []
+	for section in checker.sections():
+		for frame in checker.rail_frames(section, ScreenView.REFERENCE_PHONE_SIZE):
+			views.append(frame["screen"])
+	assert_gt(views.size(), 500, "the outgoing rails of the whole level, every %d px" % LevelChecker.RAIL_SAMPLE)
+	for id in objects:
+		var centre: Vector2 = (objects[id] as Rect2).get_center()
+		var framed := views.any(func(view: ScreenView) -> bool:
+			var at := view.world_to_screen(centre)
+			return at.x >= 0.0 and at.x <= view.screen_size.x and at.y >= 0.0 and at.y <= view.screen_size.y)
+		assert_true(framed, "%s is on screen in some rail view" % id)
