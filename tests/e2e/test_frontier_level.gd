@@ -1,6 +1,7 @@
 extends GutTest
-## The test level's frontier sets (set 1 from chunk 14, set 2 from chunk 15)
-## against the level rules: a signpost at each fork, for its switch [rule 6];
+## The test level's frontier sets (set 1 from chunk 14, set 2 from chunk 15,
+## set 3 from chunk 16: a switch and a basket, no rule and no gate, the
+## level's last) against the level rules: a signpost at each fork, for its switch [rule 6];
 ## each switch's trapdoor on the loop over its basket, so the flow drops in
 ## by gravity and taps alone [rule 10: no tilt]; each basket's outlet on the
 ## onward route; each gate on the next section's route, its lid over its
@@ -55,13 +56,16 @@ func _gates_before(section: int) -> Array:
 
 
 func test_there_is_a_frontier_set_per_section_with_its_rule() -> void:
-	assert_eq(data.switches.keys(), ["s1.switch", "s2.switch"])
-	assert_eq(data.baskets.keys(), ["s1.basket", "s2.basket"])
-	assert_eq(data.gates.keys(), ["s1.gate", "s2.gate"])
+	assert_eq(data.switches.keys(), ["s1.switch", "s2.switch", "s3.switch"])
+	assert_eq(data.baskets.keys(), ["s1.basket", "s2.basket", "s3.basket"])
+	assert_eq(data.gates.keys(), ["s1.gate", "s2.gate"], "set 3 has no gate")
 	assert_eq(data.switches["s1.switch"]["basket"], "s1.basket")
 	assert_eq(data.baskets["s1.basket"]["quota"], 6)
 	assert_eq(data.switches["s2.switch"]["basket"], "s2.basket")
 	assert_eq(data.baskets["s2.basket"]["quota"], 15)
+	assert_eq(data.switches["s3.switch"]["basket"], "s3.basket")
+	assert_eq(data.baskets["s3.basket"]["quota"], 60)
+	# Basket 3 has no rule: filling it completes the level (the celebration).
 	assert_eq(data.rules, [{"when": {"object": "s1.basket", "event": "full"},
 			"then": {"object": "s1.gate", "action": "open"}},
 			{"when": {"object": "s2.basket", "event": "full"},

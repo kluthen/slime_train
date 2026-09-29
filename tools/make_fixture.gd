@@ -94,18 +94,29 @@ const GATE_END_ROOM := 400.0
 ## columns SPOT_PITCH px apart from BOWL_FROM to BOWL_TO and from BOWL_TOP
 ## down; basket 3 takes 60 base slimes, the bowl the rest. The camera starts
 ## on the bowl's framing zone (the whole bowl at half zoom; basket 3 out of
-## view).
+## view): its view spans x 13.375 to 15.375 screens, and the columns stay
+## inside it. stress-still's pile spreads up the ramp as it settles, its left
+## end to the view's edge (the last two centres within 30 px past it).
 const SWITCH_3 := "s3.switch"
 const BASKET_3 := "s3.basket"
-const BOWL_FROM := 13.05 * S
-const BOWL_TO := 15.55 * S
+const BOWL_FROM := 13.5 * S
+const BOWL_TO := 15.33 * S
 const BOWL_TOP := -560.0
 const BOWL_BOTTOM := 200.0
 const SPOT_PITCH := 50.0
 const IN_BASKET_3 := 60
 const BOWL_CAMERA := Vector2(14.375 * S, -150.0)
-## stress-still's settling time, ticks: the pile lands and rests.
-const SETTLE_TICKS := 600
+## stress-still's settling time, at most, ticks (2 minutes): the bowl's pile
+## of size-1 slimes spreads slowly (they don't stack) before it comes to rest
+## (about 64 s); the fixture waits until every slime rests, or fails.
+const SETTLE_MAX_TICKS := 7200
+## A fixture keeps only the slimes' centres, so a loaded pile starts from
+## round bodies and settles again (a slow, deterministic spread: 8 to 18 s).
+## stress-still is reloaded and settled again SETTLE_ROUNDS times; the save
+## whose reload rests soonest is kept, and it must rest within
+## QUICK_REST_TICKS (10 s) of loading.
+const SETTLE_ROUNDS := 4
+const QUICK_REST_TICKS := 600
 
 ## name -> {"description", "camera" (a level point, or null), "build" (the
 ## builder's name, or "" for no save: a fresh level)}.
@@ -176,8 +187,9 @@ const FIXTURES := {
 			+ "left): 60 size-1 slimes resting in basket 3 (switch 3 flipped, the basket full and "
 			+ "waiting to be in view), and the other 140 piled at the bottom of section 3's bowl, "
 			+ "asleep for the night: a session at bedtime, since a slime outside a basket rests "
-			+ "only asleep. Settled for 10 s before saving. The camera on the bowl (its framing "
-			+ "zone zooms out to half). The worst still case on one screen (chunk 16; measured by "
+			+ "only asleep. Settled so that, loaded, the whole pile comes to rest within 10 s "
+			+ "(about 8 s). The camera on the bowl (its framing zone zooms out to half; the pile "
+			+ "on screen). The worst still case on one screen (chunk 16; measured by "
 			+ "tools/bench_level.gd)."),
 			"camera": [BOWL_CAMERA.x, BOWL_CAMERA.y], "build": "_stress_still"},
 	"stress-moving": {"description": ("Gates 1 and 2 open and all 200 base slimes woken as size-1 "
@@ -469,7 +481,9 @@ func _wake_along_loop(sim: Simulation) -> bool:
 ## stress-still: gates 1 and 2 open, the whole population woken: the last
 ## IN_BASKET_3 (in stable ID order, section 3's) resting in basket 3, full;
 ## the others piled at the bowl's bottom (the lowest _bowl_spots), asleep at
-## bedtime; then SETTLE_TICKS so the pile lands and rests.
+## bedtime; then stepped until every slime rests (_settle), then reloaded
+## from its save and settled again SETTLE_ROUNDS times, keeping the state
+## whose reload rests soonest.
 # @spec-link [[rule_max_200_slimes_per_level]]
 # @spec-link [[req_switch_basket_gate_set]]
 func _stress_still() -> Simulation:
@@ -503,9 +517,46 @@ func _stress_still() -> Simulation:
 	sim.session.start(sim)
 	sim.session.jump(sim, Session.BEDTIME_MS)
 	sim.session.save_due = false
-	for tick in SETTLE_TICKS:
+	if _settle(sim) < 0:
+		return null
+	var best: Simulation = null
+	var best_ticks := -1
+	for round in SETTLE_ROUNDS:
+		var reloaded := Simulation.from_save(SaveData.readable(sim.to_save()), _level.data, _terrain, 1)
+		var ticks := _settle(reloaded)
+		if ticks < 0:
+			return null
+		if best == null or ticks < best_ticks:
+			best = sim
+			best_ticks = ticks
+		sim = reloaded
+	if best_ticks > QUICK_REST_TICKS:
+		push_error("make_fixture: stress-still's pile rests %d ticks after loading, more than %d"
+				% [best_ticks, QUICK_REST_TICKS])
+		return null
+	print("make_fixture: stress-still's pile rests %d ticks after loading" % best_ticks)
+	return best
+
+
+## Steps `sim` until every slime rests, at most SETTLE_MAX_TICKS, and returns
+## the ticks it took; -1 (and an error) when some never do. The rings take
+## the zoomed-out point count first, as the fixture's camera (at the bowl's
+## framing zone, zoom 0.5, below Offscreen.LOW_ZOOM) shows them, so the pile
+## settles here as it will in the game.
+func _settle(sim: Simulation) -> int:
+	for slime_id in sim.slimes.ids():
+		sim.slimes.set_low_detail(slime_id, true)
+	for tick in SETTLE_MAX_TICKS:
 		sim.step()
-	return sim
+		var all_rest := true
+		for slime_id in sim.slimes.ids():
+			if sim.slimes.calm_of(slime_id) != SlimeBodies.RESTING:
+				all_rest = false
+				break
+		if all_rest:
+			return tick + 1
+	push_error("make_fixture: stress-still's slimes don't all rest within %d ticks" % SETTLE_MAX_TICKS)
+	return -1
 
 
 ## stress-moving: gates 1 and 2 open, the whole population woken as size-1

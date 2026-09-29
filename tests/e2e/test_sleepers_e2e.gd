@@ -17,8 +17,9 @@ const FIRST_SLEEPER := "s1.sleeper.01"
 const DIR := "user://test-sleepers-e2e/"
 const LEVEL := "test"
 const DUE_TICKS := 10 * TICK_RATE
-## The test level's sleepers: section 1's 29 and section 2's 40.
-const SLEEPERS := 69
+## The test level's sleepers: section 1's 29, section 2's 40 and section
+## 3's 130 (chunk 16); with the first slime, the level's 200.
+const SLEEPERS := 199
 
 
 func before_each() -> void:
@@ -112,8 +113,9 @@ func test_every_sleeper_starts_asleep_and_the_first_slime_awake() -> void:
 		var letter := Species.letter(sim.slimes.species_of(slime_id))
 		by_species[letter] = by_species.get(letter, 0) + 1
 		assert_eq(sim.identities.members_of(slime_id).size(), 1, "one stable ID each")
-	# Sections 1 and 2 (chunk 15): S1 A 9, B 9, C 11; S2 A 7, B 7, C 7, D 19.
-	assert_eq(by_species, {"A": 16, "B": 16, "C": 18, "D": 19})
+	# S1 A 9, B 9, C 11; S2 A 7, B 7, C 7, D 19; S3 (chunk 16) A 20, B 20,
+	# C 20, D 20, E 50.
+	assert_eq(by_species, {"A": 36, "B": 36, "C": 38, "D": 39, "E": 50})
 	var first := sim.slimes.ids()[0]
 	assert_eq(sim.slimes.state_of(first), SlimeBodies.TRAIN)
 	assert_eq(Species.letter(sim.slimes.species_of(first)), "A")

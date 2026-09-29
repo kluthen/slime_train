@@ -9,9 +9,11 @@ extends GutTest
 ## back and the basket lets its slime go [DoD 11]; no run here tilts [DoD
 ## 12]; once the gate is open a tap on the switch does nothing and the
 ## basket takes no more slimes [DoD 13]; the celebration waits for the last
-## basket (section 2's, since chunk 15: from `s2-basket-offscreen`), plays
-## once, is saved, and a reload doesn't play it again [DoD 14]. The run is the same
-## in this process and in a child process (same seed, same hash).
+## basket (section 3's, since chunk 16: neither basket 1 from
+## `s1-basket-5of6` nor basket 2 from `s2-basket-offscreen` plays it; basket
+## 3, full in `stress-still`, does), plays once, is saved, and a reload
+## doesn't play it again [DoD 14]. The run is the same in this process and in
+## a child process (same seed, same hash).
 
 # @test-link [[req_switch_basket_gate_set]]
 # @test-link [[req_interactive_objects_general]]
@@ -30,9 +32,13 @@ const GATE := "s1.gate"
 const BASKET_VIEW := Vector2(6.9 * 1152.0, -50.0)
 ## Far from basket 1: the start basin.
 const AWAY_VIEW := Vector2(0.4 * 1152.0, 400.0)
-## The camera on basket 2, the test level's last basket (chunk 15).
+## The camera on basket 2 (chunk 15).
 const BASKET_2_VIEW := Vector2(12.4 * 1152.0, -50.0)
 const BASKET_2 := "s2.basket"
+## The camera on basket 3, the test level's last basket (chunk 16): its box's
+## centre is at (16.01 screens, -10).
+const BASKET_3_VIEW := Vector2(16.01 * 1152.0, -10.0)
+const BASKET_3 := "s3.basket"
 ## From s1-basket-5of6 the basket fires within this (seconds). Probes: the
 ## first slime drops in about 5 s after the start, the reward plays 2 s.
 const FIRE_WITHIN := 30
@@ -214,12 +220,25 @@ func test_basket_1_firing_is_not_the_celebration_any_more() -> void:
 	assert_false(sim.frontier.celebration_playing(sim.tick))
 
 
-func test_the_celebration_plays_once_and_a_reload_does_not_replay_it() -> void:
+func test_basket_2_firing_is_not_the_celebration_any_more() -> void:
+	# Chunk 16 added section 3 and its basket: basket 2 is no longer the last.
 	var game := _boot({"fixture": "s2-basket-offscreen"})
 	var sim: Simulation = game.simulation
-	assert_false(sim.frontier.celebration_done)
 	# Probes: the first slime reaches switch 2 and the basket fires in about 30 s.
 	assert_gt(_run_until_phase(game, FrontierSets.FIRED, 60 * TICK_RATE, BASKET_2_VIEW, BASKET_2), 0)
+	assert_true(sim.gate_states["s2.gate"]["open"], "gate 2 opens")
+	assert_false(sim.frontier.celebration_done, "basket 3 is still to fill")
+	assert_false(sim.frontier.celebration_playing(sim.tick))
+
+
+func test_the_celebration_plays_once_and_a_reload_does_not_replay_it() -> void:
+	# stress-still: baskets 1 and 2 fired, basket 3 full, waiting to be in view.
+	var game := _boot({"fixture": "stress-still"})
+	var sim: Simulation = game.simulation
+	assert_false(sim.frontier.celebration_done)
+	assert_eq(sim.object_states[BASKET_3]["phase"], FrontierSets.FULL)
+	# In view, its reward plays (2 s), then it fires.
+	assert_gt(_run_until_phase(game, FrontierSets.FIRED, 10 * TICK_RATE, BASKET_3_VIEW, BASKET_3), 0)
 	assert_true(sim.frontier.celebration_done, "the last basket fired: the celebration")
 	assert_true(sim.frontier.celebration_playing(sim.tick))
 	var since := sim.frontier.celebration_since
@@ -240,7 +259,7 @@ func test_the_celebration_plays_once_and_a_reload_does_not_replay_it() -> void:
 	reloaded.test_mode.run_ticks(10 * TICK_RATE)
 	assert_false(again.frontier.celebration_playing(again.tick), "not replayed")
 	assert_eq(again.frontier.celebration_since, since)
-	assert_eq(again.object_states[BASKET_2]["phase"], FrontierSets.FIRED, "the world keeps running")
+	assert_eq(again.object_states[BASKET_3]["phase"], FrontierSets.FIRED, "the world keeps running")
 
 
 # --- Same seed, same hash -------------------------------------------------------------

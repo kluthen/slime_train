@@ -1,7 +1,8 @@
 extends GutTest
 ## End-to-end on the test level (the Meadow): fusion and bumping through the
-## real game scene. From the `bump` fixture a size-3 and a size-2 slime of
-## species C meet on the fusion dip's floor and never fuse [DoD 6, bump];
+## real game scene. From the `bump` fixture four slimes of species C, sizes
+## 2, 2, 3 and 1, on the fusion dip's floor make both bumps, a 2 + 2 and a
+## 3 + 1, and never fuse [DoD 6, bump; four slimes since chunk 16];
 ## two base slimes of one species put on the dip's rim fuse within a bounded
 ## time (the dip nudges fusion, level rule 5), and the run is repeatable; a
 ## 2 + 2 and a 3 + 1 pair on the dip bump and stay apart in size.
@@ -22,6 +23,10 @@ const RIM := [2.58, 2.68]
 ## fused in 7.5-11.6 s; the rest is margin.
 const FUSE_WITHIN := 20
 const BUMP_SECONDS := 10
+## How long the bump fixture is watched (seconds). Probes on seeds 1 to 8:
+## within 20 s, 2 + 2 bumped 1 to 3 times and 3 + 1 six times (seed 5: 1 and
+## 6), and nothing fused.
+const BUMP_FIXTURE_SECONDS := 20
 
 
 func _boot(config := {}) -> Node:
@@ -88,27 +93,45 @@ func _watch_pair(game: Node, a: int, b: int, seconds: int) -> Dictionary:
 
 # --- The bump fixture [DoD 6, bump] ---------------------------------------------------
 
-func test_bump_the_size_three_and_size_two_meet_and_never_fuse() -> void:
+func test_bump_both_bumps_happen_and_nothing_fuses() -> void:
 	var game := _boot({"fixture": "bump"})
 	var sim: Simulation = game.simulation
-	var pair: Array[int] = []
+	var four: Array[int] = []
 	for slime_id in sim.slimes.ids():
-		# The fixture's pair: the train slimes of species C (the level's
-		# sleepers may be of species C too).
+		# The fixture's four: the train slimes of species C (the first slime
+		# is A; the level's sleepers may be of species C too).
 		if sim.slimes.species_of(slime_id) == Species.from_letter("C") \
 				and sim.slimes.state_of(slime_id) == SlimeBodies.TRAIN:
-			pair.append(slime_id)
-	assert_eq(pair.size(), 2)
-	if pair.size() != 2:
+			four.append(slime_id)
+	assert_eq(four.size(), 4)
+	if four.size() != 4:
 		return
+	var sizes := {}
+	for slime_id in four:
+		sizes[slime_id] = sim.slimes.size_of(slime_id)
 	_aim_at_dip(game)
-	var seen := _watch_pair(game, pair[0], pair[1], BUMP_SECONDS)
-	gut.p("bump fixture: %s" % seen)
-	assert_true(seen["kept"], "both still there after 10 s, sizes 3 and 2")
-	assert_gt(seen["touched"], 0, "they meet")
-	var sizes := [sim.slimes.size_of(pair[0]), sim.slimes.size_of(pair[1])]
-	sizes.sort()
-	assert_eq(sizes, [2, 3])
+	var bumps := {}
+	var last := {}
+	var kept := true
+	for i in BUMP_FIXTURE_SECONDS * TICK_RATE:
+		game.test_mode.run_ticks(1)
+		for slime_id in four:
+			if not sim.slimes.has(slime_id) or sim.slimes.size_of(slime_id) != sizes[slime_id]:
+				kept = false
+		if not kept:
+			break
+		for a in four.size():
+			for b in range(a + 1, four.size()):
+				var pair := Vector2i(four[a], four[b])
+				var count := sim.fusion.contact_ticks(pair.x, pair.y)
+				if last.get(pair, 0) == Fusion.CONTACT_TICKS - 1 and count == 0:
+					var key := "%d+%d" % [maxi(sizes[pair.x], sizes[pair.y]), mini(sizes[pair.x], sizes[pair.y])]
+					bumps[key] = bumps.get(key, 0) + 1
+				last[pair] = count
+	gut.p("bump fixture, %d s: bumps %s" % [BUMP_FIXTURE_SECONDS, bumps])
+	assert_true(kept, "all four still there, sizes 2, 2, 3 and 1: nothing fused")
+	assert_gt(bumps.get("2+2", 0), 0, "a 2 + 2 bump")
+	assert_gt(bumps.get("3+1", 0), 0, "a 3 + 1 bump")
 
 
 # --- The dip nudges fusion (level rule 5) -------------------------------------------
