@@ -111,12 +111,13 @@ const BOWL_CAMERA := Vector2(14.375 * S, -150.0)
 ## (about 64 s); the fixture waits until every slime rests, or fails.
 const SETTLE_MAX_TICKS := 7200
 ## A fixture keeps only the slimes' centres, so a loaded pile starts from
-## round bodies and settles again (a slow, deterministic spread: 8 to 18 s).
+## round bodies and settles again (a slow, deterministic spread: 11 to 15 s
+## since chunk 16d's fix of the terrain's sharp corners; 8 to 18 s before).
 ## stress-still is reloaded and settled again SETTLE_ROUNDS times; the save
 ## whose reload rests soonest is kept, and it must rest within
-## QUICK_REST_TICKS (10 s) of loading.
-const SETTLE_ROUNDS := 4
-const QUICK_REST_TICKS := 600
+## QUICK_REST_TICKS (12.5 s) of loading, under the 15 s its load test allows.
+const SETTLE_ROUNDS := 6
+const QUICK_REST_TICKS := 750
 
 ## name -> {"description", "camera" (a level point, or null), "build" (the
 ## builder's name, or "" for no save: a fresh level)}.

@@ -426,8 +426,9 @@ func _build() -> Level:
 
 
 ## Section 2, "Caves" (chunk 15; README "Section 2"): its sleepers, the cave
-## branch with its route back, the framing zones and frontier set 2, whose
-## basket is 1.5 screens from its switch.
+## branch with its route back and framing zone (chunk 16d), the other
+## framing zones and frontier set 2, whose basket is 1.5 screens from its
+## switch.
 func _build_section_2(level: Level) -> void:
 	var section := _group(level, level, "Section2")
 	var sleepers := _group(level, section, "Sleepers")
@@ -445,6 +446,10 @@ func _build_section_2(level: Level) -> void:
 	var cave := _group(level, section, "Cave")
 	_branch(level, cave, "cave", Rect2(10.94 * S, -820, 1.01 * S, 540), "s2")
 	_route_back(level, cave, "cave", ROUTE_BACK_CAVE, "s2")
+	# Rule 9 (chunk 16d): along the cave's entrance stretch of the loop, the
+	# view zooms out and shifts up until the pocket's sleepers (y -724) are
+	# in it with the loop: settled, it spans y -767 to 159.
+	_frame(level, cave, "cave", _at(11.25, -150), Vector2(1.3 * S, 500), 0.7, Vector2(0, -140), "s2")
 
 	var frontier := _group(level, section, "FrontierSet")
 	var signpost: Signpost = _add(level, frontier, "signpost", "Signpost")

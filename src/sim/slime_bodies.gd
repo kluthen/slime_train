@@ -1464,6 +1464,8 @@ func _solve_against(tf: TerrainSegments) -> void:
 	var sdir := tf.seg_d
 	var sil := tf.seg_inv_len2
 	var sn := tf.seg_n
+	var sna := tf.seg_na
+	var snb := tf.seg_nb
 	var starts := tf.cell_start
 	var items := tf.cell_items
 	var ox := tf.origin.x
@@ -1489,6 +1491,7 @@ func _solve_against(tf: TerrainSegments) -> void:
 			var best := -1
 			var best_d2 := INF
 			var best_q := Vector2.ZERO
+			var best_t := 0.0
 			for qi in range(starts[cell], starts[cell + 1]):
 				var k: int = items[qi]
 				var a: Vector2 = sa[k]
@@ -1500,11 +1503,19 @@ func _solve_against(tf: TerrainSegments) -> void:
 					best_d2 = d2
 					best = k
 					best_q = q
+					best_t = t
 			if best < 0:
 				continue
 			var n: Vector2 = sn[best]
 			var off := c - best_q
-			if off.dot(n) >= 0.0:
+			# Inside or out: at a segment's end, by the vertex's normal
+			# (TerrainSegments.side_normal, inlined).
+			var side := n
+			if best_t <= 0.0:
+				side = sna[best]
+			elif best_t >= 1.0:
+				side = snb[best]
+			if off.dot(side) >= 0.0:
 				# Outside: only within the skin, pushed away from the nearest
 				# surface point (round around convex corners).
 				if best_d2 >= skin2:

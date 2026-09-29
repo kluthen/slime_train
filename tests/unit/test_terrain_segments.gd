@@ -69,3 +69,22 @@ func test_curved_terrain_from_the_component_bake() -> void:
 	assert_lt(hit["normal"].y, -0.9, "pushed up out of the valley floor")
 	assert_false(terrain.is_empty())
 	assert_true(TerrainSegments.new([]).is_empty())
+
+
+## A lip like the test level's dip hollows: a slope up to a sharp top
+## corner at (92, -170), then a vertical outer face. The corner's two edges
+## are equally near a point past it; the plane of the slope alone would put
+## a wedge outside the corner inside the terrain (chunk 16d).
+const LIP := [Vector2(0, -130), Vector2(69, -150), Vector2(92, -170), Vector2(92, -130)]
+
+
+func test_outside_a_sharp_corner_is_outside_whichever_edge_is_listed_first() -> void:
+	for reverse in [false, true]:
+		var polygon := PackedVector2Array(LIP)
+		if reverse:
+			polygon.reverse()
+		var terrain := TerrainSegments.new([polygon])
+		for point in [Vector2(100, -175), Vector2(95, -172), Vector2(105.7, -177), Vector2(110.8, -186)]:
+			assert_false(terrain.resolve(point)["hit"], "%s is past the corner (reverse=%s)" % [point, reverse])
+		for point in [Vector2(90, -166), Vector2(80, -155), Vector2(91, -140)]:
+			assert_true(terrain.resolve(point)["hit"], "%s is inside the lip (reverse=%s)" % [point, reverse])

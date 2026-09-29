@@ -26,11 +26,9 @@ const DIPS := [[2.5, 3.5], [10.0, 10.5]]
 const DIP_DEPTH := 80.0
 ## Known breaks of rule 9 in the built level, reported rather than hidden:
 ## branch ID -> why. Each is checked to still break the rule (so a fixed one
-## can't linger here) and marked pending instead of failing.
-const KNOWN_HINTLESS := {
-	"s2.branch.cave": "the pocket's 14 sleepers sit at y -724, above every rail view of section 2 "
-			+ "(its top is about y -488 at zoom 1) and no framing zone widens it (chunk 16c finding)",
-}
+## can't linger here) and marked pending instead of failing. None since
+## chunk 16d, which added `s2.frame.cave` for the cave's pocket (y -724).
+const KNOWN_HINTLESS := {}
 
 var level: Level
 var data: LevelData

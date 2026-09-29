@@ -31,7 +31,8 @@ const GATE_AWAKE := 20
 const BOWL_LEFT := 13.3 * S
 const BOWL_RIGHT := 15.4 * S
 ## stress-still's pile comes to rest within this after loading (ticks):
-## make_fixture measured 490; the rest is margin.
+## make_fixture measured 670 (490 before chunk 16d's terrain corner fix);
+## the rest is margin.
 const PILE_RESTS_WITHIN := 900
 
 

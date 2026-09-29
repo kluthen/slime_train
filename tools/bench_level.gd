@@ -28,7 +28,7 @@ const LEVEL_SCENE := "res://levels/test/level.tscn"
 const SEED := 909
 ## stress-still's pile rests this many ticks after loading
 ## (tools/make_fixture.gd measured it; test_fixtures_e2e checks it).
-const REST_TICK := 490
+const REST_TICK := 670
 const START_LEAD_IN := 600
 const MOVING_LEAD_IN := 60
 

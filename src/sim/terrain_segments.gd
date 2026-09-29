@@ -13,7 +13,13 @@ extends RefCounted
 ## never changed afterwards, so several simulations can share one.
 ##
 ## A point is inside the terrain when it lies behind the nearest segment's
-## outward normal. Only segments within MARGIN are searched, so a point that
+## outward normal; when the nearest point of that segment is one of its ends
+## (a vertex, which the next segment shares), behind the vertex's normal:
+## the mean of its two segments' normals (chunk 16d). With the segment's own
+## normal there, a wedge outside a sharp convex corner counted as inside
+## whenever the corner's other segment was listed second, and ring points
+## passing there were pulled onto the corner. Only segments within MARGIN
+## are searched, so a point that
 ## got deeper than MARGIN into the terrain is no longer seen. A ring point
 ## moves at most max_speed per substep (10 px at 1200 px/s, 2 substeps at
 ## 60 Hz), under MARGIN, and terrain pieces must be thicker than about
@@ -25,12 +31,16 @@ const CELL := 32.0
 const MARGIN := 16.0
 
 ## Per segment: its start and end, its direction (end - start), 1 / its
-## squared length, and its outward unit normal.
+## squared length, its outward unit normal, and the normals of the vertices
+## at its start and end (the mean of the normals of the two segments that
+## meet there, unit length).
 var seg_a := PackedVector2Array()
 var seg_b := PackedVector2Array()
 var seg_d := PackedVector2Array()
 var seg_inv_len2 := PackedFloat32Array()
 var seg_n := PackedVector2Array()
+var seg_na := PackedVector2Array()
+var seg_nb := PackedVector2Array()
 
 ## The grid: `origin` is the top-left corner of cell 0; cell (x, y) is
 ## y * grid_w + x. Cell c lists cell_items[cell_start[c] .. cell_start[c + 1]].
@@ -66,8 +76,9 @@ func resolve(point: Vector2) -> Dictionary:
 	var k := nearest_segment(point)
 	if k < 0:
 		return {"hit": false, "position": point, "normal": Vector2.ZERO, "distance": INF}
-	var on := closest_on_segment(k, point)
-	var inside := (point - on).dot(seg_n[k]) < 0.0
+	var t := clampf((point - seg_a[k]).dot(seg_d[k]) * seg_inv_len2[k], 0.0, 1.0)
+	var on := seg_a[k] + seg_d[k] * t
+	var inside := (point - on).dot(side_normal(k, t)) < 0.0
 	return {"hit": inside, "position": on if inside else point, "normal": seg_n[k], "distance": point.distance_to(on)}
 
 
@@ -94,6 +105,18 @@ func nearest_segment(point: Vector2) -> int:
 	return best
 
 
+## The normal that tells inside from outside for a point whose nearest
+## point on segment `k` is at `t` (0 to 1) along it: the segment's own
+## normal, or at an end the vertex's (see the class doc).
+func side_normal(k: int, t: float) -> Vector2:
+	if t <= 0.0:
+		return seg_na[k]
+	if t >= 1.0:
+		return seg_nb[k]
+	return seg_n[k]
+
+
+## The point of segment `k` nearest `point`.
 func closest_on_segment(k: int, point: Vector2) -> Vector2:
 	var t := clampf((point - seg_a[k]).dot(seg_d[k]) * seg_inv_len2[k], 0.0, 1.0)
 	return seg_a[k] + seg_d[k] * t
@@ -118,6 +141,7 @@ func _add_polygon(polygon: PackedVector2Array) -> void:
 	for i in count:
 		twice_area += polygon[i].cross(polygon[(i + 1) % count])
 	var outward := 1.0 if twice_area > 0.0 else -1.0
+	var first := seg_a.size()
 	for i in count:
 		var a := polygon[i]
 		var d := polygon[(i + 1) % count] - a
@@ -129,6 +153,25 @@ func _add_polygon(polygon: PackedVector2Array) -> void:
 		seg_d.append(d)
 		seg_inv_len2.append(1.0 / len2)
 		seg_n.append(Vector2(d.y, -d.x).normalized() * outward)
+	# The vertex normals: each segment's end is the next one's start (the
+	# outline is closed, and the degenerate segments skipped join no one).
+	var added := seg_a.size() - first
+	seg_na.resize(seg_a.size())
+	seg_nb.resize(seg_a.size())
+	for j in added:
+		var k := first + j
+		var next := first + (j + 1) % added
+		var vertex := _vertex_normal(seg_n[k], seg_n[next])
+		seg_nb[k] = vertex
+		seg_na[next] = vertex
+
+
+## The normal of the vertex where a segment with normal `n1` meets one with
+## normal `n2`: their mean, unit length (`n2` for a vertex where the outline
+## turns right back on itself).
+static func _vertex_normal(n1: Vector2, n2: Vector2) -> Vector2:
+	var sum := n1 + n2
+	return sum.normalized() if sum.length_squared() > 1e-8 else n2
 
 
 func _build_grid() -> void:

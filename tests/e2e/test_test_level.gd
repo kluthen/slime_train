@@ -50,7 +50,7 @@ func _expected_section_2_ids() -> PackedStringArray:
 		"s2.loop", "s2.slide",
 		"s2.switch", "s2.basket", "s2.gate", "s2.signpost",
 		"s2.branch.cave", "s2.route-back.cave",
-		"s2.frame.parade", "s2.frame.gate",
+		"s2.frame.parade", "s2.frame.gate", "s2.frame.cave",
 	])
 	for n in range(1, 41):
 		ids.append("s2.sleeper.%02d" % n)
@@ -419,6 +419,10 @@ func test_framing_zones() -> void:
 	var parade: FramingZone = level.find("s2.frame.parade")
 	assert_almost_eq(level.position_of(parade).x / SCREEN, 9.5, 0.25)
 	assert_lt(parade.zoom, 1.0, "zooms out over the parade")
+	var cave: FramingZone = level.find("s2.frame.cave")
+	assert_almost_eq(level.position_of(cave).x / SCREEN, 11.25, 0.25)
+	assert_between(cave.zoom, 0.6, 0.99, "zooms out over the cave's entrance, not below O65's 0.6")
+	assert_lt(cave.offset.y, 0.0, "shifts up toward the pocket")
 	var gate_2: FramingZone = level.find("s2.frame.gate")
 	assert_almost_eq(level.position_of(gate_2).x / SCREEN, 12.6, 0.25)
 	assert_lt(gate_2.zoom, 1.0, "the basket and the gate both in view")

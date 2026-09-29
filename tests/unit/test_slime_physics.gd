@@ -154,3 +154,21 @@ func test_same_seed_and_operations_give_the_same_dump() -> void:
 		dumps.append(StateHash.of(bodies.dump()))
 	assert_eq(dumps[0], dumps[1], "same seed and operations")
 	assert_ne(dumps[0], dumps[2], "another seed")
+
+
+func test_a_ring_falling_past_a_sharp_corner_is_not_caught_on_it() -> void:
+	# The lip of test_terrain_segments.gd, over a floor: a slime dropped just
+	# right of its outer face, clear of it, falls straight past the corner to
+	# the floor. Before chunk 16d the ring points passing just outside the
+	# corner counted as inside the slope and were pulled onto the corner.
+	var lip := PackedVector2Array([Vector2(0, -130), Vector2(69, -150), Vector2(92, -170), Vector2(92, -130)])
+	for x in [118.0, 120.0, 124.0]:
+		var bodies := SlimeBodies.new(Rng.new(1))
+		bodies.terrain = TerrainSegments.new([Support.floor_polygon(), lip])
+		var slime := bodies.create(0, 1, Vector2(x, -260), SlimeBodies.BEDTIME_ASLEEP)
+		var lowest_x: float = x
+		for i in 120:
+			bodies.tick(DT)
+			lowest_x = minf(lowest_x, bodies.centre_of(slime).x)
+		assert_gt(lowest_x, x - 2.0, "from x %d: never pulled toward the corner" % x)
+		assert_gt(bodies.centre_of(slime).y, -40.0, "from x %d: down on the floor" % x)

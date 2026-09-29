@@ -103,7 +103,10 @@ func test_scripted_tilt_is_deterministic() -> void:
 func test_tilt_at_neutral_changes_nothing() -> void:
 	# No level requires tilt: the session test runs with no tilt at all, and a
 	# tilt held at neutral, or inside the dead zone, is exactly the same run,
-	# free slime included.
+	# free slime included. 15 s: the called slime reaches the point at about
+	# 4 s and stays unsure 15 s more (until chunk 16d's terrain corner fix it
+	# never reached the point, gave up at 8 s up by the lip's nose, and was
+	# still free at 20 s).
 	var neutral := [CALL]
 	var degrees := [0.0, 9.0, -9.0, 5.0, 0.0]
 	for i in 20:
@@ -111,7 +114,7 @@ func test_tilt_at_neutral_changes_nothing() -> void:
 	var worlds := []
 	for steps in [[CALL], neutral]:
 		var game := _boot(steps)
-		game.test_mode.run_ticks(20 * TICK_RATE)
+		game.test_mode.run_ticks(15 * TICK_RATE)
 		assert_eq(game.simulation.slimes.state_of(game.simulation.slimes.ids()[0]), SlimeBodies.FREE,
 				"the called slime is still free")
 		worlds.append(_world(game.simulation))

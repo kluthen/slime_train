@@ -29,21 +29,14 @@ const START_OF := {1: "", 2: "gate1-open", 3: "gate2-open"}
 const ROW_LINK := 80.0
 ## The longest a slime may take to get back: left alone, then lost (D10).
 const DEADLINE := Offscreen.LEFT_ALONE_TICKS + Offscreen.LOST_TICKS
-## Known breaks of rule 7 in the built level (chunk 16c finding), reported
-## rather than hidden: sleeper ID -> why its slime doesn't get back. Each is
-## still run, checked to still be stuck (so a fixed one can't linger here),
-## and marked pending instead of failing.
-const HOLLOW := "the hollow on the dip's rim keeps it: its heading-back hop, aimed at the loop far below, is too flat to clear the 20 px lip"
-const BUMP_END := "it hops the way the loop runs, up to the bump's high end, and its ring hooks round the 25 px slab's end"
-const KNOWN_STUCK := {
-	"s1.sleeper.04": BUMP_END,
-	"s1.sleeper.08": BUMP_END,
-	"s1.sleeper.13": BUMP_END,
-	"s1.sleeper.14": HOLLOW,
-	"s1.sleeper.15": HOLLOW,
-	"s2.sleeper.15": HOLLOW,
-	"s2.sleeper.16": HOLLOW,
-}
+## Known breaks of rule 7 in the built level, reported rather than hidden:
+## sleeper ID -> why its slime doesn't get back. Each is still run, checked
+## to still be stuck (so a fixed one can't linger here), and marked pending
+## instead of failing. None since chunk 16d: the seven that chunk 16c found
+## (the dip hollows, `s1.sleeper.14`, `.15`, `s2.sleeper.15`, `.16`; the
+## hills' bumps 2, 4 and 6, `s1.sleeper.04`, `.08`, `.13`) were ring points
+## pulled onto sharp terrain corners (TerrainSegments' vertex normals).
+const KNOWN_STUCK := {}
 
 var level: Level
 var terrain: TerrainSegments
@@ -148,10 +141,15 @@ func _check_section(section: int) -> void:
 					DEADLINE / Simulation.TICK_RATE])
 	gut.p("section %d: %d spots tried, slowest back in %.1f s, stuck: %s" % [section, tried.size(),
 			slowest / float(Simulation.TICK_RATE), stuck])
-	for reason in [BUMP_END, HOLLOW]:
-		var known := stuck.filter(func(id): return KNOWN_STUCK.get(id, "") == reason)
-		if not known.is_empty():
-			pending("rule 7 broken at %s: %s" % [", ".join(known), reason])
+	var known_by_reason := {}
+	for stable_id in stuck:
+		if KNOWN_STUCK.has(stable_id):
+			var reason: String = KNOWN_STUCK[stable_id]
+			if not known_by_reason.has(reason):
+				known_by_reason[reason] = []
+			known_by_reason[reason].append(stable_id)
+	for reason in known_by_reason:
+		pending("rule 7 broken at %s: %s" % [", ".join(known_by_reason[reason]), reason])
 
 
 func test_every_sleeper_is_in_a_row_and_the_rows_are_on_one_ledge() -> void:
