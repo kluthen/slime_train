@@ -227,7 +227,7 @@ Slimes move only by hopping.
 | answering a call | toward the call point, a bit more often; it jumps upward when the point is higher, and bigger slimes jump higher |
 | unsure | small, lazy hops in random directions near the call point |
 | heading back | along its area's route back |
-| sleeper, bedtime-asleep, covered by other slimes, resting in a full basket | no hopping |
+| sleeper, bedtime-asleep, covered by other slimes, in a basket (proposed: in any basket, filling or full) | no hopping |
 
 Bigger slimes hop a little less often, but further and higher. In the last
 minute of a session every slime hops more slowly.
@@ -262,7 +262,9 @@ minute of a session every slime hops more slowly.
   the view and physics takes over.
 - A **free slime** that leaves the screen is placed on the nearest point of
   its area's route back and follows it at the same deterministic pace. If no
-  route back is near, it is lost.
+  route back is near, it is lost: (proposed, as built) it heads straight for
+  the loop when the loop is near; otherwise it stays where it is until the
+  lost timer (10 s, then 1 min) moves it to the start of the loop.
 - **Fusion and waking happen only on screen.**
 - **Baskets** keep counting weight off screen and can fill there.
 - On screen too, a **resting pile** stops simulating, contacts included,
@@ -830,3 +832,10 @@ Still undecided.
      world" (5.1) means it isn't removed; a lid may block it, as long as any
      exploration on that route stays reachable another way.
    - **A slime state for slimes in a basket** (5.2, proposed).
+8. **A point the build raised on resting piles** (chunks 15 and 16), with a
+   proposal pending the user's approval: a pile rests only once every slime
+   in it has stayed within about a pixel of where it started counting, so a
+   big pile of base slimes in the open (they don't stack, and spread slowly)
+   may take about a minute to rest, for example at bedtime. Proposed: keep
+   the rule for v1 and look at it again in the performance pass on the
+   phones.

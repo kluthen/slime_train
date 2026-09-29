@@ -1,6 +1,6 @@
 # Test level
 
-Status: draft v4
+Status: draft v5
 
 A compact level that puts nearly every v1 gameplay item in one place (D76).
 It is the testing ground while the game is built, and the level the
@@ -105,9 +105,8 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
   - a **pillar** (7.66 to 8.5) replaces the chute's far wall; its top
     carries the loop on to **gate 1**, at 8.58. Gate 1's **lid** (7.49 to
     7.67) shuts slide 1's entrance once the gate is open (O85);
-  - a temporary **section 2 stub** (`s2.loop`, through the gate, and
-    `s2.slide`, its return route, with no gate) gives the loop something to
-    grow into until chunks 15 and 16 build section 2 for real.
+  - the temporary section 2 stub that first stood past gate 1 was replaced
+    by section 2 itself in chunk 15.
 
 ## Section 2 — Caves (screens 8–13)
 
@@ -132,8 +131,11 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
   sleepers (A ×3, B ×3, C ×3, D ×5).
 - **Route back:** a long, winding tunnel. It descends for about 3 screens of
   path and comes out on the loop at about 11.8. (proposed) It takes a size-1
-  slime about 30–40 s, which is longer than "left alone" (10 s) but well
-  under "lost" (1 min).
+  slime longer than "left alone" (10 s) but well under "lost" (1 min after
+  that). First proposed at 30–40 s; as built (chunk 15) it is about
+  3100 px, some 46 s from the pocket (about 33 s from shelf A, where the
+  `s2-cave-return` fixture starts). That still leaves about 24 s before
+  "lost" (70 s off screen in all), so the build keeps it.
 - Exercises (D69, D70):
   - a free slime going off screen follows the route back by projection;
   - moving the camera to the tunnel's mouth makes it reappear and physics
@@ -146,6 +148,34 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
   camera is at the switch.
 - Exercises: the basket filling off screen, and its reward and firing waiting
   until it is in view (D70). The rest of the set is under "Frontier sets".
+
+**As built (chunk 15).** Section 2 follows the plan above, with these
+positions (x in screens, y in px, up is negative):
+- **Descent:** the ground steps down from the pillar's top (y -100 at 8.6)
+  to the cave floor (y -20 at 9.0). The 6 D sleepers sit on two side
+  ledges (8.55 to 8.72 and 8.78 to 8.95).
+- **Parade:** two overhang ledges (9.15 to 9.36 and 9.6 to 9.81, y -240),
+  4 sleepers on each.
+- **Second dip:** 10.0 to 10.5, 120 px deep; its 2 D sleepers sit in a
+  hollow on its left rim (9.93 to 10.09).
+- **The cave:** a climb of 4 steps (10.5 to 10.95) up to the pocket (10.95
+  to 11.65, floor at y -700) with its 14 sleepers. The branch is
+  `s2.branch.cave`. Its route back, `s2.route-back.cave`, runs along the
+  pocket, back along two tunnel shelves (shelf A, then shelf B, each turning
+  at a lip) and drops onto the loop at 11.92.
+- **Frontier set 2:** signpost at 10.9, switch at 10.97. Switch 2's
+  trapdoor covers basket 2's pit: 12.2 to 12.55 (0.35 screens wide), 170 px
+  deep, quota 15, about 1.4 screens from the switch. Slide 2's entrance is
+  at 12.66, gate 2 at 12.8, and gate 2's lid (12.59 to 12.73) shuts slide
+  2's chute once the gate is open (O85). The 10 set sleepers sit on two
+  ledges, one by the switch (10.76 to 10.93) and one before the pit (12.0
+  to 12.27).
+- **Slide 2** drops down the chute at 12.66 and runs back along the tunnel,
+  joining slide 1's tail to the start basin.
+- **Framing zones:** `s2.frame.parade` (centred at 9.5, 1 screen wide) and
+  `s2.frame.gate` (centred at 12.6, 0.8 screens wide). Their zooms are in
+  `../../tuning.md`.
+- Sleepers are numbered left to right: `s2.sleeper.01` to `.40`.
 
 ## Section 3 — Big bowl (screens 13–16.5)
 
@@ -163,6 +193,9 @@ This is the stress area (rule 16, D67, O14).
   15 each, plus 30 E.
   - The shelves tilt inward. A woken slime falls into the bowl, which is the
     loop, so falling in is its route back (rules 7, 8).
+  - As built, the shelves float over the bowl in three tiers a side, and
+    each side is a branch with an authored route back (see "As built
+    (chunk 16)" below).
 - A framing zone shows the whole bowl, about 2 screens at normal zoom.
   (proposed) That means zooming out to about half.
 
@@ -170,6 +203,9 @@ This is the stress area (rule 16, D67, O14).
 - A rim above the far wall holds 30 sleepers (A, B, C and D, 5 each, plus 10
   E). Only a size-3 jump from the far wall reaches it. Anything that falls off
   lands back in the bowl.
+- As built, the rim runs on over the plateau, a size-3 jump from the
+  plateau's end reaches it, and it has its own route back (see "As built
+  (chunk 16)" below).
 
 **3.4 Frontier set 3 (15.5–16.5).**
 - The basket is a wide, flat-bottomed pit. Slimes resting in it don't hop, so
@@ -179,6 +215,56 @@ This is the stress area (rule 16, D67, O14).
   is D77. (proposed) After the
   celebration, the basket releases its slimes into the section 3 slide, and
   the loop stays complete.
+- The celebration plays once **every basket of the level has fired**
+  (chunk 14). Basket 3 can only fill once gates 1 and 2 are open, so it is
+  always the last to fire. Before section 3 was built, basket 2 was the last,
+  and the celebration waited only for it.
+
+**As built (chunk 16).** Positions moved from the plan above, as allowed:
+- **The loop:** from gate 2 (the ground starts at 12.72) down the entry
+  ramp (13.0 to 13.6), across the bowl's floor (13.6 to 15.05, ground at
+  y 100), up the far wall (15.05 to 15.62) to a plateau (ground at y -120),
+  over switch 3's trapdoor, to slide 3's entrance at 16.4.
+- **Slide 3,** the level's last return route (it has no gate), drops down
+  a chute at 16.4 and runs back under sections 2 and 1, joining slide 2's
+  and then slide 1's tail.
+- **Entry ramp:** two flat side ledges (12.96 to 13.18 at y -210, and 13.22
+  to 13.42 at y -160), 5 E sleepers on each. The higher one is reached only
+  by a called size-2 or size-3 slime.
+- **The shelves float over the bowl** instead of lining its walls: three
+  tiers on each side (left 13.42 to 14.18, right 14.28 to 15.02), about
+  160 px apart (tops near y -100, -255 and -420), each tilted down toward
+  the bowl's middle, and each tier's inner end past the one above it. 15
+  sleepers on each shelf. A woken slime rolls off into the bowl, which is
+  the loop. The upper tiers are reached only by a called size-2 or size-3
+  slime.
+- **The rim** lies over the far wall's top and the plateau (15.05 to 16.19,
+  top about y -300), not over the far wall alone. It is reached only by a
+  size-3 jump from the plateau's right end (16.3 to 16.4, just past the
+  rim's end and just before slide 3), not from the far wall. A slime falling
+  off its left part lands in the bowl; off its right part it lands on the
+  plateau, which is the loop (or into basket 3 while switch 3 is flipped).
+  Both meet rule 7. 30 sleepers, 0.038 screens apart.
+- **Three exploration branches, each with its route back** (rules 3, 8):
+  `s3.branch.left-shelves`, `s3.branch.right-shelves` and `s3.branch.rim`,
+  with `s3.route-back.*`. The shelves' routes run down the tiers' inner ends
+  to the bowl's floor; the rim's runs along the rim to its left end and
+  down into the bowl. The plan above relied on falling alone; authored
+  routes back are what every other branch has (D51), and they give the
+  off-screen simulation a route to follow.
+- **Species on the shelves and the rim** follow the cycle A, E, B, E, C, D,
+  which gives the counts in "Population".
+- **Frontier set 3:** signpost at 15.62, switch at 15.67. Switch 3's
+  trapdoor covers basket 3's pit: 15.72 to 16.3, centred at 16.01, 0.58
+  screens wide and 220 px deep, quota 60. No gate. Its outlet is a fixed
+  point on the loop 200 px before slide 3's entrance (over the trapdoor,
+  which is shut once the basket has fired); with no gate, there is no
+  retired return route for the default outlet to find.
+- **Framing zones:** `s3.frame.bowl` (centred at 14.375, 1.85 screens wide:
+  13.45 to 15.3, zoom 0.5) and `s3.frame.basket` (centred at 15.875, 1.15
+  screens wide: 15.3 to 16.45, zoom 0.8). Details in `../../tuning.md`.
+- Sleepers are numbered left to right (top to bottom where two share a
+  place): `s3.sleeper.01` to `.130`.
 
 ## Frontier sets
 
@@ -195,6 +281,11 @@ sits on the loop:
 | 1 | 6.5 | 7.0, just below the onward path, in view from the switch | 6 | 7.8 | entrance at 7.6 | gate 1 |
 | 2 | 11.0 | 12.5, in a pit under the gate, **off screen from the switch** | 15 | 12.8 | entrance at 12.6 | gate 2 |
 | 3 | 15.6 | 16.0, a pit | 60 | — | entrance at 16.4 | celebration (D77) |
+
+This table is the plan. As built: set 1 in 1.6 (switch 6.5, basket centred
+at 6.895, gate 8.58), set 2 in 2.5 (switch 10.97, basket 12.2 to 12.55,
+gate 12.8, slide 12.66), set 3 in 3.4 (switch 15.67, basket centred at
+16.01, slide 16.4). The quotas are as planned.
 
 **When the basket fills:**
 1. The reward animation plays. It waits until the basket is in view
@@ -216,7 +307,8 @@ path leads into the slide. Once the gate is open, it leads through the gate.
 Releasing after firing and emptying after an opt-out both use the same
 outlet. Built (chunk 14) as a basket property, 200 px along the loop before
 the slide entrance (`tuning.md`), one slime at a time when the outlet is
-clear.
+clear. Basket 3 has no gate, so it names its outlet as a point instead: 200
+px before slide 3's entrance (chunk 16).
 
 **Weight:** the outlines fill by weight. A size-3 slime fills 3 at once.
 
@@ -230,6 +322,10 @@ clear.
 | `s2.frame.gate` | 12.2–13 | gate 2, the slide entrance and the basket pit | reward waiting for view |
 | `s3.frame.bowl` | 13.5–15.5 | the whole bowl | a strong zoom-out; stress |
 | `s3.frame.basket` | 15.3–16.5 | switch 3 and the basket pit | a big still pile |
+
+As built, the zones are close to these spans: `s2.frame.parade` 9–10,
+`s2.frame.gate` 12.2–13, `s3.frame.bowl` 13.45–15.3 and `s3.frame.basket`
+15.3–16.45. Their zooms and offsets are in `../../tuning.md`.
 
 ## Population
 
@@ -254,7 +350,7 @@ other slime is a size-1 sleeper.
 | 3.1 entry ramp | | | | | 10 | 10 |
 | 3.2 bowl shelves | 15 | 15 | 15 | 15 | 30 | 90 |
 | 3.3 high rim | 5 | 5 | 5 | 5 | 10 | 30 |
-| **S3** | **20** | **20** | **20** | **20** | **40** | **130** |
+| **S3** | **20** | **20** | **20** | **20** | **50** | **130** |
 | **Level** | **37** | **36** | **38** | **39** | **50** | **200** |
 
 The quotas leave plenty of room:
@@ -269,7 +365,11 @@ The quotas leave plenty of room:
 
 - **Pattern:** `<place>.<kind>.<name>`, lowercase, with no spaces.
   - `<place>` is `start`, `s1`, `s2` or `s3`.
-  - Numbered items use two digits and count left to right.
+  - Numbered items use at least two digits and count left to right.
+    (proposed) Past 99 they run to three digits without padding (section
+    3's sleepers go from `s3.sleeper.01` to `s3.sleeper.130`, as built in
+    chunk 16). Order them by their number, not as text: as text,
+    `.100` sorts before `.11`.
 - **Examples:**
   - `start.split-zone`, `start.first-slime`
   - `s1.sleeper.01` … `s1.sleeper.29`
@@ -326,13 +426,14 @@ Named save states that tests load through test mode (tech-direction).
 | `fresh` | no save; first launch | the first slime, the hint, and the start of setup |
 | `s1-basket-5of6` | switch 1 flipped, basket 1 at weight 5 of 6, the next slime about to drop in, the camera on the basket (built, chunk 14) | the reward, firing, gate 1 opening, and slide 1 closing |
 | `s1-optout` | switch 1 flipped, basket 1 at weight 3, the camera on the basket (built, chunk 14) | flipping back and emptying through the outlet |
-| `gate1-open` | S2 reachable, 20 slimes awake, slide 1 closed | starting from S2 |
-| `s2-basket-offscreen` | camera at switch 2, basket 2 at 14, slimes heading into it | filling off screen, then the reward on approach |
-| `s2-cave-return` | 3 free slimes starting down the cave's route back, camera away | projection, respawn, left alone and rejoining |
-| `bump` | two size-2, one size-3 and one size-1 slime of species C on the fusion dip's floor (1.3), so both bumps can happen. (A 3 + 2 pair, as first built in chunk 8, can produce neither; chunk 16's fixture pass regenerates it.) | 2 + 2 and 3 + 1 bumping; the end-to-end test asserts both bumps |
-| `stress-still` | 200 awake base slimes, 60 in basket 3 and the rest piled in the bowl | the worst still case on one screen (O14, O57) |
-| `stress-moving` | 200 train slimes spread through the bowl | the worst moving case; beyond what normal play produces, so a measurement, not a target (D96) |
-| `lost` | a free slime placed off screen, outside any area's route back | left alone at 10 s, then lost at 1 min and teleported to the start |
+| `gate1-open` | S2 reachable, 20 slimes awake, slide 1 closed. Built (chunk 16): gate 1 open as after basket 1 fired; the first slime and `s1.sleeper.01` to `.19` as size-1 train slimes spread along the outgoing loop; the camera at section 2's start | starting from S2 |
+| `gate2-open` | gates 1 and 2 open as after baskets 1 and 2 fired (slides 1 and 2 shut), the same 20 train slimes spread along the whole outgoing loop, the camera at section 3's start. Added in chunk 16 | starting from S3; the whole loop with no input (DoD 1) |
+| `s2-basket-offscreen` | camera at switch 2, basket 2 at 14, slimes heading into it (built, chunk 15: gate 1 open, the first slime about to reach switch 2) | filling off screen, then the reward on approach; gate 2 opens, and the celebration still waits for basket 3 |
+| `s2-cave-return` | 3 free slimes starting down the cave's route back, camera away (built, chunk 15: on shelf A, the camera on the start basin) | projection, respawn, left alone and rejoining |
+| `bump` | two size-2, one size-3 and one size-1 slime of species C on the fusion dip's floor (1.3), so both bumps can happen. Built (chunk 16): sizes 2, 2, 3 and 1 left to right, made of the eight C sleepers nearest the dip; both bumps happen on seeds 1 to 8 and nothing fuses | 2 + 2 and 3 + 1 bumping; the end-to-end test asserts both bumps |
+| `stress-still` | 200 woken base slimes (none left a sleeper), 60 in basket 3 and the rest piled in the bowl. Built (chunk 16): gates 1 and 2 open; the 60 in basket 3 are full and waiting to be in view; the 140 in the bowl are **asleep at bedtime** (a session at bedtime), because outside a basket only a bedtime pile rests (see below); the pile was settled until it rests, and rests about 8 s after loading | the worst still case on one screen (O14, O57) |
+| `stress-moving` | 200 train slimes spread through the bowl (built, chunk 16: size 1, lowest spots first, inside the bowl's view) | the worst moving case; beyond what normal play produces, so a measurement, not a target (D96) |
+| `lost` | a free slime placed off screen, outside any area's route back (built, chunk 15: a D on the parade's first ledge beyond closed gate 1, the camera on the basin) | left alone at 10 s, then lost 1 min later (70 s off screen) and teleported to the start |
 | `midair` | a save taken with slimes in mid-air | placement on reload (D12) |
 | `old-version` | a save from an earlier test-level version with a moved sleeper | migration: the displaced slime counts as lost (D72) |
 | `wind-down` | session clock at 890 000 ms (14:50) (built, chunk 17) | dusk and the slower hops, then bedtime |
@@ -342,6 +443,13 @@ Named save states that tests load through test mode (tech-direction).
 The three session fixtures start from the fresh level with a session
 started and its clock jumped forward. They need sessions switched on in test
 mode (the run's `"sessions": true`); otherwise the game plays untimed.
+
+**`stress-still` and awake slimes.** Awake slimes out of a basket hop, so
+they never rest; only a pile in a basket or a pile asleep at bedtime stops
+simulating (the resting-pile fallback, D96). A still pile of 140 in the open
+is therefore a bedtime pile. A big pile of size-1 slimes (which don't stack)
+takes a while to rest after it forms; the fixture is saved already settled,
+so it measures the pile at rest, not the minute before (O87).
 
 **Lost** has its own fixture because the level itself can't produce it: every
 spot a free slime can reach leads back to the loop (rule 7).
@@ -355,12 +463,12 @@ spot a free slime can reach leads back to the loop (rule 7).
 |---|---|
 | 1 Travelled with no input | the loop and slides need no input; the frontier switches default to onward |
 | 2 Any size | no filters in v1: every size takes the same loop; the bowl walls are hoppable at size 1 |
-| 3 No dead ends | the tree and cave branches rejoin through their routes back; every slide returns to the start |
+| 3 No dead ends | the tree, cave, shelves and rim branches rejoin through their routes back; every slide returns to the start |
 | 4 Split zone at the start | 1.1 |
 | 5 Fusion dips | 1.3, 2.3 |
 | 6 Signpost at every fork | each frontier switch (the only forks in v1) |
-| 7 Gravity leads back | bumps and shelves slope toward the loop; the bough and the rim drop onto a platform or into the bowl |
-| 8 Route back per branch | the tree: far slope; the cave: tunnel; the bowl shelves and rim: falling into the bowl |
+| 7 Gravity leads back | bumps and shelves slope toward the loop; the bough drops onto its platform; the rim drops into the bowl or onto the plateau, which is the loop |
+| 8 Route back per branch | the tree: far slope; the cave: tunnel; the bowl's shelves (a branch per side) and the rim: authored routes down into the bowl (chunk 16), matching the fall |
 | 9 Hints visible | sleepers peek into the view at every branch; framing zones at the tree |
 | 10 Tilt is a bonus | tilt only helps at 1.5; nothing needs it |
 | 11 Species per section | S1: A, B, C; S2 adds D; S3 adds E |

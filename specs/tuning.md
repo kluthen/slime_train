@@ -91,6 +91,35 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | Default outlet (`outlet_before`, a basket property) | on the onward route, 200 px along the loop before the start of the return route its gate retires (Known gap 3); a basket may name an `outlet_point` instead | O62 |
 | Test level, basket 1 quota | 6 (weight) | test level |
 
+### Off screen, resting piles and zoomed-out detail (chunk 15)
+
+| Value | Start at | Source |
+|---|---|---|
+| Parked (not simulated) beyond (`PARK_MARGIN`) | a slime whose centre is more than 384 px (a third of a screen) outside the view | D69 |
+| Simulated again within (`NEAR_MARGIN`) | 288 px (a quarter of a screen) outside the view; between the two margins a slime keeps what it was | D69 |
+| Off-screen pace | a hop's reach per mean hop interval: about 67 px/s for a size-1 slime (about 64 px/s on screen); an ideal pace, with no stalls | D69 |
+| A free slime's route back is near (`ROUTE_NEAR`) | within 288 px; off screen it joins its branch's route back single file, a slime's width behind the one before it; out of any branch, it heads straight for the nearest loop point within that distance; with neither near, it stays put until the lost timer moves it (see §5.3 of the master spec) | D70 |
+| Left alone (`LEFT_ALONE_TICKS`) | 600 ticks (10 s) outside the view, the screen with no margin; the count stops on screen | D10 |
+| Lost (`LOST_TICKS`) | 3600 ticks (1 min) after left alone, so 70 s off screen in all | D10 |
+| Dropping into a basket off screen (`ENTRY_REACH`, `SLOT_GAP`) | a parked train slime whose centre is within 64 px above an open trapdoor drops in, into the first clear slot of a grid its own width plus 4 px apart, bottom row first | D70 |
+| A slime is still (`REST_DRIFT`, `REST_TICKS`) | supported and within 1 px of its anchor for 30 ticks; the anchor is where the count started (O87) | D96 |
+| A pile rests | when every slime of a touching group of pile slimes (in a basket, or asleep at bedtime) is still at once; awake slimes out of a basket hop and never rest | D96 |
+| A resting pile wakes (`WAKE_SPEED`) | a touching slime faster than 30 px/s (a hop, a landing, a neighbour moving), a state change (bedtime, sunrise, a basket catching or releasing), a slime removed, fused or split next to it; a call wakes the resting slimes within its radius, a tilt change wakes them all | D96 |
+| A door wakes nearby piles (`DOOR_WAKE_REACH`) | a trapdoor, gate or lid opening or shutting wakes the piles within 80 px of it | D96 |
+| Zoomed-out detail (`LOW_ZOOM`, `FULL_ZOOM`, `LOW_POINTS_BY_SIZE`) | below zoom 0.8, 8, 10 and 12 ring points for sizes 1, 2 and 3 (full detail: 12, 15, 18); back to full from 0.85 | D94, D96 |
+| Test level, basket 2 quota | 15 (weight) | test level |
+
+### Test level sections 2 and 3 (chunks 15, 16)
+
+| Value | Start at | Source |
+|---|---|---|
+| `s2.frame.parade` | zoom 0.85, offset (0, -100) px | test level |
+| `s2.frame.gate` | zoom 0.9, offset (0, -40) px | test level |
+| `s3.frame.bowl` | zoom 0.5, offset (0, -200) px | test level |
+| `s3.frame.basket` | zoom 0.8, offset (0, 40) px | test level |
+| Basket 3 quota | 60 (weight) | test level |
+| Basket 3 outlet | a point 200 px before slide 3's entrance (no gate, so no default outlet) | O62 |
+
 ### Session, wind-down, bedtime and sunrise (chunk 17)
 
 | Value | Start at | Source |

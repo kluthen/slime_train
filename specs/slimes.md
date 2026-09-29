@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v12
+Status: draft v13
 
 ## States
 
@@ -31,7 +31,10 @@ and it may roll downhill. Phase names were adopted in D75.
 
 - Physics runs only for slimes on or near the screen. Off screen, a train slime
   follows the loop at a deterministic pace, and a free slime follows its area's
-  route back (if there is none, it is lost).
+  route back (if there is none, it is lost). (proposed, as built in chunk
+  15) Out of any branch, it heads straight for the loop when the loop is
+  near; with neither near, it stays put until the lost timer (D10) moves it
+  to the start of the loop.
 - Fusion and waking happen only on screen.
 
 ## Movement (D21, D74)
@@ -44,7 +47,7 @@ Slimes move only by hopping.
 | answering a call | toward the call point, a bit more often; jumps upward when the point is higher, and bigger slimes jump higher |
 | unsure | small, lazy hops in random directions near the call point |
 | heading back | along its area's route back |
-| sleeper, bedtime-asleep, covered by other slimes, resting in a full basket | no hopping |
+| sleeper, bedtime-asleep, covered by other slimes, in a basket (proposed, O86: in any basket, filling or full, as built) | no hopping |
 
 - Bigger slimes hop a little less often, but further and higher.
 - During bedtime's wind-down, every slime hops more slowly.

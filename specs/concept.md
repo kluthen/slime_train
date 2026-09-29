@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v24
+Status: draft v25
 
 ## One-liner
 
@@ -201,8 +201,8 @@ survives the app being killed.
 - At **bedtime**, slimes fall asleep where they are, the game saves, and calls
   stop doing anything. Bedtime ends with the parent code or after the cooldown
   (D44).
-- Bedtime sleep is not the same as being a sleeper. At the next session the
-  game wakes every bedtime-asleep slime, and play carries on where it was.
+- Bedtime sleep is not the same as being a sleeper. At sunrise the game
+  wakes every bedtime-asleep slime, and play carries on where it was (D44).
 
 ## Terminology
 

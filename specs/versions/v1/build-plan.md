@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v8 (proposed; waiting for the user's review)
+Status: draft v9 (proposed; waiting for the user's review)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -85,12 +85,17 @@ technology, not business behaviour:
 
 ## Progress
 
-- **Done:** 0 to 14 and 17; 1 on the desktop and the reference phone (the
+- **Done:** 0 to 15 and 17; 1 on the desktop and the reference phone (the
   floor phone waits for its purchase). Chunks 14 and 17 raised O82 to O86
   (the session in the level's save, baskets at bedtime, the switch locked
   once the basket is full, the gate's lid, a state for slimes in a basket).
-- **In progress:** 15 (started the evening of 2026-09-28).
-- **Next:** 16, 18. (5N is a contingency, run only if chunk 22 fails,
+  Chunk 15 built section 2 in greybox with the off-screen simulation.
+- **In progress:** 16. Done so far: section 3 in greybox, the full
+  population of 200, every fixture regenerated (with `gate2-open` added),
+  the suite green. Left: the level-rule tests, the whole-level DoD 1 test,
+  the level bench, the developer notes and the intent tags. Chunks 15 and
+  16 raised O87 (the rest rule's anchor).
+- **Next:** 18. (5N is a contingency, run only if chunk 22 fails,
   D96.)
 
 ## Overview
@@ -327,7 +332,8 @@ parallel with the camera and objects work.
   happen.
 - **Atoms (preflight start):** `req_level_design_rules` and all 20 rule atoms, `req_scope_one_level_four_sections`, `rule_max_200_slimes_per_level`.
 - **Done when:** [DoD 1] holds for the whole level, and `gate1-open`,
-  `stress-still` and `stress-moving` load. The stress fixtures give desktop
+  `gate2-open` (added while building), `stress-still` and `stress-moving`
+  load. The stress fixtures give desktop
   performance numbers. The end-to-end test from `bump` asserts both bumps
   (2 + 2 and 3 + 1).
 

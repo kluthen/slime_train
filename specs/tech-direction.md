@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v14
+Status: draft v15
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -128,6 +128,18 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   - sleepers don't simulate;
   - fewer points per ring when zoomed out;
   - slimes in a full basket are simplified.
+  - As built (chunk 15; values in `tuning.md`): slimes beyond a margin
+    around the view are parked (not simulated, not even as walls). A pile
+    rests only when it is made of slimes in a basket or asleep at bedtime
+    (awake slimes hop); a resting slime is a wall to the others, and the
+    whole touching pile wakes together when disturbed. Slimes in a full basket
+    rest as a pile rather than getting a state of their own. Measured on the
+    desktop (headless): a full basket of 60 with 20 train slimes beside it,
+    3.8 ms per tick with resting off, 0.97 ms with it on (0.81 ms zoomed
+    out); the test level with 110 slimes and the camera at the start,
+    2.6 ms per tick with every slime simulated, 1.9 ms with off-screen
+    parking (86 parked). A big pile of base slimes in the open rests slowly
+    (O87).
 - **The realistic worst case in play is a mostly still pile** (level rule
   16): a full basket plus the train, not 200 moving slimes. The
   `stress-moving` fixture stays as a measurement, not a target.
