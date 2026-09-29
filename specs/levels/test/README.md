@@ -1,6 +1,6 @@
 # Test level
 
-Status: draft v11
+Status: draft v12
 
 A compact level that puts nearly every v1 gameplay item in one place (D76).
 It is the testing ground while the game is built, and the level the
@@ -147,6 +147,15 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
     7.67) shuts slide 1's entrance once the gate is open (D105);
   - the temporary section 2 stub that first stood past gate 1 was replaced
     by section 2 itself in chunk 15.
+- **Switch 1 under the left edge strip (found in chunk 23B).** With the
+  camera aimed at basket 1 at zoom 1 (the build's `BASKET_VIEW`), switch 1
+  sits inside the left edge strip, so a tap on it there is an edge-button
+  press, not a flip. This is D99's accepted consequence: an object near an
+  edge is brought inward with the camera before it can be tapped. For 23E
+  (hit areas, taps on objects) and the level-rule tools: a scripted tap on
+  switch 1 has to aim the camera so the switch clears the strip, and a
+  level-rule check may want to report objects that fall under a strip at
+  the framing where the child meets them.
 
 ## Section 2 — Caves (screens 8–13)
 

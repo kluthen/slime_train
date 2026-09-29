@@ -46,7 +46,8 @@ value to try. When a value is tuned, update it here and log the result in
 The build picked these while making the chunks named. They are starting
 values, **to try**. The user approved the values of chunks 15 and 16 (D108,
 and the rows added later with D116, D118 and D119 in D120)
-and chunk 23 (D99–D101); the values of chunks 10, 12, 13, 14 and 17 are still
+and chunk 23 (D99–D101); the values of chunks 10, 12, 13, 14 and 17, and
+those chunk 23's build chose (23A–23D, D124), are still
 **(proposed; to try)**: the user hasn't confirmed them one by one. Pixels are
 world pixels at zoom 1 on a 1152 px wide view unless noted. The code names in
 capitals are the build's own, for finding them in `docs/dev/README.md`.
@@ -142,7 +143,20 @@ The user's reports of 2026-09-29, all decided (D99, D100, D101).
 | Edge-button strips | 10% of the screen's width from the left and right edges, the whole height below the parent zone's top band | D99 |
 | Stuck-slime check | every 30 ticks (0.5 s) | D100 |
 | Stuck: overlapping | centres closer than a quarter of the smaller slime's radius | D100 |
-| Stuck: how long | 4 checks in a row (about 2 s) | D100 |
+| Stuck: how long | 4 checks in a row (about 2 s); built as a move at the fourth check, 1.5 s after the first (checks at 0, 30, 60, 90 ticks) (proposed; to try) | D100, D124 |
+
+### Chunk 23 as built (23A–23D)
+
+All **(proposed; to try)**, recorded in D124.
+
+| Value | Start at | Source |
+|---|---|---|
+| Landing at the start of the loop (stuck or stalled move) | the first free spot of 8, one slime width apart | D124 |
+| Stuck and stalled logs | keep the last 64 cases each | D124 |
+| Millimetres on the desktop and in tests | converted at the reference phone's density; a phone reporting a density of 0 or less logs an error and uses the reference density too | D124 |
+| A resting thumb (about 5 s) | 300 ticks | D110, D124 |
+| Showing a gate open: the glide | a straight line at an even pace, 1.5 s, to the rail point nearest the gate's centre | D124 |
+| Celebration double hop (`CelebrationHops`: `HOPS`, `HOP_STRENGTH`) | 2 hops at 0.6 of a normal hop's strength (about 50 px high, about 0.5 s each) | ux D4, D124 |
 
 ### Session, wind-down, bedtime and sunrise (chunk 17)
 
@@ -169,11 +183,12 @@ monotonic clock doesn't survive a restart (accepted in master spec §5.7).
 
 These stand in until `ui_ux/` designs them.
 
-- **Edge buttons:** built as 96 × 192 screen px rectangles at mid-height
-  on each side; to become whole-height strips 10% of the screen's width
-  (D99, chunk 23). How they are drawn stays with `ui_ux/`.
-- **The parent zone:** built as 64 screen px; to become 7 mm on the screen
-  (ux D4, chunk 23).
+- **Edge buttons:** built (chunk 23B) as strips 10% of the screen's width
+  from each edge, over the whole height below a 7 mm parent zone (D99).
+  How they are drawn stays with `ui_ux/`: the placeholder is an arrow 45%
+  by 80% of the strip's width (D124).
+- **The parent zone:** built (chunk 23B) as a band 7 mm high on the screen
+  (ux D4, D113).
 - **An object's hit box:** its drawn box grown by 24 px; to become the
   drawing plus 5 mm, at least 20 × 20 mm on the screen (D109, chunk 23).
 - **Dusk colour** (`DUSK_COLOUR`): the tint at full dusk, RGB (0.55, 0.52,
@@ -181,3 +196,11 @@ These stand in until `ui_ux/` designs them.
 - **Frontier art:** the shut trapdoors, closed gate boxes and shut lids as
   plain blocks; arrows on the switch and signpost; the basket's quota as
   slime outlines, pulsing during the reward; rings for the celebration.
+- **The celebration's lasting mark** (chunk 23D): bunting at the start of
+  the loop, 90 px half-width, 150 px high, a 20 px sag, 6 pennants
+  26 px deep (`MARK_HALF_WIDTH`, `MARK_HEIGHT`, `MARK_SAG`,
+  `MARK_PENNANTS`, `MARK_PENNANT_DROP`). Its real look is ux-writer's
+  (ux D4, D124).
+- **Slimes asleep in a basket** (chunk 23D): no asleep look exists yet; at
+  bedtime they show only the dusk tint, like the rest of the world. "Shown
+  asleep" (D105) waits for `ui_ux/`.

@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v17
+Status: draft v18
 
 ## States
 
@@ -50,16 +50,27 @@ and it may roll downhill. Phase names were adopted in D75.
 - **Stuck** is its own state, distinct from lost (D10): it doesn't count as
   a lost slime, but it has the same effect, and every case is logged with
   the reason "stuck".
+- **As built (chunk 23A; proposed, D124):** a pair that can't fuse is one
+  that couldn't fuse right now: another species, sizes adding up to more
+  than 3, or one of the two not awake. A same-species sleeper caught inside
+  a train slime therefore counts as stuck (the sleeper is never the one
+  moved). The move comes at the fourth check, 1.5 s after the first. The
+  moved slime lands on the first free spot of 8 at the start of the loop,
+  one slime width apart (shared with the stalled move), and the log keeps
+  the last 64 cases.
 
 ## Stalled train slimes (D118, D121)
 
 - A train slime whose progress along the loop hasn't advanced 24 px in
   60 s, on screen or off, or whose centre leaves the level's bounds, is
-  **stalled**. It is logged once (reasons `stalled`, `out_of_bounds`).
+  **stalled**. Each case is logged (reasons `stalled`, `out_of_bounds`;
+  D121).
 - It is moved to the start of the loop and rides the train again, as a lost
   (D10) or stuck (D100) slime is (D121). It is not "lost": each case is
   logged as stalled, and the 60 s count starts again from the move. A slime
-  asleep at bedtime is never counted as stalled or moved.
+  asleep at bedtime is never counted as stalled or moved. As built (chunk
+  23A; proposed, D124): it lands as a stuck slime does, and the log keeps
+  the last 64 cases.
 - DoD 1's "no slime ever becomes lost" includes stalled train slimes: the
   safety net is for play, and a stall in the DoD 1 test is still a failure.
 

@@ -101,14 +101,15 @@ technology, not business behaviour:
   Chunks 15 and 16 raised O87 (the rest rule's anchor), settled in D107;
   chunk 16 raised D116–D119, approved in D120, and O95, settled in D121
   (item 23.13).
-- **Next:** chunk 23 (small issues from play, an open list), before 18
-  (D123), as five sub-chunks in this order: **23A** safety nets (23.3,
-  23.13); **23B** taps and strips (23.2, 23.6b, 23.8); **23C** camera
-  (23.1, 23.4, 23.10, 23.12); **23D** bedtime baskets and the
-  celebration's mark (23.5, 23.11); **23E** objects and taps (23.6, 23.7,
-  23.9). New reports added to the list are placed in a sub-chunk or run
-  after 23E. **In parallel:** chunk LD (the level-design toolkit, D123).
-  Then 18 onward. (5N is a contingency, run only if chunk 22 fails, D96.)
+- **Built:** chunk 23 (small issues from play, an open list, before 18,
+  D123), sub-chunks **23A** safety nets (23.3, 23.13), **23B** taps and
+  strips (23.2, 23.6b, 23.8), **23C** camera (23.1, 23.4, 23.10, 23.12)
+  and **23D** bedtime baskets and the celebration's mark (23.5, 23.11).
+  Their own values and choices, and three additive save-format changes,
+  are recorded in D124 and wait for the user's approval.
+- **Next:** **23E** objects and taps (23.6, 23.7, 23.9). New reports added
+  to the list are placed after 23E. **In parallel:** chunk LD (the
+  level-design toolkit, D123). Then 18 onward. (5N is a contingency, run only if chunk 22 fails, D96.)
 - **Closing step, last of all:** the coding-rule health review
   (`CODING_RULE.md`'s health and clean-up list), after every other chunk
   (D122, kept by D123).

@@ -1347,3 +1347,53 @@ The user's calls on 2026-09-29.
   moved. Item 23.13 builds them as written.
 - **The coding-rule health review stays the plan's closing step** (D122),
   after chunk 23 and the rest of the plan.
+
+## D124 — What chunk 23A to 23D chose where the spec was silent (2026-09-29)
+**Proposed; waits for the user's approval.** The build's own values and
+choices from sub-chunks 23A (safety nets), 23B (taps and strips), 23C
+(camera) and 23D (bedtime baskets and the celebration's mark). Written into
+the master spec (5.1, 5.2, 5.4, 5.5, 5.6), `slimes.md`, `tuning.md` and
+`levels/test/README.md`, tagged (proposed).
+- **Stuck (23A, D100):** "can't fuse" means couldn't fuse right now:
+  another species, sizes over 3, or one of the two not awake, so a
+  same-species sleeper inside a train slime counts as stuck (the sleeper
+  is never moved). The move comes at the fourth check, 1.5 s after the
+  first (checks at 0, 30, 60, 90 ticks), not quite D100's "about 2 s".
+- **Landing at the start (23A):** a stuck or stalled slime takes the first
+  free spot of 8 at the start of the loop, one slime width apart. The stuck
+  and stalled logs keep the last 64 cases each.
+- **Millimetres (23B):** the desktop and test mode convert at the reference
+  phone's density; a phone reporting a density of 0 or less logs an error
+  and uses the reference density.
+- **Resting thumb (23B, D110):** "about 5 s" is 300 ticks; only a strip
+  touch taken as the first touch can become a resting thumb.
+- **Edge-strip arrow (23B):** a placeholder 45% by 80% of the strip's
+  width, until `ui_ux/` designs it.
+- **Call dead zone (23C, D101):** a point on the box's edge counts as
+  inside; a dead-zone call while the camera eases to a stop after an
+  edge-button press lets the ease finish.
+- **Showing a gate open (23C):** the glide is straight, at an even pace,
+  1.5 s, to the rail point nearest the gate's centre; a gate is in view
+  only when its whole box is; no show starts while an edge button is
+  held; a show replaces a call drag in progress, ends an idle or
+  screensaver follow and restarts the idle clock (the idle camera can take
+  over again 45 s later).
+- **Baskets at bedtime (23D, D105):** a basket reaching its quota during
+  bedtime becomes full only at sunrise; a celebration playing when bedtime
+  begins pauses and plays the rest at sunrise.
+- **The celebration (23D, ux D4):** the lasting mark appears once the 4 s
+  burst ends; the double hop is 2 hops at 0.6 of a normal hop's strength
+  (about 50 px, about 0.5 s each); the mark is placeholder bunting (sizes in
+  `tuning.md`), its look ux-writer's.
+- **Not settled by the build, for `ui_ux/`:** slimes asleep in a basket
+  have no asleep look yet (only the dusk tint); D105's "shown asleep" waits
+  for a design.
+- **Save format, pending the user's approval** (`CODING_RULE.md` §4 asks
+  for it on any save-format change). Three additive changes; the format
+  number stays 1 and older saves still load:
+  1. an optional key `transient.frontier.celebration_hops` (absent means
+     no double hop playing) (23D);
+  2. the camera's transient block gains `show_distance` and `show_tick`,
+     also in the state hash, with safe defaults when absent (23C);
+  3. an optional key `stuck_slimes` (the stuck log), and the train's log
+     key renamed `train.stalled` (an old `train.lost` key is ignored) (23A).
