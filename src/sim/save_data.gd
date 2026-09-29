@@ -17,20 +17,22 @@ extends RefCounted
 ##       "runtime_id": 4,                   # optional (all or none)
 ##       "species": "C", "size": 2, "state": "train" | "free" | "sleeper" | "bedtime_asleep" | "in_basket",
 ##       "centre": [x, y], "velocity": [x, y],
-##       "train": {"distance", "laps", "on_slide", "mark", "marked_at", "lost"},  # optional
+##       "train": {"distance", "laps", "on_slide", "mark", "marked_at"},  # optional
 ##       "free": {"phase", "since", "point", "route", "rng_state"},             # optional
 ##       "body": {"points", "previous", "centre", "hop_timer", "heading", "held",
 ##                "supported", "rng_state",                                    # optional
 ##                "rest": {"calm", "still", "anchor", "pile"},                  # optional (chunk 15)
 ##                "low": true},                                                 # optional (chunk 15)
 ##     } ],
-##     "train": {"open_gates": [...], "lost": [{"id", "tick", "reason"}]},
+##     "train": {"open_gates": [...], "stalled": [{"id", "tick", "reason"}]},
 ##     "call": null or {"point", "tick"},
 ##     "objects": {}, "gates": {},          # stable ID -> state (chunk 14)
 ##     "hint_done": true,                   # optional: the first call happened
 ##     "celebration_done": true,            # optional: the celebration played (chunk 14)
 ##     "session": {"phase", "elapsed_ms", "anchor", "clock", "sunrise_tick"},  # optional (Session)
 ##     "offscreen": {"zoomed_out", "away", "proxies", "lost"},              # optional (chunk 15)
+##     "stuck_slimes": {"counts": [[a, b, n]], "stuck": [{"id", "other", "tick", "reason", "moved"}]},
+##                                                                          # optional (chunk 23A)
 ##     "transient": {"view", "camera", "ripples", "taps", "facing", "input_log",
 ##                   "tilt", "fusion", "hint", "frontier"},              # optional
 ##   }
@@ -50,6 +52,11 @@ extends RefCounted
 ## absent means active with no count. "low": true marks a zoomed-out ring
 ## (SlimeBodies.LOW_POINTS_BY_SIZE points). "offscreen" keeps the Offscreen
 ## state (the off-screen proxies and the left-alone timers, Offscreen.dump).
+##
+## The safety nets (chunk 23A): "train.stalled" is the Train's log of the
+## stalled train slimes it moved (D121; before chunk 23A the key was "lost",
+## and a train record had a "lost" flag: both are ignored when read);
+## "stuck_slimes" keeps StuckSlimes' counts and log (D100, StuckSlimes.dump).
 ##
 ## The first-play hint (Hint): "hint_done" is the level's done mark (absent:
 ## false, the hint is due, as on a fresh save); "transient.hint" keeps its
@@ -96,10 +103,10 @@ static func capture(sim: Simulation) -> Dictionary:
 		slimes.append(_slime(sim, slime_id))
 	var train: Variant = null
 	if sim.train != null:
-		var lost := []
-		for entry in sim.train.lost:
-			lost.append({"id": entry["id"], "tick": entry["tick"], "reason": entry["reason"]})
-		train = {"open_gates": sim.train.open_gates.duplicate(), "lost": lost}
+		var stalled := []
+		for entry in sim.train.stalled:
+			stalled.append({"id": entry["id"], "tick": entry["tick"], "reason": entry["reason"]})
+		train = {"open_gates": sim.train.open_gates.duplicate(), "stalled": stalled}
 	var last_call: Variant = null
 	if sim.free_slimes.call_tick >= 0:
 		last_call = {"point": vector(sim.free_slimes.call_point), "tick": sim.free_slimes.call_tick}
@@ -117,6 +124,7 @@ static func capture(sim: Simulation) -> Dictionary:
 		"celebration_done": sim.frontier.celebration_done,
 		"session": sim.session.dump(),
 		"offscreen": _offscreen(sim),
+		"stuck_slimes": sim.stuck_slimes.dump(),
 		"transient": _transient(sim),
 	}
 
@@ -167,7 +175,7 @@ static func _slime(sim: Simulation, slime_id: int) -> Dictionary:
 		var record := sim.train.record_of(slime_id)
 		out["train"] = {"distance": exact(record["distance"]), "laps": record["laps"],
 				"on_slide": record["on_slide"], "mark": exact(record["mark"]),
-				"marked_at": record["marked_at"], "lost": record["lost"]}
+				"marked_at": record["marked_at"]}
 	if sim.free_slimes.tracks(slime_id):
 		var record := sim.free_slimes.record_of(slime_id)
 		out["free"] = {"phase": record["phase"], "since": record["since"], "point": vector(record["point"]),
@@ -285,7 +293,7 @@ static func problems(save: Variant, level_data: LevelData) -> PackedStringArray:
 	for key in ["objects", "gates"]:
 		if typeof(save.get(key, {})) != TYPE_DICTIONARY:
 			out.append("'%s' must be a dictionary (stable ID -> state)" % key)
-	for key in ["train", "call", "transient", "offscreen"]:
+	for key in ["train", "call", "transient", "offscreen", "stuck_slimes"]:
 		var part: Variant = save.get(key)
 		if part != null and typeof(part) != TYPE_DICTIONARY:
 			out.append("'%s' must be a dictionary or null" % key)
@@ -432,8 +440,8 @@ static func restore(save: Dictionary, level_data: LevelData, terrain: TerrainSeg
 	var saved_train: Variant = save.get("train")
 	if sim.train != null and saved_train is Dictionary:
 		sim.train.set_open_gates(saved_train.get("open_gates", []))
-		for entry in saved_train.get("lost", []):
-			sim.train.lost.append({"id": _whole(entry["id"]), "tick": _whole(entry["tick"]),
+		for entry in saved_train.get("stalled", []):
+			sim.train.stalled.append({"id": _whole(entry["id"]), "tick": _whole(entry["tick"]),
 					"reason": str(entry["reason"])})
 	for k in slimes.size():
 		_restore_progress(sim, runtime_ids[k], slimes[k])
@@ -455,6 +463,8 @@ static func restore(save: Dictionary, level_data: LevelData, terrain: TerrainSeg
 	sim.slimes.free_down = sim.phone_tilt.down()
 	if save.get("offscreen") is Dictionary:
 		_restore_offscreen(sim, save["offscreen"])
+	if save.get("stuck_slimes") is Dictionary:
+		sim.stuck_slimes.restore(save["stuck_slimes"])
 	sim.hint.update(sim.tick)
 	return sim
 
@@ -500,9 +510,8 @@ static func _restore_progress(sim: Simulation, slime_id: int, slime: Dictionary)
 		for key in ["laps", "marked_at"]:
 			if train.has(key):
 				record[key] = _whole(train[key])
-		for key in ["on_slide", "lost"]:
-			if train.has(key):
-				record[key] = bool(train[key])
+		if train.has("on_slide"):
+			record["on_slide"] = bool(train["on_slide"])
 		sim.train.restore_record(slime_id, record)
 	elif sim.train != null and sim.slimes.state_of(slime_id) == SlimeBodies.TRAIN:
 		var at := sim.slimes.centre_of(slime_id)

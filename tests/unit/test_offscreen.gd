@@ -157,7 +157,7 @@ func test_a_parked_train_slime_moves_along_the_loop_at_the_pace() -> void:
 	assert_almost_eq(sim.slimes.centre_of(big), on + Vector2(0, -Offscreen.lift(3)), Vector2(0.01, 0.01),
 			"lifted by its size above the loop")
 	assert_eq(sim.slimes.velocity_of(slime), Vector2.ZERO, "no physics")
-	assert_eq(sim.train.lost, [], "never stalled")
+	assert_eq(sim.train.stalled, [], "never stalled")
 
 
 func test_a_parked_train_slime_slides_at_the_slide_speed_and_laps() -> void:
@@ -172,7 +172,7 @@ func test_a_parked_train_slime_slides_at_the_slide_speed_and_laps() -> void:
 	sim.run(60 * 21)
 	assert_eq(sim.train.laps_of(slime), 1, "round the loop")
 	assert_true(sim.slimes.is_parked(slime))
-	assert_eq(sim.train.lost, [])
+	assert_eq(sim.train.stalled, [])
 
 
 func test_the_view_coming_near_brings_a_train_slime_back_just_outside_it() -> void:
@@ -189,7 +189,7 @@ func test_the_view_coming_near_brings_a_train_slime_back_just_outside_it() -> vo
 	sim.run(240)
 	assert_eq(sim.slimes.state_of(slime), SlimeBodies.TRAIN)
 	assert_gt(sim.train.progress_of(slime), _distance_at(1800) + 60.0, "and hops on along the loop")
-	assert_eq(sim.train.lost, [])
+	assert_eq(sim.train.stalled, [])
 
 
 func test_a_parked_train_slime_drops_into_a_basket_that_fills_off_screen() -> void:

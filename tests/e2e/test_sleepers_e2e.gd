@@ -200,7 +200,7 @@ func test_a_call_on_the_first_sleeper_wakes_it_and_both_rejoin_the_train() -> vo
 			"the first slime was up on the ledge")
 	assert_gt(run["rejoined_at"], 0, "both rejoined the train")
 	var sim: Simulation = game.simulation
-	assert_true(sim.train.lost.is_empty(), "no slime lost")
+	assert_true(sim.train.stalled.is_empty(), "no slime lost")
 	assert_eq(sim.identities.members_of(run["sleeper"]), PackedStringArray([FIRST_SLEEPER]))
 
 
@@ -218,7 +218,7 @@ func test_no_sleeper_wakes_during_a_lap_without_calls() -> void:
 			break
 	assert_gte(sim.train.laps_of(first), 1, "a full lap")
 	assert_eq(woke, [], "no sleeper woke")
-	assert_true(sim.train.lost.is_empty())
+	assert_true(sim.train.stalled.is_empty())
 
 
 func test_waking_runs_are_repeatable() -> void:

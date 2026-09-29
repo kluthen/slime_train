@@ -2,13 +2,8 @@ class_name DebugKill
 extends RefCounted
 ## The debug overlay's kill tool (DebugOverlay), as pure logic: which slime a
 ## tap lands on, and sending it to the start of the loop the way a lost slime
-## goes (chunk 15, Offscreen: moved to distance 0 lifted by its size, back on
-## the train, logged in `offscreen.lost`). Debug builds only.
-##
-## The move is Offscreen's own, reused rather than copied: its public
-## `lose(sim, id)` when there is one, else its internal `_lose(sim, id)`
-## (chunk 15 keeps it private for now). Called by name so a rename shows as
-## "unavailable" in the overlay instead of breaking the debug build.
+## goes: Offscreen.lose() (moved to the start of the loop by LoopStart.move,
+## back on the train, logged in `offscreen.lost`). Debug builds only.
 
 ## How far outside a slime's drawn body a tap still picks it, screen pixels
 ## (the tap zones' OBJECT_HIT_MARGIN).
@@ -32,16 +27,10 @@ static func slime_at(sim: Simulation, at: Vector2, margin := TAP_MARGIN) -> int:
 	return best
 
 
-## Whether the move to the start of the loop is there to call.
-static func available(sim: Simulation) -> bool:
-	return sim.offscreen.has_method("lose") or sim.offscreen.has_method("_lose")
-
-
 ## Sends slime `slime_id` to the start of the loop, as a lost slime. Returns
-## false when there is no such slime, no train, or no move to call.
+## false when there is no such slime or no train.
 static func send_to_start(sim: Simulation, slime_id: int) -> bool:
-	if sim.train == null or not sim.slimes.has(slime_id) or not available(sim):
+	if sim.train == null or not sim.slimes.has(slime_id):
 		return false
-	var method := "lose" if sim.offscreen.has_method("lose") else "_lose"
-	sim.offscreen.call(method, sim, slime_id)
+	sim.offscreen.lose(sim, slime_id)
 	return true

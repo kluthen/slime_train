@@ -166,9 +166,6 @@ func kill_at(at: Vector2) -> int:
 	var sim: Simulation = game.get("simulation")
 	if sim == null:
 		return -1
-	if not DebugKill.available(sim):
-		_show("Kill: unavailable (no lost-slime move in Offscreen)")
-		return -1
 	var slime_id := DebugKill.slime_at(sim, at)
 	if slime_id < 0:
 		_show("Kill: no slime there")

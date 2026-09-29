@@ -6,8 +6,8 @@ extends GutTest
 ## would bump into it. Without this, a parked slime going faster (the slide's
 ## speed, or a bigger slime's pace) ran through the slime ahead, and the two
 ## came back on screen on one spot; two rings on one spot never came apart
-## and crawled, blocking the train behind them until a slime was lost as
-## stalled (found by the whole-level DoD 1 test from `gate1-open`, chunk 16).
+## and crawled, blocking the train behind them until a slime stalled (found
+## by the whole-level DoD 1 test from `gate1-open`, chunk 16).
 ##
 ## The world: a floor whose top is at y = 0 from x = -6000 to 6000. The loop
 ## runs along it at a base slime's centre height (y = -24) from x = -5000 to
@@ -91,7 +91,7 @@ func test_a_parked_slime_on_the_slide_waits_behind_the_parked_slime_ahead() -> v
 	# From the start-of-tick distances: the gap is the widths plus the step the
 	# one ahead makes in a tick.
 	assert_almost_eq(smallest, _spacing(1, 1), 2.0, "it caught up at the slide's speed and waits a width behind")
-	assert_eq(sim.train.lost, [] as Array[Dictionary])
+	assert_eq(sim.train.stalled, [] as Array[Dictionary])
 
 
 func test_a_bigger_parked_slime_waits_behind_a_smaller_one() -> void:

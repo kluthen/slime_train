@@ -3,7 +3,7 @@ extends GutTest
 ## a parked size-3 train slime going down section 3's entry ramp (13.0 to
 ## 13.6 screens) with the camera far away keeps moving at the off-screen pace
 ## and is never lost. It used to stop on the ramp (lifted straight up, its
-## projection on the loop never moved on) and be lost as stalled after 60 s.
+## projection on the loop never moved on) and stall after 60 s.
 ## From `gate2-open` (the loop runs through section 3).
 # @test-link [[req_offscreen_simulation]]
 # @test-link [[rule_left_alone_and_lost]]
@@ -63,5 +63,5 @@ func test_a_size_3_slime_off_screen_goes_down_section_3s_ramp_and_is_never_lost(
 		assert_gte(moved, least, "it keeps moving on (window %d)" % window)
 		passed_ramp = passed_ramp or sim.slimes.centre_of(slime).x > RAMP_FOOT
 	assert_true(passed_ramp, "down the ramp and on")
-	for entry in sim.train.lost + sim.offscreen.lost:
+	for entry in sim.train.stalled + sim.offscreen.lost:
 		assert_ne(entry["id"], slime, "never lost: %s" % entry)

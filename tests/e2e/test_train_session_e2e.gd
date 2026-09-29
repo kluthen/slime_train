@@ -62,8 +62,8 @@ func _run_session(game: Node) -> Dictionary:
 		if now < last:
 			problems.append("tick %d: progress went back from %.1f to %.1f" % [sim.tick, last, now])
 		last = now
-		if not sim.train.lost.is_empty():
-			problems.append("tick %d: lost %s" % [sim.tick, sim.train.lost])
+		if not sim.train.stalled.is_empty():
+			problems.append("tick %d: lost %s" % [sim.tick, sim.train.stalled])
 			break
 		if sim.slimes.state_of(slime) != SlimeBodies.TRAIN:
 			problems.append("tick %d: the slime left the train" % sim.tick)

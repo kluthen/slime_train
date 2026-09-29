@@ -42,14 +42,22 @@ extends RefCounted
 ## progress: it hops for the chute again instead of being held on the ledge.
 ## Its recorded progress never goes back.
 ##
-## Lost. Placeholder until chunk 15 settles it: a train slime is lost when its
-## centre leaves `bounds` (the level's extent) or when its progress hasn't
-## moved LOST_STALL_ADVANCE px in LOST_STALL_SECONDS. Lost slimes are only
-## recorded in `lost`, for tests and the debug view; nothing happens to them.
+## Stalled (D118, D121; "lost" is for free slimes only, D10). A train slime
+## is stalled when its progress hasn't advanced STALL_ADVANCE px in
+## STALL_SECONDS, on screen or off (parked slimes included), or when its
+## centre leaves `bounds` (the level's extent, bounds_for()). follow() then
+## moves it to the start of the loop, back on the train (LoopStart.move, the
+## move lost and stuck slimes take too; its record starts afresh, so the 60 s
+## count starts again from the move) and logs the case in `stalled` with the
+## reason STALLED or OUT_OF_BOUNDS, every time. A slime asleep at bedtime is
+## not a train slime: it has no record, so it is never counted nor moved,
+## and at sunrise its count starts from its waking. The safety net is for
+## play: the whole-level DoD 1 test still fails on any logged case.
 ##
 ## Tick order (Simulation.step): steer() before the bodies tick (aims the
 ## coming hops, holds and carries slimes on the slide), follow() after it and
-## after the split zones (re-derives progress, notices new and lost slimes).
+## after the split zones (re-derives progress, notices new slimes, moves the
+## stalled ones).
 # @spec-link [[req_loop_and_world]]
 # @spec-link [[req_hopping_behavior]]
 # @spec-link [[rule_loop_travelable_with_no_input]]
@@ -95,28 +103,34 @@ const SLIDE_GRIP := 0.2
 ## How far (px) from the route point at its progress a slime is knocked off
 ## the route, and steers from the nearest route point behind (see the class doc).
 const OFF_ROUTE := 36.0
-## A slime whose progress doesn't advance LOST_STALL_ADVANCE px in
-## LOST_STALL_SECONDS is lost (specs/tuning.md: 1 min).
-const LOST_STALL_SECONDS := 60.0
-const LOST_STALL_ADVANCE := 24.0
-## How far past the level's extent a slime is lost, px: at the sides and
-## bottom, and at the top (a big hop may leave the screen).
+## A slime whose progress doesn't advance STALL_ADVANCE px in
+## STALL_SECONDS is stalled (D118; specs/tuning.md: 1 min).
+const STALL_SECONDS := 60.0
+const STALL_ADVANCE := 24.0
+## How far past the level's extent a slime is out of bounds, px: at the sides
+## and bottom, and at the top (a big hop may leave the screen).
 const BOUNDS_MARGIN := 64.0
 const BOUNDS_TOP_MARGIN := 2000.0
-const LOST_STALLED := "stalled"
-const LOST_OUT_OF_BOUNDS := "out_of_bounds"
+## The reasons in `stalled`.
+const STALLED := "stalled"
+const OUT_OF_BOUNDS := "out_of_bounds"
+## How many cases `stalled` keeps (the latest).
+const STALL_LOG_SIZE := 64
 
 ## The loop, and the gates opened so far (they pick the current loop).
 var loop: LoopData
 var open_gates: Array = []
-## Where train slimes may be: outside, they are lost. No area: no check.
+## Where train slimes may be: outside, they are out of bounds (stalled). No
+## area: no check.
 var bounds := Rect2()
-## The slimes lost so far: {"id", "tick", "reason"}, in order.
-var lost: Array[Dictionary] = []
+## The last STALL_LOG_SIZE stalled cases, oldest first: {"id", "tick",
+## "reason" (STALLED or OUT_OF_BOUNDS)}. Each was moved to the start.
+# @spec-link [[rule_stalled_train_slime_moved_to_start]]
+var stalled: Array[Dictionary] = []
 
 ## Slime id -> {"distance" (px, 0 to length()), "laps", "on_slide",
 ## "mark" (the progress last counted as an advance), "marked_at" (its tick,
-## -1 before the first follow), "lost"}.
+## -1 before the first follow)}.
 var _records := {}
 ## The current loop flattened into one closed polyline: points, cumulative
 ## distances, and for each edge whether it is on a return route.
@@ -353,7 +367,7 @@ func highest_between(from: float, to: float) -> float:
 func track(slime_id: int, distance: float) -> void:
 	var d := fposmod(distance, _len) if _len > 0.0 else 0.0
 	_records[slime_id] = {"distance": d, "laps": 0, "on_slide": false,
-			"mark": d, "marked_at": -1, "lost": false}
+			"mark": d, "marked_at": -1}
 
 
 func tracks(slime_id: int) -> bool:
@@ -384,8 +398,9 @@ func progress_of(slime_id: int) -> float:
 	return record["laps"] * _len + record["distance"]
 
 
-## Re-derives a slime's progress from its centre at `tick`, and checks
-## whether it is lost.
+## Re-derives a slime's progress from its centre at `tick`, and marks it
+## when it advanced STALL_ADVANCE px since the last mark (the stall count
+## starts again from there).
 func advance(slime_id: int, centre: Vector2, tick: int) -> void:
 	var record: Dictionary = _records[slime_id]
 	var progress := project(record["distance"], centre)
@@ -393,17 +408,23 @@ func advance(slime_id: int, centre: Vector2, tick: int) -> void:
 		progress -= _len
 		record["laps"] += 1
 	record["distance"] = progress
-	if record["lost"]:
-		return
 	var now := progress_of(slime_id)
-	if record["marked_at"] < 0 or now - record["mark"] >= LOST_STALL_ADVANCE:
+	if record["marked_at"] < 0 or now - record["mark"] >= STALL_ADVANCE:
 		record["mark"] = now
 		record["marked_at"] = tick
-	elif tick - record["marked_at"] >= int(LOST_STALL_SECONDS * Simulation.TICK_RATE):
-		_lose(slime_id, tick, LOST_STALLED)
-		return
+
+
+## Why followed slime `slime_id`, its centre at `centre`, is stalled at
+## `tick` (after advance()): STALLED when its last mark is STALL_SECONDS old,
+## OUT_OF_BOUNDS when its centre is outside `bounds`, else "".
+# @spec-link [[rule_stalled_train_slime_moved_to_start]]
+func stall_of(slime_id: int, centre: Vector2, tick: int) -> String:
+	var record: Dictionary = _records[slime_id]
+	if record["marked_at"] >= 0 and tick - record["marked_at"] >= int(STALL_SECONDS * Simulation.TICK_RATE):
+		return STALLED
 	if bounds.has_area() and not bounds.has_point(centre):
-		_lose(slime_id, tick, LOST_OUT_OF_BOUNDS)
+		return OUT_OF_BOUNDS
+	return ""
 
 
 ## Split parts carry on from where the slime was: `parts` from
@@ -448,7 +469,10 @@ func steer(bodies: SlimeBodies, dt: float) -> void:
 
 
 ## After the bodies tick (and the split zones): follows every train slime,
-## adopting new ones where the loop passes closest, and drops the others.
+## adopting new ones where the loop passes closest, and drops the others; a
+## stalled one goes to the start of the loop and is logged (see the class
+## doc).
+# @spec-link [[rule_stalled_train_slime_moved_to_start]]
 func follow(bodies: SlimeBodies, tick: int) -> void:
 	for slime_id in tracked_ids():
 		if bodies.state_of(slime_id) != SlimeBodies.TRAIN:
@@ -461,10 +485,16 @@ func follow(bodies: SlimeBodies, tick: int) -> void:
 		if not _records.has(slime_id):
 			track(slime_id, _closest_distance(centre))
 		advance(slime_id, centre, tick)
+		var reason := stall_of(slime_id, centre, tick)
+		if reason != "":
+			LoopStart.move(bodies, self, slime_id)
+			stalled.append({"id": slime_id, "tick": tick, "reason": reason})
+			if stalled.size() > STALL_LOG_SIZE:
+				stalled.pop_front()
 
 
 ## Slime `slime_id`'s record, exactly (for saves): {"distance", "laps",
-## "on_slide", "mark", "marked_at", "lost"}, or {} when it isn't followed.
+## "on_slide", "mark", "marked_at"}, or {} when it isn't followed.
 func record_of(slime_id: int) -> Dictionary:
 	return _records[slime_id].duplicate() if _records.has(slime_id) else {}
 
@@ -474,7 +504,7 @@ func record_of(slime_id: int) -> Dictionary:
 func restore_record(slime_id: int, record: Dictionary) -> void:
 	track(slime_id, record.get("distance", 0.0))
 	var mine: Dictionary = _records[slime_id]
-	for key in ["laps", "on_slide", "mark", "marked_at", "lost"]:
+	for key in ["laps", "on_slide", "mark", "marked_at"]:
 		if record.has(key):
 			mine[key] = record[key]
 
@@ -486,17 +516,11 @@ func dump() -> Dictionary:
 		var record: Dictionary = _records[slime_id]
 		slimes.append({"id": slime_id, "distance": snappedf(record["distance"], 0.01),
 				"laps": record["laps"], "on_slide": record["on_slide"],
-				"mark": snappedf(record["mark"], 0.01), "marked_at": record["marked_at"],
-				"lost": record["lost"]})
-	return {"open_gates": open_gates.duplicate(), "slimes": slimes, "lost": lost.duplicate(true)}
+				"mark": snappedf(record["mark"], 0.01), "marked_at": record["marked_at"]})
+	return {"open_gates": open_gates.duplicate(), "slimes": slimes, "stalled": stalled.duplicate(true)}
 
 
 # --- Internals --------------------------------------------------------------
-
-func _lose(slime_id: int, tick: int, reason: String) -> void:
-	_records[slime_id]["lost"] = true
-	lost.append({"id": slime_id, "tick": tick, "reason": reason})
-
 
 ## Placeholder slide: pulls the slime's speed along the route toward SLIDE_SPEED.
 func _carry(bodies: SlimeBodies, slime_id: int, distance: float) -> void:

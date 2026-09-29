@@ -70,13 +70,18 @@ pattern; `scripts/` holds the JSON run files. How to write one:
   of every row of sleepers (rules 7 and 8).
 - `test_level_dod1_e2e.gd` (chunk 16) runs DoD 1 over the whole level: a
   15-minute session with no input from `gate2-open` and from `gate1-open`
-  (nothing goes back, nothing is lost, every slime laps; the same hash in a
-  second run and in a child process), then a size-1, size-2 and size-3
-  slime each lapping the whole loop, with the camera left alone and held on
-  the size 3. About 4.5 minutes.
+  (nothing goes back, no train slime stalls and nothing is lost, every
+  slime laps; the same hash in a second run and in a child process), then
+  a size-1, size-2 and size-3 slime each lapping the whole loop, with the
+  camera left alone and held on the size 3. About 4.5 minutes.
 - `test_start_basin_e2e.gd` (chunk 16e) checks the start basin: the slides
   come home behind the loop's start, never along its first stretch; a
   slime coming home doesn't shove the train slimes on the terrace back; a
   size 3 coming home with two base slimes behind it splits and all leave
   the basin; a lone slime of every size passes the first sleeper's ledge
   at its normal pace. About 6 s.
+- `test_safety_nets_e2e.gd` (chunk 23A) checks the safety nets on the test
+  level: two base slimes of different species put on one centre are stuck,
+  and the higher id goes to the start of the loop, logged in the state
+  dump; from `wind-down`, over 70 s of bedtime, no bedtime-asleep slime is
+  counted as stalled or moved. About 12 s.
