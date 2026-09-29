@@ -6,8 +6,9 @@ extends GutTest
 ## and a level whose test is already there); the level loads with no
 ## errors, LevelCatalog lists it and test mode plays it; the level-rules
 ## checker finds no FAIL on it (behaviour runs included), nor on levels of 1
-## and 4 sections (4 needs species A to F); and the level's generated test
-## passes in a child GUT run.
+## and 4 sections (4 needs species A to F), and no warning: every section
+## can fill its basket (LevelProgress, chunk LD3); and the level's generated
+## test passes in a child GUT run, playing section 1 to its basket full.
 ##
 ## Every level and test this script makes (PREFIX) is removed after it, and
 ## any an earlier run left behind (a crash) before it.
@@ -114,7 +115,8 @@ func test_the_scaffolder_writes_the_level_its_fixture_and_its_test() -> void:
 	var test_text := FileAccess.get_file_as_string(_test_path(level_id))
 	assert_true(_has(test_text, 'const LEVEL_ID := "%s"' % level_id), "the test plays this level")
 	assert_false(_has(test_text, "{{"), "no placeholder left")
-	for step in ["check_level.gd -- --level=" + level_id, "-gselect=test_level_" + level_id,
+	for step in ["tools/level.sh check --level=" + level_id, "tools/level.sh report --level=" + level_id,
+			"-gselect=test_level_" + level_id,
 			"--test-mode --level=%s --seed=1" % level_id]:
 		assert_true(_has(first_output, step), "the next steps say: %s" % step)
 
@@ -198,6 +200,23 @@ func test_the_checker_finds_no_fail() -> void:
 	var results := _check(level_id)
 	gut.p(LevelChecker.format(results))
 	_assert_no_fail(results, "2 sections")
+	assert_eq(LevelChecker.warning_count(results), 0, "no warning")
+
+
+# @test-link [[rule_gate_opens_via_switch_basket_set]]
+func test_every_sleeper_is_within_a_called_base_slimes_hop_and_every_section_progresses() -> void:
+	# Chunk LD3: the first skeleton's sleepers sat on plates 174 to 186 px
+	# over the loop, out of a called base slime's reach (about 133 px), so
+	# section 1 couldn't fill its basket. Now each rests in a hollow on a
+	# dip's rim, reached from the rim.
+	var checker := LevelChecker.new(_level(level_id))
+	for id in checker.data.sleepers:
+		var at: Vector2 = checker.data.sleepers[id]["position"]
+		assert_eq(LevelProgress.smallest_size(checker, LevelChecker.section_of(id), at), 1,
+				"%s: a called base slime reaches it" % id)
+	for section in LevelProgress.estimate(checker):
+		assert_true(section["progresses"], str(section))
+		assert_eq(section["unreached"], [], "section %d: every sleeper by then can be woken" % section["section"])
 
 
 func test_one_and_four_sections_pass_the_checker() -> void:
@@ -214,6 +233,8 @@ func test_one_and_four_sections_pass_the_checker() -> void:
 		var results := [checker.check_load()]
 		results.append_array(checker.check_all())
 		_assert_no_fail(results, "%d sections" % sections)
+		assert_eq(LevelChecker.warning_count(results), 0, "%d sections: every section can progress: %s"
+				% [sections, LevelProgress.estimate(checker)])
 		if sections == 4:
 			var species := {}
 			for sleeper in level.data.sleepers.values():
@@ -229,7 +250,8 @@ func test_the_generated_test_passes() -> void:
 	var passed := RegEx.create_from_string("Passing Tests\\s+(\\d+)").search(run["text"])
 	assert_not_null(passed, "a passing count in:\n%s" % run["text"])
 	if passed != null:
-		assert_eq(passed.get_string(1).to_int(), 4, "its four tests ran and passed")
+		assert_eq(passed.get_string(1).to_int(), 6, "its six tests ran and passed (section 1 played to its basket "
+				+ "full among them, chunk LD3)")
 
 
 # --- Clean-up ---------------------------------------------------------------------------

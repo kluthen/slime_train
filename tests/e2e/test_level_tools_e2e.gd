@@ -25,6 +25,8 @@ const LOOP_Y := FLOOR_Y - LevelBuilder.RIDE
 ## end, screens.
 const FRONTIER_X := 2.0
 const END_X := 4.0
+## The fixture maker's generic fixtures, and stale() (chunk LD3).
+const LEVEL_FIXTURES := preload("res://tools/make_fixture/level_fixtures.gd")
 
 ## The small level's ID.
 var level_id := ""
@@ -95,6 +97,75 @@ func test_fresh_loads_in_test_mode_as_the_level_new() -> void:
 	assert_eq(fixture.simulation.state_hash(), plain.simulation.state_hash())
 
 
+# --- Stale fixtures (chunk LD3) -----------------------------------------------------
+
+## The small level, built, and gate1-open's save as make_fixture wrote it.
+func _level_and_gate_save() -> Array:
+	var level: Level = load(LevelCatalog.scene_path(level_id)).instantiate()
+	add_child_autofree(level)
+	var loaded := TestMode.load_fixture("gate1-open", level_id)
+	assert_true(loaded["ok"], str(loaded["error"]))
+	return [level, loaded["save"]]
+
+
+func test_a_fixture_just_made_is_not_older_than_the_level() -> void:
+	var made := _level_and_gate_save()
+	assert_eq(LEVEL_FIXTURES.stale(made[1], made[0].data), PackedStringArray())
+
+
+func test_a_fixture_is_older_than_the_level_when_a_sleeper_is_new_moved_or_gone() -> void:
+	var made := _level_and_gate_save()
+	var level: Level = made[0]
+	var save: Dictionary = made[1]
+	var without: Dictionary = save.duplicate(true)
+	without["slimes"] = without["slimes"].filter(func(slime): return slime["id"] != "s2.sleeper.01")
+	assert_eq(LEVEL_FIXTURES.stale(without, level.data), PackedStringArray(["the level's s2.sleeper.01 isn't in it"]),
+			"a sleeper added to the level since")
+	var moved: Dictionary = save.duplicate(true)
+	for slime in moved["slimes"]:
+		if slime["id"] == "s1.sleeper.01":
+			slime["centre"] = [slime["centre"][0] + 50.0, slime["centre"][1]]
+	var problems := LEVEL_FIXTURES.stale(moved, level.data)
+	assert_eq(problems.size(), 1, str(problems))
+	assert_string_contains(problems[0] if not problems.is_empty() else "", "s1.sleeper.01 sleeps at")
+	var gone: Dictionary = save.duplicate(true)
+	gone["slimes"].append({"id": "s1.sleeper.09", "members": ["s1.sleeper.09"], "centre": [0.0, 0.0], "size": 1,
+			"species": "B", "state": "sleeper"})
+	assert_eq(LEVEL_FIXTURES.stale(gone, level.data),
+			PackedStringArray(["its slime s1.sleeper.09 holds s1.sleeper.09, which the level doesn't have"]),
+			"a sleeper taken out of the level since")
+
+
+func test_a_fixture_camera_may_be_a_stable_id() -> void:
+	var sidecar := TestMode.sidecar_path("zz-camera-by-id", level_id)
+	var file := FileAccess.open(sidecar, FileAccess.WRITE)
+	file.store_string(JSON.stringify({"description": "the camera on switch 1", "save": false, "camera": "s1.switch"}))
+	file.close()
+	var loaded := TestMode.load_fixture("zz-camera-by-id", level_id)
+	assert_true(loaded["ok"], str(loaded["error"]))
+	assert_eq(loaded["camera"], "s1.switch", "kept as given: the game finds it in the level")
+	var game := _boot_run({"level": level_id, "fixture": "zz-camera-by-id"})
+	var switch: Vector2 = game.level.position_of(game.level.find("s1.switch"))
+	var by_point := _boot_run({"level": level_id, "at": [switch.x, switch.y]})
+	assert_eq(game.camera.position, by_point.camera.position, "the camera starts as it would at the switch's point")
+	var bad := FileAccess.open(sidecar, FileAccess.WRITE)
+	bad.store_string(JSON.stringify({"description": "a camera that isn't one", "save": false, "camera": "S1 Switch"}))
+	bad.close()
+	assert_string_contains(TestMode.load_fixture("zz-camera-by-id", level_id)["error"],
+			"'camera' must be [x, y] or a stable ID")
+	var unknown := FileAccess.open(sidecar, FileAccess.WRITE)
+	unknown.store_string(JSON.stringify({"description": "a camera on nothing", "save": false, "camera": "s9.switch"}))
+	unknown.close()
+	var refused: Node = load(MAIN_SCENE).instantiate()
+	refused.test_mode_guard = TestModeGuard.new(true)
+	add_child_autofree(refused)
+	var errors: PackedStringArray = refused.enable_test_mode({"seed": 1, "time_scale": 0, "level": level_id,
+			"fixture": "zz-camera-by-id"})
+	assert_eq(errors.size(), 1, str(errors))
+	assert_string_contains("\n".join(errors), "no 's9.switch' in level")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(sidecar))
+
+
 func test_list_prints_each_fixture_with_its_description() -> void:
 	var run := _run(MAKE_FIXTURE, ["--level=" + level_id, "--list"])
 	assert_eq(run["code"], 0, run["text"])
@@ -140,7 +211,7 @@ func test_the_report_on_the_test_level() -> void:
 	var run := _run(LEVEL_REPORT, [])
 	var text: String = run["text"]
 	assert_eq(run["code"], 0, text)
-	assert_string_contains(text, "level_report: level test (version 1), 3 sections, 200 base slimes")
+	assert_string_contains(text, "level_report: level test (version 1), 3 sections, 200 base slimes, first slime A")
 	assert_string_contains(text, "base slimes: 200 of at most 200 (rule 16): PASS")
 	assert_string_contains(text, "species per section (rule 11: section 1 has 3, each later section adds 1): "
 			+ "section 1: A, B, C; section 2 adds D; section 3 adds E: PASS")
@@ -152,28 +223,46 @@ func test_the_report_on_the_test_level() -> void:
 		assert_string_contains(sets[2], "basket s3.basket, quota 60, no gate: the celebration")
 		assert_string_contains(sets[2], "available by then 200")
 	for section in ["== loop ==", "== population ==", "== sleeper rows ==", "== exploration branches ==",
-			"== frontier sets ==", "== framing zones ==", "== reach"]:
+			"== frontier sets ==", "== framing zones ==", "== reach", "== progress"]:
 		assert_eq(_lines_starting(text, [section]).size(), 1, section)
+	assert_eq(_lines_starting(text, ["section 1: basket s1.basket, quota 6; awake by then about ",
+			"section 2: basket s2.basket, quota 15; ", "section 3: basket s3.basket, quota 60; "]).size(), 3,
+			"one progress line per basket")
 	assert_eq(_lines_starting(text, ["loop at section "]).size(), 3, "one line per gate state")
 	assert_eq(_lines_starting(text, ["s2.branch.cave: "]).size(), 1, "the cave branch")
 
 
 func test_the_report_on_another_level_as_json() -> void:
-	var run := _run(LEVEL_REPORT, ["--level=" + level_id, "--json"])
+	# Through tools/level.sh (chunk LD3): it imports first and starts Godot
+	# without its banner, so stdout is the JSON alone.
+	var run := _run_wrapper(["report", "--level=" + level_id, "--json"])
 	var text: String = run["text"]
 	assert_eq(run["code"], 0, text)
 	var json := JSON.new()
-	var start := text.find("{")
-	assert_eq(json.parse(text.substr(start) if start >= 0 else text), OK, text)
+	assert_eq(json.parse(text), OK, "stdout is the JSON alone (--no-header): " + text)
 	var report: Dictionary = json.data if typeof(json.data) == TYPE_DICTIONARY else {}
 	assert_eq(report.get("level"), level_id)
+	assert_eq(report.get("first_slime"), "A")
 	assert_eq(report.get("population", {}).get("base_slimes"), 3.0, "the first slime and two sleepers")
+	var progress: Array = report.get("progress", [])
+	assert_eq(progress.size(), 2, "a line per basket")
+	if progress.size() == 2:
+		# Each ledge's sleeper is 160 px over the loop: out of a called base
+		# slime's hop (about 133 px), so neither basket can fill.
+		assert_eq(progress[0]["unreached"], ["s1.sleeper.01"])
+		assert_false(progress[0]["progresses"])
 	var sets: Array = report.get("frontier_sets", [])
 	assert_eq(sets.size(), 2)
 	if sets.size() == 2:
 		assert_eq(sets[0]["gate"], "s1.gate")
 		assert_eq(sets[1]["gate"], "", "section 2's set: the celebration")
 		assert_eq(sets[1]["available"], 3.0)
+
+
+func test_the_wrapper_refuses_an_unknown_tool() -> void:
+	var run := _run_wrapper(["everything"])
+	assert_eq(run["code"], 2)
+	assert_eq(run["text"].strip_edges(), "", "what it says goes to stderr")
 
 
 func test_the_report_refuses_an_unknown_level() -> void:
@@ -191,6 +280,17 @@ func _run(script: String, args: Array) -> Dictionary:
 	argv.append_array(PackedStringArray(args))
 	var output := []
 	var code := OS.execute(OS.get_executable_path(), argv, output, true)
+	return {"code": code, "text": "\n".join(output)}
+
+
+## Runs tools/level.sh with `args` (the tool, then its arguments), as a
+## designer does: {"code", "text" (stdout alone)}.
+func _run_wrapper(args: Array) -> Dictionary:
+	var argv := PackedStringArray(["GODOT=" + OS.get_executable_path(), "bash",
+			ProjectSettings.globalize_path("res://tools/level.sh")])
+	argv.append_array(PackedStringArray(args))
+	var output := []
+	var code := OS.execute("env", argv, output, false)
 	return {"code": code, "text": "\n".join(output)}
 
 

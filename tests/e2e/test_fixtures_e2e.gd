@@ -8,7 +8,8 @@ extends GutTest
 ## wakes the whole population (60 in basket 3, full; 140 asleep at bedtime in
 ## section 3's bowl, a pile that comes to rest); `stress-moving` has all 200
 ## as train slimes in the bowl (chunk 16). Every fixture in the directory
-## loads.
+## loads, and none is older than the level (chunk LD3: its save holds every
+## slime of the level, its sleepers where the level has them).
 
 # @test-link [[req_test_level_and_test_mode]]
 # @test-link [[req_persistence_and_saves]]
@@ -34,6 +35,8 @@ const BOWL_RIGHT := 15.4 * S
 ## make_fixture measured 670 (490 before chunk 16d's terrain corner fix);
 ## the rest is margin.
 const PILE_RESTS_WITHIN := 900
+## The fixture maker's generic fixtures, and stale() (chunk LD3).
+const LEVEL_FIXTURES := preload("res://tools/make_fixture/level_fixtures.gd")
 
 
 func _boot(config := {}) -> Node:
@@ -190,6 +193,23 @@ func test_stress_moving_has_200_train_slimes_in_the_bowl() -> void:
 		assert_eq(sim.slimes.size_of(slime_id), 1)
 		assert_true(sim.train.tracks(slime_id))
 		assert_between(sim.slimes.centre_of(slime_id).x, BOWL_LEFT, BOWL_RIGHT, "in the bowl")
+
+
+## Chunk LD3: a fixture saved before the level changed still loads, without
+## what the level gained since; LevelFixtures.stale() says so.
+func test_no_fixture_is_older_than_the_level() -> void:
+	var level: Level = load(LevelCatalog.scene_path(LevelCatalog.DEFAULT_ID)).instantiate()
+	add_child_autofree(level)
+	for file in DirAccess.get_files_at(LevelCatalog.fixtures_dir(LevelCatalog.DEFAULT_ID)):
+		if not file.ends_with(TestMode.SIDECAR_EXTENSION):
+			continue
+		var name := file.trim_suffix(TestMode.SIDECAR_EXTENSION)
+		var loaded := TestMode.load_fixture(name)
+		assert_true(loaded["ok"], "%s: %s" % [name, loaded["error"]])
+		if loaded["ok"] and not loaded["save"].is_empty():
+			var stale := LEVEL_FIXTURES.stale(loaded["save"], level.data)
+			assert_eq(stale, PackedStringArray(), "fixture %s is older than the level: rerun " % name
+					+ "tools/level.sh fixture %s (%s)" % [name, "; ".join(stale)])
 
 
 func test_every_fixture_loads() -> void:

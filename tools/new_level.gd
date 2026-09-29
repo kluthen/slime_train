@@ -5,7 +5,9 @@ extends SceneTree
 ## (docs/dev/level-tooling.md).
 ##
 ## Run from the project root:
-##   godot --headless --path . -s res://tools/new_level.gd -- --id=<id> [--sections=N]
+##   tools/level.sh new --id=<id> [--sections=N]
+## (tools/level.sh imports the project first; the raw command is
+##   godot --headless --no-header --path . -s res://tools/new_level.gd -- --id=<id> [--sections=N])
 ##
 ##   --id=<id>       the new level's ID (LevelCatalog: lowercase letters and
 ##                   digits, words joined by hyphens; not "test")
@@ -29,16 +31,24 @@ extends SceneTree
 ## the return routes come home, rule 22) and, per section, frontier set 1's
 ## geometry (the trapdoor over the pit basket, the chute down to the tunnel,
 ## the pillar carrying the loop on through the gate, whose lid shuts the
-## chute once open). Each section repeats it SECTION_WIDTH screens to the
-## right and SECTION_RISE px higher, so the shared tunnel under them always
-## falls toward the start. x is in screens, y in level px (y grows downward),
-## as in the builder (LevelBuilder).
+## chute once open). Before each set, a dip in the loop with a hollow on
+## each rim holds the section's sleepers (the test level's DipHollow, chunk
+## LD3): a called base slime on the rim hops across into the hollow, and no
+## ledge a base slime is called up to overhangs the loop where larger
+## slimes pass (rule 22), since the ground under a hollow is the dip's
+## slope, too far down to hop up from. So every sleeper can be woken from
+## the start and each basket's quota is met by then (the level report's
+## progress estimate, and the level's own test plays section 1). Each
+## section repeats it SECTION_WIDTH screens to the right and SECTION_RISE px
+## higher, so the shared tunnel under them always falls toward the start.
+## x is in screens, y in level px (y grows downward), as in the builder
+## (LevelBuilder).
 # @spec-link [[req_level_design_rules]]
 # @spec-link [[rule_start_carries_split_zone]]
 # @spec-link [[rule_loop_travelable_with_no_input]]
 # @spec-link [[rule_return_route_per_section]]
 
-const USAGE := "usage: godot --headless --path . -s res://tools/new_level.gd -- --id=<id> [--sections=N]"
+const USAGE := "usage: tools/level.sh new --id=<id> [--sections=N]"
 const TEMPLATE := "res://tools/new_level/test_level.gd.template"
 ## The template's placeholder for the level's ID.
 const ID_PLACEHOLDER := "{{LEVEL_ID}}"
@@ -85,21 +95,36 @@ const SPLIT_ZONE_SIZE := Vector2(0.51 * S, 190)
 ## Section 1's frontier set's origin (the test level's set 1 is at 6.0), and
 ## how far apart the sections' sets are, screens.
 const SECTION_1_SET := 3.0
-const SECTION_WIDTH := 3.5
+const SECTION_WIDTH := 3.7
 ## Section 1's ground, and how much higher each later section's is, px.
 const SECTION_1_GROUND := -100.0
 const SECTION_RISE := 100.0
 ## Each basket's quota (weight): the section's own slimes can fill it.
 const QUOTA := 4
-## A section's two bumps, above its flat ground before the set: centre x
-## from the set's origin, which way the top slopes (1: down to the right).
-const BUMPS := [[-0.45, 1], [-0.1, -1]]
-const BUMP_TOP := 180.0
-const BUMP_HALF_WIDTH := 0.08
-const BUMP_TILT := 12.0
-const BUMP_THICKNESS := 25.0
-## Where on a bump its two sleepers rest, from its centre, screens.
-const ON_BUMP := [-0.04, 0.04]
+## A section's dip, on its flat ground before the set: its left rim from
+## the set's origin, screens, and its ground, [x from the left rim
+## (screens), px below the section's ground], its right rim last. Its upper
+## slopes fall 100 px in 0.1 screens (the test level's first dip: 0.12), so
+## the ground is at least 40 px down under a hollow: its underside clears a
+## size-3 hop (130 px) and its top is out of a called hop's reach from there.
+const DIP_AT := -0.65
+const DIP := [[0.0, 0], [0.1, 100], [0.22, 150], [0.4, 165], [0.58, 150], [0.7, 100], [0.8, 0]]
+## The hollow on each of the dip's rims (the test level's DipHollow): over
+## the dip's slope, from HOLLOW_SPAN[0] to HOLLOW_SPAN[1] screens from its
+## rim, its floor HOLLOW_FLOOR px above the section's ground (110, as
+## DipHollow's over its rim: a called base slime on the rim hops up 110 px
+## and across), with lips HOLLOW_LIP px higher at both ends so its sleepers
+## stay in, HOLLOW_THICKNESS px thick. Its two sleepers rest ON_HOLLOW
+## screens from the rim, within a called base slime's hop sideways
+## (Train.hop_reach, 150 px = 0.13 screens).
+const HOLLOW_SPAN := [0.04, 0.16]
+const HOLLOW_FLOOR := 110.0
+const HOLLOW_LIP := 20.0
+const HOLLOW_THICKNESS := 20.0
+const ON_HOLLOW := [0.075, 0.12]
+## The dip's rims: "left" (its hollow lies rightward, over the dip) and
+## "right" (leftward).
+const RIMS := ["left", "right"]
 
 
 var _id := ""
@@ -205,7 +230,8 @@ func _write() -> int:
 	print("Next steps:")
 	print("  1. Open %s in the Godot editor and make it your level: the skeleton is a start, " % LevelCatalog.scene_path(_id)
 			+ "not the level's design. Don't run this tool on it again.")
-	print("  2. Check the level rules:  godot --headless --path . -s res://tools/check_level.gd -- --level=%s" % _id)
+	print("  2. Check the level rules:  tools/level.sh check --level=%s" % _id)
+	print("     and read its report:    tools/level.sh report --level=%s" % _id)
 	print("  3. Run the level's test:   tools/test.sh -gdisable_colors -gselect=test_level_%s" % _id)
 	print("  4. Play it:                godot --path . -- --test-mode --level=%s --seed=1" % _id)
 	return 0
@@ -276,10 +302,10 @@ static func build(id: String, sections: int) -> LevelBuilder:
 
 
 ## The terrain: section 1's crust (the basin's terrace and the ground up to
-## set 1), each later section's crust, the pillars, the bumps, the first
+## set 1), each later section's crust, the pillars, the hollows, the first
 ## ledge and the bedrock under it all (the tunnel's floor).
 static func _build_terrain(b: LevelBuilder, parent: Node, sections: int) -> void:
-	var crust: Array = BASIN_SURFACE + SECTION_1_RISE + _set_ground(1)
+	var crust: Array = BASIN_SURFACE + SECTION_1_RISE + _dip(1) + _set_ground(1)
 	crust.append_array(BASIN_UNDERSIDE)
 	b.terrain(parent, "S1Crust", crust)
 	b.terrain(parent, "FirstLedge", FIRST_LEDGE)
@@ -291,25 +317,52 @@ static func _build_terrain(b: LevelBuilder, parent: Node, sections: int) -> void
 			var back := set_at(n - 1) + 2.5
 			var before := ground(n - 1)
 			var piece: Array = [[back, before], [back + 0.4, g]]
+			piece.append_array(_dip(n))
 			piece.append_array(_set_ground(n))
 			piece.append([back, before + 280])
 			b.terrain(parent, "S%dCrust" % n, piece)
 		# The chute's far wall, carrying the loop on to the gate.
 		b.terrain(parent, "S%dPillar" % n, [[o + 1.66, g], [o + 2.5, g], [o + 2.5, g + 280], [o + 1.6, g + 280],
 				[o + 1.5, g + 250], [o + 1.66, g + 130]])
-		for k in BUMPS.size():
-			var x: float = o + BUMPS[k][0]
-			var tilt: float = BUMP_TILT * BUMPS[k][1]
-			var top := g - BUMP_TOP
-			b.terrain(parent, "S%dBump%d" % [n, k + 1], [[x - BUMP_HALF_WIDTH, top - tilt],
-					[x + BUMP_HALF_WIDTH, top + tilt], [x + BUMP_HALF_WIDTH, top + tilt + BUMP_THICKNESS],
-					[x - BUMP_HALF_WIDTH, top - tilt + BUMP_THICKNESS]])
+		for side in RIMS:
+			b.terrain(parent, "S%dHollow%s" % [n, side.capitalize()], _hollow(n, side))
 		# The tunnel's floor where the chute lands, then rising under the pillar.
 		bedrock.append_array([[o + 1.0, g + 530], [o + 1.3, g + 490]])
 	var end := set_at(sections) + 2.5
 	var top := ground(sections) - 700
 	bedrock.append_array([[end, ground(sections) + 470], [end, top], [end + 0.1, top], [end + 0.1, 1200], [0.0, 1200]])
 	b.terrain(parent, "Bedrock", bedrock)
+
+
+## Section `n`'s dip's ground, left to right (DIP).
+static func _dip(n: int) -> Array:
+	var out := []
+	for point in DIP:
+		out.append([set_at(n) + DIP_AT + point[0], ground(n) + point[1]])
+	return out
+
+
+## Where section `n`'s dip's rim `side` is (x, screens), and which way its
+## hollow lies from it (1: rightward, -1: leftward).
+static func _rim(n: int, side: String) -> Array:
+	var left := set_at(n) + DIP_AT
+	return [left, 1] if side == "left" else [left + DIP[DIP.size() - 1][0], -1]
+
+
+## The outline of section `n`'s hollow on rim `side`: a cup, lips at both
+## ends, floor between, left to right along the top, then its underside.
+## It hangs over the dip's slope, not over the loop where larger slimes hop
+## at a called base slime's reach (rule 22 (b)): see HOLLOW_SPAN and DIP.
+# @spec-link [[rule_no_called_ledge_over_loop]]
+static func _hollow(n: int, side: String) -> Array:
+	var rim: Array = _rim(n, side)
+	var ends := [rim[0] + rim[1] * HOLLOW_SPAN[0], rim[0] + rim[1] * HOLLOW_SPAN[1]]
+	var x0: float = ends.min()
+	var x1: float = ends.max()
+	var floor_y := ground(n) - HOLLOW_FLOOR
+	var lip := floor_y - HOLLOW_LIP
+	var under := floor_y + HOLLOW_THICKNESS
+	return [[x0, lip], [x0 + 0.02, floor_y], [x1 - 0.02, floor_y], [x1, lip], [x1, under], [x0, under]]
 
 
 ## Section `n`'s ground from its set's pit on (test level set 1's crust):
@@ -336,11 +389,12 @@ static func _build_loop(b: LevelBuilder, sections: int) -> void:
 		var g := ground(n)
 		var outgoing: Array
 		if n == 1:
-			outgoing = LOOP_START + B.ride_over(BASIN_SURFACE.slice(1) + SECTION_1_RISE + [[o + 0.49, g]])
+			outgoing = LOOP_START + B.ride_over(BASIN_SURFACE.slice(1) + SECTION_1_RISE + _dip(1) + [[o + 0.49, g]])
 		else:
 			var back := set_at(n - 1)
 			outgoing = [[back + 1.6, ground(n - 1) - RIDE]]
-			outgoing.append_array(B.ride_over([[back + 2.5, ground(n - 1)], [back + 2.9, g], [o + 0.49, g]]))
+			outgoing.append_array(B.ride_over([[back + 2.5, ground(n - 1)], [back + 2.9, g]] + _dip(n)
+					+ [[o + 0.49, g]]))
 		outgoing.append([o + 1.6, g - RIDE])
 		b.segment(loop, "s%d.loop" % n, outgoing, n, LoopData.OUTGOING, "")
 		var slide: Array = [[o + 1.6, g - RIDE], [o + 1.54, g + 100], [o + 1.43, g + 250], [o + 1.31, g + 400],
@@ -362,8 +416,9 @@ static func _build_start(b: LevelBuilder) -> void:
 
 
 ## Section `n`: its sleepers (section 1: the first sleeper, B, on the first
-## ledge, and C, C, A, B on the bumps; later sections: three of the species
-## the section adds and one earlier one, rule 11) and its frontier set. The
+## ledge, then C, C in the dip's left hollow and A, B in its right one, so
+## every species can pair up; later sections: three of the species the
+## section adds and one earlier one, rule 11) and its frontier set. The
 ## last section's set has no gate: its basket's target is the celebration
 ## (D77), and it releases 200 px before the chute.
 static func _build_section(b: LevelBuilder, n: int, last: bool) -> void:
@@ -375,12 +430,14 @@ static func _build_section(b: LevelBuilder, n: int, last: bool) -> void:
 		var added := Species.letter(n + 1)
 		species = [added, added, added, Species.letter((n - 2) % 3)]
 	var placed: Array = [FIRST_SLEEPER] if n == 1 else []
-	for k in BUMPS.size():
-		var centre: float = o + BUMPS[k][0]
-		var ledge := ["", centre - BUMP_HALF_WIDTH, centre + BUMP_HALF_WIDTH,
-				g - BUMP_TOP - BUMP_TILT * BUMPS[k][1], g - BUMP_TOP + BUMP_TILT * BUMPS[k][1]]
-		for m in ON_BUMP.size():
-			placed.append(B.on_ledge(ledge, centre + ON_BUMP[m], species[k * ON_BUMP.size() + m]))
+	var spots := []
+	for side in RIMS:
+		var rim: Array = _rim(n, side)
+		for along in ON_HOLLOW:
+			spots.append(rim[0] + rim[1] * along)
+	spots.sort()
+	for k in spots.size():
+		placed.append([spots[k], g - HOLLOW_FLOOR - RIDE, species[k]])
 	b.sleeper_row(b.group(section, "Sleepers"), "s%d" % n, placed)
 	var frontier := b.group(section, "FrontierSet")
 	var place := "s%d" % n

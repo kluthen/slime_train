@@ -73,12 +73,24 @@ Every tool runs headless from the project root, takes `--level=<id>`
 (default `test`) where a level is involved, says what to fix when it
 refuses, and exits non-zero on a problem.
 
+Run them through **`tools/level.sh <tool> [arguments...]`** (chunk LD3;
+`check`, `report`, `new`, `fixture`, `bench`). Like `tools/test.sh`, it
+imports the project first: after a pull that adds `class_name`s, a tool run
+bare fails to parse (`Parse Error: Identifier "LevelBuilder" not declared
+in the current scope`) until `godot --headless --import` runs. And it starts
+Godot with `--no-header`, so the banner (`Godot Engine v4.7.2...`) isn't
+printed and a tool's `--json` is the only thing on stdout. Its exit code is
+the tool's; 2 when the import fails or the tool is unknown. The raw form
+is `godot --headless --no-header --path . -s res://tools/<script>.gd --
+[arguments...]` (after an import).
+
 | Tool | Command |
 |---|---|
-| Rules checker | `godot --headless --path . -s res://tools/check_level.gd -- --level=<id> [--rule=N[,M...]] [--fast] [--json]` |
-| Scaffolder | `godot --headless --path . -s res://tools/new_level.gd -- --id=<id> [--sections=N]` |
-| Fixtures | `godot --headless --path . -s res://tools/make_fixture.gd -- [--level=<id>] [--list] [name ...]` |
-| Level report | `godot --headless --path . -s res://tools/level_report.gd -- --level=<id> [--json]` |
+| Rules checker | `tools/level.sh check --level=<id> [--rule=N[,M...]] [--fast] [--json]` |
+| Scaffolder | `tools/level.sh new --id=<id> [--sections=N]` |
+| Fixtures | `tools/level.sh fixture [--level=<id>] [--list] [name ...]` |
+| Level report | `tools/level.sh report --level=<id> [--json]` |
+| Level benchmark | `tools/level.sh bench [--level=<id>] [--ticks=N] [--fixture=NAME[,NAME...]]` |
 | Play a level | `godot --path . -- --test-mode --level=<id> --seed=1 [--fixture=NAME] [--at=<stable id>\|x,y]` |
 | A level's test | `tools/test.sh -gdisable_colors -gselect=test_level_<id>` |
 
@@ -96,6 +108,11 @@ reports one status:
   at.
 - `N/A`: the rule doesn't apply to this level (why is given).
 
+Under any status, `warn:` lines (chunk LD3), in a finding's shape: what may
+be wrong but a static estimate can't settle, so they don't change the
+status or the exit code. Only rule 12 warns today: a section the progress
+estimate can't fill (below).
+
 A `load` line comes first: the level's load errors (other than stable-ID
 ones, which are rule 20's). Output:
 
@@ -104,14 +121,18 @@ check_level: level test (version 1): 3 sections, 200 base slimes
 load     PASS    The level loads
 rule 1   PASS    The loop can be travelled with no input at all
          note: ...
+rule 12  PASS    A frontier gate opens through the switch-plus-basket set
+         warn: s1.basket (x 6.90): section 1 may not progress: its basket's quota is 6, but only about 3 base slimes ...
+         note: ...
 rule 22  PASS    Slimes come home behind the loop's start; no called ledge overhangs the loop
          manual: ...
-check_level: 22 PASS, 0 FAIL, 0 MANUAL, 0 N/A, 16.4 s
+check_level: 22 PASS, 0 FAIL, 0 MANUAL, 0 N/A, 3 warnings, 16.4 s
 ```
 
 `--json` prints one object instead (`level`, `version`, `fast`, `load`,
-`results`, `counts`; each result `rule`, `title`, `status`, `findings`
-(`id`, `x`, `text`), `manual`, `notes`). Exit code: 0 when nothing fails, 1
+`results`, `counts`, `warnings` (how many); each result `rule`, `title`,
+`status`, `findings` (`id`, `x`, `text`), `warnings` (the same shape),
+`manual`, `notes`), alone on stdout through `tools/level.sh`. Exit code: 0 when nothing fails, 1
 when a check fails, 2 when it can't run (bad arguments, unknown level).
 
 `--fast` skips the behaviour runs (about 0.3 s instead of about 20 s on the
@@ -145,11 +166,11 @@ What each rule checks by code, and what it leaves to a person:
 | 9 | a branch's sleepers (or its route back's top) peek into a settled rail view; no decoration in front covers an object or a hint | whether a hint reads as something to explore |
 | 10 | every trapdoor is on the loop over its basket, the basket below | no branch or gate may need tilt |
 | 11 | section 1 has 3 species, each later adds 1, within the game's 6 | |
-| 12 | every gate opened by a basket's rule, one switch per basket, a gate per section but the last | |
+| 12 | every gate opened by a basket's rule, one switch per basket, a gate per section but the last; warns when a section may not progress (the progress estimate) | play a warned section |
 | 13 | one return route per section, retired by that section's gate | |
 | 14 | every route back still ends on the loop in use once later gates open | exploration behind a lid needs another way in |
 | 15 | by construction (FrontierSets) | a set kept as landscape must not block the loop |
-| 16 | at most 200 base slimes | piles mostly still (`tools/bench_level.gd`) |
+| 16 | at most 200 base slimes | piles mostly still (`tools/level.sh bench --level=<id>`) |
 | 17 | every sleeper more than 2 slime radii from the loop | |
 | 18 | the nearest sleeper within 1/3 screen of the first slime | |
 | 19 | every framing zone meets the loop, zoom in (0, 1]; MANUAL with none | where a wider view is needed |
@@ -180,28 +201,97 @@ the test level, so the tests and the checker can't disagree;
 `test_level_checker.gd` also breaks each rule on a synthetic level and
 checks that the checker fails it.
 
+### The progress estimate (chunk LD3)
+
+`tools/level_check/level_progress.gd` (`LevelProgress`): whether each
+section can progress by play, a static estimate for the checker's rule 12
+warning and the level report's progress section.
+
+- **Reach.** A sleeper wakes only when an awake slime reaches it, by
+  answering a call. A called slime walks toward the call point and makes
+  the last climb in one hop, at most `Train.hop_reach(size)` sideways (150
+  px for a base slime) and `FreeSlimes.max_rise(size)` up (133, 168, 208
+  px for sizes 1 to 3). So a sleeper is reachable by a size when a point
+  of the loop's outgoing routes in use at its section, within that hop's
+  reach sideways, is at most that rise below it (`take_off()`: the point
+  least below it). A hollow over a dip is reached from the rim, a plate
+  over flat ground only from under it. Obstacles (a ledge overhead, a lip)
+  and climbs in several hops aren't modelled.
+- **Progress.** From the first slime, section by section: every sleeper
+  of the sections so far that a called slime of a size the train can make
+  reaches is woken; n base slimes of one species make sizes up to n (3 at
+  most); repeat until nothing more wakes. The section progresses when the
+  base slimes awake by then weigh at least its basket's quota.
+- **A warning, not a FAIL.** Being static, the estimate can be wrong both
+  ways (a climb it doesn't see, a lip it doesn't either), so rule 12 only
+  warns. The proof is in play: the scaffolded level's own test plays
+  section 1 to its basket full.
+
+Probes behind the numbers (a lone train slime under a sleeper, a tap on
+the sleeper, 15 s): on the first skeleton, a base slime woke none of
+section 1's four plate sleepers (174 to 186 px up; a size 2 woke one at
+186); on the test level, a base slime woke `s1.sleeper.15` from the fusion
+dip's rim (0.8 s) but not `.14` beside it (184 px sideways), nor any hill,
+tree or frontier-ledge sleeper, even with two or three base slimes called
+together. So the estimate warns on the test level: section 1 may not
+progress (only A, B and C can be woken, 3 of the quota's 6, and three
+species can't fuse), and sections 2 and 3 follow from it (by then only one
+more base slime, `s2.sleeper.16`, a D; since chunk R22 moved `Dip2Hollow`,
+`s2.sleeper.15` is 0.2 screens from the rim, beyond a base slime's hop
+sideways): 3 warnings. `tests/e2e/test_level_progress.gd` covers the
+estimate on small levels built in code.
+
 ### The scaffolder
 
-`tools/new_level.gd -- --id=<id> [--sections=N]` (N from 1 to 4: section
-1 has 3 species and each later one adds one, of the game's 6). It writes:
+`tools/level.sh new --id=<id> [--sections=N]` (N from 1 to 4: section 1
+has 3 species and each later one adds one, of the game's 6). It writes:
 
 - `levels/<id>/level.tscn`: a skeleton, through `LevelBuilder`, that
-  passes the checker (20 PASS, rule 19 MANUAL: no framing zone, rule 5 N/A:
-  no dip). The start basin is the test level's (chunk 16e: the pocket
+  passes the checker (21 PASS, 0 warnings, rule 19 MANUAL: no framing
+  zone). The start basin is the test level's (chunk 16e: the pocket
   behind the loop's start, the ramp, the terrace, the first sleeper on
   `FirstLedge` inside the split zone, the lane under the terrace: rules 4,
-  18 and 22), then per section, 3.5 screens each: two bumps with two
-  sleepers each, sloping to the loop; a frontier set (signpost, switch and
-  trapdoor over the pit basket, quota 4; a pillar; the gate with its lid
-  over the section's chute, except in the last section, whose basket's
-  target is the celebration); the section's return route down its chute
-  and back along a shared tunnel to the start. Species: section 1 A (the
-  first slime), B, C; each later section adds D, E, F.
+  18 and 22), then per section, 3.7 screens each: a dip in the loop (0.8
+  screens, 165 px deep: rule 5 finds it) with a hollow on each rim (the
+  test level's `DipHollow`: 0.12 screens wide, its floor 110 px above the
+  rim, lips at both ends) holding two sleepers, 0.075 and 0.12 screens
+  from the rim; a frontier set (signpost, switch and trapdoor over the pit
+  basket, quota 4; a pillar; the gate with its lid over the section's
+  chute, except in the last section, whose basket's target is the
+  celebration); the section's return route down its chute and back along
+  a shared tunnel to the start. Species: section 1 A (the first slime), B
+  (the first sleeper), then C, C in the left hollow and A, B in the right
+  one; each later section adds D, E, F (three of it and one earlier).
 - `levels/<id>/fixtures/fresh.fixture.json`.
 - `tests/e2e/levels/test_level_<id>.gd`, from
   `tools/new_level/test_level.gd.template`: the level loads, the full
-  checker has no FAIL, 2 minutes with no input lose nothing, every fixture
-  in the level's folder loads. The designer owns it and extends it.
+  checker has no FAIL, 2 minutes with no input lose nothing, section 1
+  plays to its basket full, every fixture in the level's folder loads, and
+  none is older than the level. The designer owns it and extends it.
+
+**Why hollows on a dip's rims (chunk LD3).** The first skeleton put each
+section's sleepers on plates 174 to 186 px over the loop: out of a called
+base slime's reach, and section 1 opened with A and B, which can't fuse,
+so basket 1 couldn't be filled, yet the checker passed it. A ledge a base
+slime reaches can't hang over the loop where bigger slimes hop (rule 22
+(b)): hanging over a dip's slope, a hollow is out of reach from the slope
+under it (its top 150 px and more above it; its underside at least 130 px
+above, clear of a size 3's hop) and in reach from the rim, 110 px up and
+under 150 px across. The sleeper nearer the rim wakes first; the one
+deeper in wakes once it has gone. Probes: a called base slime on the right
+rim woke the nearer sleeper in 0.8 s and, with that one still there, not
+the deeper one; the playthrough below wakes all four.
+
+**Section 1 played.** The template's `test_section_1_plays_to_its_basket_full`
+takes the estimate's section 1 (it must say "progresses"), then wakes each
+sleeper it counts on as a player would: the camera on the take-off point,
+it waits (up to 150 s) for a train slime of the size needed within 40 px
+of it, taps the sleeper (a call), and gives the call 15 s; three passes
+over the sleepers not yet awake, since one deeper in a hollow wakes only
+after its neighbour. Then it taps the switch and waits (up to 180 s, the
+camera on the basket) for the basket to leave `filling`. On the skeleton
+the basket is full 20 to 25 s after the switch (seeds 1, 2, 3, 7, 11 and
+20 pass); the whole generated test runs in about 15 s.
 
 It refuses an invalid id, `test`, an existing `levels/<id>/` or an
 existing test script (exit 1: exists, 2: bad arguments, 3: a write failed,
@@ -213,7 +303,7 @@ design. `tests/e2e/test_new_level_e2e.gd` scaffolds throwaway levels
 
 ### Fixtures for any level
 
-`tools/make_fixture.gd -- [--level=<id>] [--list] [name ...]` writes a
+`tools/level.sh fixture [--level=<id>] [--list] [name ...]` writes a
 level's fixtures to `levels/<id>/fixtures/` (the folder is made if
 missing); each save is loaded back before it is written. `--list` prints
 `<name>: <description>` and writes nothing. The old form (`-- bump`) still
@@ -231,10 +321,31 @@ writes the test level's.
 
 Unknown fixtures or levels exit 1 with what exists.
 
+A sidecar's `camera` is `[x, y]` or, since chunk LD3, a stable ID of the
+level (`"camera": "s2.switch"`): test mode keeps it as given and the game
+starts the camera on the rails nearest that thing (`Level.point_of`, as
+for `"at"`; a route's first point); an ID the level doesn't have is an
+error naming it. `make_fixture` still writes `[x, y]`.
+
+**Stale fixtures (chunk LD3).** A fixture's save is a snapshot: one written
+before the level changed still loads (`SaveData.problems` checks the
+format and the level's ID and version only), without what the level
+gained. `LevelFixtures.stale(save, level_data)`
+(`tools/make_fixture/level_fixtures.gd`) says why a save is older than its
+level: a slime of the level (first slime or sleeper) in none of its
+slimes' members, a member the level doesn't have, a slime it keeps asleep
+more than 1 px from the level's sleeper or of another species, a switch,
+basket or gate with no state in it. A level's generated test and
+`tests/e2e/test_fixtures_e2e.gd` (the test level's) fail with `fixture X
+is older than the level: rerun tools/level.sh fixture --level=<id> X
+(...)`. It reads the saves as they are: no format change, and every
+committed fixture passes as it is.
+
 ### The level report
 
-`tools/level_report.gd -- --level=<id> [--json]`: a plain-text summary for
-a designer, stable and greppable, on the checker's helpers:
+`tools/level.sh report --level=<id> [--json]`: a plain-text summary for a
+designer, stable and greppable, on the checker's helpers. Its header names
+the first slime's species (`..., first slime A`; `first_slime` in JSON).
 
 - the loop in every gate state: its length in screens and a size-1 lap's
   time (outgoing at the off-screen pace, return routes at the slide's
@@ -247,12 +358,34 @@ a designer, stable and greppable, on the checker's helpers:
 - the frontier sets: quota, gate or celebration, and the base slimes
   available by then;
 - the framing zones (x span, zoom, offset);
-- a reach estimate per row: the rise from the loop to the row's lowest
-  sleeper against a called hop's reach for sizes 1, 2 and 3. A static
-  estimate from a single hop (climbing in several hops isn't modelled):
-  play it to be sure.
+- a reach estimate per row: the rise to the row's easiest sleeper from its
+  take-off point (the progress estimate's: the loop's point least below it
+  within a size-1 hop's reach sideways; before chunk LD3, the loop under
+  it) against a called hop's reach for sizes 1, 2 and 3, and the smallest
+  size that reaches it. A static estimate: play it to be sure;
+- the progress per basket (chunk LD3, `LevelProgress.estimate`): the base
+  slimes a called slime can wake by then (by species), the largest size
+  the train can make, and "progresses" or "MAY NOT PROGRESS" with the
+  sleepers out of reach.
 
 Exit 0; 2 on a bad argument or a level that doesn't load.
+
+### The level benchmark
+
+`tools/level.sh bench [--level=<id>] [--ticks=N] [--fixture=NAME[,NAME...]]`
+(`tools/bench_level.gd`): the tick cost of a whole level, headless, the
+measure level rule 16's `manual:` line asks for (piles mostly still). Each
+case runs `Simulation.step` as the game does (off-screen simulation on),
+no input, and times `ticks` ticks (600 by default) after an untimed
+lead-in; it prints a `RESULT` line per case (median, p95 and mean ms per
+tick, base slimes, bodies, parked and resting slimes, whether the camera
+held still) and a table. On the test level, by default, the three cases
+the numbers in `docs/dev/README.md` come from (`start`, `stress-still`,
+`stress-moving`); on another level (`--level`, chunk LD3), `start` (the
+level as new) and every fixture of its folder with a save, each after a
+60-tick lead-in. `--fixture` picks the cases by name (`fresh` is `start`).
+A fixture's camera may be a stable ID. Exit 0; 2 on a bad argument, an
+unknown level or a fixture that doesn't load.
 
 ### Playing and looking at a level
 
@@ -295,9 +428,25 @@ unchanged generator did the same).
   The whole-level, whole-session checks (DoD 1) stay in the test level's
   own tests.
 - **The scaffolder reuses proven geometry**: the test level's start basin
-  (rebuilt in chunk 16e for rules 1, 2 and 22) and its first frontier set,
-  repeated per section, rather than new shapes that would need their own
-  tuning.
+  (rebuilt in chunk 16e for rules 1, 2 and 22), its first frontier set and
+  (chunk LD3) its dip-rim hollow, repeated per section, rather than new
+  shapes that would need their own tuning.
+- **"Can this section progress?" is a warning, and a played test** (chunk
+  LD3). A static estimate can't see climbs or lips, so it can't fail a
+  level; the scaffolded level's test plays section 1 for real, and a
+  designer extends it to later sections. It sits under rule 12 (a frontier
+  gate opens through the switch-plus-basket set: a basket nobody can fill
+  opens nothing), with rule 17's "waking always takes a call" behind the
+  reach model; rule 11 (species per section) stays about species only.
+- **Stale fixtures are found from the saves, not from a recorded hash**
+  (chunk LD3). A hash in the sidecar would change the fixture format (a
+  hard contract) and every committed sidecar, and would flag any change
+  to the level, even one the fixture doesn't care about. Comparing the
+  save's slimes with the level's says exactly what is missing or moved,
+  and holds for every fixture already written.
+- **One wrapper for the tools** (`tools/level.sh`, chunk LD3): the import
+  and `--no-header` in one place, rather than each command in the docs
+  carrying them.
 - **Throwaway levels in tests**: tests that need a second level write one
   under `levels/zz-<name>-<usec>/` and remove it, with any leftover of a
   crashed run. No level other than `test` is committed: the tutorial

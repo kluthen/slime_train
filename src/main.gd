@@ -358,26 +358,24 @@ func start_test_mode_from_args(user_args: PackedStringArray) -> PackedStringArra
 
 ## What a test-mode run starts from on `run_level` (not yet the loaded level
 ## when the run switches levels): its save checked against the level, and
-## where the camera starts ("at" over the fixture's camera; a stable ID is
-## found in the level). Returns {"errors", "camera" (a level point or null)}.
+## where the camera starts ("at" over the fixture's camera; either may be a
+## stable ID, found in the level: Level.point_of). Returns {"errors",
+## "camera" (a level point or null)}.
 # @spec-link [[req_test_level_and_test_mode]]
 func _run_start(candidate: RefCounted, run_level: Level) -> Dictionary:
 	if not candidate.save_data.is_empty():
 		var problems := SaveData.problems(candidate.save_data, run_level.data)
 		if not problems.is_empty():
 			return {"errors": problems, "camera": null}
-	var at: Variant = candidate.at
+	var at: Variant = candidate.at if candidate.at != null else candidate.camera
 	if at is String:
-		var thing := run_level.find(at)
-		if thing == null:
-			return {"errors": PackedStringArray(["'at': no '%s' in level '%s'" % [at, run_level.level_id]]),
+		var setting := "'at'" if candidate.at != null else "fixture '%s''s 'camera'" % candidate.fixture_name
+		var point: Variant = run_level.point_of(at)
+		if point == null:
+			return {"errors": PackedStringArray(["%s: no '%s' in level '%s'" % [setting, at, run_level.level_id]]),
 					"camera": null}
-		at = run_level.position_of(thing)
-		# A route (a loop segment, a route back) is placed by its curve, not
-		# its node: its start.
-		if thing is Path2D and thing.curve != null and thing.curve.point_count > 0:
-			at = run_level.transform_of(thing) * thing.curve.get_point_position(0)
-	return {"errors": PackedStringArray(), "camera": at if at != null else candidate.camera}
+		at = point
+	return {"errors": PackedStringArray(), "camera": at}
 
 
 ## The level the game loads at start: the test level, or in a debug build

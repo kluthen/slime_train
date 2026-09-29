@@ -31,35 +31,36 @@ the checker, and the spec's wording wins where they differ.
 2. **Run the checker in full** (no `--fast`: the laps and ways back are
    part of rules 1, 2 and 7) and merge it with the spec:
    ```sh
-   godot --headless --path . -s res://tools/check_level.gd -- --level=<id> --json 2>/dev/null \
-     | tail -n 1 | python3 .claude/skills/level-review/scripts/rules_table.py -
+   tools/level.sh check --level=<id> --json 2>/dev/null \
+     | python3 .claude/skills/level-review/scripts/rules_table.py -
    ```
    The script exits like the checker: 0 no FAIL, 1 a FAIL (or load
    errors), 2 no JSON. It prints every rule of the spec: the checker's
-   status and short title, the spec's text, each finding with a `look:` and
-   a `re-check:` command, the rule's `by eye:` item, and notes.
+   status and short title, the spec's text, each finding and each warning
+   (`WARNING`: may be wrong, a static estimate can't settle it; the status
+   stays) with a `look:` and a `re-check:` command, the rule's `by eye:`
+   item, and notes.
    - "MANUAL" as a **status** means nothing in the rule is checkable by
      code; `by eye:` items also sit under PASS rules. The checklist covers
      both, so a "0 MANUAL" count can come with ten by-eye items.
    - No JSON: run the checker without `--json` to see why (exit 2: a bad
-     level ID or a level that doesn't load; a `Parse Error` about a class
-     name: run `godot --headless --import` once and retry).
+     level ID or a level that doesn't load). `tools/level.sh` imports the
+     project first, so a class added by a pull can't stop it.
 
 3. **Run the level report**:
-   `godot --headless --path . -s res://tools/level_report.gd -- --level=<id>`.
+   `tools/level.sh report --level=<id>`.
 
 4. **Look for likely blockers the checker can't see.** The checker passes
    a level that can't be finished. Work these out:
-   - **Section 1 can start.** The first slime's species is the
-     `FirstSlime` node's `species` in `levels/<id>/level.tscn` (no
-     `species` line: A). Which section 1 rows does the report's `== reach
-     ==` call reachable by a size 1? A player starts with the first slime
-     and what it wakes; fusing needs 2 or 3 base slimes of one species. If
-     the size-1 rows don't give them enough, the size-2 and size-3 rows
-     (and the quota) are out of reach. On the scaffolded skeleton only row
-     1.1 is size 1, and it is species B: section 1 can't be finished.
-   - **Each quota** can be met with slimes the player can really wake by
-     then, not just "available by then" (every sleeper, reachable or not).
+   - **Each section can progress.** The report's `== progress ==` line per
+     basket (and the checker's rule 12 warning when one can't): starting
+     from the first slime (its species is in the report's header), what a
+     called slime can wake by then, sizes growing as same-species slimes
+     fuse, against the quota. "MAY NOT PROGRESS" names the sleepers out of
+     reach. Cross-check with `== reach ==` near the start: section 1 needs
+     sleepers a size 1 reaches first.
+   - **Each quota** leaves room under what can really be woken by then,
+     not just "available by then" (every sleeper, reachable or not).
    - **Routes back** near 70 s (left alone at 10 s, lost 60 s later).
    The reach is a static estimate (one hop, no climbing): say "likely" and
    ask to play it.
@@ -71,7 +72,7 @@ the checker, and the spec's wording wins where they differ.
 ```
 # Level <id> (version <n>) against specs/level-design.md (<spec status line>)
 
-Checker: <n> PASS, <n> FAIL, <n> MANUAL, <n> N/A, <full run | fast run>; <n> by-eye items
+Checker: <n> PASS, <n> FAIL, <n> MANUAL, <n> N/A, <n> warnings, <full run | fast run>; <n> by-eye items
 
 ## Likely blockers
 (from step 4; "none found" if so; lead with this when it isn't empty)
@@ -97,9 +98,9 @@ Pick the stable IDs from the level report (branches, frontier sets,
 framing zones, sleeper rows; return routes are s<n>.slide). Terrain has no
 ID: use --at=<x>,<y> in level pixels (x in screens times 1152; y grows
 downward). Section N is reached from --fixture=gate<N-1>-open (section 1:
-no fixture). Rule 16's item points to tools/bench_level.gd, which today
-measures the test level only: for another level, say to watch the pile in
-play.
+no fixture). Rule 16's item: `tools/level.sh bench --level=<id>` (the
+level as new and each fixture with a save; `--fixture=<name>` for one),
+then watch the pile in play.
 
 ## Numbers worth a look
 From the level report: anything close to a limit.

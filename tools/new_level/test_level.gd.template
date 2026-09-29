@@ -9,22 +9,43 @@ extends GutTest
 ## - the game in test mode plays it for 2 simulated minutes with no input
 ##   and loses no slime (none lost as stalled, none lost off screen), and the
 ##   base-slime count stays the same;
-## - every fixture in levels/{{LEVEL_ID}}/fixtures/ loads through test mode.
+## - section 1 plays to its basket full: the level report's progress
+##   estimate (LevelProgress) says it can, then scripted calls wake the
+##   sleepers it counts on, each tapped when a train slime is at the loop
+##   point its called hop takes off from, and a tap on the switch sends the
+##   train into the basket until the quota is met (a few simulated minutes);
+## - every fixture in levels/{{LEVEL_ID}}/fixtures/ loads through test mode,
+##   and none is older than the level (a fixture saved before the level
+##   changed loads without what it gained since: rerun the fixture maker).
 ##
 ## Run it:  tools/test.sh -gdisable_colors -gselect=test_level_{{LEVEL_ID}}
 ##
-## Ideas for more tests, as tests/e2e/ does for the test level: a sleeper
-## a called slime must reach, a basket that fills in view, a fixture per
-## tricky spot (tools/make_fixture.gd) and what must happen from it.
+## Ideas for more tests, as tests/e2e/ does for the test level: a later
+## section played the same way from its gate fixture (gate<N>-open), a
+## fixture per tricky spot (tools/make_fixture.gd) and what must happen from
+## it.
 
 # @test-link [[req_level_design_rules]]
 # @test-link [[req_test_level_and_test_mode]]
 
 const LEVEL_ID := "{{LEVEL_ID}}"
 const MAIN_SCENE := "res://src/main.tscn"
+## The fixture maker's generic fixtures: stale() says whether a fixture is
+## older than the level.
+const LEVEL_FIXTURES := preload("res://tools/make_fixture/level_fixtures.gd")
 const SEED := 1
 ## How long the no-input run plays: 2 simulated minutes.
 const NO_INPUT_TICKS := 2 * 60 * Simulation.TICK_RATE
+## Section 1's play: the longest wait for a train slime at a call's
+## take-off point (about a lap of the loop), how long a call has to wake
+## its sleeper, how many passes over section 1's sleepers, how close to the
+## take-off point a train slime must be (px), and how long the basket has
+## to fill once the switch is flipped.
+const LAP_TICKS := 150 * Simulation.TICK_RATE
+const CALL_TICKS := 15 * Simulation.TICK_RATE
+const WAKE_TRIES := 3
+const NEAR := 40.0
+const FILL_TICKS := 180 * Simulation.TICK_RATE
 
 
 func test_the_level_loads_with_no_errors() -> void:
@@ -59,6 +80,36 @@ func test_two_minutes_with_no_input_lose_no_slime() -> void:
 	assert_eq(_base_slimes(sim), base_slimes, "every base slime is still there")
 
 
+# @test-link [[rule_gate_opens_via_switch_basket_set]]
+func test_section_1_plays_to_its_basket_full() -> void:
+	var game := _boot({})
+	var sim: Simulation = game.simulation
+	if game.test_mode == null:
+		return
+	var checker := LevelChecker.new(game.level)
+	var plan: Dictionary = LevelProgress.estimate(checker)[0]
+	gut.p("section 1 (estimate): %s" % [plan])
+	assert_true(plan["progresses"], "the level report's progress estimate: section 1 can fill its basket")
+	var asleep: Array = plan["woken"].filter(func(id): return LevelChecker.section_of(id) == 1)
+	for attempt in WAKE_TRIES:
+		for id in asleep.duplicate():
+			if _wake(game, checker, id):
+				asleep.erase(id)
+	assert_eq(asleep, [], "every sleeper the estimate counts on is woken by a call from the loop")
+	if not asleep.is_empty():
+		return
+	var basket: String = plan["basket"]
+	var switch := LevelStates.switch_of(sim.level, basket)
+	_tap_centre(game, sim.level.switches[switch]["box"])
+	assert_true(sim.object_states[switch]["flipped"], "the tap on %s flips it" % switch)
+	var full := _run_until(game, func(): return sim.object_states[basket]["phase"] != FrontierSets.FILLING,
+			FILL_TICKS, sim.level.baskets[basket]["box"].get_center())
+	gut.p("%s: phase %s, weight %d after %d ticks" % [basket, sim.object_states[basket]["phase"],
+			sim.object_states[basket]["weight"], full])
+	assert_gt(full, 0, "%s fills to its quota (%d) within %d s" % [basket, plan["quota"], FILL_TICKS / 60])
+	assert_eq(sim.train.stalled, [] as Array[Dictionary], "no train slime stalled")
+
+
 func test_every_fixture_loads() -> void:
 	var names := _fixture_names()
 	assert_has(names, "fresh", "the level as new")
@@ -69,7 +120,81 @@ func test_every_fixture_loads() -> void:
 			game.test_mode.run_ticks(60)
 
 
+func test_no_fixture_is_older_than_the_level() -> void:
+	var level := _level()
+	for fixture in _fixture_names():
+		var loaded := TestMode.load_fixture(fixture, LEVEL_ID)
+		assert_true(loaded["ok"], "%s: %s" % [fixture, loaded["error"]])
+		if not loaded["ok"] or loaded["save"].is_empty():
+			continue
+		var stale := LEVEL_FIXTURES.stale(loaded["save"], level.data)
+		assert_eq(stale, PackedStringArray(), "fixture %s is older than the level: rerun tools/level.sh fixture "
+				% fixture + "--level=%s %s (%s)" % [LEVEL_ID, fixture, "; ".join(stale)])
+
+
 # --- Helpers ----------------------------------------------------------------------
+
+## Tries to wake sleeper `stable_id` as a player would: waits (the camera
+## on the spot) until a train slime big enough is at the loop point a
+## called hop takes off from (LevelProgress.take_off), then taps the
+## sleeper, which calls. Returns whether it woke. A sleeper deeper in a
+## hollow may only wake once the one nearer the edge has gone, so the test
+## tries every sleeper once per pass.
+func _wake(game: Node, checker: LevelChecker, stable_id: String) -> bool:
+	var sim: Simulation = game.simulation
+	var sleeper := _slime(sim, stable_id)
+	var at := sim.slimes.centre_of(sleeper)
+	var size := LevelProgress.smallest_size(checker, 1, at)
+	var from: Vector2 = LevelProgress.take_off(checker, 1, at, size)["from"]
+	if _run_until(game, func(): return _train_slime_near(sim, from, size), LAP_TICKS, from) < 0:
+		return false
+	var screen := sim.view.world_to_screen(at)
+	sim.push_input(Simulation.touch_down(0, screen))
+	sim.push_input(Simulation.touch_up(0, screen))
+	return _run_until(game, func(): return sim.slimes.state_of(sleeper) != SlimeBodies.SLEEPER, CALL_TICKS,
+			from) >= 0
+
+
+## Runs a tick at a time, the camera on `aim`, until `done` holds or
+## `limit` ticks pass. Returns the ticks run, or -1.
+func _run_until(game: Node, done: Callable, limit: int, aim: Vector2) -> int:
+	for i in limit:
+		if done.call():
+			return i
+		game.simulation.camera.place(aim, 1.0)
+		game.sync_view()
+		game.test_mode.run_ticks(1)
+	return limit if done.call() else -1
+
+
+## Whether a train slime of at least `size` has its centre within NEAR px
+## of `point`.
+static func _train_slime_near(sim: Simulation, point: Vector2, size: int) -> bool:
+	for slime_id in sim.slimes.ids():
+		if sim.slimes.state_of(slime_id) == SlimeBodies.TRAIN and sim.slimes.size_of(slime_id) >= size \
+				and sim.slimes.centre_of(slime_id).distance_to(point) <= NEAR:
+			return true
+	return false
+
+
+## Taps the centre of `box` (level pixels), the camera first aimed at it.
+func _tap_centre(game: Node, box: Rect2) -> void:
+	var sim: Simulation = game.simulation
+	sim.camera.place(box.get_center(), 1.0)
+	game.sync_view()
+	var at := sim.view.world_to_screen(box.get_center())
+	sim.push_input(Simulation.touch_down(0, at))
+	sim.push_input(Simulation.touch_up(0, at))
+	game.test_mode.run_ticks(1)
+
+
+## The runtime id of the slime whose stable ID is `stable_id`, or -1.
+static func _slime(sim: Simulation, stable_id: String) -> int:
+	for slime_id in sim.slimes.ids():
+		if stable_id in sim.identities.members_of(slime_id):
+			return slime_id
+	return -1
+
 
 ## The level's scene, added to the test (it builds and bakes its terrain).
 func _level() -> Level:

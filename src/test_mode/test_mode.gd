@@ -57,7 +57,9 @@ extends RefCounted
 ##   {"description": "...", "save": true, "camera": [x, y]}
 ##
 ## "save" false: the level starts fresh (the "fresh" fixture). "camera", when
-## given, is a level point: the camera starts on its rails nearest it.
+## given, is a level point [x, y] or a stable ID of the level (like
+## "s2.switch", chunk LD3): the camera starts on its rails nearest it. As
+## with "at", the game finds the stable ID in the level.
 ##
 ## "at" starts the camera somewhere else, and wins over the fixture's
 ## "camera": a stable ID of the level (the camera starts on its rails nearest
@@ -95,7 +97,8 @@ var fixture_name := ""
 ## The save to start from (a fixture's or the "load" file's), or {} for a
 ## fresh level.
 var save_data := {}
-## Where the fixture puts the camera (a level point), or null.
+## Where the fixture puts the camera (a level point, or a stable ID for the
+## game to find), or null.
 var camera: Variant = null
 ## Where the run puts the camera, over the fixture's: a stable ID of the
 ## level (a String, for the game to find), a level point (a Vector2), or null.
@@ -319,7 +322,7 @@ static func sidecar_path(name: String, level_id := LevelCatalog.DEFAULT_ID) -> S
 
 ## Loads the fixture `name` of level `level_id` (the test level by default;
 ## see the class doc). Returns {"ok", "path" (its save's), "error", "save"
-## ({} for none: a fresh level), "camera" (a Vector2 or null),
+## ({} for none: a fresh level), "camera" (a Vector2, a stable ID or null),
 ## "description"}.
 # @spec-link [[req_test_level_and_test_mode]]
 static func load_fixture(name: String, level_id := LevelCatalog.DEFAULT_ID) -> Dictionary:
@@ -344,11 +347,15 @@ static func load_fixture(name: String, level_id := LevelCatalog.DEFAULT_ID) -> D
 	result["description"] = str(sidecar.get("description", ""))
 	if sidecar.has("camera"):
 		var at: Variant = sidecar["camera"]
-		if typeof(at) != TYPE_ARRAY or at.size() != 2 or typeof(at[0]) not in [TYPE_INT, TYPE_FLOAT] \
-				or typeof(at[1]) not in [TYPE_INT, TYPE_FLOAT]:
-			result["error"] = "%s: 'camera' must be [x, y]" % sidecar_file
+		if typeof(at) == TYPE_STRING and StableId.is_valid(at):
+			result["camera"] = at
+		elif typeof(at) == TYPE_ARRAY and at.size() == 2 and typeof(at[0]) in [TYPE_INT, TYPE_FLOAT] \
+				and typeof(at[1]) in [TYPE_INT, TYPE_FLOAT]:
+			result["camera"] = Vector2(at[0], at[1])
+		else:
+			result["error"] = "%s: 'camera' must be [x, y] or a stable ID of the level (like \"s1.gate\"), got %s" \
+					% [sidecar_file, JSON.stringify(at)]
 			return result
-		result["camera"] = Vector2(at[0], at[1])
 	if sidecar.get("save", true):
 		var loaded := SaveStore.read_file(result["path"])
 		if loaded["status"] != SaveStore.OK:

@@ -4,12 +4,16 @@ extends SceneTree
 ## level-rules checker's helpers (LevelChecker, tools/level_check/) and
 ## checks nothing itself: tools/check_level.gd does.
 ##
-## Run:   godot --headless --path . -s res://tools/level_report.gd -- [--level=<id>] [--json]
+## Run:   tools/level.sh report [--level=<id>] [--json]
+##   (tools/level.sh imports first and starts Godot with --no-header, so
+##   --json prints the JSON alone on stdout; the raw command is
+##   godot --headless --no-header --path . -s res://tools/level_report.gd -- ...)
 ##
 ##   --level=<id>   the level (LevelCatalog; default "test")
 ##   --json         print one JSON object (the same data) instead of text
 ##
-## Text output: a header line, then sections, each opened by a "== <name> =="
+## Text output: a header line (with the first slime's species), then
+## sections, each opened by a "== <name> =="
 ## line, one fact per line (x in screens, y and lengths in level px unless a
 ## line says otherwise):
 ##   loop              per gate state, the loop in use: its length and a
@@ -27,14 +31,19 @@ extends SceneTree
 ##   frontier sets     each basket's switch, quota and target (a gate, or the
 ##                     celebration), and the base slimes placed by then;
 ##   framing zones     each zone's x span, zoom and offset;
-##   reach             per sleeper row, a static estimate: the rise from the
-##                     loop to the row against a called hop's highest rise
-##                     (FreeSlimes.max_rise) for sizes 1, 2 and 3.
+##   reach             per sleeper row, a static estimate: the rise to the
+##                     row from the best take-off point of the loop within a
+##                     called hop's reach sideways (LevelProgress.take_off)
+##                     against a called hop's highest rise
+##                     (FreeSlimes.max_rise) for sizes 1, 2 and 3;
+##   progress          per section with a basket, a static estimate
+##                     (LevelProgress.estimate): the base slimes a called
+##                     slime can wake by then against the basket's quota.
 ##
 ## Exit code: 0; 2 when it can't run (a bad argument, an unknown level, a
 ## level that doesn't load).
 
-const USAGE := "usage: godot --headless --path . -s res://tools/level_report.gd -- [--level=<id>] [--json]"
+const USAGE := "usage: tools/level.sh report [--level=<id>] [--json]"
 const S := LevelData.SCREEN
 ## The sizes a called slime's reach is given for.
 const SIZES := [1, 2, 3]
@@ -42,9 +51,6 @@ const SIZES := [1, 2, 3]
 const LEFT_ALONE_SECONDS := Offscreen.LEFT_ALONE_TICKS * Simulation.TICK_SECONDS
 ## A slime left alone and still free is lost this long after, seconds.
 const LOST_SECONDS := Offscreen.LOST_TICKS * Simulation.TICK_SECONDS
-## A loop crossing this close above a sleeper's centre still counts as
-## under it, px.
-const UNDER_SLACK := 1.0
 
 var _level_id := LevelCatalog.DEFAULT_ID
 var _json := false
@@ -112,7 +118,8 @@ func collect(c: LevelChecker) -> Dictionary:
 		"pace": {"size_1": Offscreen.pace(1), "slide": Train.SLIDE_SPEED},
 		"loop": _loop_states(c), "population": _population(c), "rows": rows,
 		"branches": _branches(c), "frontier_sets": _frontier_sets(c), "framing_zones": _framing_zones(c),
-		"reach": _reach(c, rows),
+		"reach": _reach(c, rows), "first_slime": c.data.first_slime.get("species", ""),
+		"progress": LevelProgress.estimate(c),
 	}
 
 
@@ -265,53 +272,33 @@ static func _framing_zones(c: LevelChecker) -> Array:
 
 
 ## Per sleeper row, a static estimate of its reach from the loop in use at
-## its section: the rise (px, up is positive) from the loop's outgoing route
-## under each sleeper (or, with none under it, nearest it) to the sleeper's
-## centre, both at a base slime's centre height; the row's lowest and
-## highest; and the smallest size whose called hop rises that far
-## (FreeSlimes.max_rise), 0 for none.
+## its section (LevelProgress.take_off): the rise (px, up is positive) from
+## the best take-off point within a called size-1 hop's reach sideways to
+## each sleeper's centre; the row's lowest and highest over the sleepers
+## with a take-off point ([null, null] when no loop is within that reach
+## sideways of any, so the JSON stays valid); and the smallest size whose
+## called hop reaches its easiest sleeper (LevelProgress.smallest_size), 0
+## for none.
 # @spec-link [[rule_all_sizes_travel_loop_v1]]
 static func _reach(c: LevelChecker, rows: Array) -> Dictionary:
-	var gravity := SlimeBodies.new(Rng.new(0)).gravity.length()
 	var max_rise := {}
 	for size in SIZES:
-		max_rise[str(size)] = FreeSlimes.max_rise(size, gravity)
+		max_rise[str(size)] = LevelProgress.max_rise(size)
 	var out := []
 	for row in rows:
 		var rises := []
-		var under := true
-		for id in row["members"]:
-			var rise := _rise(c, row["section"], c.data.sleepers[id]["position"])
-			rises.append(rise["rise"])
-			under = under and rise["under"]
 		var smallest := 0
-		for size in SIZES:
-			if smallest == 0 and rises.min() <= max_rise[str(size)]:
+		for id in row["members"]:
+			var at: Vector2 = c.data.sleepers[id]["position"]
+			var rise: float = LevelProgress.take_off(c, row["section"], at)["rise"]
+			if not is_inf(rise):
+				rises.append(rise)
+			var size := LevelProgress.smallest_size(c, row["section"], at)
+			if size > 0 and (smallest == 0 or size < smallest):
 				smallest = size
-		out.append({"row": row["row"], "rise": [rises.min(), rises.max()], "loop_under": under,
-				"smallest_size": smallest})
-	return {"max_rise": max_rise, "rows": out}
-
-
-## The rise from the loop in use at `section` to `at`: {"rise" (px, up is
-## positive), "under" (whether the loop's outgoing route passes under `at`;
-## else the rise is from its nearest point)}.
-static func _rise(c: LevelChecker, section: int, at: Vector2) -> Dictionary:
-	var outgoing := c.data.loop.current_segments(c.gates_before(section)).filter(
-			func(segment): return segment["kind"] == LoopData.OUTGOING)
-	var below := INF
-	for segment in outgoing:
-		for y in LevelGeometry.crossings(segment["points"], at.x):
-			if y >= at.y - UNDER_SLACK:
-				below = minf(below, y)
-	if below < INF:
-		return {"rise": below - at.y, "under": true}
-	var nearest := {"gap": INF, "position": at}
-	for segment in outgoing:
-		var on := Polyline.closest(segment["points"], segment["lengths"], at)
-		if on["gap"] < nearest["gap"]:
-			nearest = on
-	return {"rise": nearest["position"].y - at.y, "under": false}
+		var span: Array = [rises.min(), rises.max()] if not rises.is_empty() else [null, null]
+		out.append({"row": row["row"], "rise": span, "smallest_size": smallest})
+	return {"max_rise": max_rise, "hop_reach": Train.hop_reach(1), "rows": out}
 
 
 ## The sections holding sleepers or loop, ascending (a sleeper whose ID
@@ -357,8 +344,9 @@ static func _sorted(counts: Dictionary) -> Dictionary:
 ## The report as text lines (see the file's doc).
 static func format(r: Dictionary) -> PackedStringArray:
 	var lines := PackedStringArray()
-	lines.append("level_report: level %s (version %d), %d sections, %d base slimes"
-			% [r["level"], r["version"], r["sections"].size(), r["population"]["base_slimes"]])
+	lines.append("level_report: level %s (version %d), %d sections, %d base slimes, first slime %s"
+			% [r["level"], r["version"], r["sections"].size(), r["population"]["base_slimes"],
+			_or_none(r["first_slime"])])
 	lines.append("pace: a size-1 slime hops %.1f px/s off screen (Offscreen.pace), slides %.0f px/s (Train.SLIDE_SPEED)"
 			% [r["pace"]["size_1"], r["pace"]["slide"]])
 	lines.append("== loop ==")
@@ -390,6 +378,7 @@ static func format(r: Dictionary) -> PackedStringArray:
 		lines.append("%s: x %.2f to %.2f, zoom %.2f, offset (%.0f, %.0f)" % [zone["id"], zone["x"][0], zone["x"][1],
 				zone["zoom"], zone["offset"][0], zone["offset"][1]])
 	lines.append_array(_format_reach(r["reach"]))
+	lines.append_array(_format_progress(r["progress"]))
 	return lines
 
 
@@ -432,20 +421,40 @@ static func _branch_line(b: Dictionary) -> String:
 ## The reach section: the max rises, then one line per row.
 static func _format_reach(reach: Dictionary) -> PackedStringArray:
 	var lines := PackedStringArray()
-	lines.append("== reach (a static estimate from the level's shape, to each row's lowest sleeper: play it to be sure) ==")
+	lines.append("== reach (a static estimate from the level's shape, to each row's easiest sleeper: play it to be sure) ==")
 	var rises := PackedStringArray()
 	for size in SIZES:
 		rises.append("size %d %.0f px" % [size, reach["max_rise"][str(size)]])
-	lines.append("a called hop rises at most (FreeSlimes.max_rise): %s" % ", ".join(rises))
+	lines.append("a called hop rises at most (FreeSlimes.max_rise): %s; it takes off from the loop's point least below "
+			% ", ".join(rises) + "the sleeper within a hop's reach sideways (%.0f px for size 1)" % reach["hop_reach"])
 	for row in reach["rows"]:
-		var rise := "%.0f px" % row["rise"][0]
-		if row["rise"][1] - row["rise"][0] >= 1.0:
-			rise = "%.0f to %.0f px" % row["rise"]
+		var rise := "no loop within a hop's reach sideways"
+		if row["rise"][0] != null:
+			rise = "rise %.0f px" % row["rise"][0]
+		if row["rise"][0] != null and row["rise"][1] - row["rise"][0] >= 1.0:
+			rise = "rise %.0f to %.0f px" % row["rise"]
 		var verdict := "beyond a called hop from the loop"
 		if row["smallest_size"] > 0:
 			verdict = "reachable by a called size %d hop from the loop" % row["smallest_size"]
-		lines.append("row %s: rise %s (from the loop %s): %s" % [row["row"], rise,
-				"under it" if row["loop_under"] else "nearest it", verdict])
+		lines.append("row %s: %s: %s" % [row["row"], rise, verdict])
+	return lines
+
+
+## The progress section: one line per section with a basket.
+static func _format_progress(progress: Array) -> PackedStringArray:
+	var lines := PackedStringArray()
+	lines.append("== progress (a static estimate: the base slimes a called slime can wake by each basket; "
+			+ "play it to be sure) ==")
+	for one in progress:
+		var verdict := "progresses"
+		if not one["progresses"]:
+			var named: Array = one["unreached"].slice(0, LevelProgress.NAMED)
+			var rest: int = one["unreached"].size() - named.size()
+			verdict = "MAY NOT PROGRESS (out of reach: %s%s)" % [", ".join(named),
+					" and %d more" % rest if rest > 0 else ""]
+		lines.append("section %d: basket %s, quota %d; awake by then about %d base slimes (%s), largest size %d: %s"
+				% [one["section"], one["basket"], one["quota"], one["available"], _counts_text(one["species"]),
+				one["largest"], verdict])
 	return lines
 
 

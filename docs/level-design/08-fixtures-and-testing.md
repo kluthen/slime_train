@@ -8,20 +8,29 @@ The scaffolder wrote `tests/e2e/levels/test_level_<id>.gd`. It checks that:
 - the full rules checker finds no FAIL (the report is printed either way);
 - 2 simulated minutes with no input lose no slime (none stalled, none stuck,
   none lost off screen) and keep every base slime;
-- every fixture in `levels/<id>/fixtures/` loads in test mode.
+- section 1 plays to its basket full: the level report's progress estimate
+  says it can ([10](10-the-level-report.md)), then scripted calls wake the
+  sleepers it counts on (each tapped when a train slime stands where the
+  call's hop takes off), a tap flips the switch and the basket fills to its
+  quota (a few simulated minutes, about 10 s to run);
+- every fixture in `levels/<id>/fixtures/` loads in test mode;
+- no fixture is older than the level (below).
 
 ```sh
 tools/test.sh -gdisable_colors -gselect=test_level_zz-tutorial
 ```
 
 ```
-4/4 passed.
+6/6 passed.
 ...
 ---- All tests passed! ----
 ```
 
-The test is yours: extend it as the level grows (a sleeper a called slime
-must reach, a basket that fills in view, what must happen from a fixture).
+The test is yours: extend it as the level grows (a later section played the
+same way from its `gate<N-1>-open` fixture, what must happen from a
+fixture). If you reshape section 1 so that its sleepers can't all be
+woken, the section-1 test fails on purpose: it names the sleeper no call
+could wake, or says the estimate already thinks the basket can't fill.
 `tests/e2e/` holds the test level's tests as examples. Adding tests is code:
 ask for it if you don't write GDScript.
 
@@ -39,9 +48,9 @@ For any level, the fixture tool makes two kinds:
   start. `gate1-open` is how to start at section 2.
 
 ```sh
-godot --headless --path . -s res://tools/make_fixture.gd -- --level=zz-tutorial --list
-godot --headless --path . -s res://tools/make_fixture.gd -- --level=zz-tutorial
-godot --headless --path . -s res://tools/make_fixture.gd -- --level=zz-tutorial gate1-open
+tools/level.sh fixture --level=zz-tutorial --list
+tools/level.sh fixture --level=zz-tutorial
+tools/level.sh fixture --level=zz-tutorial gate1-open
 ```
 
 ```
@@ -57,8 +66,18 @@ exists (`make_fixture: level zz-tutorial has no fixture 'nope' (its
 fixtures: fresh, gate1-open)`).
 
 **Rewrite the fixtures after every change to the level.** A fixture's save
-is a snapshot: one saved before you added a sleeper still loads, silently
-without that sleeper, and the level's test won't notice.
+is a snapshot: one saved before you added a sleeper still loads, without
+that sleeper. The level's test catches it: a save that misses a slime of
+the level, holds one the level no longer has, keeps a sleeper asleep
+somewhere else than the level puts it, or misses a switch, basket or gate
+fails with
+
+```
+fixture gate1-open is older than the level: rerun tools/level.sh fixture --level=zz-tutorial gate1-open (the level's s2.sleeper.03 isn't in it)
+```
+
+A fixture you made by hand (below) can't be rewritten by the tool: play it
+again the same way.
 
 ## A fixture of your own
 
@@ -83,8 +102,9 @@ Then `levels/zz-tutorial/fixtures/s2-train-arrives.fixture.json`:
 }
 ```
 
-`camera` is a level point `[x, y]` in px. The level's test then loads it
-too. `make_fixture` doesn't know it, so redo it by hand after a change to
+`camera` is a level point `[x, y]` in px, or a stable ID of the level
+(`"camera": "s2.switch"`: the camera starts on the rails nearest that
+thing, as with `--at`). The level's test then loads it too. `make_fixture` doesn't know it, so redo it by hand after a change to
 the level. A fixture with taps (a basket half full, a slime on a ledge)
 needs a scripted run or a builder in `tools/make_fixture/` (code: ask for
 it).

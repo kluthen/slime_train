@@ -64,5 +64,5 @@ Decoration behind the level can overlap anything.
 Check with `--rule=9` for a quick look:
 
 ```sh
-godot --headless --path . -s res://tools/check_level.gd -- --level=zz-tutorial --fast --rule=9
+tools/level.sh check --level=zz-tutorial --fast --rule=9
 ```

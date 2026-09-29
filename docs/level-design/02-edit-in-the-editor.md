@@ -10,9 +10,12 @@ see is what the game loads. The components are `@tool`, so their greybox
 godot --path . -e res://levels/zz-tutorial/level.tscn
 ```
 
-**Watch `project.godot`:** opening the editor drops the line
-`window/handheld/orientation=0` from it (a default value). Don't commit that
-change: `git checkout project.godot`.
+**Watch `project.godot`:** opening the editor used to drop the line
+`window/handheld/orientation=0` from it; that line (Godot's default,
+landscape) is gone from the project since chunk LD3, so the editor leaves
+the file alone. If it still changes something there, don't commit it by
+accident: `git diff project.godot`, and `git checkout project.godot` when
+you didn't mean the change.
 
 ## The scene's layout
 
@@ -21,7 +24,7 @@ level finds its components at any depth.
 
 ```
 LevelZzTutorial        the level root (Level): level_id, level_version
-  Terrain/             S1Crust, FirstLedge, S1Pillar, S1Bump1, ..., Bedrock
+  Terrain/             S1Crust, FirstLedge, S1Pillar, S1HollowLeft, S1HollowRight, ..., Bedrock
   Loop/                S1Loop, S1Slide, S2Loop, S2Slide   (in loop order)
   Start/               SplitZone, FirstSlime
   Section1/
@@ -138,8 +141,8 @@ Check it straight away, fast first (well under a second), then in full
 (seconds; it runs the laps):
 
 ```sh
-godot --headless --path . -s res://tools/check_level.gd -- --level=zz-tutorial --fast
-godot --headless --path . -s res://tools/check_level.gd -- --level=zz-tutorial
+tools/level.sh check --level=zz-tutorial --fast
+tools/level.sh check --level=zz-tutorial
 ```
 
 See [09](09-check-the-rules.md) for reading the result.

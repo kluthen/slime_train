@@ -43,13 +43,25 @@ frontier set, the base slimes of the sections so far:
 set 1 (section 1): switch s1.switch, basket s1.basket, quota 4, opens gate s1.gate; available by then 8 (base slimes of sections 1 to 1)
 ```
 
-"Available" counts every sleeper, reachable or not: check that enough of
-them can really be woken ([10](10-the-level-report.md), reach).
+"Available" counts every sleeper, reachable or not. Whether enough of them
+can really be woken is the report's progress section: per basket, the base
+slimes a called slime can wake by then, growing as same-species pairs fuse
+into bigger slimes that hop higher ([10](10-the-level-report.md), reach and
+progress). A basket it can't fill is a warning under rule 12 in the
+checker ([09](09-check-the-rules.md)).
+
+```
+section 1: basket s1.basket, quota 4; awake by then about 6 base slimes (A 2, B 2, C 2), largest size 2: progresses
+```
+
+Order matters: section 1 starts with the first slime alone, so put a
+sleeper a base slime reaches first, and a second of the first slime's
+species early, so the pair can fuse and reach higher.
 
 ## Check it
 
 ```sh
-godot --headless --path . -s res://tools/level_report.gd -- --level=zz-tutorial
+tools/level.sh report --level=zz-tutorial
 ```
 
 ```
@@ -64,7 +76,21 @@ species per section (rule 11: section 1 has 3, each later section adds 1): secti
 ```
 
 Rule 16's other half, big piles staying mostly still, is a MANUAL item.
-The checker points to `tools/bench_level.gd`, but today that benchmark
-runs the test level only (it takes no `--level`): for your level, play the
-crowded spot in test mode and watch that the pile settles (a pile in a
-basket rests; see [08](08-fixtures-and-testing.md)).
+Measure it with the level benchmark: it times every tick of the level as
+new and of each fixture with a save (make a fixture of the crowded spot
+first, [08](08-fixtures-and-testing.md)), and says per case how many
+slimes are parked or resting:
+
+```sh
+tools/level.sh bench --level=zz-tutorial
+tools/level.sh bench --level=zz-tutorial --fixture=gate1-open --ticks=300
+```
+
+```
+RESULT case=start base=10 bodies=10 ticks=600 lead_in=600 median_ms=0.169 p95_ms=0.177 mean_ms=0.168 parked=8 resting=0->0 zoom=1.000 camera_steady=true
+RESULT case=gate1-open base=10 bodies=10 ticks=600 lead_in=60 median_ms=0.123 p95_ms=0.129 mean_ms=0.124 parked=10 resting=0->0 zoom=1.000 camera_steady=true
+```
+
+A pile that stays still shows as parked or resting slimes and a low, flat
+cost per tick; then play the spot in test mode to see it settle (a pile in
+a basket rests).
