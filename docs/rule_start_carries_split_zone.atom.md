@@ -1,6 +1,6 @@
 ---
 id: rule_start_carries_split_zone
-status: DRAFT
+status: REVIEW
 type: RULE
 layer: BUSINESS
 priority: 3

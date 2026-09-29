@@ -42,6 +42,7 @@ extends GutTest
 # @test-link [[req_offscreen_simulation]]
 # @test-link [[req_test_level_and_test_mode]]
 # @test-link [[req_loop_and_world]]
+# @test-link [[rule_stalled_train_slime_moved_to_start]]
 
 const MAIN_SCENE := "res://src/main.tscn"
 ## Seed 2 lost a slime in the start basin from both fixtures before chunk 16e.

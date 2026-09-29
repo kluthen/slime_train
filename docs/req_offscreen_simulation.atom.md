@@ -1,6 +1,6 @@
 ---
 id: req_offscreen_simulation
-status: DRAFT
+status: REVIEW
 human_name: Off-screen simulation
 tags: [performance,offscreen]
 parents:

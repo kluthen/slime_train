@@ -1,6 +1,6 @@
 ---
 id: rule_dip_may_nudge_fusion
-status: DRAFT
+status: REVIEW
 tags: [level-rule]
 dependents: []
 version: 1.0

@@ -17,6 +17,7 @@ dependents:
   - [[req_session_lifecycle]]
   - [[req_slime_states]]
   - [[rule_split_zone_only_splitter]]
+  - [[rule_stalled_train_slime_moved_to_start]]
 ---
 
 # The loop and the world

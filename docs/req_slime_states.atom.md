@@ -1,6 +1,6 @@
 ---
 id: req_slime_states
-status: DRAFT
+status: REVIEW
 tags: [slimes,states]
 version: 1.1
 layer: BUSINESS

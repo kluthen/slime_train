@@ -1,6 +1,6 @@
 ---
 id: rule_fusion_contact_time
-status: DRAFT
+status: REVIEW
 dependents: []
 type: RULE
 priority: 4

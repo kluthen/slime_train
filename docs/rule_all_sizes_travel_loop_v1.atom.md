@@ -1,6 +1,6 @@
 ---
 id: rule_all_sizes_travel_loop_v1
-status: DRAFT
+status: REVIEW
 type: RULE
 layer: BUSINESS
 human_name: Level rule 2: any size can travel the loop in v1

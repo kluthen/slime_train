@@ -1,6 +1,6 @@
 ---
 id: rule_left_alone_and_lost
-status: DRAFT
+status: REVIEW
 human_name: Left-alone and lost safety net
 tags: [free-slime,safety-net]
 parents:

@@ -54,6 +54,7 @@ extends RefCounted
 # @spec-link [[req_hopping_behavior]]
 # @spec-link [[rule_loop_travelable_with_no_input]]
 # @spec-link [[rule_all_sizes_travel_loop_v1]]
+# @spec-link [[rule_stalled_train_slime_moved_to_start]]
 
 ## How far ahead of its last progress (px) a slime's progress may move in one
 ## projection. A slime moves at most max_speed / 60 = 20 px per tick.

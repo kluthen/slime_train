@@ -1,6 +1,6 @@
 ---
 id: rule_frontier_set_inert_after_gate_open
-status: DRAFT
+status: REVIEW
 tags: [level-rule]
 dependents: []
 type: RULE

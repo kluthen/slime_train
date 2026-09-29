@@ -1,6 +1,6 @@
 ---
 id: rule_loop_travelable_with_no_input
-status: DRAFT
+status: REVIEW
 priority: 5
 tags: [level-rule]
 parents:
