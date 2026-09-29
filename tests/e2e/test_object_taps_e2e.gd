@@ -13,6 +13,7 @@ extends GutTest
 
 # @test-link [[req_interactive_objects_general]]
 # @test-link [[req_controls_tap_zones]]
+# @test-link [[req_switch_basket_gate_set]]
 # @test-link [[rule_frontier_set_inert_after_gate_open]]
 # @test-link [[req_session_lifecycle]]
 
