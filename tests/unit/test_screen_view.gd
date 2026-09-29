@@ -2,7 +2,8 @@ extends GutTest
 ## ScreenView (src/sim/screen_view.gd): the simulation's copy of what the
 ## player sees. Screen to level and back follow Camera2D's mapping; the
 ## screen size defaults to the project's 1152 x 648 and test mode is the one
-## place a run sets it.
+## place a run sets it. Millimetres on the screen convert at the view's
+## density, the reference phone's by default (chunk 23B).
 
 # @test-link [[req_controls_tap_zones]]
 
@@ -49,3 +50,31 @@ func test_test_mode_sets_the_screen_size() -> void:
 	for bad in [[0, 720], [1280], "big", [1280, "720"]]:
 		assert_false(TestMode.from_config({"seed": 1, "screen_size": bad}).errors.is_empty(),
 				"%s is refused" % [bad])
+
+
+# --- Millimetres on the screen (chunk 23B) -------------------------------------
+
+func test_the_default_density_is_the_reference_phones() -> void:
+	# The S20 FE: about 405 ppi, 1080 physical px for the viewport's 648.
+	var view := ScreenView.new()
+	assert_almost_eq(view.px_per_mm, 405.0 / 25.4 / (1080.0 / 648.0), 1e-6)
+	assert_almost_eq(view.px_per_mm, 9.567, 0.001)
+	assert_eq(view.px_per_mm, ScreenView.REFERENCE_PX_PER_MM)
+	assert_eq(ScreenView.REFERENCE_PHONE_SIZE, Vector2(1440, 648),
+			"2400 x 1080 at the viewport's 648 px height (aspect expand)")
+
+
+func test_millimetres_convert_at_the_views_density() -> void:
+	var view := ScreenView.new()
+	assert_almost_eq(view.mm_to_px(7.0), 7.0 * ScreenView.REFERENCE_PX_PER_MM, 1e-6)
+	view.px_per_mm = 4.0
+	assert_eq(view.mm_to_px(7.0), 28.0, "a test (or the scene layer) sets the density")
+	view.set_to(Vector2(100, 100), 0.5, Vector2(800, 600))
+	assert_eq(view.px_per_mm, 4.0, "moving the view keeps the density")
+	assert_eq(view.mm_to_px(7.0), 28.0, "screen millimetres ignore the zoom")
+
+
+func test_the_density_comes_from_the_screens_ppi_and_scale() -> void:
+	assert_almost_eq(ScreenView.px_per_mm_for(405.0, 1080.0 / 648.0), ScreenView.REFERENCE_PX_PER_MM, 1e-6)
+	assert_almost_eq(ScreenView.px_per_mm_for(96.0, 1.0), 96.0 / 25.4, 1e-6, "a desktop monitor at scale 1")
+	assert_almost_eq(ScreenView.px_per_mm_for(254.0, 2.0), 5.0, 1e-6, "more physical px per viewport px, fewer viewport px per mm")

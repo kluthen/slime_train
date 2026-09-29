@@ -170,10 +170,10 @@ func test_a_tap_on_an_object_starts_a_session() -> void:
 
 func test_the_parent_band_and_the_edge_buttons_do_not_start_a_session() -> void:
 	var sim := _opened()
-	_tap_screen(sim, Vector2(sim.view.screen_size.x * 0.5, TapDispatcher.TOP_BAND_HEIGHT * 0.5))
+	_tap_screen(sim, Vector2(sim.view.screen_size.x * 0.5, TapDispatcher.parent_zone_height(sim.view) * 0.5))
 	assert_eq(sim.taps[-1]["zone"], TapDispatcher.ZONE_PARENT)
 	assert_eq(sim.session.phase, Session.SCREENSAVER)
-	var edge := TapDispatcher.edge_button_rect(1, sim.view.screen_size).get_center()
+	var edge := TapDispatcher.edge_button_rect(1, sim.view).get_center()
 	sim.push_input(Simulation.touch_down(0, edge))
 	sim.step()
 	sim.push_input(Simulation.touch_up(0, edge))
@@ -290,7 +290,7 @@ func test_at_bedtime_a_tap_only_ripples() -> void:
 	assert_eq(sim.taps[-1]["zone"], TapDispatcher.ZONE_GROUND, "objects don't answer")
 	assert_eq(sim.taps[-1]["object"], "")
 	assert_false(sim.taps[-1]["call"])
-	var edge := TapDispatcher.edge_button_rect(-1, sim.view.screen_size).get_center()
+	var edge := TapDispatcher.edge_button_rect(-1, sim.view).get_center()
 	_tap_screen(sim, edge)
 	assert_eq(sim.taps[-1]["zone"], TapDispatcher.ZONE_GROUND, "the edge buttons are hidden")
 	assert_eq(sim.camera.hold_side, 0)

@@ -38,10 +38,12 @@ const RESET_CONFIRM_MS := 2000
 const STATUS_MS := 4000
 ## Above the game's HUD (layer 1).
 const LAYER := 50
-## The bar's top-left corner, screen pixels: just under the parent band
-## (TapDispatcher.TOP_BAND_HEIGHT), so the controls never cover a parent-zone
-## tap, nor test mode's banner.
-const BAR_AT := Vector2(8.0, TapDispatcher.TOP_BAND_HEIGHT + 8.0)
+## The bar's top-left corner, screen pixels, BAR_GAP under the parent zone
+## (TapDispatcher.parent_zone_height at the simulation's view, set every
+## frame), so the controls never cover a parent-zone tap, nor test mode's
+## banner.
+const BAR_X := 8.0
+const BAR_GAP := 8.0
 const RESET_TEXT := "Reset"
 const RESET_CONFIRM_TEXT := "Reset? click again"
 const KILL_TEXT := "Kill"
@@ -67,6 +69,8 @@ var labels: DebugSlimeLabels = null
 ## The last action's result ("" when none showing).
 var status := ""
 
+## The bar holding the controls.
+var bar: HBoxContainer = null
 var speed_buttons := {}
 var reset_button: Button = null
 var labels_button: Button = null
@@ -114,6 +118,7 @@ func _process(_delta: float) -> void:
 	if labels != null:
 		labels.simulation = sim
 	if sim != null:
+		_place_bar(sim.view)
 		var counts := DebugCounts.count(sim)
 		counter_label.text = "Woken %d / available %d" % [counts["woken"], counts["available"]]
 	status_label.text = status
@@ -233,10 +238,15 @@ func _buttons() -> Array[Button]:
 	return out
 
 
+## Puts the bar BAR_GAP under the parent zone of `view`'s screen.
+func _place_bar(view: ScreenView) -> void:
+	bar.position = Vector2(BAR_X, TapDispatcher.parent_zone_height(view) + BAR_GAP)
+
+
 func _build() -> void:
-	var bar := HBoxContainer.new()
+	bar = HBoxContainer.new()
 	bar.name = "Bar"
-	bar.position = BAR_AT
+	_place_bar(ScreenView.new())
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar.add_theme_constant_override("separation", 6)
 	add_child(bar)

@@ -35,7 +35,7 @@ func _boot(steps: Array = []) -> Node:
 
 
 func _button(side: int) -> Array:
-	var at := TapDispatcher.edge_button_rect(side, SCREEN).get_center()
+	var at := TapDispatcher.edge_button_rect(side, ScreenView.new(Vector2.ZERO, 1.0, SCREEN)).get_center()
 	return [at.x, at.y]
 
 

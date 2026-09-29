@@ -254,7 +254,7 @@ func test_a_touch_on_a_control_is_the_overlays_and_one_elsewhere_the_games() -> 
 	var on_button := button.get_global_rect().get_center()
 	assert_true(overlay.over_controls(on_button))
 	for each in overlay.speed_buttons.values() + [overlay.reset_button, overlay.labels_button, overlay.kill_button]:
-		assert_gte(each.get_global_rect().position.y, TapDispatcher.TOP_BAND_HEIGHT,
+		assert_gte(each.get_global_rect().position.y, TapDispatcher.parent_zone_height(game.simulation.view),
 				"%s stays out of the parent band" % each.text)
 	_touch(game, on_button, true)
 	_touch(game, on_button, false)

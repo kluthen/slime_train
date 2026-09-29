@@ -840,22 +840,25 @@ The view is in the dump.
 
 | Order | Zone | Where | Does |
 |---|---|---|---|
-| 1 | `parent_zone` | the top `TOP_BAND_HEIGHT` (64) screen px | nothing yet (parent buttons, chunk 18); never calls |
-| 2 | `edge_button` | `EDGE_BUTTON_SIZE` (96×192) screen px against each side, vertically centred | moves the camera along its rails (`Camera.press`, see "Camera"); never calls |
+| 1 | `parent_zone` | a band `PARENT_ZONE_MM` (7 mm) high along the top, measured on the screen: `parent_zone_height(view)` screen px (about 67 on the reference phone) | nothing yet (parent buttons, chunk 18); never calls |
+| 2 | `edge_button` | a strip `EDGE_STRIP_SHARE` (10%) of the screen's width against each side, from the parent zone to the bottom (`edge_button_rect(side, view)`) | moves the camera along its rails (`Camera.press`, see "Camera"); never calls, operates no object under it |
 | 3 | `object` | a tap target's box grown by `OBJECT_HIT_MARGIN` (24) screen px | nothing yet (chunks 9, 14); a **sleeper** calls, centred on it |
 | 4 | `open_ground` | anywhere else | calls, centred on the tap |
 
 Tap targets come from the registry: `Level.build()` adds every node with a
 `tap_target()` (switch, basket, sleeper) to `LevelData.tap_targets` (ID,
 kind, level box). Where hit areas overlap, the nearest box centre wins
-(ties: the smaller ID). The top band and edge button sizes are
-placeholders until the ui_ux tree settles them.
+(ties: the smaller ID). The zones' sizes are the spec's (D99, D113;
+chunk 23B below); how they are drawn is a placeholder until the ui_ux tree
+settles it.
 
 **First touch wins** (D66, O67's proposed default). A tap is dispatched
 when its finger touches down, and only if no finger is down then
 (`active_finger`). A touch that starts while any finger is down gets
 nothing, not even a ripple, and stays ignored until it lifts, even if the
 first finger lifts before it. `fingers_down` still records every finger.
+One exception, a resting thumb (D110, chunk 23B below): a finger that
+pressed an edge strip and has been down 5 s stops blocking other touches.
 
 **Ripples and facing.** Every accepted tap, whatever its zone, appends a
 ripple `{at, tick}` (level point) to `simulation.ripples`; it lasts
@@ -932,6 +935,77 @@ reaches the point and rejoins within 45 s; a call to the tree's high bough
 gives up after exactly 8 s and heads back directly from the ground, or by
 `s1.route-back.tree` from the tree platform; a scripted run with taps
 gives the same hash twice and a different one without them.
+
+### Chunk 23B: edge strips, the parent zone at 7 mm, a resting thumb
+
+Build plan items 23.2 (D99), 23.6b (D113) and 23.8 (D110); master spec
+§5.5.
+
+**Millimetres on the screen.** `ScreenView.px_per_mm` is how many
+viewport px make a millimetre on this screen; `view.mm_to_px(mm)` converts,
+whatever the zoom. It is the one place sizes measured on the screen come
+from (the parent zone now; objects' hit areas, D109, next). It defaults to
+the reference phone's, `ScreenView.REFERENCE_PX_PER_MM`: the S20 FE's
+about 405 ppi over its 1080 / 648 physical px per viewport px (the
+project's stretch is canvas_items, aspect expand, so its 2400 × 1080
+screen is `REFERENCE_PHONE_SIZE`, 1440 × 648 viewport px), about 9.57 px
+per mm. `main.gd`'s `screen_px_per_mm()` sets it at every `sync_view()`: on
+a phone, `ScreenView.px_per_mm_for(DisplayServer.screen_get_dpi(), window
+px / viewport px)`; in test mode and on the desktop, the reference phone's
+(runs match everywhere, and the desktop shows the phone's layout). A
+phone reading of 0 or less is reported with `push_error` and the reference
+used. Tests set `view.px_per_mm` directly; a value of 0 or less is refused
+loudly. It is not in the dump nor in saves: it belongs to the display, like
+the window, and what it decided is in `taps`.
+
+**The parent zone** is `TapDispatcher.parent_zone_height(view)` =
+`mm_to_px(PARENT_ZONE_MM)` (7 mm) screen px from the top, full width: about
+67 px on the reference phone (64 before). Level rule 21 (objects below the
+parent zone, item 23.9) measures against the same function.
+
+**The edge strips** (`TapDispatcher.edge_button_rect(side, view)`): 10% of
+the screen's width (`EDGE_STRIP_SHARE`) against each side, from the parent
+zone down to the bottom: 115.2 px wide on the default 1152 × 648 screen,
+144 on the reference phone's. The parent zone is checked first, so it wins
+in the top corners; a strip is checked before objects, so it takes the
+whole tap (no call, no object operated). Hidden at bedtime as before: a tap
+there is an ordinary tap (which at bedtime only ripples). A strip tap never
+starts a session (unchanged: only open ground and objects do).
+`EdgeButtons` draws the placeholder arrow in the middle of each strip,
+sized from the strip's width (45% wide, 80% tall); the strip itself isn't
+marked (ui_ux decides).
+
+**A resting thumb** (`Simulation.edge_holds`, `RESTING_THUMB_TICKS`). Each
+accepted edge-strip press records its finger and touch-down tick in
+`edge_holds` (dropped when the finger lifts). A touch starting now counts
+when every finger down is a resting thumb: in `edge_holds` for at least
+`RESTING_THUMB_TICKS` (300, 5 s). The resting finger keeps holding its
+strip (the camera keeps moving); the new touch becomes `active_finger` and
+the first-touch rule applies to it as usual. A touch that started before
+the 5 s is an ordinary ignored finger and keeps blocking until it lifts.
+`edge_holds` is in the dump (`input.edge_holds`, finger as a string ->
+tick), not in saves (no finger is saved).
+
+Values the spec doesn't give, chosen here (proposed): the reference
+phone's density for the desktop and test mode; exactly 300 ticks for "about
+5 s"; the resting thumb applies only to an accepted strip press (a finger
+held on open ground keeps blocking).
+
+**Tests.** `tests/unit/test_edge_strips.gd` (synthetic loop with a switch):
+taps at the top, middle and bottom of each strip step the camera and never
+call; 1 px inside a strip's inner edge presses, 1 px past it calls; the top
+corners are the parent zone; a switch under a strip isn't flipped (and
+flips once brought inward); 8 mm down a strip on the reference phone moves
+the camera, 6 mm is the parent zone; strip taps in screensaver mode start
+no session; at bedtime a strip tap moves nothing (against a twin run); the
+resting thumb: a second touch after 5 s calls with its ripple, one before
+gets nothing, one started before 5 s keeps blocking, the new touch is the
+first touch again, a held touch off the strips never rests, `edge_holds`
+in the dump. `tests/unit/test_tap_dispatch.gd`: the strips' rectangles and
+whole height, the parent zone at 7 mm (6 mm parent, 8 mm a call or a press,
+the zoom ignored, the density followed). `tests/unit/test_screen_view.gd`:
+the reference density and the conversion. `tests/e2e/test_camera_e2e.gd`:
+the game sets the reference density in test mode.
 
 ## Tilt
 
@@ -2510,8 +2584,9 @@ does too.
 their mouse clicks before the game sees them. The game root also swallows
 a touch on a control (on a phone the touch comes besides the emulated
 click). The bar, the counter and the labels ignore the mouse: the rest of
-the screen plays as usual. The bar sits under the parent band
-(`TapDispatcher.TOP_BAND_HEIGHT`), so it never eats a parent-zone tap and
+the screen plays as usual. The bar sits 8 px under the parent zone
+(`TapDispatcher.parent_zone_height`, placed every frame from the
+simulation's view), so it never eats a parent-zone tap and
 the band keeps its meaning; a control over the world takes that spot's
 taps, which is fine for a debug tool. The overlay is a CanvasLayer (layer
 50) above the HUD; the labels are a world-space Node2D beside
@@ -2863,7 +2938,9 @@ adb logcat -v time -s godot:*
   Heading back directly keeps at least 60 px sideways, level with the
   slime, or a slime on a ledge right above the loop hops in place.
 - **Placeholders:** the top band (64 px) and edge buttons (96×192 px) until
-  ux-writer settles them; the ripple ring and the eye dot as art.
+  ux-writer settles them; the ripple ring and the eye dot as art. (Chunk
+  23B replaced both sizes with the spec's: the 7 mm parent zone and the
+  whole-height strips.)
 - **The basket is a tap target** (per the build plan), though the spec has
   a basket act by presence: it only blocks a call there, nothing else yet.
 - **Known limit:** from the ground, a base slime can't hop onto the tree
