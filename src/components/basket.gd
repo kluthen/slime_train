@@ -64,7 +64,9 @@ func contains(offset: Vector2) -> bool:
 	return PlaceholderArt.box_contains(size, offset)
 
 
-## What a tap lands on (TapDispatcher): its box. The hit area adds a margin.
+## Its box as a tap target (TapDispatcher). A basket never answers a tap
+## (D109: FrontierSets.answering() leaves it out, so a tap on it calls); it
+## is listed so level rule 21 can check where it sits.
 # @spec-link [[req_controls_tap_zones]]
 func tap_target() -> Dictionary:
 	return {"kind": TapDispatcher.KIND_BASKET, "size": size}

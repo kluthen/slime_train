@@ -11,16 +11,25 @@ extends RefCounted
 ##      the bottom (the parent zone wins in the top corners). A strip takes
 ##      the whole tap: it moves the camera (chunk 12), never calls and
 ##      operates no object under it. Hidden (at bedtime), they are no zone;
-##   3. an interactive object's hit area: the object's box grown by
-##      OBJECT_HIT_MARGIN screen pixels on every side (generous for small
-##      fingers, D91). It operates the object (chunks 9 and 14) and never
-##      calls, except a sleeper, which is a call centred on it (D46);
+##   3. the hit area of a tap target that answers a tap: for an interactive
+##      object, its drawing grown by HIT_MARGIN_MM (5 mm) on every side and
+##      never smaller than HIT_FLOOR_MM (20 x 20 mm), both measured on the
+##      screen at the current zoom (hit_area(), D109); for a sleeper, its
+##      body grown by SLEEPER_HIT_MARGIN screen pixels (D91). It operates the
+##      object (chunk 14) and never calls, except a sleeper, which is a call
+##      centred on it (D46);
 ##   4. anywhere else: open ground, a call centred on the tap.
 ##
+## Only what answers a tap takes it (D109): the caller passes only the
+## targets that answer now (Simulation: FrontierSets.answering()), so a tap
+## on a basket, a gate, a signpost or a switch that isn't answering lands on
+## open ground and calls.
+##
 ## Zones 1 and 2 are screen space; zone 3 is level space (the objects move
-## with the camera), with the margin converted at the view's zoom. Where hit
-## areas overlap, the object whose box centre is nearest the tap wins (ties:
-## the smaller stable ID). Pure functions over plain data.
+## with the camera), with the screen sizes converted at the view's zoom and
+## density. Where hit areas overlap, the target whose box centre is nearest
+## the tap wins (ties: the smaller stable ID). Pure functions over plain
+## data.
 ##
 ## How the strips and the parent zone are drawn (the arrows, any marking) is
 ## interface design (ux-writer); src/taps/edge_buttons.gd draws placeholders.
@@ -28,6 +37,8 @@ extends RefCounted
 # @spec-link [[req_interactive_objects_general]]
 # @spec-link [[req_parent_gate_and_access]]
 # @spec-link [[req_camera_rails_and_framing]]
+# @spec-link [[req_switch_basket_gate_set]]
+# @spec-link [[rule_frontier_set_inert_after_gate_open]]
 
 const ZONE_PARENT := "parent_zone"
 const ZONE_EDGE := "edge_button"
@@ -38,11 +49,20 @@ const ZONE_GROUND := "open_ground"
 const PARENT_ZONE_MM := 7.0
 ## Each edge strip's width, as a share of the screen's width (D99).
 const EDGE_STRIP_SHARE := 0.1
-## How much larger than the object's box its hit area is, on every side,
-## screen pixels.
-const OBJECT_HIT_MARGIN := 24.0
+## An interactive object's hit area: its drawing grown by this much on every
+## side, millimetres on the screen (D109)...
+const HIT_MARGIN_MM := 5.0
+## ...and never smaller than this across, either way, millimetres on the
+## screen (D109).
+const HIT_FLOOR_MM := 20.0
+## A sleeper's hit area: its body grown by this much on every side, screen
+## pixels (D91's generous margin; D109 sizes objects, and a sleeper is a
+## slime).
+const SLEEPER_HIT_MARGIN := 24.0
 
-## The tap target kinds (LevelData.tap_targets). Only a sleeper calls.
+## The tap target kinds (LevelData.tap_targets). Only a sleeper calls. A
+## basket is a tap target (the registry lists it; level rule 21 checks where
+## it sits) but never answers a tap (D109).
 const KIND_SWITCH := "switch"
 const KIND_BASKET := "basket"
 const KIND_SLEEPER := "sleeper"
@@ -66,9 +86,9 @@ static func edge_button_rect(side: int, view: ScreenView) -> Rect2:
 	return Rect2(x, top, width, maxf(view.screen_size.y - top, 0.0))
 
 
-## The zone of a tap at `at` (screen pixels) with the view `view`, the level's
-## tap targets being `tap_targets` (LevelData.tap_targets: stable ID ->
-## {"kind", "box"}). Returns {"zone", "world" (the tap in level pixels),
+## The zone of a tap at `at` (screen pixels) with the view `view`, the tap
+## targets that answer a tap now being `tap_targets` (as
+## LevelData.tap_targets: stable ID -> {"kind", "box"}). Returns {"zone", "world" (the tap in level pixels),
 ## "side" (-1 or 1 for an edge button, else 0), "object" (the stable ID, or
 ## ""), "kind" (the object's kind, or ""), "call" (whether it calls),
 ## "call_point" (level pixels: the tap, or the sleeper's centre)}.
@@ -88,7 +108,7 @@ static func dispatch(at: Vector2, view: ScreenView, tap_targets: Dictionary, edg
 			result["side"] = side
 			result["call"] = false
 			return result
-	var hit := object_at(world, view.zoom, tap_targets)
+	var hit := object_at(world, view, tap_targets)
 	if not hit.is_empty():
 		var box: Rect2 = tap_targets[hit]["box"]
 		result["zone"] = ZONE_OBJECT
@@ -99,17 +119,34 @@ static func dispatch(at: Vector2, view: ScreenView, tap_targets: Dictionary, edg
 	return result
 
 
-## The stable ID of the object whose hit area holds `world` (level pixels)
-## at `zoom`, or "".
-static func object_at(world: Vector2, zoom: float, tap_targets: Dictionary) -> String:
-	var margin := OBJECT_HIT_MARGIN / (zoom if zoom > 0.0 else 1.0)
+## The hit area of a tap target of kind `kind` drawn as `box` (level pixels)
+## in `view`, level pixels. An interactive object's is its drawing grown by
+## HIT_MARGIN_MM on every side, widened (and heightened) about the drawing's
+## centre to HIT_FLOOR_MM where it would be smaller, both measured on the
+## screen: at a lower zoom the drawing shrinks on the screen, the floor
+## doesn't. A sleeper's is its box grown by SLEEPER_HIT_MARGIN screen px.
+# @spec-link [[req_interactive_objects_general]]
+static func hit_area(kind: String, box: Rect2, view: ScreenView) -> Rect2:
+	if kind == KIND_SLEEPER:
+		return box.grow(SLEEPER_HIT_MARGIN / view.zoom)
+	var grown := box.grow(view.mm_to_px(HIT_MARGIN_MM) / view.zoom)
+	var floor_px := view.mm_to_px(HIT_FLOOR_MM) / view.zoom
+	var size := grown.size.max(Vector2(floor_px, floor_px))
+	return Rect2(box.get_center() - size * 0.5, size)
+
+
+## The stable ID of the tap target whose hit area (hit_area()) holds `world`
+## (level pixels) in `view`, or "". Where several do, the one whose box
+## centre is nearest wins (ties: the smaller ID).
+# @spec-link [[req_interactive_objects_general]]
+static func object_at(world: Vector2, view: ScreenView, tap_targets: Dictionary) -> String:
 	var ids := tap_targets.keys()
 	ids.sort()
 	var best := ""
 	var best_gap := INF
 	for id in ids:
 		var box: Rect2 = tap_targets[id]["box"]
-		if not box.grow(margin).has_point(world):
+		if not hit_area(tap_targets[id]["kind"], box, view).has_point(world):
 			continue
 		var gap := world.distance_squared_to(box.get_center())
 		if gap < best_gap:

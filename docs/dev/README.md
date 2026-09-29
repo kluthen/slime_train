@@ -962,13 +962,14 @@ The view is in the dump.
 |---|---|---|---|
 | 1 | `parent_zone` | a band `PARENT_ZONE_MM` (7 mm) high along the top, measured on the screen: `parent_zone_height(view)` screen px (about 67 on the reference phone) | nothing yet (parent buttons, chunk 18); never calls |
 | 2 | `edge_button` | a strip `EDGE_STRIP_SHARE` (10%) of the screen's width against each side, from the parent zone to the bottom (`edge_button_rect(side, view)`) | moves the camera along its rails (`Camera.press`, see "Camera"); never calls, operates no object under it |
-| 3 | `object` | a tap target's box grown by `OBJECT_HIT_MARGIN` (24) screen px | nothing yet (chunks 9, 14); a **sleeper** calls, centred on it |
+| 3 | `object` | the hit area (`hit_area(kind, box, view)`) of a tap target that answers a tap now: an object's drawing plus 5 mm a side, at least 20 × 20 mm, on the screen (chunk 23E below); a sleeper's body plus 24 screen px | a **switch** whose basket is filling flips (chunk 14); a **sleeper** calls, centred on it |
 | 4 | `open_ground` | anywhere else | calls, centred on the tap |
 
 Tap targets come from the registry: `Level.build()` adds every node with a
 `tap_target()` (switch, basket, sleeper) to `LevelData.tap_targets` (ID,
-kind, level box). Where hit areas overlap, the nearest box centre wins
-(ties: the smaller ID). The zones' sizes are the spec's (D99, D113;
+kind, level box). Only those that answer a tap now reach the dispatcher
+(`FrontierSets.answering()`, chunk 23E below). Where hit areas overlap, the
+nearest box centre wins (ties: the smaller ID). The zones' sizes are the spec's (D99, D113;
 chunk 23B below); how they are drawn is a placeholder until the ui_ux tree
 settles it.
 
@@ -1126,6 +1127,103 @@ whole height, the parent zone at 7 mm (6 mm parent, 8 mm a call or a press,
 the zoom ignored, the density followed). `tests/unit/test_screen_view.gd`:
 the reference density and the conversion. `tests/e2e/test_camera_e2e.gd`:
 the game sets the reference density in test mode.
+
+### Chunk 23E: hit areas on the screen, only what answers a tap takes it, objects below the parent zone
+
+Build plan items 23.6, 23.7 and 23.9 (D109, D111); master spec §5.4, §5.5.
+
+**Hit areas held on the screen** (item 23.6). `TapDispatcher.hit_area(kind,
+box, view)` replaces the fixed 24 px margin. An interactive object's hit
+area is its drawing grown by `HIT_MARGIN_MM` (5 mm) on every side, then
+widened and heightened about the drawing's centre to `HIT_FLOOR_MM` (20 mm)
+where it is smaller, both measured on the screen (`view.mm_to_px()`,
+divided by the zoom for level px). Zooming out shrinks the drawing on the
+screen, never the floor. The test level's switches are 80 px, about 8.4 mm
+on the reference phone: plus 5 mm a side is 18.4 mm, so the floor holds
+and the hit area reaches about 5.8 mm past the drawing at zoom 1 (6.7 mm at
+zoom 0.8). A sleeper is a slime, not an object: its hit area stays its body
+plus `SLEEPER_HIT_MARGIN` (24 screen px, D91) (proposed; D109 sizes
+objects). With the 20 mm floor, a sleeper box would turn every tap within
+about 1 cm of a sleeper into a call centred on it. Overlaps still go to the
+nearest box centre (D109). `object_at(world, view, targets)` now takes the
+view (zoom and density), not the zoom.
+
+**Only what answers a tap takes it** (item 23.7).
+`Simulation._tap` passes the dispatcher only
+`frontier.answering(sim, Sleepers.tap_targets(sim))`. A switch is kept
+while `switch_answers()`, which is while its basket is `filling`. A basket
+is never kept. Other kinds (sleepers) pass. So a tap on a basket, a gate,
+a signpost (gates and signposts were never tap targets), or a switch whose
+basket is full, rewarding or fired is open ground. It is a call centred
+on the tap, the slimes in range answer, and in screensaver mode it starts
+a session (as any tap that reaches the world). Where a filling basket's
+switch and a basket overlap, the switch takes the tap even when the
+basket's centre is nearer: a target that doesn't answer doesn't compete.
+`tap_switch()` flips only when `switch_answers()`. Baskets stay in
+`LevelData.tap_targets` (the registry and rule 21 use them).
+
+**Level rule 21: objects below the parent zone** (item 23.9, D111).
+It is the level-rules checker's rule 21 (chunk LD1's
+`LevelRulesObjects.below_parent_zone`, `tools/level_check/rules_objects.gd`),
+reworked here rather than duplicated:
+- `parent_zone_objects(data)`: the interactive objects checked, every
+  switch, basket and gate by its drawn box (signposts aren't interactive;
+  sleepers are slimes). LD1 checked the switches and baskets.
+- The views: `LevelChecker.rail_frames(section, screen_size)` for every
+  section (its outgoing route, the gates before it open, framing zones
+  included, every 32 px), now on the reference phone's screen (1440 × 648
+  viewport px); each frame also carries its `ScreenView` ("screen"). Every
+  object is checked against every section's rails (LD1: its own
+  section's), so the whole level is covered.
+- `parent_zone_findings(data, views)`: for each object, the view where its
+  top goes deepest into the parent zone (`TapDispatcher.parent_zone_height`
+  at that view), among the views that frame it (its centre within the
+  view's width); an object framed above the screen's top counts. A pure
+  function over any views. The checker turns each into a finding at the
+  rail point's x.
+
+Readings taken (proposed): "the rails' framing" is the settled view on the
+outgoing routes' rails. The return routes (slides) also have rails, and
+from them the camera frames some objects from below, their tops in the
+band or cut off by the screen's top (in the test level: s1.basket, s1.gate,
+s2.gate, s2.switch and s3.switch, from the slides). Those views aren't
+where a child meets the objects; the rule's wording doesn't settle it. On
+the outgoing rails every object of the test level clears the band by at
+least 150 screen px.
+
+**Edge strips and the test level** (D99, report only; no geometry moved).
+With the camera aimed at basket 1 (the rail point nearest it, zoom 1) on
+test mode's default 1152 × 648 screen, switch 1 (x 46 to 126) has its
+centre inside the left strip (0 to 115): a tap on it presses the strip.
+On the reference phone's wider 1440 × 648 screen it is clear. Basket 1
+(933 px wide) always reaches into a strip when aimed at the gate or switch
+1, and baskets 2 and 3 partly do from gate 2 and switch 3, but a basket
+doesn't answer taps. No framing zone puts an object inside a strip.
+
+**Tests.** `tests/unit/test_object_taps.gd` (synthetic level; switch, basket,
+gate and signpost in call range of the first slime): at zoom 1, 4 mm
+outside the switch flips it and 6 mm calls (left and below); the 20 mm floor at
+zoom 0.8; the density followed; a filling basket's switch flips; a tap on
+the basket, the gate, the signpost, or the switch with its basket full, in
+its reward, or fired, calls and the slime answers; overlapping hit areas
+go to the answering switch; in screensaver mode each of those calls starts
+a session; `answering()` directly.
+`tests/unit/test_tap_dispatch.gd`: `hit_area()` (5 mm a side, the floor,
+centred, zoom, density, a sleeper's 24 px), the margin in mm at zoom 1 and
+0.5, and a basket tap in the simulation calls.
+`tests/e2e/test_object_taps_e2e.gd` (test level): switch 1 at zoom 1 (4 mm
+flips, 6 mm calls); in `s3.frame.basket` (zoom 0.8, from `gate2-open`),
+0.5 mm inside the floor's edge flips switch 3 and 0.5 mm past it calls. From
+`gate1-open` in screensaver mode, taps on basket 1, gate 1, signpost 1 and
+the inert switch 1 call exactly the slimes in range and start a session.
+Switch 2 (basket filling) still flips.
+`tests/e2e/test_level_checker.gd` (the base level): a switch in the band
+fails (LD1's test); 1 px below the band passes and 1 px inside fails; a gate
+in the band fails; an object framed above the screen fails; a framing
+zone's framing counts; which objects. `tests/e2e/test_level_rules.gd`: rule
+21 passes on the whole test level, and every object is on screen in some
+rail view (599 views). `tests/e2e/test_frontier_e2e.gd`'s DoD 13 test now expects the tap
+on the inert switch 1 to be a call (it asserted "the tap does nothing").
 
 ## Tilt
 
@@ -1857,7 +1955,8 @@ and builds the doors. Each tick, after fusion, `frontier.step(sim)`:
 Then `sim.gates` follows the train's open gates. A tap on a switch
 (`Simulation._tap`, `KIND_SWITCH`) calls `frontier.tap_switch()`: it flips
 only while the basket is `filling`, so the set is locked once full and inert
-for good once fired. At bedtime taps reach no object (chunk 17), so the
+for good once fired. Since chunk 23E (D109) a switch that isn't answering
+(`switch_answers()`) and a basket don't take the tap at all: it is a call. At bedtime taps reach no object (chunk 17), so the
 switch can't be flipped then.
 
 **Opening a gate** adds it to the train's open gates: the loop grows
@@ -2295,9 +2394,10 @@ level changes.
   (nothing needs tilt) by `test_frontier_level.gd` and `test_tilt_e2e.gd`;
   rule 14 (no exploration on the slides yet) by `test_frontier_level.gd`;
   rule 20 by `test_level_registry.gd` and `test_test_level.gd`.
-- Not tested: rule 21 (every interactive object below the parent zone at
-  the rails' framing, D111) comes with build plan item 23.9. Rule 16's
-  "piles mostly still" is measured (the bench), not asserted.
+- Rule 21 (every interactive object below the parent zone at the rails'
+  framing, D111) by `test_level_rules.gd` and `test_level_checker.gd`
+  (chunk 23E). Rule 16's "piles mostly still" is measured (the bench), not
+  asserted.
 
 **The off-screen stall (16s).** A parked size-2 or size-3 train slime
 stopped on a downhill stretch and was lost as stalled: its centre was
@@ -3102,6 +3202,8 @@ adb logcat -v time -s godot:*
   whole-height strips.)
 - **The basket is a tap target** (per the build plan), though the spec has
   a basket act by presence: it only blocks a call there, nothing else yet.
+  (Chunk 23E: it no longer blocks a call, D109; it stays a tap target for
+  level rule 21.)
 - **Known limit:** from the ground, a base slime can't hop onto the tree
   climb's lower end (about 180 px up; it aims at most about 133 px, a size
   2 about 168, a size 3 about 208). Called to the platform from below, a

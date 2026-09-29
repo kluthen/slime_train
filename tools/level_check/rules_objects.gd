@@ -6,8 +6,6 @@ extends RefCounted
 
 ## A signpost stands at its fork: this close to its switch's box centre, px.
 const AT_FORK := 200.0
-## The tap target kinds rule 21 checks: the objects a child operates.
-const OPERATED := [TapDispatcher.KIND_SWITCH, TapDispatcher.KIND_BASKET]
 
 
 ## Rule 6: every switch (the only forks in v1) has one signpost naming it,
@@ -86,37 +84,79 @@ static func inert_once_open(_c: LevelChecker) -> Dictionary:
 			+ "inert once its basket has fired (tests/unit/test_frontier_sets.gd)"])
 
 
-## Rule 21 (D111): in every settled rail view of its section whose x-span
-## holds its box's centre, every switch's and basket's box top is at or below
-## the parent zone (TapDispatcher.parent_zone_height: 7 mm, D113, at the
-## reference phone's density, ScreenView's default).
+## Rule 21 (D111, item 23.9): at the rails' framing, every interactive
+## object (parent_zone_objects(): every switch, basket and gate) sits fully
+## below the parent zone. The rails' framing: the settled rail views of every
+## section's outgoing route with the gates before it open (rail_frames(),
+## framing zones included), so every object is checked against the whole
+## level's rails, on the reference phone's screen (1440 x 648 viewport px at
+## its density, where the band is 7 mm, about 67 px). The return routes'
+## rails (the slides) aren't checked: from them the camera frames the
+## objects from below, not where the child meets them (a reading taken,
+## proposed). parent_zone_findings() does the check on any views.
 # @spec-link [[rule_objects_below_parent_zone]]
 static func below_parent_zone(c: LevelChecker) -> Dictionary:
+	var frames: Array[Dictionary] = []
+	for section in c.sections():
+		frames.append_array(c.rail_frames(section, ScreenView.REFERENCE_PHONE_SIZE))
+	var views: Array[ScreenView] = []
+	for frame in frames:
+		views.append(frame["screen"])
 	var findings := []
-	var frames_of := {}
-	var ids := c.data.tap_targets.keys()
+	for one in parent_zone_findings(c.data, views):
+		findings.append(LevelChecker.finding(one["id"], (frames[one["view"]]["point"] as Vector2).x,
+				("framed from the rail point here, its top is %.0f screen px into the parent zone "
+				+ "(the top %.0f px): ") % [one["band"] - one["top"], one["band"]]
+				+ "move it down, or frame it lower with a framing zone"))
+	return LevelChecker.result(21, findings, "", ["the settled views of the outgoing routes' rails only (D111), "
+			+ "framing zones included, on the reference phone; the slides' rails and views while the camera "
+			+ "moves (a call's drag, the idle camera, a gate being shown) aren't checked"])
+
+
+## The interactive objects rule 21 checks: stable ID -> drawn box (Rect2,
+## level px), every switch, basket and gate. Signposts aren't interactive
+## (D47); sleepers are slimes, not objects.
+# @spec-link [[rule_objects_below_parent_zone]]
+static func parent_zone_objects(data: LevelData) -> Dictionary:
+	var out := {}
+	for group in [data.switches, data.baskets, data.gates]:
+		for id in group:
+			out[id] = group[id]["box"]
+	return out
+
+
+## Rule 21 over `views`: one finding per interactive object that some view
+## frames (its box's centre within the view's width) with its top inside
+## the parent zone (TapDispatcher.parent_zone_height at that view), or
+## above the screen, at the view where it goes deepest. Each finding: {"id"
+## (stable ID), "view" (the index in `views`), "top" (the box's top on that
+## screen, screen px), "band" (the parent zone's height there, screen px)}.
+## Sorted by ID; empty when the rule holds.
+# @spec-link [[rule_objects_below_parent_zone]]
+static func parent_zone_findings(data: LevelData, views: Array[ScreenView]) -> Array[Dictionary]:
+	var boxes := parent_zone_objects(data)
+	var ids := boxes.keys()
 	ids.sort()
+	var out: Array[Dictionary] = []
 	for id in ids:
-		if not c.data.tap_targets[id]["kind"] in OPERATED:
-			continue
-		var box: Rect2 = c.data.tap_targets[id]["box"]
-		var section := LevelChecker.section_of(id)
-		if not frames_of.has(section):
-			frames_of[section] = c.rail_frames(section)
-		var worst := {}
-		var band := TapDispatcher.parent_zone_height(ScreenView.new())
-		for frame in frames_of[section]:
-			var view: Rect2 = frame["view"]
-			if box.get_center().x < view.position.x or box.get_center().x > view.end.x:
-				continue
-			var top := (box.position.y - view.position.y) * ScreenView.DEFAULT_SIZE.x / view.size.x
-			if top < band and (worst.is_empty() or top < worst["top"]):
-				worst = {"top": top, "x": (frame["point"] as Vector2).x}
+		var worst := _deepest_in_band(boxes[id], views)
 		if not worst.is_empty():
-			findings.append(LevelChecker.finding(id, worst["x"],
-					("framed from the rail point here, its top is %.0f screen px into the parent zone "
-					+ "(the top %.0f px): ")
-					% [band - worst["top"], band]
-					+ "move it down, or frame it lower with a framing zone"))
-	return LevelChecker.result(21, findings, "", ["the settled rail views only (D111), framing zones included; "
-			+ "views while the camera moves (a call's drag, the idle camera) aren't checked"])
+			worst["id"] = id
+			out.append(worst)
+	return out
+
+
+## Of `views`, the one framing `box` with its top deepest inside the parent
+## zone, as a parent_zone_findings() finding without its ID; {} when none.
+static func _deepest_in_band(box: Rect2, views: Array[ScreenView]) -> Dictionary:
+	var worst := {}
+	for index in views.size():
+		var view := views[index]
+		var centre_x := view.world_to_screen(box.get_center()).x
+		if centre_x < 0.0 or centre_x > view.screen_size.x:
+			continue
+		var top := view.world_to_screen(box.position).y
+		var band := TapDispatcher.parent_zone_height(view)
+		if top < band and (worst.is_empty() or top - band < worst["top"] - worst["band"]):
+			worst = {"view": index, "top": top, "band": band}
+	return worst

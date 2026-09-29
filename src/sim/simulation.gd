@@ -447,15 +447,17 @@ func _no_finger_blocks() -> bool:
 
 ## An accepted tap at screen point `at`: dispatched, answered with a ripple
 ## and with the slimes in range turning toward it; open ground and a sleeper
-## call.
+## call. Only the targets that answer a tap now compete for it (D109): a tap
+## on a basket, or on a switch that isn't answering, is open ground.
 # @spec-link [[req_controls_tap_zones]]
 # @spec-link [[req_call_mechanic]]
 # @spec-link [[req_denial_and_stepup_behavior]]
 # @spec-link [[req_session_lifecycle]]
+# @spec-link [[req_interactive_objects_general]]
 func _tap(finger: int, at: Vector2) -> void:
 	# At bedtime taps only ripple: no object, no edge button (hidden), no call.
 	var bedtime := session.phase == Session.BEDTIME
-	var targets := {} if bedtime else Sleepers.tap_targets(self)
+	var targets := {} if bedtime else frontier.answering(self, Sleepers.tap_targets(self))
 	var hit := TapDispatcher.dispatch(at, view, targets, camera.edge_buttons_visible)
 	if bedtime:
 		hit["call"] = false

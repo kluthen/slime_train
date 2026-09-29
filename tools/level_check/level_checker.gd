@@ -406,9 +406,11 @@ func rail_views(section: int) -> Array[Rect2]:
 	return views
 
 
-## rail_views(), each with its rail point: [{"point" (Vector2, on the
-## loop), "view" (Rect2)}].
-func rail_frames(section: int) -> Array[Dictionary]:
+## rail_views(), each with its rail point, on a screen of `screen_size`
+## viewport px (the project's viewport by default): [{"point" (Vector2, on
+## the loop), "view" (Rect2, level px), "screen" (the ScreenView, at the
+## reference phone's density, for sizes measured on the screen)}].
+func rail_frames(section: int, screen_size := ScreenView.DEFAULT_SIZE) -> Array[Dictionary]:
 	var gates := gates_before(section)
 	var camera := Camera.new()
 	camera.zones = data.framing_zones
@@ -420,9 +422,10 @@ func rail_frames(section: int) -> Array[Dictionary]:
 			while along <= segment["length"]:
 				var point := data.loop.position_at(before + along, gates)
 				camera.start(data.loop, gates, point)
-				var size := ScreenView.DEFAULT_SIZE / camera.zoom
-				frames.append({"point": point,
-						"view": Rect2(camera.view_centre(ScreenView.DEFAULT_SIZE) - size * 0.5, size)})
+				var screen := ScreenView.new()
+				camera.apply_to(screen, screen_size)
+				var size := screen_size / camera.zoom
+				frames.append({"point": point, "view": Rect2(screen.centre - size * 0.5, size), "screen": screen})
 				along += RAIL_SAMPLE
 		before += segment["length"]
 	return frames

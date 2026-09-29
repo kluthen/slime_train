@@ -6,7 +6,7 @@ extends RefCounted
 ## back on the train, logged in `offscreen.lost`). Debug builds only.
 
 ## How far outside a slime's drawn body a tap still picks it, screen pixels
-## (the tap zones' OBJECT_HIT_MARGIN).
+## (the same as a sleeper's, TapDispatcher.SLEEPER_HIT_MARGIN).
 const TAP_MARGIN := 24.0
 
 

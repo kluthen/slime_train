@@ -213,14 +213,45 @@ static func _gate_state(saved: Variant) -> Dictionary:
 
 # --- Taps -------------------------------------------------------------------------
 
-## A tap on switch `id`: flips it, while its basket is filling. Flipped
-## back, the basket lets its slimes go (the opt-out). Returns whether it
-## flipped.
-func tap_switch(sim: Simulation, id: String) -> bool:
+## Only what answers a tap takes it (item 23.7, D109): of `targets` (tap
+## targets, as LevelData.tap_targets), those that answer a tap now. A
+## switch answers while its basket is filling (switch_answers()); a basket
+## never does; other kinds (a sleeper: a call centred on it) pass through.
+## A tap on anything left out lands on what is under it, open ground: a
+## call, which in screensaver mode starts a session.
+# @spec-link [[req_interactive_objects_general]]
+# @spec-link [[req_controls_tap_zones]]
+func answering(sim: Simulation, targets: Dictionary) -> Dictionary:
+	var out := {}
+	for id in targets:
+		match targets[id]["kind"]:
+			TapDispatcher.KIND_BASKET:
+				pass
+			TapDispatcher.KIND_SWITCH:
+				if switch_answers(sim, id):
+					out[id] = targets[id]
+			_:
+				out[id] = targets[id]
+	return out
+
+
+## Whether switch `id` answers a tap now: while its basket is filling. Once
+## the basket is full the set is locked (no opting out of a full basket),
+## and once it has fired the set is inert for good.
+# @spec-link [[req_switch_basket_gate_set]]
+# @spec-link [[rule_frontier_set_inert_after_gate_open]]
+func switch_answers(sim: Simulation, id: String) -> bool:
 	if _level == null or not _level.switches.has(id):
 		return false
 	var basket: Dictionary = sim.object_states.get(_level.switches[id]["basket"], {})
-	if not basket.is_empty() and basket["phase"] != FILLING:
+	return basket.is_empty() or basket["phase"] == FILLING
+
+
+## A tap on switch `id`: flips it, while it answers (switch_answers()).
+## Flipped back, the basket lets its slimes go (the opt-out). Returns
+## whether it flipped.
+func tap_switch(sim: Simulation, id: String) -> bool:
+	if not switch_answers(sim, id):
 		return false
 	var state: Dictionary = sim.object_states[id]
 	state["flipped"] = not state["flipped"]

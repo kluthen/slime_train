@@ -5,9 +5,11 @@ extends Area2D
 ## gate. By default the flow carries on (toward the return route while the
 ## gate is closed); tapped, it flips and sends the flow into its basket.
 ## It stays flipped until tapped again; flipped back before the basket is
-## full, the basket lets its slimes go (opting out). Once its basket is full
-## it does nothing any more. A tap on it (its box plus
-## TapDispatcher.OBJECT_HIT_MARGIN) doesn't call. The behaviour is
+## full, the basket lets its slimes go (opting out). A tap within its hit
+## area (TapDispatcher.hit_area(): its box plus 5 mm, at least 20 x 20 mm on
+## the screen) flips it and doesn't call while its basket is filling; once
+## the basket is full it no longer answers, and a tap on it is a call (D109).
+## The behaviour is
 ## FrontierSets' (src/sim/frontier_sets.gd); this node only configures it.
 ##
 ## How it sends the flow: `trapdoor`, a box of the onward path that is solid
@@ -56,7 +58,8 @@ func contains(offset: Vector2) -> bool:
 	return PlaceholderArt.box_contains(size, offset)
 
 
-## What a tap lands on (TapDispatcher): its box. The hit area adds a margin.
+## What a tap lands on (TapDispatcher): its box, grown to its hit area by
+## TapDispatcher.hit_area().
 # @spec-link [[req_controls_tap_zones]]
 func tap_target() -> Dictionary:
 	return {"kind": TapDispatcher.KIND_SWITCH, "size": size}

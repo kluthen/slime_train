@@ -7,9 +7,9 @@ extends GutTest
 ## the loop [DoD 9]; with the camera away it waits and fires once the basket
 ## comes into view [DoD 10]; from `s1-optout` a tap on the switch flips it
 ## back and the basket lets its slime go [DoD 11]; no run here tilts [DoD
-## 12]; once the gate is open a tap on the switch does nothing and the
-## basket takes no more slimes [DoD 13]; the celebration waits for the last
-## basket (section 3's, since chunk 16: neither basket 1 from
+## 12]; once the gate is open a tap on the switch is a call that leaves it
+## as it was (chunk 23E, D109) and the basket takes no more slimes [DoD
+## 13]; the celebration waits for the last basket (section 3's, since chunk 16: neither basket 1 from
 ## `s1-basket-5of6` nor basket 2 from `s2-basket-offscreen` plays it; basket
 ## 3, full in `stress-still`, does once sunrise ends that fixture's bedtime),
 ## plays once, is saved, and a reload
@@ -99,8 +99,9 @@ func _count(game: Node, state: int) -> int:
 
 ## Taps the middle of switch 1 on the screen, the camera first aimed at it:
 ## from BASKET_VIEW the switch shows about 80 px from the left edge, inside
-## the left edge strip, which takes the whole tap (D99, chunk 23B).
-func _tap_switch(game: Node) -> void:
+## the left edge strip, which takes the whole tap (D99, chunk 23B). Returns
+## the tap's record.
+func _tap_switch(game: Node) -> Dictionary:
 	var sim: Simulation = game.simulation
 	var box: Rect2 = sim.level.switches[SWITCH]["box"]
 	_aim(game, box.get_center())
@@ -108,7 +109,7 @@ func _tap_switch(game: Node) -> void:
 	sim.push_input(Simulation.touch_down(0, at))
 	sim.push_input(Simulation.touch_up(0, at))
 	game.test_mode.run_ticks(1)
-	assert_eq(sim.taps[-1]["kind"], TapDispatcher.KIND_SWITCH, "the tap lands on the switch")
+	return sim.taps[-1]
 
 
 # --- DoD 9: switch, basket, gate, the loop grows --------------------------------------
@@ -176,7 +177,7 @@ func test_flipping_the_switch_back_releases_and_empties_the_basket() -> void:
 	game.test_mode.run_ticks(TICK_RATE)
 	assert_eq(_basket(game)["weight"], 3)
 	assert_eq(_count(game, SlimeBodies.IN_BASKET), 1)
-	_tap_switch(game)
+	assert_eq(_tap_switch(game)["kind"], TapDispatcher.KIND_SWITCH, "the tap lands on the switch")
 	assert_false(sim.object_states[SWITCH]["flipped"], "the tap flips it back")
 	for i in 5 * TICK_RATE:
 		_aim(game, BASKET_VIEW)
@@ -191,15 +192,19 @@ func test_flipping_the_switch_back_releases_and_empties_the_basket() -> void:
 
 # --- DoD 13: inert once the gate is open ------------------------------------------
 
-func test_once_the_gate_is_open_the_switch_does_nothing_and_the_basket_takes_nothing() -> void:
+func test_once_the_gate_is_open_a_tap_on_the_switch_calls_and_the_basket_takes_nothing() -> void:
 	var game := _boot({"fixture": "s1-basket-5of6"})
 	var sim: Simulation = game.simulation
 	assert_gt(_run_until_phase(game, FrontierSets.FIRED, FIRE_WITHIN * TICK_RATE), 0)
 	assert_eq(sim.tilt_degrees, 0.0, "the gate opened without tilt [DoD 12]")
 	var before: Dictionary = sim.object_states[SWITCH].duplicate()
 	_aim(game, BASKET_VIEW)
-	_tap_switch(game)
-	assert_eq(sim.object_states[SWITCH]["flipped"], before["flipped"], "the tap does nothing")
+	# Chunk 23E (item 23.7, D109): an inert switch doesn't answer taps, so a
+	# tap on it is a call on open ground, and the switch stays as it was.
+	var tap := _tap_switch(game)
+	assert_eq(tap["zone"], TapDispatcher.ZONE_GROUND, "the tap doesn't land on the switch")
+	assert_true(tap["call"], "it is a call")
+	assert_eq(sim.object_states[SWITCH]["flipped"], before["flipped"], "the switch stays as it was")
 	# A slime dropped straight into the basket is let go again.
 	var box: Rect2 = sim.level.baskets[BASKET]["box"]
 	var dropped := sim.slimes.create(Species.from_letter("D"), 1, box.get_center(), SlimeBodies.TRAIN)

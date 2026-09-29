@@ -6,7 +6,9 @@ extends GutTest
 ## (D66, O67's proposed default: a second finger gets nothing at all). Since
 ## chunk 23B: the edge buttons are whole-height strips a tenth of the
 ## screen's width (D99) and the parent zone is 7 mm high on the screen
-## (D113), at the view's density.
+## (D113), at the view's density. Since chunk 23E (D109): an object's hit
+## area is its drawing plus 5 mm, at least 20 x 20 mm, on the screen, and a
+## basket doesn't answer taps (tests/unit/test_object_taps.gd has the rest).
 
 # @test-link [[req_controls_tap_zones]]
 # @test-link [[req_call_mechanic]]
@@ -109,19 +111,54 @@ func test_open_ground_is_a_call_at_the_tap() -> void:
 
 # --- Hit areas ---------------------------------------------------------------
 
-func test_hit_areas_are_larger_than_the_object() -> void:
-	# The basket's box ends at x = 900; the margin is 24 screen pixels.
-	assert_eq(_dispatch(Vector2(920, 450))["object"], "t.basket.a", "inside the margin")
-	assert_eq(_dispatch(Vector2(930, 450))["zone"], TapDispatcher.ZONE_GROUND, "beyond it")
+func test_hit_areas_are_the_drawing_plus_5_mm() -> void:
+	# D109 (chunk 23E): the basket's box (200 x 100 px, 20.9 x 10.5 mm on the
+	# reference phone) ends at x = 900; 5 mm on the screen is about 48 px.
+	var mm := ScreenView.new().px_per_mm
+	assert_eq(_dispatch(Vector2(900 + 4.0 * mm, 450))["object"], "t.basket.a", "4 mm out: inside")
+	assert_eq(_dispatch(Vector2(900 + 6.0 * mm, 450))["zone"], TapDispatcher.ZONE_GROUND, "6 mm out: beyond")
 
 
-func test_the_margin_is_in_screen_pixels() -> void:
-	# At zoom 0.5 the 24 screen px are 48 level px.
+func test_the_margin_is_measured_on_the_screen() -> void:
+	# At zoom 0.5 the 5 mm on the screen are twice as many level px.
 	var view := ScreenView.new(Vector2(576, 324), 0.5)
-	var just_in := view.world_to_screen(Vector2(940, 450))
-	var out := view.world_to_screen(Vector2(955, 450))
+	var mm := view.px_per_mm / view.zoom
+	var just_in := view.world_to_screen(Vector2(900 + 4.0 * mm, 450))
+	var out := view.world_to_screen(Vector2(900 + 6.0 * mm, 450))
 	assert_eq(_dispatch(just_in, view)["object"], "t.basket.a")
 	assert_eq(_dispatch(out, view)["zone"], TapDispatcher.ZONE_GROUND)
+
+
+func test_hit_area_is_the_drawing_plus_5_mm_a_side_at_least_20_mm() -> void:
+	var view := ScreenView.new()
+	var mm := view.px_per_mm
+	var big := Rect2(100, 100, 300, 250)
+	_assert_rect(TapDispatcher.hit_area(TapDispatcher.KIND_SWITCH, big, view), big.grow(5.0 * mm), "5 mm a side")
+	var small := Rect2(100, 100, 40, 300)
+	var area := TapDispatcher.hit_area(TapDispatcher.KIND_SWITCH, small, view)
+	assert_almost_eq(area.size.x, 20.0 * mm, 1e-3, "the floor, across")
+	assert_almost_eq(area.size.y, 300.0 + 10.0 * mm, 1e-3, "5 mm a side, down")
+	assert_almost_eq(area.get_center(), small.get_center(), Vector2(1e-3, 1e-3), "centred on the drawing")
+	var zoomed_out := ScreenView.new(Vector2.ZERO, 0.5)
+	var far := TapDispatcher.hit_area(TapDispatcher.KIND_SWITCH, Rect2(0, 0, 80, 80), zoomed_out)
+	assert_almost_eq(far.size.x, 40.0 * mm, 1e-3, "20 mm on the screen at zoom 0.5: 40 mm of level px")
+	var dense := ScreenView.new()
+	dense.px_per_mm = mm * 2.0
+	_assert_rect(TapDispatcher.hit_area(TapDispatcher.KIND_BASKET, big, dense), big.grow(10.0 * mm),
+			"the density followed")
+
+
+func _assert_rect(got: Rect2, want: Rect2, what: String) -> void:
+	assert_almost_eq(got.position, want.position, Vector2(1e-3, 1e-3), what + ": position")
+	assert_almost_eq(got.size, want.size, Vector2(1e-3, 1e-3), what + ": size")
+
+
+func test_a_sleeper_keeps_its_margin_in_screen_pixels() -> void:
+	# D109 sizes objects; a sleeper is a slime: its body plus 24 screen px.
+	var box := Rect2(300, 300, 48, 48)
+	assert_eq(TapDispatcher.hit_area(TapDispatcher.KIND_SLEEPER, box, ScreenView.new()), box.grow(24.0))
+	assert_eq(TapDispatcher.hit_area(TapDispatcher.KIND_SLEEPER, box, ScreenView.new(Vector2.ZERO, 0.5)),
+			box.grow(48.0))
 
 
 func test_the_nearest_object_wins_where_hit_areas_overlap() -> void:
@@ -129,15 +166,18 @@ func test_the_nearest_object_wins_where_hit_areas_overlap() -> void:
 		"t.sleeper.01": {"kind": TapDispatcher.KIND_SLEEPER, "box": Rect2(400, 300, 48, 48)},
 		"t.sleeper.02": {"kind": TapDispatcher.KIND_SLEEPER, "box": Rect2(460, 300, 48, 48)},
 	}
-	assert_eq(TapDispatcher.object_at(Vector2(450, 324), 1.0, targets), "t.sleeper.01")
-	assert_eq(TapDispatcher.object_at(Vector2(456, 324), 1.0, targets), "t.sleeper.02")
+	var view := ScreenView.new()
+	assert_eq(TapDispatcher.object_at(Vector2(450, 324), view, targets), "t.sleeper.01")
+	assert_eq(TapDispatcher.object_at(Vector2(456, 324), view, targets), "t.sleeper.02")
 
 
 # --- In the simulation --------------------------------------------------------
 
 func test_every_tap_leaves_a_ripple() -> void:
 	var sim := _sim()
-	var spots := [Vector2(560, 30), Vector2(50, 300), Vector2(800, 450), Vector2(600, 600)]
+	# The object: sleeper 02 (a tap on the basket is a call on open ground
+	# since chunk 23E, D109: a basket doesn't answer taps).
+	var spots := [Vector2(560, 30), Vector2(50, 300), Vector2(330, 330), Vector2(600, 600)]
 	for at in spots:
 		_tap(sim, at)
 	assert_eq(sim.ripples.size(), 4, "one ripple per tap, in all four zones")
@@ -147,7 +187,14 @@ func test_every_tap_leaves_a_ripple() -> void:
 		zones.append(sim.taps[k]["zone"])
 	assert_eq(zones, [TapDispatcher.ZONE_PARENT, TapDispatcher.ZONE_EDGE,
 			TapDispatcher.ZONE_OBJECT, TapDispatcher.ZONE_GROUND])
-	assert_eq(sim.taps.map(func(t): return t["call"]), [false, false, false, true])
+	assert_eq(sim.taps.map(func(t): return t["call"]), [false, false, true, true])
+
+
+func test_in_the_simulation_a_tap_on_the_basket_calls() -> void:
+	var sim := _sim()
+	_tap(sim, Vector2(800, 450))
+	assert_eq(sim.taps[-1]["zone"], TapDispatcher.ZONE_GROUND, "a basket doesn't answer taps (D109)")
+	assert_true(sim.taps[-1]["call"])
 
 
 func test_a_ripple_fades_away() -> void:
