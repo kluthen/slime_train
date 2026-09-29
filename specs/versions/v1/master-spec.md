@@ -634,7 +634,7 @@ Every level, the test level included, follows these rules.
 11. The first section has 3 native species; each later section adds one.
 12. A frontier gate opens through the switch-plus-basket set. Each
     section's basket can be filled by play from the slimes that can be
-    woken by then, starting from a fresh game (proposed).
+    woken by then, starting from a fresh game, fusion included (proposed).
 13. Each section has its own return route to the start from its unopened
     frontier gate. It is part of the loop and has its own camera rail.
 14. A return route may carry exploration opportunities, but opening a later
@@ -661,7 +661,9 @@ Every level, the test level included, follows these rules.
     travelling the loop's way, never along the loop's first stretch against
     the flow; and nothing a base slime must be called up to overhangs the
     loop where larger slimes pass (a ledge a called size 1 can reach is too
-    low for a size 2 or 3 to pass under).
+    low for a size 2 or 3 to pass under). A ledge a called base slime
+    must reach keeps its underside at least 130 px over any loop ground
+    under it (proposed).
 
 ### 5.12 Levels and the test level
 

@@ -4,7 +4,8 @@ Status: draft v14 (approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
-playtest issues, last before the health review, proposed, D128)
+playtest issues, last before the health review, proposed, D128; TL1 done,
+D129)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -118,11 +119,11 @@ technology, not business behaviour:
   the bench per level; D127). LD1's checker found a rule 22 (b) break on
   the test level (D126), fixed by **R22** (done: the second dip's hollow
   moved over the dip's far slope, D127).
-- **Next: TL1** (proposed, D127): the test level may not be finishable
-  from fresh (LD3's progress estimate warns on all three sections, and
-  probes back it); rework its sleeper placement so it is (see
-  `../../levels/test/README.md`, section 1). Then 18 onward. (5N is a
-  contingency, run only if chunk 22 fails, D96.)
+- **TL1** done (D129): the test level is playable from fresh with base
+  slimes alone (sleepers in touching lines within a called slime's
+  reach; see `../../levels/test/README.md`, section 1).
+- **Next: 18** onward. (5N is a contingency, run only if chunk 22 fails,
+  D96.)
 - **Chunk 24** (the user's second round of playtest issues, an open list;
   proposed, D128): after chunk 22 (and 5N if it runs), the last chunk
   before the closing step, as the user asked. The user's next play
@@ -162,14 +163,14 @@ technology, not business behaviour:
 | 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
 | 24 | Playtest issues, round 2 (open list; proposed) | S per issue (24.1 may be M) | 22, and 5N if it runs | each issue's own done-when |
 | LD | Level-design toolkit (technical) | L | 16 | the checker agrees with the level-rule tests on the test level; a scaffolded level loads, passes its generated tests and appears in test mode |
-| TL1 | Test level finishable from fresh (proposed) | S | LD, R22 | the checker gives 0 warnings on the test level; a scripted play from `fresh` fills basket 1 |
+| TL1 | Test level finishable from fresh (done, D129) | S | LD, R22 | the checker gives 0 warnings on the test level; a scripted play from `fresh` fills basket 1 |
 
 Chunks 1 and 2 can run in parallel with 3. Chunk 5N is not in the
 sequence: it runs only if chunk 22's measurement fails (D96). Chunks 9, 10
 and 11 are independent of each other. Chunk 17 can start as soon as 8 is done, in
 parallel with the camera and objects work. Chunk 23 runs first among the
 remaining chunks, before 18 (D123), and chunk LD runs in parallel with it.
-TL1 runs after both, before 18 (D127, proposed). Chunk 24 runs after 22
+TL1 ran after both, before 18 (D127; done, D129). Chunk 24 runs after 22
 (and 5N if it runs), the last chunk before the closing health review
 (D128, proposed; O97 asks whether 24.1 and 24.3 should run before 22
 instead).
@@ -856,6 +857,16 @@ skills, then **LD3**, the gaps LD2 found (D127). All three are done.
   removed without a version bump.
 
 ### TL1. Test level finishable from fresh (S, proposed)
+
+**Done (D129).** The done-when below is met: 0 FAIL and 0 warnings; the
+new played test `tests/e2e/test_test_level_playable_e2e.gd` fills each
+basket with base slimes alone (from `fresh`, `gate1-open`, `gate2-open`;
+seeds 1 to 6); fixtures regenerated; suite 922/922. Sleepers were lined
+up touching (chain waking) within a called base slime's hop; stable IDs
+kept, section 3's renumbered left to right (never released, rule 20).
+Deviations from the test level's plan and the choices left for the user
+(rule 12's reading, rule 22 (b)'s 130 px house style, basket 3's tight
+margin) are in D129.
 
 Proposed in D127: LD3's progress estimate warns on all three sections of
 the test level, and probes back it. In section 1 only two sleepers are

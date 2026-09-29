@@ -1681,3 +1681,63 @@ outlines** (or **quota pies** above 10); the debug overlay's own counts
 are the **slime counts**. The user's "last frontier gate" is basket 3,
 which has no gate: it fires the celebration (D77). The Terminology table
 gains quota outlines, quota pie, release and debug overlay.
+
+## D129 — Chunk TL1 as built: the test level playable from fresh with base slimes alone (2026-09-29)
+**Built; the choices below marked proposed wait for the user's approval**
+(with D126 to D128). Chunk TL1 (D127) is done: from `fresh`, calls wake
+enough base slimes to fill every basket, with no fusion and no tilt; the
+checker gives the test level 0 FAIL and 0 warnings (3 warnings before).
+
+**1. How.** A woken slime wakes the sleepers it touches (`Sleepers.wake`;
+measured: centres 44 px apart wake, 45 px don't), so TL1 lines sleepers up
+**touching** (centres 38 to 40 px apart) within a called base slime's hop
+(133 px up, 150 px sideways): one call wakes the whole line (**chain
+waking**). Stable IDs are all kept and numbered left to right; each
+section's species counts are unchanged (30 / 40 / 130; the level 37 / 36 /
+38 / 39 / 50). Base slimes a call can wake by each basket (the estimate,
+base slimes alone; with fusion in brackets): basket 1, 10 for a quota of 6
+(22); basket 2, 20 for 15 (32); basket 3, 62 for 60 (102). A new played
+test, `tests/e2e/test_test_level_playable_e2e.gd`, fills each basket
+(seeds 1 to 6 pass; a missed call is retried). `LevelProgress` counts
+chain waking (`CHAIN_LINK`, 44 px); its rule 12 warning suggests touching
+lines. It is optimistic about the hills (a larger slime called under a
+bump hits its underside); no basket depends on them. Suite 922/922.
+
+**2. Deviations from `levels/test/README.md`** (positions: that document,
+"Chunk TL1", and `docs/dev/README.md`, "Chunk TL1"): the tree's lower
+platform is empty (its six sleepers moved to two hollows on the fusion
+dip's rims); the entry ramp's two side ledges and the bowl's first left
+tier are one `RampShelf`; the rim is split into `RimLow` (reached from the
+plateau, 17 sleepers) and `Rim` (the branch, 13); the descent's top is
+steeper, the only change to the loop's path; section 2's parade, second
+dip and frontier ledge trade sleepers (new hollow on the second dip's near
+rim). **Section 3's IDs were renumbered** left to right across its new
+ledges: the same 130 IDs, but most name other spots than before. Against
+rule 20 this is fine because the test level is never released (D127's
+released-ID list, proposed, is what protects a released level).
+
+**3. Proposed, for the user's review.**
+- **Rule 22 (b), house style:** a ledge a called base slime must reach
+  keeps its underside at least 130 px (a size 3's hop) over any loop
+  ground under it, wherever the slime reaches it from. Stricter than the
+  checker, which only measures ledges within a called slime's reach of
+  the loop beneath them (a hollow hanging over a dip's slope, reached from
+  the rim, isn't measured). The test level meets it.
+- **Rule 12's fresh-game line (D127) reads "with fusion":** each basket
+  can be filled from fresh by the slimes the train can make, fusion
+  included, which is what the checker estimates by default. *Why not
+  "base slimes alone":* it would make fusion never needed for progress,
+  like tilt (rule 10), a change to what the game is; the user's call.
+  The test level meets both.
+- **Basket 3's tight margin (62 base slimes for a quota of 60) is
+  acceptable** on the test level: it is the stress case, never released,
+  and a missed call is simply retried. A real level's quota ceiling is
+  O98 (D128).
+- **By eye:** with the tree's lower platform empty, check that the tree
+  still shows a hint from the loop (rule 9: the platform's edge and the
+  bough's three sleepers).
+
+**4. Lexicon.** The Terminology table gains **chain waking** and
+**touching line**.
+
+**5. The build order.** TL1 is done. Next, chunk 18.

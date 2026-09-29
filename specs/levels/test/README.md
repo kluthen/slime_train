@@ -1,6 +1,6 @@
 # Test level
 
-Status: draft v14
+Status: draft v15
 
 A compact level that puts nearly every v1 gameplay item in one place (D76).
 It is the testing ground while the game is built, and the level the
@@ -101,7 +101,8 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
 **1.3 Fusion dip (2.5–3.5).**
 - A U-shaped dip in the loop. Train slimes bunch up at the bottom, which
   nudges same-species slimes into fusing (rule 5, D20, D37).
-- Two C sleepers rest in a hollow on the dip's rim, off the loop.
+- Two C sleepers rest in a hollow on the dip's rim, off the loop. Since
+  chunk TL1, 8 sleepers in two hollows, one on each rim (below).
 - Exercises: fusion on its own, fusion reset by a hop, and bumping when a
   fusion would go past size 3 (for example 3 + 1) (D49).
 
@@ -115,7 +116,7 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
 
 **1.5 The tree (4.5–5.8).** An exploration branch.
 - A **lower platform** high above the loop, holding 6 sleepers (A, B and C, 2
-  of each). Their outlines and the platform's edge peek into the top of the
+  of each). Empty since chunk TL1: out of a base slime's reach (below). Their outlines and the platform's edge peek into the top of the
   view from the loop (rule 9).
 - A **high bough** above the platform holds 3 A sleepers. Only a size-3 jump
   from the platform reaches it.
@@ -161,22 +162,30 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
   the reference phone's 1440 px wide screen it is clear. No change
   proposed.
 
-**Planned change (chunk TL1, D127, proposed): the level may not be
-finishable from fresh.** Chunk LD3's progress estimate (under level rule
-12) warns on all three sections, and probes back it. In section 1 only
-`s1.sleeper.01` (B) and `s1.sleeper.15` (C, from the fusion dip's rim) are
-within a called base slime's reach; with A, B and C awake nothing fuses,
-so 3 base slimes are available against basket 1's quota of 6. The hill,
-tree and frontier-ledge sleepers didn't wake with one to three base
-slimes called under them. Sections 2 and 3 warn as a consequence (and
-`s2.sleeper.15` is out of a base slime's sideways hop since R22). The
-fix: rework the sleeper placement (ledges lowered or moved within a
-called slime's reach, same-species pairs early in section 1), keeping
-the stable IDs, and preferring moves that keep the left-to-right order
-(fixtures and tests name sleepers by ID; renumbering is allowed, since
-the level is never released, rule 20). Done when the checker gives 0
-warnings and a scripted play from `fresh` fills basket 1 (baskets 2 and 3
-from `gate1-open` and `gate2-open`); fixtures regenerated.
+**Done (chunk TL1, D129): the level is playable from fresh with base
+slimes alone.** Before, only two sleepers of section 1 were within a
+called base slime's reach (3 base slimes against basket 1's quota of 6;
+D127). TL1 moved sleepers within a called base slime's hop (133 px up,
+150 px sideways) and lined them up **touching** (centres 38 to 40 px
+apart): a woken slime wakes the sleepers it touches, so one call wakes a
+whole line (**chain waking**, 44 px wakes, 45 px doesn't). Every ledge a
+base slime is called up to keeps its underside at least 130 px over the
+loop's ground under it (rule 22 (b), the house style proposed in D129).
+Stable IDs kept, numbered left to right; species counts per section
+unchanged. In section 1:
+- **1.3:** two hollows on the fusion dip's rims, both open toward their
+  rim: `DipHollowNear` (2.58 to 2.76, 110 px over the near rim) holds
+  `s1.sleeper.14` to `.17` (A, A, B, B); `DipHollow` (3.26 to 3.46) holds
+  `.18` to `.21` (C ×4).
+- **1.5:** the tree's lower platform is **empty** (its six moved to the
+  hollows); the bough keeps `.22` to `.24` (A ×3). The tree's hint from
+  the loop is the platform's edge and the bough (rule 9, by eye).
+
+Base slimes a call can wake by each basket (the estimate, no fusion; with
+fusion in brackets): basket 1, 10 for 6 (22); basket 2, 20 for 15 (32);
+basket 3, 62 for 60 (102). `tests/e2e/test_test_level_playable_e2e.gd`
+plays each section to its basket full. Exact positions, before and after:
+`docs/dev/README.md`, "Chunk TL1".
 
 ## Section 2 — Caves (screens 8–13)
 
@@ -265,8 +274,20 @@ far rim; its underside is at least 136 px over the ground below it.
 Stable IDs are unchanged. The checker passes rule 22 and the fixtures are
 regenerated. A called base slime wakes `.16` from the far rim; `.15` is
 0.2 screens from the rim, beyond a base slime's sideways hop (150 px), and
-only size-2 and size-3 callers wake it (see the planned change in section
-1).
+only size-2 and size-3 callers wake it (fixed by chunk TL1, below).
+
+**Changed by chunk TL1 (D129).** Positions in `docs/dev/README.md`,
+"Chunk TL1":
+- **Descent:** the ground is steeper at its top (8.6, -100 to 8.9, -28),
+  the only change TL1 made to the loop's path; both side ledges moved
+  within a base slime's reach (`DescentLedge1` 8.4 to 8.57,
+  `DescentLedge2` 8.66 to 8.78).
+- **Parade:** the second ledge keeps only its A (`.11`); 5 sleepers.
+- **Second dip:** a new hollow on its near rim, `Dip2HollowNear` (10.08 to
+  10.22), holds `.12` to `.14` (B, C, D); the far hollow holds `.15` to
+  `.18` (A, B, D, D), in a touching line from the far rim.
+- **Frontier set 2:** the ledge by the switch keeps its C and D (`.19`,
+  `.20`); 8 set sleepers (its A and B moved to the dip).
 
 ## Section 3 — Big bowl (screens 13–16.5)
 
@@ -357,6 +378,27 @@ This is the stress area (rule 16, D67, O14).
 - Sleepers are numbered left to right (top to bottom where two share a
   place): `s3.sleeper.01` to `.130`.
 
+**Changed by chunk TL1 (D129).** Positions in `docs/dev/README.md`,
+"Chunk TL1":
+- **Entry ramp and the left first tier are one `RampShelf`:** top (13.31,
+  -110) down to (13.7, -58) and (14.18, -55), 20 px thick, 115 px over
+  the ramp at 13.2: its 25 sleepers (the 10 E, then the tier's 15), 39 px
+  apart. The ramp's two side ledges and `ShelfL1` are gone; the bowl
+  keeps 5 tiers (2 left, 3 right).
+- **The rim is split:** its low part `RimLow` (14.98 to 15.54, top about
+  y -236, 120 px over the plateau at 15.62) holds the first 17, 38 px
+  apart, reached by a called base slime from the plateau; its high part
+  `Rim` (15.66 to 16.2, top about y -305) holds the other 13 and is the
+  branch `s3.branch.rim` (its box x 15.64 to 16.22).
+- The ramp's shelf and the rim's low part are in no branch, like the dip
+  hollows: a slime woken there hops straight for the loop. The left
+  shelves' route back drops onto the ramp's shelf (14.14, y -79); the
+  rim's runs along its high part and down onto the plateau (15.62, -144).
+- **IDs renumbered:** section 3's IDs run left to right over all its new
+  ledges, so most name other spots than before (the same 130 IDs). Fine
+  here: the test level is never released (rule 20; a released level's
+  IDs are protected by D127's released-ID list, proposed).
+
 ## Frontier sets
 
 Each set is a switch, a basket and a gate (D14, D35, rule 12). The switch
@@ -428,32 +470,37 @@ other slime is a size-1 sleeper.
 |---|---|---|---|---|---|---|
 | 1.1 start basin (awake, then first sleeper) | 1 | 1 | | | | 2 |
 | 1.2 hills | 4 | 4 | 4 | | | 12 |
-| 1.3 fusion dip | | | 2 | | | 2 |
-| 1.5 tree: lower platform | 2 | 2 | 2 | | | 6 |
+| 1.3 fusion dip (2 hollows) | 2 | 2 | 4 | | | 8 |
+| 1.5 tree: lower platform | | | | | | 0 |
 | 1.5 tree: high bough | 3 | | | | | 3 |
 | 1.6 frontier set 1 | | 2 | 3 | | | 5 |
 | **S1** | **10** | **9** | **11** | | | **30** |
 | 2.1 descent | | | | 6 | | 6 |
-| 2.2 parade | 2 | 2 | 2 | 2 | | 8 |
-| 2.3 second dip | | | | 2 | | 2 |
+| 2.2 parade | 2 | 1 | 1 | 1 | | 5 |
+| 2.3 second dip (2 hollows) | 1 | 2 | 1 | 3 | | 7 |
 | 2.4 cave branch | 3 | 3 | 3 | 5 | | 14 |
-| 2.5 frontier set 2 | 2 | 2 | 2 | 4 | | 10 |
+| 2.5 frontier set 2 | 1 | 1 | 2 | 4 | | 8 |
 | **S2** | **7** | **7** | **7** | **19** | | **40** |
-| 3.1 entry ramp | | | | | 10 | 10 |
-| 3.2 bowl shelves | 15 | 15 | 15 | 15 | 30 | 90 |
-| 3.3 high rim | 5 | 5 | 5 | 5 | 10 | 30 |
+| 3.1 ramp's shelf (ramp + first left tier) | 3 | 3 | 2 | 2 | 15 | 25 |
+| 3.2 bowl shelves (5 tiers) | 12 | 12 | 13 | 13 | 25 | 75 |
+| 3.3 rim, low part | 3 | 3 | 3 | 2 | 6 | 17 |
+| 3.3 rim, high part | 2 | 2 | 2 | 3 | 4 | 13 |
 | **S3** | **20** | **20** | **20** | **20** | **50** | **130** |
 | **Level** | **37** | **36** | **38** | **39** | **50** | **200** |
 
-The quotas leave plenty of room in numbers (the table counts every
-sleeper placed, not the ones a called slime can reach; see the planned
-change in section 1, D127):
+As rebuilt by chunk TL1 (D129). Placed counts the sleepers by then;
+the last two columns are the base slimes a call can wake by then (the
+progress estimate, `LevelProgress.estimate`):
 
-| Basket | Quota | Slimes available by then |
-|---|---|---|
-| 1 | 6 | 30 |
-| 2 | 15 | 70 |
-| 3 | 60 | 200 |
+| Basket | Quota | Placed by then | Wakeable, base slimes alone | Wakeable, with fusion |
+|---|---|---|---|---|
+| 1 | 6 | 30 | 10 | 22 |
+| 2 | 15 | 70 | 20 | 32 |
+| 3 | 60 | 200 | 62 | 102 |
+
+Basket 3's margin is tight (62 for 60) and several ledges sit near a hop's
+limits; a missed call is simply retried. Acceptable here, the stress case
+(proposed, D129); a real level's quota ceiling is O98.
 
 ## Stable IDs (D72)
 
@@ -576,7 +623,7 @@ spot a free slime can reach leads back to the loop (rule 7).
 | 9 Hints visible | sleepers peek into the view at every branch; framing zones at the tree and the cave |
 | 10 Tilt is a bonus | tilt only helps at 1.5; nothing needs it |
 | 11 Species per section | S1: A, B, C; S2 adds D; S3 adds E |
-| 12 Switch-plus-basket | all 3 frontier sets. The progress estimate warns on all 3 sections (chunk LD3): the level may not be finishable from fresh; a planned change, see section 1 (chunk TL1, D127, proposed) |
+| 12 Switch-plus-basket | all 3 frontier sets. Every basket fills from fresh with base slimes alone (chunk TL1, D129): the progress estimate gives no warning, and `tests/e2e/test_test_level_playable_e2e.gd` plays it |
 | 13 Return route to the start per section | slides 1, 2 and 3, each with its own rail, coming home behind the loop's start (a placeholder; O22, D117) |
 | 14 Return-route exploration stays reachable | none placed on the slides yet |
 | 15 Frontier sets inert once open | all 3 sets (D86) |
@@ -586,7 +633,7 @@ spot a free slime can reach leads back to the loop (rule 7).
 | 19 Framing zones | see "Framing zones" |
 | 20 No changes after release | not applicable: never released. The `old-version` fixture exercises migrations. |
 | 21 Objects below the parent zone | every switch, basket and gate is below the parent zone in the outgoing routes' rail views (D111; chunk 23E's reading, D126, proposed). Seen from the slides' rails, the tops of `s1.basket`, `s1.gate`, `s2.gate`, `s2.switch` and `s3.switch` are in the band or off the screen; those views aren't checked |
-| 22 Where slimes come home; no low overhang on the loop | 1.1 as built (D116): the slides' tail runs under the terrace and up the ramp into the pocket behind the loop's start, so slimes coming home join behind the train; the first sleeper's ledge overhangs the terrace only inside the split zone's reach, where only base slimes pass (D117). The second dip's hollow, which broke (b), sits over the dip's far slope since chunk R22 (section 2, D127): the checker passes |
+| 22 Where slimes come home; no low overhang on the loop | 1.1 as built (D116): the slides' tail runs under the terrace and up the ramp into the pocket behind the loop's start, so slimes coming home join behind the train; the first sleeper's ledge overhangs the terrace only inside the split zone's reach, where only base slimes pass (D117). The second dip's hollow, which broke (b), sits over the dip's far slope since chunk R22 (section 2, D127): the checker passes. Since chunk TL1 every ledge a base slime is called up to keeps its underside at least 130 px over the loop's ground under it (D129, proposed house style) |
 
 ## What this level does not settle
 

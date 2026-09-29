@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v34
+Status: draft v35
 
 ## One-liner
 
@@ -269,6 +269,8 @@ survives the app being killed.
 | heading back | a free slime making for the loop |
 | size | the number of base slimes a slime is made of; equals its weight |
 | base slime | a slime of size 1, the unit that sizes, weights, quotas and the 200-slime cap count in; every sleeper is one |
+| chain waking | a woken slime waking the sleepers it touches, which wake the ones they touch, so one call wakes a whole touching line (measured: centres 44 px apart wake, 45 px don't; D129) |
+| touching line | sleepers placed with their centres at most 44 px apart (the test level uses 38 to 40), so they all wake by chain waking once one does; a line off screen wakes as it comes into view |
 | section | the part of a level opened by one gate |
 | split zone | a place that splits slimes back into base slimes; the start of the loop has one (replaces "defusing spot") |
 | route back | the route an exploration branch provides back to the loop |

@@ -1,6 +1,6 @@
 # Level design requirements
 
-Status: draft v11
+Status: draft v12
 
 Rules every level must follow, whoever builds it. These rules make up the
 checklist for every level's design (see `levels/`). Levels are
@@ -41,6 +41,10 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     the slimes that can be woken by then, starting from a fresh game. The
     level-rules checker estimates it and only warns (it can't see climbs
     or lips); a played test is the proof.
+    *Reading (proposed, D129):* "the slimes the train can make", fusion
+    included, as the checker estimates by default; filling with base
+    slimes alone is not required (that would make fusion never needed).
+    Sleepers in a **touching line** wake together (chain waking).
 13. **Each section needs its own return route to the start** from its unopened
     frontier gate. It is part of the loop and has its own camera rail (D79).
     How that route works is O22; where it meets the start is rule 22.
@@ -108,3 +112,7 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     path (D117, D123). The level-rules checker measures (b) with the
     simulation's own numbers (a called base slime reaches about 133 px, a
     size 3's hop about 130 px; `docs/dev/level-tooling.md`, D126).
+    *House style (proposed, D129):* a ledge a called base slime must
+    reach keeps its underside at least 130 px over any loop ground under
+    it, wherever the slime reaches it from (stricter than the checker,
+    which measures only ledges within reach of the loop beneath them).
