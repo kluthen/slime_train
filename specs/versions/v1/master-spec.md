@@ -11,7 +11,10 @@ the points the build raised while building, were approved by the user on
 2026-09-29, as were the points chunk 16 added (the stalled train slime and
 its safety net, 5.2 and Definition of done 1; where a return route meets
 the start, now level rule 22 in 5.11), and the details chunk 23's build
-chose (23A–23D). Nothing here is tagged (proposed).
+chose (23A–23D). The readings chunk 23E took where the spec was silent
+(a sleeper's tap margin, where a hit area's floor sits, overlapping hit
+areas, which views level rule 21 checks) are tagged (proposed) until the
+user approves them.
 
 ## 1. Concept and objective
 
@@ -178,7 +181,8 @@ One term per concept, used everywhere in the code and documents.
 - **Completing the level:** when the last basket fires, nothing ends. The
   loop is complete and the world stays open, with a one-time celebration
   (input stays live, the camera stays where it is), after which a small
-  lasting mark at the start of the loop shows the level is complete. The
+  lasting mark at the start of the loop shows the level is complete.
+  During the burst, every awake slime on screen does a double hop. The
   mark appears once the celebration's burst ends.
   Moving on to another level waits for paid levels (a later version).
 - The **start of the loop** carries a split zone.
@@ -232,13 +236,17 @@ One term per concept, used everywhere in the code and documents.
   case is logged; the 60 s count starts again from the move. A slime asleep
   at bedtime is never counted as stalled. It is a safety net for play, not
   something that happens in normal play (Definition of done 1).
-- A slime moved to the start of the loop as stuck or stalled lands on the
-  first free spot of a short row of spots there, one slime width apart
-  (the numbers are in `tuning.md`).
+- A slime moved to the start of the loop, whether lost, stuck or
+  stalled, lands on the first free spot of a short row of spots there, one
+  slime width apart (the numbers are in `tuning.md`).
 
 **Waking**
 
-- Tapping a sleeper is a call centred on it.
+- Tapping a sleeper is a call centred on it. A tap counts as on a
+  sleeper within a small margin around its drawing (24 screen px), not
+  the 20 × 20 mm floor of objects' hit areas: a sleeper is a slime, and
+  such a floor would turn any tap within about 1 cm of it into a call
+  centred on it (proposed).
 - A sleeper wakes when a free slime touches it, on screen. Train slimes never
   wake sleepers. The woken slime is free and, in time, heads back to the
   train.
@@ -312,8 +320,12 @@ tap on a basket, a gate, a signpost, or a switch that isn't answering (its
 basket full, or inert for good) is a call. **Hit areas** are the drawn
 object grown by 5 mm on every side, and never smaller than 20 × 20 mm, both
 measured on the screen at the current zoom: zooming out shrinks the drawing,
-never the hit area's floor. Where two hit areas overlap, the object whose
-centre is nearest the tap takes it.
+never the hit area's floor. A hit area still smaller than the floor grows
+about the object's centre (proposed). Where two hit areas overlap, the
+object whose centre is nearest the tap takes it, among the objects
+answering a tap right now: a filling basket's switch takes the tap even
+where a basket's centre is nearer, since a basket never answers a tap
+(proposed).
 
 - **Switch.** Stands at the fork just before the frontier gate. By default it
   sends the flow back to the start (by the return route). Tapping it flips it
@@ -628,7 +640,10 @@ Every level, the test level included, follows these rules.
 20. A released level isn't meant to change; any update is minor, ships with a
     save migration, and keeps stable IDs.
 21. At the rails' framing, every interactive object sits fully below the
-    parent zone.
+    parent zone. The views checked are the settled views of the outgoing
+    route's rails, framing zones included; the return routes' views aren't
+    checked. An object framed above the top of the screen fails too, and
+    switches, baskets and gates are all checked (proposed).
 22. A return route delivers slimes into the start behind the loop's start,
     travelling the loop's way, never along the loop's first stretch against
     the flow; and nothing a base slime must be called up to overhangs the

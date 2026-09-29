@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v19
+Status: draft v20
 
 ## States
 
@@ -70,7 +70,8 @@ and it may roll downhill. Phase names were adopted in D75.
   logged as stalled, and the 60 s count starts again from the move. A slime
   asleep at bedtime is never counted as stalled or moved. As built (chunk
   23A, D124): it lands as a stuck slime does, and the log keeps
-  the last 64 cases.
+  the last 64 cases. A lost free slime (D10) lands the same way too: the
+  build uses one move to the start of the loop for all three (D126).
 - DoD 1's "no slime ever becomes lost" includes stalled train slimes: the
   safety net is for play, and a stall in the DoD 1 test is still a failure.
 

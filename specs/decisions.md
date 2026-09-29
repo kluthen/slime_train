@@ -1421,3 +1421,84 @@ The user approved D124 as written ("as for the rest i approve").
   D124 doesn't design them.
 - The spec no longer tags these (proposed): the master spec (5.1, 5.2,
   5.4, 5.5, 5.6), `slimes.md` and `tuning.md`.
+
+## D126 — What chunks 23E and LD1 chose where the spec was silent; the spec catches up on two approved points (2026-09-29)
+**Parts 1 and 2 are proposed and wait for the user's approval.** Part 3
+catches the spec up with behaviour the user already approved; part 4 is
+the build order. Written into the master spec (5.1, 5.2, 5.4, 5.11),
+`concept.md`, `slimes.md`, `interactive-objects.md`, `level-design.md`,
+`tuning.md`, `levels/test/README.md` and the build plan, with the proposed
+parts tagged (proposed).
+
+**1. Chunk 23E (23.6, 23.7, 23.9), its own readings (proposed).**
+- **A sleeper's tap margin:** a tap within 24 screen px of a sleeper's
+  drawing is a tap on it (a call centred on it). D109's 20 × 20 mm floor
+  isn't used: D109 sizes objects' hit areas, and a sleeper is a slime. A
+  20 mm floor would turn any tap within about 1 cm of a sleeper into a
+  call centred on the sleeper.
+- **Hit areas (D109):** the drawing grown by 5 mm on every side, then, if
+  still smaller, grown **about its centre** to 20 × 20 mm, at the current
+  zoom. The spec didn't say where the floor sits; 23E centres it on the
+  object.
+- **Overlapping hit areas:** only an object answering a tap right now can
+  take one (D109), so the nearest centre is compared among those only.
+  Where a filling basket's switch overlaps a basket, the switch takes the
+  tap even when the basket's centre is nearer.
+- **Level rule 21, which views count:** the settled views of every
+  section's outgoing route's rails, with the gates before it open and the
+  framing zones in place, on the reference phone's screen (1440 × 648
+  viewport px, where the parent zone is about 67 px). The return routes'
+  rails (the slides) aren't checked: seen from them, the camera puts the
+  tops of `s1.basket`, `s1.gate`, `s2.gate`, `s2.switch` and `s3.switch`
+  in the parent zone or off the top of the screen. The rule's wording ("at
+  the rails' framing") doesn't settle whether a return route's views
+  count. The consequence to weigh: from a slide's rail the child may see
+  switch 2 or 3 under the parent zone, where a tap on it reveals the parent
+  buttons; the switch can be tapped from the outgoing route's rail.
+- **Level rule 21, what fails and what counts:** an object framed above
+  the top of the screen fails, as one whose top is in the parent zone
+  does. The objects checked are every switch, basket and gate. Baskets and
+  gates don't answer taps (D109), so this is stricter than the rule's
+  "so the child can operate it"; signposts and sleepers aren't checked.
+- **The edge strips on test mode's window (D99):** on test mode's default
+  1152 × 648 window, with the camera aimed at basket 1, switch 1's centre
+  is inside the left strip; on the reference phone's 1440 px wide screen it
+  is clear. This refines chunk 23B's note in the test level. No change
+  proposed.
+
+**2. Chunk LD1, the level-design toolkit's tools (proposed).**
+- **A real break of level rule 22 (b) on the test level.** The level-rules
+  checker found that `s2.sleeper.15` and `.16` rest on
+  `Terrain/Dip2Hollow`, which overhangs the loop from x 9.93 to 10.0
+  screens, outside the split zone. Its underside is 110 px over the loop's
+  ground, where a size-3 hop reaches about 130 px (the hop is clipped by
+  about 20 px but not stopped, and rule 2's laps pass). Its floor is 130 px
+  up, and a called base slime reaches about 133 px. The checker reports
+  it and fails on the test level until it is fixed.
+- **Proposed fix (the orchestrator's default):** move the hollow so it no
+  longer overhangs the loop's path, then regenerate the fixtures. Raising
+  it isn't the fix: its floor would then be out of a called base slime's
+  reach. A small test-level fix, planned before chunk 18.
+- **Rule 18's threshold:** the checker takes "close" as within a third of
+  a screen, the distance the test level first planned for its first
+  sleeper (it was built at 0.27, D116). Making rule 18 measurable is still
+  O94 (v2). This is the checker's working threshold until O94 is settled.
+- **Rule 22's thresholds:** (b)'s come from the simulation's constants: a
+  called base slime reaches about 133 px, and a size-3 train slime's hop
+  top is about 130 px. They follow the constants if those change. (a)'s
+  numbers (48 px from the loop's first 1.5 screens, an 80 px join) are the
+  checker's. All are in `docs/dev/level-tooling.md`.
+
+**3. The spec catches up (approved behaviour, not proposals).**
+- **The celebration's double hop** (ux D4, Q15; its values in D124,
+  approved in D125): every awake slime on screen does a double hop during
+  the burst. Master spec 5.1 didn't say so; it does now.
+- **Lost free slimes land like stuck and stalled ones:** the build uses
+  the same move (the first free spot of 8 at the start of the loop, one
+  slime width apart) for a lost free slime too. Master spec 5.2 gave that
+  landing for stuck and stalled slimes only; it now names all three.
+
+**4. The build order.** Chunk 23 (23A to 23E) is done once 23E merges.
+Chunk LD1 (the tools) is done; LD2 (the tutorial and the project skills)
+is in progress. Next, a small test-level fix for rule 22 (b), then chunk
+18.

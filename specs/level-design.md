@@ -1,6 +1,6 @@
 # Level design requirements
 
-Status: draft v9
+Status: draft v10
 
 Rules every level must follow, whoever builds it. These rules make up the
 checklist for every level's design (see `levels/`). Levels are
@@ -58,7 +58,9 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
 ## Onboarding
 
 18. **The first sleeper is placed close to the first awake slime**, so the
-    first-play hint and the first call pay off quickly (D65).
+    first-play hint and the first call pay off quickly (D65). The
+    level-rules checker takes "close" as within a third of a screen until
+    O94 makes the rule measurable (D126).
 
 ## Camera
 
@@ -76,7 +78,11 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
 21. **At the rails' framing, every interactive object sits fully below the
     parent zone** (the band along the top of the screen), so the child can
     operate it: the call drag is the only way to move the camera up
-    (D111).
+    (D111). *Reading (chunk 23E, D126, proposed):* the views checked are
+    the settled views of every section's outgoing route's rails, framing
+    zones included, on the reference phone's screen; the return routes'
+    rails aren't checked. An object framed above the top of the screen
+    fails too. Switches, baskets and gates are checked.
 
 ## The start
 
@@ -87,4 +93,6 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     the loop where larger slimes pass**: a ledge a called size 1 can reach
     is too low for a size 2 or 3 to pass under, so such a ledge sits where
     only base slimes pass (inside the split zone's reach) or off the loop's
-    path (D117, D123).
+    path (D117, D123). The level-rules checker measures (b) with the
+    simulation's own numbers (a called base slime reaches about 133 px, a
+    size 3's hop about 130 px; `docs/dev/level-tooling.md`, D126).

@@ -1,6 +1,6 @@
 # Interactive objects
 
-Status: draft v10
+Status: draft v11
 
 **Versions (D50, D54):** v1 has only the frontier-gate set (switch, basket,
 gate) and the split zone at the start of the loop. Every other object comes in
@@ -28,7 +28,12 @@ that doesn't answer taps (a basket, a gate, a signpost), or that isn't
 answering right now (a switch whose basket is full, or inert), is a call.
 Hit areas are the drawn object grown by 5 mm on every side, never smaller
 than 20 × 20 mm, both measured on the screen at the current zoom (D91,
-D109). Every new object must say when it answers taps.
+D109). A hit area still smaller than the floor grows about the object's
+centre (D126, proposed). Where hit areas overlap, the nearest centre is
+compared only among objects answering a tap right now: a filling basket's
+switch takes the tap even where a basket's centre is nearer (D126,
+proposed). Sleepers are slimes, not objects: their tap margin is in
+`concept.md`. Every new object must say when it answers taps.
 
 ## Catalogue
 

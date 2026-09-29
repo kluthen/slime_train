@@ -1,6 +1,6 @@
 # Test level
 
-Status: draft v12
+Status: draft v13
 
 A compact level that puts nearly every v1 gameplay item in one place (D76).
 It is the testing ground while the game is built, and the level the
@@ -155,7 +155,11 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
   (hit areas, taps on objects) and the level-rule tools: a scripted tap on
   switch 1 has to aim the camera so the switch clears the strip, and a
   level-rule check may want to report objects that fall under a strip at
-  the framing where the child meets them.
+  the framing where the child meets them. *Refined in chunk 23E (D126):*
+  this holds on test mode's default 1152 × 648 window, where switch 1's
+  centre is inside the left strip with the camera aimed at basket 1; on
+  the reference phone's 1440 px wide screen it is clear. No change
+  proposed.
 
 ## Section 2 — Caves (screens 8–13)
 
@@ -206,7 +210,8 @@ positions (x in screens, y in px, up is negative):
 - **Parade:** two overhang ledges (9.15 to 9.36 and 9.6 to 9.81, y -240),
   4 sleepers on each.
 - **Second dip:** 10.0 to 10.5, 120 px deep; its 2 D sleepers sit in a
-  hollow on its left rim (9.93 to 10.09).
+  hollow on its left rim (9.93 to 10.09); it is to move (see the planned
+  change below).
 - **The cave:** a climb of 4 steps (10.5 to 10.95) up to the pocket (10.95
   to 11.65, floor at y -700) with its 14 sleepers. The branch is
   `s2.branch.cave`. Its route back, `s2.route-back.cave`, runs along the
@@ -228,6 +233,17 @@ positions (x in screens, y in px, up is negative):
   and the cave pocket's 14 sleepers at once (rule 9). It stays clear of
   `s2.frame.gate`. Their zooms are in `../../tuning.md`.
 - Sleepers are numbered left to right: `s2.sleeper.01` to `.40`.
+
+**Planned change: the second dip's hollow breaks rule 22 (b)** (found
+by chunk LD1's level-rules checker, D126, proposed). `s2.sleeper.15`
+and `.16` rest on `Terrain/Dip2Hollow`, which overhangs the loop from
+9.93 to 10.0, outside the split zone. Its underside is 110 px over the
+loop's ground (a size-3 hop reaches about 130 px, so it is clipped by
+about 20 px but not stopped); its floor is 130 px up (a called base
+slime reaches about 133 px). The fix: move the hollow so it no longer
+overhangs the loop's path, then regenerate the fixtures. Raising it
+would put its floor out of a called base slime's reach. Until then the
+checker fails on the test level for this rule.
 
 ## Section 3 — Big bowl (screens 13–16.5)
 
@@ -536,11 +552,11 @@ spot a free slime can reach leads back to the loop (rule 7).
 | 15 Frontier sets inert once open | all 3 sets (D86) |
 | 16 At most 200; piles mostly still | exactly 200; the big piles sit in basket pits |
 | 17 No sleepers on the loop | every sleeper sits on a ledge, bump, shelf or platform |
-| 18 First sleeper close | 1.1, about a quarter of a screen away (0.27) |
+| 18 First sleeper close | 1.1, about a quarter of a screen away (0.27); the checker's threshold is a third of a screen until O94 (D126) |
 | 19 Framing zones | see "Framing zones" |
 | 20 No changes after release | not applicable: never released. The `old-version` fixture exercises migrations. |
-| 21 Objects below the parent zone | the three switches sit on the loop, well below the parent zone at the rails' framing (D111); a level-rule test checks it (chunk 23) |
-| 22 Where slimes come home; no low overhang on the loop | 1.1 as built (D116): the slides' tail runs under the terrace and up the ramp into the pocket behind the loop's start, so slimes coming home join behind the train; the first sleeper's ledge overhangs the terrace only inside the split zone's reach, where only base slimes pass (D117) |
+| 21 Objects below the parent zone | every switch, basket and gate is below the parent zone in the outgoing routes' rail views (D111; chunk 23E's reading, D126, proposed). Seen from the slides' rails, the tops of `s1.basket`, `s1.gate`, `s2.gate`, `s2.switch` and `s3.switch` are in the band or off the screen; those views aren't checked |
+| 22 Where slimes come home; no low overhang on the loop | 1.1 as built (D116): the slides' tail runs under the terrace and up the ramp into the pocket behind the loop's start, so slimes coming home join behind the train; the first sleeper's ledge overhangs the terrace only inside the split zone's reach, where only base slimes pass (D117). **Breaks (b) at the second dip's hollow** (9.93 to 10.0): a planned change, see section 2 (D126) |
 
 ## What this level does not settle
 

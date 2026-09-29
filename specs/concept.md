@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v31
+Status: draft v32
 
 ## One-liner
 
@@ -85,7 +85,9 @@ The slimes stand in for LocoRoco.
 
 ## Waking sleepers (D13)
 
-Tapping a sleeper calls nearby awake slimes toward it. A sleeper wakes only
+Tapping a sleeper calls nearby awake slimes toward it. A tap within 24
+screen px of a sleeper's drawing counts as on it; objects' 20 × 20 mm floor
+(D109) doesn't apply to sleepers, which are slimes (D126, proposed). A sleeper wakes only
 when a **free slime** (one that answered a call) touches it. Train slimes
 never wake sleepers, and sleepers never sit on the loop (D70). Waking happens
 only on screen. The woken slime, being free, in time rejoins the train. Slime

@@ -1,7 +1,8 @@
 # Slime Train v1 — Build plan
 
-Status: draft v12 (approved by the user, 2026-09-29, D108; chunk 23 moved
-before 18 and chunk LD added, D123)
+Status: draft v13 (approved by the user, 2026-09-29, D108; chunk 23 moved
+before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
+test-level fix for rule 22 (b) before 18, D126)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -106,10 +107,17 @@ technology, not business behaviour:
   strips (23.2, 23.6b, 23.8), **23C** camera (23.1, 23.4, 23.10, 23.12)
   and **23D** bedtime baskets and the celebration's mark (23.5, 23.11).
   Their own values and choices, and three additive save-format changes,
-  are recorded in D124, approved by the user (D125).
-- **Next:** **23E** objects and taps (23.6, 23.7, 23.9). New reports added
-  to the list are placed after 23E. **In parallel:** chunk LD (the
-  level-design toolkit, D123). Then 18 onward. (5N is a contingency, run only if chunk 22 fails, D96.)
+  are recorded in D124, approved by the user (D125). **23E** objects and
+  taps (23.6, 23.7, 23.9) is built on its own branch; chunk 23 is done
+  once it merges. Its own readings are in D126 (proposed). New reports
+  added to the list are placed after 23E.
+- **Chunk LD** runs as **LD1** (the tools), done, and **LD2** (the
+  tutorial and the project skills), in progress. LD1's checker found a
+  rule 22 (b) break on the test level (D126, proposed).
+- **Next:** a small test-level fix for rule 22 (b): move the second dip's
+  hollow off the loop's path and regenerate the fixtures (see
+  `../../levels/test/README.md`). Then 18 onward. (5N is a contingency,
+  run only if chunk 22 fails, D96.)
 - **Closing step, last of all:** the coding-rule health review
   (`CODING_RULE.md`'s health and clean-up list), after every other chunk
   (D122, kept by D123).
@@ -657,8 +665,8 @@ Asked for by the user (D123). Tooling for whoever designs a level: no
 Definition of done item and no business behaviour, so no ATD steps; it
 still goes test first. It runs in parallel with chunk 23 and builds on what
 chunk 16 left: the test level, its level-rule tests and the level bench.
-Large: a candidate to split when it starts (tools, then tutorial and
-skills).
+Split (D126) into **LD1**, the tools (done), and **LD2**, the tutorial
+and the skills.
 
 - **Tools.**
   - **A level-rules checker, usable on any level.** For every rule in

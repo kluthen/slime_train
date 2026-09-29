@@ -20,7 +20,8 @@ value to try. When a value is tuned, update it here and log the result in
 | Code prompt closes by itself | about 15 s with no input | D83 |
 | Settings close by themselves | 30 s with no input, a warning over the last 10 s; any touch resets it; the screens opened from settings too | D113 |
 | Parent buttons hide | after 5 s with no press; a new tap on the parent zone restarts it | D113 |
-| Hit area of an interactive object | the drawing plus 5 mm on every side, at least 20 × 20 mm, on the screen at the current zoom | D109 |
+| Hit area of an interactive object | the drawing plus 5 mm on every side, at least 20 × 20 mm, on the screen at the current zoom; a smaller one grows about the object's centre (proposed) | D109, D126 |
+| A tap on a sleeper | within 24 screen px of its drawing (proposed; to try) | D126 |
 | Parent-facing targets | at least 9 × 9 mm on the screen, at least 2 mm apart | D109, ux D3 |
 | The parent zone | a band 7 mm high on the screen, full width, unmarked | D113, ux D4 |
 | A thumb resting on an edge strip | after about 5 s held, it stops blocking other touches (to check in a playtest) | D110 |
@@ -151,7 +152,7 @@ All **to try**: recorded in D124, approved in D125.
 
 | Value | Start at | Source |
 |---|---|---|
-| Landing at the start of the loop (stuck or stalled move) | the first free spot of 8, one slime width apart | D124 |
+| Landing at the start of the loop (lost, stuck or stalled move) | the first free spot of 8, one slime width apart | D124, D126 |
 | Stuck and stalled logs | keep the last 64 cases each | D124 |
 | Millimetres on the desktop and in tests | converted at the reference phone's density; a phone reporting a density of 0 or less logs an error and uses the reference density too | D124 |
 | A resting thumb (about 5 s) | 300 ticks | D110, D124 |
@@ -189,8 +190,10 @@ These stand in until `ui_ux/` designs them.
   by 80% of the strip's width (D124).
 - **The parent zone:** built (chunk 23B) as a band 7 mm high on the screen
   (ux D4, D113).
-- **An object's hit box:** its drawn box grown by 24 px; to become the
-  drawing plus 5 mm, at least 20 × 20 mm on the screen (D109, chunk 23).
+- **An object's hit box:** built (chunk 23E) as the drawing plus 5 mm,
+  at least 20 × 20 mm on the screen, the floor grown about the centre
+  (D109; the centring proposed, D126). A sleeper keeps a 24 screen-px
+  margin (proposed, D126).
 - **Dusk colour** (`DUSK_COLOUR`): the tint at full dusk, RGB (0.55, 0.52,
   0.78), over the world only (the parent band and buttons aren't tinted).
 - **Frontier art:** the shut trapdoors, closed gate boxes and shut lids as
