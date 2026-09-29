@@ -1,7 +1,7 @@
 ---
 id: req_persistence_and_saves
 status: DRAFT
-version: 1.0
+version: 1.1
 type: REQUIREMENT
 layer: BUSINESS
 priority: 4
@@ -19,10 +19,10 @@ parents:
 Define what a save contains and the rules that keep it safe and stable across updates.
 
 ## THE RULE / LOGIC
-The save holds each slime's species, size, state and position, and the state of every interactive object and gate. There is one save file per level; a parent can delete one level's save from settings. (proposed, D95, pending the user's approval — O72) Deleting the running level's save reloads it fresh at once, as on a fresh install: the hint is due again and the celebration can play again; the session or bedtime and their timers carry on untouched, since they aren't part of a level's save; deleting also removes the save's backup. The game saves every 15 s and whenever the app goes to the background. On load, a slime saved in mid-air is put on the ground or back at the start of its jump, whichever is easier to build; if neither works, it is lost. Saves are never wiped: a released level isn't meant to change, and if one does, the change is minor and ships with a save migration, with slimes it displaces treated as lost; the save records the level's version, and slimes, objects and gates have stable IDs. Saves are written atomically, and the previous one is kept as a backup used if the latest can't be read.
+The save holds each slime's species, size, state and position, and the state of every interactive object and gate. There is one save file per level; a parent can delete one level's save from settings. Deleting removes the save and its backup; if that level is running, it reloads fresh at once, as on a fresh install: the first-play hint is due again, and the celebration can play again when the level is completed again. The session or bedtime and their timers carry on untouched. Where the session lives: while v1 has one level, the session (its phase, elapsed time and clock anchor) is kept in the level's save, so a killed app resumes where it was; deleting the level's save keeps the running session and writes it into the fresh save, so deleting a save can't dodge bedtime. With several levels (a later version), the session moves to a store of its own, outside any level's save. The game saves every 15 s and whenever the app goes to the background. On load, a slime saved in mid-air is put on the ground or back at the start of its jump, whichever is easier to build; if neither works, it is lost. Saves are never wiped: a released level isn't meant to change, and if one does, the change is minor and ships with a save migration, with slimes it displaces treated as lost; the save records the level's version, and slimes, objects and gates have stable IDs. Saves are written atomically, and the previous one is kept as a backup used if the latest can't be read; if neither can be read, that level starts fresh.
 
 ## TECHNICAL INTERFACE
 Parented to req_loop_and_world. The delete-one-level-save action is gated by req_parent_gate_and_access.
 
 ## EXPECTATION
-Killing the app at any moment and reopening it restores slimes, objects and gates as of the last save (at most about 15 s old), with no slime left in mid-air (definition of done item 28). Deleting one level's save resets that level only (definition of done item 29). (proposed, D95, pending the user's approval — O72) That reload happens fresh at once, with the hint and the celebration due again, while the session or bedtime and their timers keep running and the save's backup is removed too.
+Killing the app at any moment and reopening it restores slimes, objects and gates as of the last save (at most about 15 s old), with no slime left in mid-air (definition of done item 28). Deleting one level's save resets that level only; its backup goes too, and a running level reloads fresh at once, with the hint and the celebration due again, while the session timers carry on (definition of done item 29): a session or bedtime running when the save is deleted is still running in the fresh save and ends on time.

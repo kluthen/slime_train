@@ -19,8 +19,11 @@ dependents:
   - [[rule_hints_visible_from_loop]]
   - [[rule_loop_travelable_with_no_input]]
   - [[rule_max_200_slimes_per_level]]
+  - [[rule_no_called_ledge_over_loop]]
   - [[rule_no_dead_ends]]
+  - [[rule_objects_below_parent_zone]]
   - [[rule_released_level_stable_with_migration]]
+  - [[rule_return_route_joins_start_behind_train]]
   - [[rule_return_route_may_carry_exploration]]
   - [[rule_return_route_per_section]]
   - [[rule_signpost_at_every_fork]]
@@ -29,7 +32,7 @@ dependents:
   - [[rule_tilt_never_required]]
 human_name: Level design rules
 tags: [level-rules]
-version: 1.0
+version: 1.1
 ---
 
 # Level design rules
@@ -38,10 +41,10 @@ version: 1.0
 Require that every level, the test level included, satisfies a fixed set of structural and pacing rules.
 
 ## THE RULE / LOGIC
-Every level built for Slime Train, the test level included, must follow the full set of level design rules recorded as this atom's children (rule_loop_travelable_with_no_input through rule_released_level_stable_with_migration). These rules exist so that any level, current or future, keeps the same guarantees: it can always be watched with no input, it never traps a slime or the child, and it stays consistent with the game's design stance. A level that violates any child rule fails the level-rules check that v1's definition of done requires for the real first level.
+Every level built for Slime Train, the test level included, must follow the full set of level design rules recorded as this atom's children (rule_loop_travelable_with_no_input through rule_objects_below_parent_zone, plus the two halves of the rule about where return routes meet the start: rule_return_route_joins_start_behind_train and rule_no_called_ledge_over_loop). These rules exist so that any level, current or future, keeps the same guarantees: it can always be watched with no input, it never traps a slime or the child, and it stays consistent with the game's design stance. A level that violates any child rule fails the level-rules check that v1's definition of done requires for the real first level.
 
 ## TECHNICAL INTERFACE
-Parented to req_scope_one_level_four_sections. Each child RULE atom states one of the 20 rules from the master spec's Level rules section.
+Parented to req_scope_one_level_four_sections. Each child RULE atom states one of the 22 level rules; level rule 22 joins two constraints and so has two child atoms.
 
 ## EXPECTATION
 v1 is done only when the real first level (designed later) passes the level-rules check against every child rule of this atom.

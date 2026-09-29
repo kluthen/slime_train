@@ -10,6 +10,7 @@ dependents:
   - [[req_call_mechanic]]
   - [[req_hopping_behavior]]
   - [[req_waking_sleepers]]
+  - [[rule_stuck_slimes_moved_to_start]]
 type: REQUIREMENT
 priority: 5
 human_name: Slime states
