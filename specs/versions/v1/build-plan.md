@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v9 (proposed; waiting for the user's review)
+Status: draft v10 (approved by the user, 2026-09-29, D108)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -88,15 +88,17 @@ technology, not business behaviour:
 - **Done:** 0 to 15 and 17; 1 on the desktop and the reference phone (the
   floor phone waits for its purchase). Chunks 14 and 17 raised O82 to O86
   (the session in the level's save, baskets at bedtime, the switch locked
-  once the basket is full, the gate's lid, a state for slimes in a basket).
+  once the basket is full, the gate's lid, a state for slimes in a basket),
+  settled in D104–D106.
   Chunk 15 built section 2 in greybox with the off-screen simulation.
 - **In progress:** 16. Done so far: section 3 in greybox, the full
   population of 200, every fixture regenerated (with `gate2-open` added),
   the suite green. Left: the level-rule tests, the whole-level DoD 1 test,
   the level bench, the developer notes and the intent tags. Chunks 15 and
-  16 raised O87 (the rest rule's anchor).
+  16 raised O87 (the rest rule's anchor), settled in D107.
 - **Next:** 18. (5N is a contingency, run only if chunk 22 fails,
-  D96.) Chunk 23 (small issues from play) is an open list, run after 22.
+  D96.) Chunk 23 (small issues from play) is an open list, run after 22;
+  its item 23.5 (baskets at bedtime) lands before 22.
 
 ## Overview
 
@@ -360,10 +362,11 @@ parallel with the camera and objects work.
   closes by itself. Nothing pauses.
 - The code is stored locally, never in plain text.
 - The rules follow `access-model.md`.
+- Debug tools: they move below the ingame menu when it appear. 
 - **Atoms (preflight start):** `req_parent_gate_and_access`, `req_actor_roles_and_permissions`, `req_denial_and_stepup_behavior`, `req_persistence_and_saves` (deleting a save).
-- **Open point (O82):** the build keeps the session in the level's save.
-  Deleting that save must keep the running session (and write it into the
-  fresh save), or deleting the save escapes bedtime.
+- **The session on delete (D104):** the session lives in the level's save.
+  Deleting that save keeps the running session and writes it into the fresh
+  save, so deleting the save can't escape bedtime.
 - **Done when:** [DoD 23, 24, 29] pass on desktop. The "forgot the code?"
   path is stubbed until chunk 20.
 
@@ -406,6 +409,11 @@ parallel with the camera and objects work.
   (once the phone has throttled), plus normal play.
 - `stress-still` and `stress-moving` are measured too and recorded; they are
   measurements, not targets (D96).
+- **Resting piles (D107):** measure a bedtime pile in the open (it may take
+  about a minute to rest with the fixed anchor), and how often an awake slime
+  hopping against a pile wakes it; revisit the rest rule if either costs
+  the targets. Bring the code comment on `REST_DRIFT` in line with the rule
+  (the anchor is fixed where the count started, not a sliding window).
 - **Atoms (preflight start):** `req_platform_and_performance_targets`, `rule_max_200_slimes_per_level`.
 - **Done when:** [DoD 30] holds: 60 fps on the reference phone in normal
   play, and at least 30 fps on the floor phone in the realistic worst case
@@ -421,8 +429,8 @@ new reports are added here as they come, each with the spec change it
 needs and its own done-when. It runs **after chunk 22**, so it doesn't
 disturb the performance measurement; an issue can be pulled forward if it
 blocks testing. Each issue is small (S) and can land on its own. An issue
-tagged **(proposed)** still waits for the user's approval; 23.1 to 23.3 are
-decided (D99 to D101).
+tagged **(proposed)** still waits for the user's approval; 23.1 to 23.5 are
+decided (D99 to D101, D103, D105).
 
 **23.1 Call camera dead zone** (reported and decided 2026-09-29; D101;
 master spec 5.6).
@@ -440,7 +448,7 @@ master spec 5.6).
 2026-09-29; D99, which settles O81; master spec 5.5).
 - A tap within 10% of the screen's width from the left or right edge, over
   the whole height below the parent zone, is an edge-button press: step and
-  hold as now (O70), right forward and left backward (D90). The strip takes
+  hold as now (D102), right forward and left backward (D90). The strip takes
   the whole tap: no call, and no object under it is operated. The parent
   zone wins in the top corners. Hidden at bedtime as now: a tap there is
   then an ordinary tap. The drawn arrows stay placeholders for `ui_ux/`.
@@ -470,6 +478,30 @@ master spec 5.6).
 - **Not in this issue:** finding why it happens (O91, not urgent). When
   it is found, the fix comes with a test that reproduces it, and the safety
   net can be reconsidered.
+
+**23.4 The idle camera never zooms in** (decided 2026-09-29; D103; master
+spec 5.6). A change to chunk 13's idle camera.
+- Where the camera is already wider than the idle and screensaver zoom
+  (inside a wide framing zone), the idle cue and the idle camera keep that
+  zoom instead of zooming in. Tilt still doesn't count as input for the idle
+  clock (already built).
+- **Done when:** in the test level's tree zone (zoom 0.7), the idle cue and
+  the idle camera never raise the zoom above 0.7; in a zone narrower than
+  the idle zoom, the cue zooms out as before; [DoD 19] still passes.
+
+**23.5 Baskets at bedtime** (decided 2026-09-29; D105; master spec 5.4
+and 5.7). A change to chunks 14 and 17. **Pull it forward: land it before
+chunk 22**, which measures bedtime piles.
+- At bedtime a basket's releases pause and resume at sunrise; the slimes in
+  it sleep in place (they stay in the basket, shown asleep) and sunrise
+  doesn't move them out; a reward that is due or playing waits for sunrise,
+  so no gate opens and no celebration plays during bedtime. Saved and in
+  the state hash, like the rest of the set's state.
+- **Done when:** from `bedtime` with a basket releasing (and, in a second
+  test, a full basket in view with its reward due), no slime is released and
+  no gate opens until sunrise, then both resume; slimes in the basket stay
+  in it through sunrise; a save taken during bedtime reloads the same;
+  [DoD 21] and [DoD 9] still pass.
 
 ### 5N. Native simulation tick (contingency, only if chunk 22 fails)
 
@@ -514,20 +546,9 @@ while another chunk edits the slime body code.
 
 ## Open questions that block chunks
 
-Raised by the first UX review. Each must be settled before its chunk is
-finished (see the master spec's Known gaps, item 6). All of them now have
-proposed defaults in the master spec and access model, tagged (proposed)
-(D95): a chunk builds to them and can close on them unless the user
-overrules them.
-
-| Chunk | Questions |
-|---|---|
-| 7 Taps and the call | O67 (second-finger ripple) |
-| 9 Hint | O71 (when the 10 s start; reset on delete) |
-| 12 Camera rails | O70 (edge-button press) |
-| 17 Session | O68 (reopening the app), O69 (which taps start a session) |
-| 18 Parent gate | O72 (deleting the running save), O73 (forgotten code), O76 (wrong-code wait), O77 (language) |
-| 20 Android | O74 (pinning timing), O75 (back gesture without pinning) |
+None. The questions the first UX review raised (O67–O77, which chunks 7, 9,
+12, 17, 18 and 20 built to) were settled as proposed in D102, and the
+build's own points O79–O87 in D103–D107.
 
 ## Before starting
 

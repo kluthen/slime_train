@@ -1005,3 +1005,87 @@ D45.
 - A tap on a sleeper is a call like any other.
 - Why: the camera moving right onto a call point that was already in view
   was troublesome.
+
+## D102 — D95's defaults are approved (2026-09-29)
+Resolves O67–O77. Approves D95.
+- The user approved every default D95 proposed for the first UX review's
+  interaction details, as written: the second finger (O67), reopening the
+  app (O68), which taps start a session (O69), the edge-button press (O70),
+  the first-play hint (O71), deleting the running level's save (O72), the
+  forgotten code (O73), pinning timing (O74), the back gesture without
+  pinning (O75) and the wrong-code wait (O76).
+- **O77, the language, is confirmed:** the parent-facing text follows the
+  phone's language when v1 has it, English otherwise; v1 ships English and
+  French. Catching the back gesture (O75's alternative) is not taken.
+- The master spec and access model no longer tag these (proposed).
+
+## D103 — The idle camera never zooms in; tilt isn't input for it (2026-09-29)
+Resolves O79 and O80. Refines D59, D62 and D80.
+- **The idle zoom never zooms in.** Where the camera is already wider than
+  the idle and screensaver zoom (inside a wide framing zone, such as the test
+  level's tree at 0.7), the idle camera keeps that zoom.
+- **Tilt doesn't count as input for the idle clock:** it neither holds off
+  the idle camera nor takes control back from it. Only touches count.
+- Why: the cue must read as a zoom-out, and zooming in would hide what the
+  zone framed; a phone in a hand or on a lap tilts all the time, which would
+  stop the idle camera from ever taking over.
+
+## D104 — The session lives in the level's save while v1 has one level (2026-09-29)
+Resolves O82. Amends the master spec's 5.10 ("the timers aren't part of a
+level's save").
+- The session (its phase, elapsed time and clock anchor) is kept in the
+  level's save, as built in chunk 17, so a killed app resumes where it was
+  (D102, O68) and the state hash covers it.
+- **Deleting the level's save keeps the running session** and writes it into
+  the fresh save, so deleting can't dodge bedtime (chunk 18).
+- With several levels (paid levels, later), the session moves to a store of
+  its own, outside any one level's save.
+
+## D105 — Frontier sets: bedtime, a full basket, the gate's lid (2026-09-29)
+Resolves O83, O84 and O85.
+- **Baskets at bedtime (O83):** a basket's releases pause at bedtime and
+  resume at sunrise. The slimes in it sleep in place: they stay in the
+  basket, shown asleep, and sunrise doesn't move them out. A reward that is
+  due or playing at bedtime waits for sunrise too, so no gate opens and no
+  celebration plays during bedtime.
+- **No opt-out once the basket is full (O84):** the switch stops answering
+  taps from the moment the basket is full, through its reward, as built.
+- **A gate's lid (O85):** "the old return route stays in the world" means it
+  isn't removed; a gate may shut its entrance with a lid. Level rule 14 then
+  needs another way onto that route for any exploration on it.
+- Why: bedtime means nothing moves on its own (D28); a full basket is a
+  promise that the gate will open.
+
+## D106 — A fifth slime state: in a basket (2026-09-29)
+Resolves O86.
+- **In a basket** is a slime state of its own, beside sleeper, train slime,
+  free slime and bedtime-asleep: caught by a basket's box, it doesn't hop,
+  isn't the train and doesn't answer calls, in any basket, filling or full.
+  It leaves only when the basket releases it, and rides the train again. At
+  bedtime it sleeps in place (D105).
+- The hopping tables say "in a basket (any basket, filling or full): no
+  hopping", replacing "resting in a full basket".
+
+## D107 — Resting piles keep the fixed anchor for v1 (2026-09-29)
+Resolves O87.
+- A slime is still when it stays within `REST_DRIFT` (1 px) of an anchor
+  fixed where its count started, for `REST_TICKS` (30); a pile rests when
+  every member is still at once. Kept for v1, as built.
+- Chunk 22 (the performance pass) measures a bedtime pile in the open on
+  both phones, and how often an awake slime hopping against a pile wakes
+  it, and revisits the rule if needed. The code comment on `REST_DRIFT` is
+  brought in line with the rule there.
+
+## D108 — The build's record of chunks 15 and 16, and the build plan, approved (2026-09-29)
+- **The test level as built** (`levels/test/README.md`, sections 2 and 3):
+  every deviation recorded there is accepted: the cave's route back at about
+  46 s, the rim over the plateau reached from its end, the shelves floating
+  over the bowl, the bowl's three branches with routes back, sleeper numbers
+  running to three digits, basket 3's outlet as a point, the added
+  `gate2-open` fixture, and `stress-still`'s bowl pile asleep at bedtime.
+- **The chunk 15 and 16 values** in `tuning.md`.
+- **Off screen, a free slime with no route back near** heads straight for
+  the loop when the loop is near; otherwise it stays where it is until the
+  lost timer (D10) moves it (the master spec's 5.3).
+- **The build plan** (`versions/v1/build-plan.md`, v9) as a whole; it is no
+  longer proposed.

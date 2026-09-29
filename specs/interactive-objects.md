@@ -1,6 +1,6 @@
 # Interactive objects
 
-Status: draft v8
+Status: draft v9
 
 **Versions (D50, D54):** v1 has only the frontier-gate set (switch, basket,
 gate) and the split zone at the start of the loop. Every other object comes in
@@ -43,7 +43,12 @@ Its outlines fill by weight, so a fused slime fills several at once.
   wait until the basket is in view)
 - **Opting out (D70):** flipping the switch back before the basket is full
   stops the filling. (D91: the slimes inside go back to the loop, and the
-  basket empties)
+  basket empties) Once the basket is full, the switch no longer answers
+  taps, through the reward and after: no opting out of a full basket (D105).
+- **At bedtime (D105):** its releases pause and resume at sunrise; the
+  slimes in it sleep in place and stay in it at sunrise; a reward due or
+  playing waits for sunrise, so no gate opens and no celebration plays
+  during bedtime. Slimes in a basket have a state of their own (D106).
 
 - **Outlet:** where it releases its slimes, after firing or after an opt-out,
   belongs to the basket's own design, still to be planned (O62).
@@ -53,7 +58,8 @@ Its outlines fill by weight, so a fused slime fills several at once.
 
 ### Gate (D9, D14)
 The barrier at the end of the loop. Opening it extends the loop into the new
-area. It stays open for good.
+area. It stays open for good. It may shut the old return route's entrance
+with a lid; the route itself stays in the world (D105).
 
 ### Bending pathway
 A walkway that bends under load. Activation: presence.

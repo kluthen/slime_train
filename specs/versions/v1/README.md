@@ -71,7 +71,8 @@ Items are settled. The decision IDs point to
   is no sound in v1). Then the slimes fall asleep (D28).
 - After bedtime, a 10 min cooldown, or the parent code, leads to **sunrise**:
   the slimes wake and the world runs in screensaver mode (D44). Opening the app
-  from scratch also starts in screensaver mode. The phone's usual screen
+  starts in screensaver mode unless a session or bedtime is running, which
+  it resumes (D102). The phone's usual screen
   timeout applies there, while the screen stays on during a session (D53).
 - The parent gate is a 6-digit code, chosen during a one-time setup at first
   launch. It is recovered through the phone's own screen lock, with no external
@@ -101,5 +102,6 @@ Items are settled. The decision IDs point to
 
 ## Open for v1
 
-O14, O22, O62, O65 (see `../../open-questions.md`). O67–O77 have proposed
-defaults pending the user's approval (D95).
+O14, O22, O62, O65 and O91 (see `../../open-questions.md`). The UX
+review's interaction details (O67–O77) are settled (D102), and so are the
+build's points O79–O87 (D103–D107).

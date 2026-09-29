@@ -1,6 +1,6 @@
 # Level design requirements
 
-Status: draft v6
+Status: draft v7
 
 Rules every level must follow, whoever builds it. These rules make up the
 checklist for every level's design (see `levels/`). Levels are
@@ -41,7 +41,9 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     frontier gate. It is part of the loop and has its own camera rail (D79).
     How that route works is O22.
 14. **A return route may carry exploration opportunities, but opening a later
-    frontier gate must never make them unreachable** (D79).
+    frontier gate must never make them unreachable** (D79). A gate may shut
+    the old return route's entrance with a lid (D105); any exploration on
+    that route then needs another way in.
 15. **Once its gate is open, a frontier set is inert for good**; it may be
     removed or become a landscape feature (D86).
 

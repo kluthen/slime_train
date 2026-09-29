@@ -1,6 +1,6 @@
 # Personas
 
-Status: draft v5
+Status: draft v6
 
 Who Slime Train is for, what each person is trying to get done, and the
 circumstances they use it in. These are built from the real people the user
@@ -59,8 +59,8 @@ known, so tilt stays optional (D64, see below).
 
 **What it means:** the game has to be pleasant to watch without playing, and
 must stay safe and unbroken whatever gets poked. For now only the first finger
-counts, so his poke does nothing while his sister's finger is down. Two calls
-at once will be tried later (D66).
+counts, so his poke does nothing while his sister's finger is down, not even
+a ripple (D102). Two calls at once will be tried later (D66).
 
 ## P3 — Secondary: the early player (4 years old)
 

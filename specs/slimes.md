@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v14
+Status: draft v15
 
 ## States
 
@@ -10,7 +10,7 @@ Status: draft v14
 | train slime | awake and following the loop (D8, D11). Ignores tilt (D19). |
 | bedtime-asleep | asleep because the session ended (D28). The game wakes it at sunrise (D44): near the loop it is a train slime again, anywhere else a free slime heading back (the distance is in `tuning.md`). Not a sleeper. |
 | free slime | awake and away from the loop after answering a call. Physics always applies and it feels tilt (D8, D19). Can become left alone or lost (D10). Goes through the phases below. |
-| in a basket (proposed, O86) | caught by a basket's box (built as `in_basket`, chunk 14). Doesn't hop, isn't the train and doesn't answer calls, in any basket, filling or full; it falls and settles in the pile. Leaves only when the basket releases it, and rides the train again. What it does at bedtime is O83. |
+| in a basket (D106) | caught by a basket's box (built as `in_basket`, chunk 14). Doesn't hop, isn't the train and doesn't answer calls, in any basket, filling or full; it falls and settles in the pile. Leaves only when the basket releases it, and rides the train again. At bedtime it sleeps in place, and sunrise doesn't move it out (D105). |
 
 ## Free slime phases (D27)
 
@@ -31,8 +31,7 @@ and it may roll downhill. Phase names were adopted in D75.
 
 - Physics runs only for slimes on or near the screen. Off screen, a train slime
   follows the loop at a deterministic pace, and a free slime follows its area's
-  route back (if there is none, it is lost). (proposed, as built in chunk
-  15) Out of any branch, it heads straight for the loop when the loop is
+  route back (if there is none, it is lost). Out of any branch (D108), it heads straight for the loop when the loop is
   near; with neither near, it stays put until the lost timer (D10) moves it
   to the start of the loop.
 - Fusion and waking happen only on screen.
@@ -62,7 +61,7 @@ Slimes move only by hopping.
 | answering a call | toward the call point, a bit more often; jumps upward when the point is higher, and bigger slimes jump higher |
 | unsure | small, lazy hops in random directions near the call point |
 | heading back | along its area's route back |
-| sleeper, bedtime-asleep, covered by other slimes, in a basket (proposed, O86: in any basket, filling or full, as built) | no hopping |
+| sleeper, bedtime-asleep, covered by other slimes, in a basket (any basket, filling or full; D106) | no hopping |
 
 - Bigger slimes hop a little less often, but further and higher.
 - During bedtime's wind-down, every slime hops more slowly.

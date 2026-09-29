@@ -6,9 +6,9 @@ settled except the design of the real first level and the gaps listed in
 `../../personas.md` (who the game is for). The test level used to build and
 check v1 is in `../../levels/test/README.md`.
 
-Items tagged **(proposed)** are defaults for the interaction details raised by
-the first UX review (D95). They await the user's approval; the build follows
-them unless the user overrules them.
+The defaults for the interaction details raised by the first UX review, and
+the points the build raised while building, were approved by the user on
+2026-09-29; nothing in this document is still tagged (proposed).
 
 ## 1. Concept and objective
 
@@ -54,7 +54,7 @@ Full reference: `../../personas.md`. These personas come from real people.
 | P1.G3 Find out on her own what touching does, with no one to explain and no reading | the ripple, and a wordless pulsing hint near the first sleeper on the very first play; the first sleeper sits close to the first awake slime | fully (to confirm in playtests) |
 | P1.G4 Never fail, never get stuck | no failure states; the loop runs with no input; a lost slime comes back | fully |
 | P2.G1 Watch the slimes | same as P1.G1 | fully |
-| P2.G2 Poke the screen without breaking anything | only the first finger counts; every parent button asks for the code | partially: while his sister's finger is down, his poke does nothing, not even a ripple (proposed). Two calls at once are for later. |
+| P2.G2 Poke the screen without breaking anything | only the first finger counts; every parent button asks for the code | partially: while his sister's finger is down, his poke does nothing, not even a ripple. Two calls at once are for later. |
 | P3.G1 Play on purpose: call, fuse, fill a basket, open the next section | sleepers, fusion, the switch-plus-basket gate set, four sections | fully |
 | P3.G2 Explore off the loop to find more slimes | exploration branches whose hints are visible from the loop; the call drags the camera | fully |
 | P4.G1 A calm activity that ends on its own | 15 min sessions, a gentle bedtime, a 10 min cooldown | fully |
@@ -91,8 +91,7 @@ would add to P1.G1 and P1.G2) comes in a later version.
   automatic framing and framing zones.
 - Session and parents: screensaver mode, 15 min real-time sessions, bedtime,
   a 10 min cooldown, sunrise, the 6-digit parent code with setup and
-  recovery, screen pinning. Parent-facing text in English and French
-  (proposed).
+  recovery, screen pinning. Parent-facing text in English and French.
 - Persistence: one save per level, autosave, deleting a level's save.
 - A test level (not shipped) plus a test mode for end-to-end tests.
 - Platform: Godot 4, Android; a Linux desktop build for development and tests.
@@ -167,9 +166,10 @@ One term per concept, used everywhere in the code and documents.
   it may carry exploration opportunities.
 - **Opening a gate** extends the loop into the new section. Only the part
   that led back to the start is replaced: the old return route stays in the
-  world but is no longer used. Level design makes sure that exploration
-  opportunities on an old return route never become unreachable. Gates stay
-  open for good.
+  world (it isn't removed) but is no longer used. The gate may shut the old
+  route's entrance with a lid; level design then makes sure that exploration
+  opportunities on that route stay reachable another way, so they never
+  become unreachable. Gates stay open for good.
 - **Completing the level:** when the last basket fires, nothing ends. The
   loop is complete and the world stays open, with a one-time celebration.
   Moving on to another level waits for paid levels (a later version).
@@ -185,7 +185,7 @@ One term per concept, used everywhere in the code and documents.
 | train slime | Awake, following the loop. Ignores tilt. |
 | free slime | Awake, away from the loop after answering a call. Driven by physics alone and feels tilt. |
 | bedtime-asleep | Asleep because the session ended. Not a sleeper: the game wakes it at sunrise and play carries on. |
-| in a basket (proposed) | Caught by a basket. Doesn't hop, isn't part of the train and doesn't answer calls; it settles in the pile until the basket releases it, then rides the train again. |
+| in a basket | Caught by a basket. Doesn't hop, isn't part of the train and doesn't answer calls; it settles in the pile until the basket releases it, then rides the train again. |
 
 **The call and free slimes**
 
@@ -232,7 +232,7 @@ Slimes move only by hopping.
 | answering a call | toward the call point, a bit more often; it jumps upward when the point is higher, and bigger slimes jump higher |
 | unsure | small, lazy hops in random directions near the call point |
 | heading back | along its area's route back |
-| sleeper, bedtime-asleep, covered by other slimes, in a basket (proposed: in any basket, filling or full) | no hopping |
+| sleeper, bedtime-asleep, covered by other slimes, in a basket (any basket, filling or full) | no hopping |
 
 Bigger slimes hop a little less often, but further and higher. In the last
 minute of a session every slime hops more slowly.
@@ -267,14 +267,17 @@ minute of a session every slime hops more slowly.
   the view and physics takes over.
 - A **free slime** that leaves the screen is placed on the nearest point of
   its area's route back and follows it at the same deterministic pace. If no
-  route back is near, it is lost: (proposed, as built) it heads straight for
+  route back is near, it is lost: it heads straight for
   the loop when the loop is near; otherwise it stays where it is until the
   lost timer (10 s, then 1 min) moves it to the start of the loop.
 - **Fusion and waking happen only on screen.**
 - **Baskets** keep counting weight off screen and can fill there.
 - On screen too, a **resting pile** stops simulating, contacts included,
   until something disturbs it. This is the first fallback for performance
-  (section 6).
+  (section 6). A pile rests once every slime in it has stayed within about a
+  pixel of where it started counting; a big pile of base slimes in the open
+  may take about a minute to rest, which the performance pass on the phones
+  looks at again.
 - Sleepers don't simulate until something touches them, slimes in
   a full basket use a simplified state, and slimes on screen may use fewer
   points when zoomed out.
@@ -296,7 +299,14 @@ Hit areas are larger than the drawn object, for small fingers.
   is in view.
 - **Opting out.** Flipping the switch back before the basket is full stops the
   filling. The slimes inside go back to the loop and the
-  basket empties.
+  basket empties. Once the basket is **full**, the switch no longer answers
+  taps, through the reward and after: there is no opting out of a full
+  basket.
+- **Baskets at bedtime.** At bedtime a basket's releases pause and resume at
+  sunrise. The slimes in it sleep in place: they stay in the basket, shown
+  asleep, and sunrise doesn't move them out. A reward that is due or playing
+  waits for sunrise too, so no gate opens and no celebration plays during
+  bedtime.
 - **Where a basket releases its slimes** (after firing, and after an opt-out)
   belongs to the basket's own design, which is still to be planned (see Known
   gaps).
@@ -332,7 +342,7 @@ The screen has four tap zones, checked in this order:
   slimes in range turn toward it.
 - **First-play hint:** on the very first play, if the child hasn't called
   after about 10 s, a wordless pulsing mark appears near the first sleeper.
-  (proposed) "The very first play" is the world showing on a **fresh save of
+  "The very first play" is the world showing on a **fresh save of
   the level**: on first launch, screensaver mode right after setup, or after
   that level's save was deleted. The 10 s count from the **first frame the
   world shows**, not from the session start, and count again each time the
@@ -340,16 +350,16 @@ The screen has four tap zones, checked in this order:
   done in the level's save; it never appears again for that save. It isn't
   shown during bedtime.
 - **The first touch wins:** while one finger is down, other touches are
-  ignored. (proposed) A touch that starts while another finger is down gets
+  ignored. A touch that starts while another finger is down gets
   **nothing at all, not even a ripple**, and stays ignored until it lifts,
   even if the first finger lifts before it.
 - **Tilt:** the world stays fixed on the screen and gravity turns with the
   phone, up to ±45°, with a dead zone of about 10°. Neutral is how the phone
-  was held when the session started (proposed: or when it resumed on
-  reopening the app, see 5.7); lying flat counts as neutral. Only free
+  was held when the session started, or when it resumed on
+  reopening the app (see 5.7); lying flat counts as neutral. Only free
   slimes feel tilt. Tilt is never needed to make progress.
 - No drag, pinch or multi-finger gesture is used in v1, and no hold gesture
-  of its own. (proposed) Holding an edge button only keeps the camera moving
+  of its own. Holding an edge button only keeps the camera moving
   (see 5.6): it is the same button, pressed longer.
 
 ### 5.6 Camera
@@ -360,7 +370,7 @@ The screen has four tap zones, checked in this order:
   loop and the left one **backward**, whatever the direction on screen. On a
   return route, forward carries the camera round the turn at the frontier and
   back toward the start. At a fork it follows the main stream by default.
-  (proposed) A press moves the camera **at least one fixed step**; while the
+  A press moves the camera **at least one fixed step**; while the
   finger stays down it **keeps moving** at a steady pace, and it eases to a
   stop when the finger lifts.
 - **Call drag.** A call pulls the camera toward the call point at a slow,
@@ -374,15 +384,18 @@ The screen has four tap zones, checked in this order:
   decides the zoom, and sometimes the position. **Framing zones** are a level
   component: when the camera reaches one, it gently moves and zooms to that
   zone's framing. Leaving a framing zone through the edge buttons takes a
-  slightly longer push than a normal move: (proposed) holding the button a
+  slightly longer push than a normal move: holding the button a
   little longer, about 1 s; a short press stays inside the zone.
 - **Idle camera.** After 45 s with no input, the camera glides to the train
   slime nearest the middle of the view and follows it. If that slime fuses, it
   follows the fused slime; if it splits, one of the pieces. The cue, starting
   10 s before, is a slow zoom-out. Any touch takes back control and also does
-  its normal job.
+  its normal job. Only touches count as input: tilting the phone neither holds
+  off the idle camera nor takes control back from it.
 - Screensaver mode and the idle camera share **one zoom**, about 10–20% wider
-  than normal play. It doesn't stack with anything. While either follows a
+  than normal play. It doesn't stack with anything, and it **never zooms
+  in**: where the camera is already wider (inside a wide framing zone), it
+  keeps that zoom. While either follows a
   slime, **framing zones are ignored**. When the child takes back control,
   framing resumes if the camera's centre is still inside a framing zone.
   Screensaver mode starts on the idle camera straight away.
@@ -394,24 +407,24 @@ first launch → parent setup → screensaver mode
 screensaver mode --first tap on the world--> session (15 min)
 session --last minute--> wind-down --15 min reached--> bedtime
 bedtime --parent code, or 10 min--> sunrise → screensaver mode
-reopening the app → the state the stored timers give (proposed)
+reopening the app → the state the stored timers give
 ```
 
-- **Screensaver mode:** the world runs with no session. (proposed) Opening
+- **Screensaver mode:** the world runs with no session. Opening
   the app lands here only when **no session or bedtime is running** (and after
   the one-time setup on first launch); otherwise it resumes where it was (see
   "Reopening the app" below). The phone's usual screen timeout applies.
 - **Session:** starts at the **first tap** in screensaver mode, which also acts
   as a normal tap. It lasts a fixed **15 minutes** of **real time**: time in
   the background or during a phone call is used up. The screen stays on during
-  a session. (proposed) Only a tap that **reaches the world** starts it: on
+  a session. Only a tap that **reaches the world** starts it: on
   open ground (a call) or on an object (it operates the object). A tap on the
   parent zone or on an edge button doesn't start a session; the edge buttons
   move the camera in screensaver mode as they do in a session.
 - **Wind-down:** in the last minute the light drifts toward dusk and slimes hop
   more slowly. No text, no countdown.
 - **Bedtime:** slimes fall asleep where they are, the game saves, and taps no
-  longer call. The edge buttons are hidden, and the phone's
+  longer call. Baskets pause too (see 5.4). The edge buttons are hidden, and the phone's
   usual screen timeout applies again.
 - **Sunrise** comes when the parent enters the code (wake early) or **10 real
   minutes** after bedtime began. The slimes wake and screensaver mode begins.
@@ -419,7 +432,7 @@ reopening the app → the state the stored timers give (proposed)
 - The session and cooldown timers survive the app being killed or the phone
   restarting: they are stored with both the wall clock and the monotonic
   clock. Changing the phone's clock can defeat them, which is accepted.
-- **Reopening the app** (proposed): after a kill, a phone restart or a
+- **Reopening the app:** after a kill, a phone restart or a
   return from the background, the app lands in the state its stored timers
   give. A session still running resumes, wind-down included. Bedtime resumes
   with the rest of its cooldown, the slimes asleep. If the cooldown ran out
@@ -441,7 +454,7 @@ reopening the app → the state the stored timers give (proposed)
   before doing anything.
 - **Forgotten code:** "forgot the code?" on the code prompt hands off to the
   phone's own screen lock through Android's system prompt (PIN, pattern or
-  fingerprint). If it succeeds, the parent sets a new code. (proposed)
+  fingerprint). If it succeeds, the parent sets a new code.
   - The new code is **typed twice**, as at setup. It replaces the old one at
     once. The parent is then back at the code prompt for the action they
     started, with the wrong tries and any wait cleared.
@@ -453,7 +466,7 @@ reopening the app → the state the stored timers give (proposed)
 - **A wrong code:** the entry shakes and clears. Tries are unlimited, but 5
   wrong tries in a row bring a 30 s wait. The code prompt closes after about
   15 s with no input, and the settings screen also closes by itself after a
-  short time with no input. (proposed) The wrong-try count and the end of the
+  short time with no input. The wrong-try count and the end of the
   wait are **stored on disk**, so they survive the prompt closing and the app
   being killed. There is one count for every parent button; it resets on a
   correct code or a code reset, and starts again from 0 after a wait.
@@ -462,7 +475,7 @@ reopening the app → the state the stored timers give (proposed)
   asks for a second confirmation after the code.
 - Opening the parent buttons or the code prompt pauses nothing: the world
   keeps running and the session keeps counting.
-- **Language** (proposed, a guess for the user to confirm): the
+- **Language:** the
   parent-facing text (setup, the code prompt, settings, the forgotten-code
   screens) follows the phone's language when v1 has it, and is in English
   otherwise. v1 ships **English and French**. The child sees no text.
@@ -475,7 +488,7 @@ reopening the app → the state the stored timers give (proposed)
   can't leave with the home or back buttons. Leaving goes through the parent
   code. Android shows its own confirmation every time, which can't be
   skipped; the parent normally opens the app and hands the phone over.
-  Pinning also ends when the phone restarts. (proposed) "Each time it opens"
+  Pinning also ends when the phone restarts. "Each time it opens"
   means **each launch**: on first launch, right after setup is completed
   (setup has explained pinning by then); on every later launch, as soon as
   the app opens, before the world takes a tap. Coming back from the
@@ -485,7 +498,7 @@ reopening the app → the state the stored timers give (proposed)
   before unpinning"** setting is on. Setup recommends turning it on.
 - **If the parent declines pinning,** the game still works, every parent
   button still asks for the code, and the setup screen explains the
-  difference. (proposed) The **back gesture then leaves the app**, as Android
+  difference. The **back gesture then leaves the app**, as Android
   normally does, like home and recent apps; the session keeps counting and
   reopening resumes where it was. Setup says so.
 - This is **best effort**, a courtesy to parents and not a guarantee. There is
@@ -497,11 +510,17 @@ reopening the app → the state the stored timers give (proposed)
 - The save holds each slime's species, size, state and position, and the
   state of every interactive object and gate.
 - **One save file per level.** A parent can delete one level's save from the
-  settings. (proposed) Deleting removes the save **and its backup**. If that
+  settings. Deleting removes the save **and its backup**. If that
   level is running, it **reloads fresh at once**, as on a fresh install: the
   first-play hint is due again, and the celebration can play again when the
   level is completed again. The session or bedtime and their timers carry on
-  untouched: they aren't part of a level's save.
+  untouched.
+- **Where the session lives.** While v1 has one level, the session (its
+  phase, elapsed time and clock anchor) is kept in the level's save, so a
+  killed app resumes where it was. Deleting the level's save keeps the
+  running session and writes it into the fresh save, so deleting can't dodge
+  bedtime. With several levels (paid levels, later), the session moves to a
+  store of its own, outside any level's save.
 - Saved every 15 s and whenever the app goes to the background.
 - On load, a slime saved in mid-air is put on the ground or back at the start
   of its jump, whichever is easier to build; if neither works, it is lost.
@@ -659,8 +678,8 @@ Starting values, to be tuned in prototypes and playtests.
 | Wrong-code wait | 30 s after 5 wrong tries in a row |
 | Code prompt closes by itself | about 15 s with no input |
 | Settings closes by itself | a short time with no input; to try |
-| Edge-button press | at least one fixed step; a steady pace while held (proposed; to try) |
-| Leaving a framing zone | holding the edge button about 1 s (proposed; to try) |
+| Edge-button press | at least one fixed step; a steady pace while held (to try) |
+| Leaving a framing zone | holding the edge button about 1 s (to try) |
 | Camera drag toward a call | slow and steady; return behaviour to try |
 | Tilt | ±45° cap, about 10° dead zone |
 | Session | 15 min, of which the last minute is the wind-down |
@@ -708,6 +727,7 @@ later) passes the level-rules check.
     when it comes into view.
 11. Flipping the switch back before the basket is full stops the filling,
     releases the slimes inside back to the loop, and empties the basket.
+    Once the basket is full, tapping the switch does nothing.
 12. Opening all gates of the level never requires tilt.
 13. Once a gate is open, tapping its switch does nothing, and its basket
     takes no more slimes.
@@ -717,18 +737,18 @@ later) passes the level-rules check.
 **Controls and camera**
 
 15. Every tap produces a visible ripple, including taps that do nothing else.
-    (proposed) A touch ignored under criterion 17 isn't a tap and shows
+    A touch ignored under criterion 17 isn't a tap and shows
     nothing.
 16. On a fresh install, if the child hasn't called within about 10 s, a
     wordless pulsing mark appears near the first sleeper; it never appears
-    again once the first call is made. (proposed) The 10 s count from the
+    again once the first call is made. The 10 s count from the
     world's first frame, screensaver mode included, and deleting the level's
     save brings the hint back.
-17. While one finger is down, a second touch does nothing. (proposed) Not
+17. While one finger is down, a second touch does nothing. Not
     even a ripple, and it stays ignored after the first finger lifts.
 18. The edge buttons move the camera along the loop; the child can never
     change the zoom; entering a framing zone reframes the camera smoothly.
-    (proposed) A press moves at least one fixed step, holding keeps the
+    A press moves at least one fixed step, holding keeps the
     camera moving, and leaving a framing zone takes about 1 s of holding.
     A tap anywhere in an edge strip (the screen's whole height below the
     top zone, 10% of its width from the edge) moves the camera and never
@@ -736,31 +756,33 @@ later) passes the level-rules check.
     screen) leaves the camera where it is.
 19. After 45 s with no input the idle camera follows a train slime, with the
     zoom-out cue starting 10 s earlier; any touch takes back control and does
-    its normal job.
+    its normal job; tilt doesn't count as input; the idle zoom never zooms in
+    where the camera is already wider.
 
 **Session and parents**
 
 20. A session starts at the first tap in screensaver mode and ends 15 real
     minutes later, including time spent in the background, after a killed
-    app, and after a phone restart. (proposed) A tap on the parent zone or an
+    app, and after a phone restart. A tap on the parent zone or an
     edge button doesn't start it. Reopening the app during a session or
     bedtime resumes it instead of landing in screensaver mode.
 21. The last minute shows the dusk wind-down; at bedtime the slimes fall
-    asleep, the game saves, and taps no longer call.
+    asleep, the game saves, and taps no longer call. During bedtime no basket
+    releases a slime or plays its reward; both resume at sunrise.
 22. Sunrise comes 10 real minutes after bedtime began, or immediately after
     the correct parent code on "wake early"; screensaver mode follows.
 23. On first launch the parent setup appears before anything else and
-    requires the 6-digit code twice; it is never shown again. (proposed) Its
+    requires the 6-digit code twice; it is never shown again. Its
     text is in French on a French phone and in English otherwise.
 24. Every parent action (wake early, leave, change the code, delete a level's
-    save) is refused without the correct code. (proposed) The 30 s wait after
+    save) is refused without the correct code. The 30 s wait after
     5 wrong tries survives closing the prompt and killing the app.
 25. With screen pinning accepted, the home and back buttons don't take the
-    child out of the app; "leave" with the correct code does. (proposed)
+    child out of the app; "leave" with the correct code does.
     Pinning is asked right after setup on first launch and at every later
     launch, not on coming back from the background.
 26. "Forgot the code?" lets the parent set a new code after passing the
-    phone's own screen lock. (proposed) The new code is typed twice;
+    phone's own screen lock. The new code is typed twice;
     cancelling Android's prompt changes nothing; with no screen lock, it
     explains that clearing the app's data is the only way.
 27. The app makes no network connection.
@@ -770,7 +792,7 @@ later) passes the level-rules check.
 28. Killing the app at any moment and reopening it restores slimes, objects
     and gates as of the last save (at most about 15 s old), with no slime
     left in mid-air.
-29. Deleting one level's save resets that level only. (proposed) Its backup
+29. Deleting one level's save resets that level only. Its backup
     goes too, and a running level reloads fresh at once while the session
     timers carry on.
 
@@ -822,41 +844,7 @@ Still undecided.
    bought), the whole game measured on both phones, which decides the
    native code, and tilt input. Android audio
    latency matters only from the version that adds sound.
-6. **Interaction details raised by the first UX review** now have
-   **proposed defaults**, written into the sections above and tagged
-   (proposed), pending the user's approval (D95). The build follows them
-   unless the user overrules them. They cover: a second finger (5.5), the
-   first-play hint (5.5), the edge-button press (5.6), which taps start a
-   session and reopening the app (5.7), the forgotten code, the wrong-code
-   wait and the language of the parent-facing text (5.8), when pinning is
-   asked and the back gesture without pinning (5.9), and deleting the running
-   level's save (5.10). The language (English and French) is the least
-   certain of them.
-7. **Points the build raised on the frontier set and the session**
-   (chunks 14 and 17), each with a proposal pending the user's approval:
-   - **Where the session timers live.** The build keeps the session in the
-     level's save, which 5.10 says it isn't part of. Proposed: keep it there
-     while v1 has one level, and make deleting the save keep the running
-     session, so deleting can't dodge bedtime.
-   - **Baskets at bedtime.** As built, slimes in a basket stay awake and a
-     basket keeps releasing during bedtime. Proposed: releases (and a due
-     reward) wait for sunrise, and the slimes in a basket sleep in place.
-   - **The switch locks once the basket is full,** through the reward, not
-     only once the gate opens. Proposed: keep; there is no opting out of a
-     full basket.
-   - **A gate's lid on the old return route.** The build shuts the old
-     return route's entrance when the gate opens. Proposed: "stays in the
-     world" (5.1) means it isn't removed; a lid may block it, as long as any
-     exploration on that route stays reachable another way.
-   - **A slime state for slimes in a basket** (5.2, proposed).
-8. **A point the build raised on resting piles** (chunks 15 and 16), with a
-   proposal pending the user's approval: a pile rests only once every slime
-   in it has stayed within about a pixel of where it started counting, so a
-   big pile of base slimes in the open (they don't stack, and spread slowly)
-   may take about a minute to rest, for example at bedtime. Proposed: keep
-   the rule for v1 and look at it again in the performance pass on the
-   phones.
-9. **Why slimes of different species sometimes end up inside each other.**
+6. **Why slimes of different species sometimes end up inside each other.**
    The build moves one of them back to the start of the loop as a
    safety net (5.2, "stuck"); the cause is still to be found and prevented.
    Not urgent.

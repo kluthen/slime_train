@@ -1,6 +1,6 @@
 # Test level
 
-Status: draft v5
+Status: draft v6
 
 A compact level that puts nearly every v1 gameplay item in one place (D76).
 It is the testing ground while the game is built, and the level the
@@ -104,7 +104,7 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
     wide and 200 px deep, quota 6;
   - a **pillar** (7.66 to 8.5) replaces the chute's far wall; its top
     carries the loop on to **gate 1**, at 8.58. Gate 1's **lid** (7.49 to
-    7.67) shuts slide 1's entrance once the gate is open (O85);
+    7.67) shuts slide 1's entrance once the gate is open (D105);
   - the temporary section 2 stub that first stood past gate 1 was replaced
     by section 2 itself in chunk 15.
 
@@ -130,12 +130,12 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
 - A stepped climb from the loop leads up to a cave pocket holding 14
   sleepers (A ×3, B ×3, C ×3, D ×5).
 - **Route back:** a long, winding tunnel. It descends for about 3 screens of
-  path and comes out on the loop at about 11.8. (proposed) It takes a size-1
+  path and comes out on the loop at about 11.8. It takes a size-1
   slime longer than "left alone" (10 s) but well under "lost" (1 min after
   that). First proposed at 30–40 s; as built (chunk 15) it is about
   3100 px, some 46 s from the pocket (about 33 s from shelf A, where the
   `s2-cave-return` fixture starts). That still leaves about 24 s before
-  "lost" (70 s off screen in all), so the build keeps it.
+  "lost" (70 s off screen in all), so it is kept (D108).
 - Exercises (D69, D70):
   - a free slime going off screen follows the route back by projection;
   - moving the camera to the tunnel's mouth makes it reappear and physics
@@ -149,7 +149,7 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
 - Exercises: the basket filling off screen, and its reward and firing waiting
   until it is in view (D70). The rest of the set is under "Frontier sets".
 
-**As built (chunk 15).** Section 2 follows the plan above, with these
+**As built (chunk 15; approved, D108).** Section 2 follows the plan above, with these
 positions (x in screens, y in px, up is negative):
 - **Descent:** the ground steps down from the pillar's top (y -100 at 8.6)
   to the cave floor (y -20 at 9.0). The 6 D sleepers sit on two side
@@ -167,7 +167,7 @@ positions (x in screens, y in px, up is negative):
   trapdoor covers basket 2's pit: 12.2 to 12.55 (0.35 screens wide), 170 px
   deep, quota 15, about 1.4 screens from the switch. Slide 2's entrance is
   at 12.66, gate 2 at 12.8, and gate 2's lid (12.59 to 12.73) shuts slide
-  2's chute once the gate is open (O85). The 10 set sleepers sit on two
+  2's chute once the gate is open (D105). The 10 set sleepers sit on two
   ledges, one by the switch (10.76 to 10.93) and one before the pit (12.0
   to 12.27).
 - **Slide 2** drops down the chute at 12.66 and runs back along the tunnel,
@@ -197,7 +197,7 @@ This is the stress area (rule 16, D67, O14).
     each side is a branch with an authored route back (see "As built
     (chunk 16)" below).
 - A framing zone shows the whole bowl, about 2 screens at normal zoom.
-  (proposed) That means zooming out to about half.
+  That means zooming out to about half (built at 0.5).
 
 **3.3 High rim (15–15.5).**
 - A rim above the far wall holds 30 sleepers (A, B, C and D, 5 each, plus 10
@@ -212,15 +212,15 @@ This is the stress area (rule 16, D67, O14).
   a big pile sits still (rule 16).
 - A framing zone shows the switch and the whole pit on one screen.
 - Its target is the **level-complete celebration** instead of a gate. This
-  is D77. (proposed) After the
-  celebration, the basket releases its slimes into the section 3 slide, and
-  the loop stays complete.
+  is D77. After the
+  celebration, the basket releases its slimes onto the loop just before the
+  section 3 slide, and the loop stays complete.
 - The celebration plays once **every basket of the level has fired**
   (chunk 14). Basket 3 can only fill once gates 1 and 2 are open, so it is
   always the last to fire. Before section 3 was built, basket 2 was the last,
   and the celebration waited only for it.
 
-**As built (chunk 16).** Positions moved from the plan above, as allowed:
+**As built (chunk 16; approved, D108).** Positions moved from the plan above, as allowed:
 - **The loop:** from gate 2 (the ground starts at 12.72) down the entry
   ramp (13.0 to 13.6), across the bowl's floor (13.6 to 15.05, ground at
   y 100), up the far wall (15.05 to 15.62) to a plateau (ground at y -120),
@@ -293,7 +293,7 @@ gate 12.8, slide 12.66), set 3 in 3.4 (switch 15.67, basket centred at
 2. The basket fires. The gate opens, and the loop grows into the next section
    (D9).
 3. As part of the reward, the old slide entrance closes (built as the gate's
-   lid; how that fits the master spec is O85). Only the route back
+   lid, which the master spec allows, D105). Only the route back
    to the start is replaced: the next section's slide takes over.
 4. The basket releases its slimes.
 5. The switch and basket become inert for good (D86).
@@ -366,7 +366,7 @@ The quotas leave plenty of room:
 - **Pattern:** `<place>.<kind>.<name>`, lowercase, with no spaces.
   - `<place>` is `start`, `s1`, `s2` or `s3`.
   - Numbered items use at least two digits and count left to right.
-    (proposed) Past 99 they run to three digits without padding (section
+    Past 99 they run to three digits without padding (section
     3's sleepers go from `s3.sleeper.01` to `s3.sleeper.130`, as built in
     chunk 16). Order them by their number, not as text: as text,
     `.100` sorts before `.11`.
@@ -449,7 +449,8 @@ they never rest; only a pile in a basket or a pile asleep at bedtime stops
 simulating (the resting-pile fallback, D96). A still pile of 140 in the open
 is therefore a bedtime pile. A big pile of size-1 slimes (which don't stack)
 takes a while to rest after it forms; the fixture is saved already settled,
-so it measures the pile at rest, not the minute before (O87).
+so it measures the pile at rest, not the minute before (the rest rule is
+kept for v1 and revisited in chunk 22, D107).
 
 **Lost** has its own fixture because the level itself can't produce it: every
 spot a free slime can reach leads back to the loop (rule 7).

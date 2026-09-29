@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v26
+Status: draft v27
 
 ## One-liner
 
@@ -125,7 +125,8 @@ and any minor update ships with its migration (D72).
 - **Tilt** is only for exploration or fun actions, never needed to make
   progress (D64).
 - **The first touch wins** (D66): while one finger is down, other touches are
-  ignored. Two calls at once will be tried later.
+  ignored, and get nothing at all, not even a ripple (D102). Two calls at
+  once will be tried later.
 - All the level rules are collected in `level-design.md`.
 - Every awake slime in range answers the call, train slimes included, and
   answering makes it free. This follows from D13: at the start the
@@ -181,14 +182,18 @@ survives the app being killed.
   minutes** (D29, D44). The long delay is on purpose: it nudges the child to put
   the phone down.
 - **Sunrise:** the slimes wake up and the world runs in **screensaver mode**,
-  with no session. A new session begins only at the **first tap** (D44).
-  Opening the app from scratch also starts in screensaver mode. The phone's
+  with no session. A new session begins only at the **first tap** (D44),
+  and only a tap that reaches the world (open ground or an object) counts:
+  not the parent zone or an edge button (D102). Opening the app starts in
+  screensaver mode when no session or bedtime is running; otherwise the app
+  resumes where it was, in the state its stored timers give (D102). The phone's
   usual screen timeout applies there, and the screen stays on during a
   session (D53).
 - The parent gate is a **6-digit code** (D30). The parent sets it during a
   one-time setup at first launch. If it's forgotten, the phone's own screen
-  lock lets the parent set a new one. With no screen lock, clearing the app's
-  data is the last resort. There is no external service (D55).
+  lock lets the parent set a new one, typed twice. With no screen lock,
+  clearing the app's data is the last resort. There is no external service
+  (D55, D102).
 - The session counts in **real time**. Time spent in the background or on a
   phone call is used up, and the parent can make up for it by waking the
   slimes early (D56).

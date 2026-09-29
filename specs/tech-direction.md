@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v15
+Status: draft v16
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -138,8 +138,8 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
     3.8 ms per tick with resting off, 0.97 ms with it on (0.81 ms zoomed
     out); the test level with 110 slimes and the camera at the start,
     2.6 ms per tick with every slime simulated, 1.9 ms with off-screen
-    parking (86 parked). A big pile of base slimes in the open rests slowly
-    (O87).
+    parking (86 parked). A big pile of base slimes in the open rests slowly;
+    the rule is kept for v1 and looked at again in chunk 22 (D107).
 - **The realistic worst case in play is a mostly still pile** (level rule
   16): a full basket plus the train, not 200 moving slimes. The
   `stress-moving` fixture stays as a measurement, not a target.
@@ -231,10 +231,20 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
 - `startLockTask()` screen pinning through a small Godot Android plugin, plus
   an in-app parent gate and a timer stored on disk (wall clock plus the
   monotonic clock). There is no device-owner kiosk mode.
-- **Pinning is requested each time the app opens** (D85). Android's
+- **Pinning is requested each time the app opens** (D85): at each launch,
+  right after setup on the first one, and not on coming back from the
+  background; "leave" closes the app (D102). Android's
   confirmation can't be skipped. Setup recommends Android's "Ask for PIN
   before unpinning". If the parent declines pinning, the game still works and
-  the code still guards the parent buttons (D84).
+  the code still guards the parent buttons (D84); the back gesture then
+  leaves the app as usual (D102).
+- The wrong-try count and the end of the 30 s wait are stored on disk, so
+  they survive the prompt closing and the app being killed (D102).
+- Parent-facing text follows the phone's language when v1 has it, English
+  otherwise; v1 ships English and French (D102).
+- **The session lives in the level's save** while v1 has one level: its
+  phase, elapsed time and clock anchor, so a killed app resumes where it
+  was; deleting the level's save keeps the running session (D104).
 - Recovering the parent code uses Android's device-credential prompt
   (BiometricPrompt, which also accepts the PIN or pattern). There is no server
   (D55).

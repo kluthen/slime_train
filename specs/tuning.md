@@ -18,8 +18,8 @@ value to try. When a value is tuned, update it here and log the result in
 | Minimum zoom inside framing zones | to find with the prototype; measured slime sizes in O65 | O65 |
 | Wrong-code wait | 30 s after 5 wrong tries in a row | D83 |
 | Code prompt and settings close by themselves | about 15 s with no input (settings: short, to try) | D83 |
-| Delay before leaving a framing zone | a bit longer than a normal move; built as holding an edge button 1.0 s (proposed; to try) | D61, O70 |
-| Edge-button press | one fixed step, then a steady pace while held; values below (proposed; to try) | O70 |
+| Delay before leaving a framing zone | a bit longer than a normal move; built as holding an edge button 1.0 s (to try) | D61, D102 |
+| Edge-button press | one fixed step, then a steady pace while held; values below (to try) | D102 |
 | Camera drag toward a call: speed, and when it goes back | slow and steady; built as 230.4 px/s, back to the rails when the 8 s answering window ends (proposed; to try) | D45 |
 | Call radius | about half the screen width | D46 |
 | Call cap (a slime that can't reach the point gives up) | about 8 s | D73 |
@@ -37,8 +37,10 @@ value to try. When a value is tuned, update it here and log the result in
 
 ## Values the build chose
 
-The build picked these while making the chunks named. All are
-**(proposed; to try)**: the user has not confirmed them yet. Pixels are
+The build picked these while making the chunks named. They are starting
+values, **to try**. The user approved the values of chunks 15 and 16 (D108)
+and chunk 23 (D99–D101); the values of chunks 10, 12, 13, 14 and 17 are still
+**(proposed; to try)**: the user hasn't confirmed them one by one. Pixels are
 world pixels at zoom 1 on a 1152 px wide view unless noted. The code names in
 capitals are the build's own, for finding them in `docs/dev/README.md`.
 
@@ -46,9 +48,9 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 
 | Value | Start at | Source |
 |---|---|---|
-| Edge-button step (`STEP`) | 384 px per press, a third of a screen | O70 |
-| Pace while an edge button is held (`PACE`) | 864 px/s | O70 |
-| Ease to a stop after release (`EASE`, `SETTLE`) | closes 5× the distance left per second, never slower than 30 px/s | O70 |
+| Edge-button step (`STEP`) | 384 px per press, a third of a screen | D102 |
+| Pace while an edge button is held (`PACE`) | 864 px/s | D102 |
+| Ease to a stop after release (`EASE`, `SETTLE`) | closes 5× the distance left per second, never slower than 30 px/s | D102 |
 | Call drag and return to the rails (`DRAG_PACE`) | 230.4 px/s, shared by both | D45 |
 | Return to the rails | once the 8 s answering window ends, glides to the nearest rail point at the drag pace | D45, D73 |
 | Catching up with the rail (`CATCH_UP`) | 1152 px/s | D33 |
@@ -58,12 +60,12 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 
 | Value | Start at | Source |
 |---|---|---|
-| Holding an edge button to leave a framing zone (`EXIT_HOLD`) | 1.0 s; a zone's own `exit_hold` overrides it | D61, O70 |
+| Holding an edge button to leave a framing zone (`EXIT_HOLD`) | 1.0 s; a zone's own `exit_hold` overrides it | D61, D102 |
 | Easing into a framing zone (`FRAME_EASE`) | 1.5× the difference left per second, never slower than 30 px/s for the shift (`SETTLE`) or 0.02/s for the zoom (`ZOOM_SETTLE`) | D60 |
 | Idle camera takes over (`IDLE_SECONDS`) | 45 s | D32 |
 | Idle cue (`CUE_SECONDS`) | the last 10 s, a smoothstep zoom-out | D59, D62 |
-| Idle and screensaver zoom (`IDLE_ZOOM`) | 1/1.15 (about 0.87); inside a zone already wider, see O79 | D60, D62, D80 |
-| What counts as input for the idle clock | any touch; tilt doesn't count (O80) | D59 |
+| Idle and screensaver zoom (`IDLE_ZOOM`) | 1/1.15 (about 0.87); never zooms in: inside a zone already wider, it keeps the zone's zoom (D103) | D60, D62, D80 |
+| What counts as input for the idle clock | any touch; tilt doesn't count | D59, D103 |
 | Idle camera following a slime (`FOLLOW_EASE`, `FOLLOW_PACE`) | eases at 2.0× the distance left per second, at most 576 px/s | D59 |
 | Test level, `s1.frame.high-step` | zoom 0.85, offset (0, -120) px | test level |
 | Test level, `s1.frame.tree` | zoom 0.7, offset (0, -250) px | test level |
@@ -102,7 +104,7 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | Left alone (`LEFT_ALONE_TICKS`) | 600 ticks (10 s) outside the view, the screen with no margin; the count stops on screen | D10 |
 | Lost (`LOST_TICKS`) | 3600 ticks (1 min) after left alone, so 70 s off screen in all | D10 |
 | Dropping into a basket off screen (`ENTRY_REACH`, `SLOT_GAP`) | a parked train slime whose centre is within 64 px above an open trapdoor drops in, into the first clear slot of a grid its own width plus 4 px apart, bottom row first | D70 |
-| A slime is still (`REST_DRIFT`, `REST_TICKS`) | supported and within 1 px of its anchor for 30 ticks; the anchor is where the count started (O87) | D96 |
+| A slime is still (`REST_DRIFT`, `REST_TICKS`) | supported and within 1 px of its anchor for 30 ticks; the anchor is where the count started; kept for v1, revisited in chunk 22 | D96, D107 |
 | A pile rests | when every slime of a touching group of pile slimes (in a basket, or asleep at bedtime) is still at once; awake slimes out of a basket hop and never rest | D96 |
 | A resting pile wakes (`WAKE_SPEED`) | a touching slime faster than 30 px/s (a hop, a landing, a neighbour moving), a state change (bedtime, sunrise, a basket catching or releasing), a slime removed, fused or split next to it; a call wakes the resting slimes within its radius, a tilt change wakes them all | D96 |
 | A door wakes nearby piles (`DOOR_WAKE_REACH`) | a trapdoor, gate or lid opening or shutting wakes the piles within 80 px of it | D96 |
@@ -142,7 +144,7 @@ The user's reports of 2026-09-29, all decided (D99, D100, D101).
 | Wind-down hop slowdown (`WIND_DOWN_HOP_RATE`) | hop timers slow linearly from 1× to 0.5× over the wind-down | D28, D74 |
 | Dusk tint | ramps 0 to 1 over the wind-down, holds through bedtime, fades back to 0 at sunrise | D28 |
 | Sunrise fade (`SUNRISE_SECONDS`) | 3 s | D44 |
-| Late sunrise shows no cue (`SUNRISE_CUE_LATE_MS`) | a sunrise more than 1 s late (the cooldown ran out while the app was closed) plays no cue | O68 |
+| Late sunrise shows no cue (`SUNRISE_CUE_LATE_MS`) | a sunrise more than 1 s late (the cooldown ran out while the app was closed) plays no cue | D102 |
 | Waking at sunrise (`FreeSlimes.REJOIN_DISTANCE`) | a bedtime-asleep slime within 40 px of the loop (plus its extra radius) becomes a train slime; any other becomes free and heads back | D44 |
 
 **The clock rule (chunk 17).** Within one run of the app, the time elapsed is
