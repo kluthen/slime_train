@@ -122,12 +122,15 @@ load     PASS    The level loads
 rule 1   PASS    The loop can be travelled with no input at all
          note: ...
 rule 12  PASS    A frontier gate opens through the switch-plus-basket set
-         warn: s1.basket (x 6.90): section 1 may not progress: its basket's quota is 6, but only about 3 base slimes ...
          note: ...
 rule 22  PASS    Slimes come home behind the loop's start; no called ledge overhangs the loop
          manual: ...
-check_level: 22 PASS, 0 FAIL, 0 MANUAL, 0 N/A, 3 warnings, 16.4 s
+check_level: 22 PASS, 0 FAIL, 0 MANUAL, 0 N/A, 0 warnings, 15.8 s
 ```
+
+(Before chunk TL1 the test level had 3 warnings, `warn:` lines under rule
+12: "section 1 may not progress: its basket's quota is 6, but only about 3
+base slimes ...".)
 
 `--json` prints one object instead (`level`, `version`, `fast`, `load`,
 `results`, `counts`, `warnings` (how many); each result `rule`, `title`,
@@ -215,13 +218,23 @@ warning and the level report's progress section.
   of the loop's outgoing routes in use at its section, within that hop's
   reach sideways, is at most that rise below it (`take_off()`: the point
   least below it). A hollow over a dip is reached from the rim, a plate
-  over flat ground only from under it. Obstacles (a ledge overhead, a lip)
-  and climbs in several hops aren't modelled.
+  over flat ground only from under it. Obstacles (a ledge
+  overhead, a lip) and climbs in several hops aren't modelled.
+- **Lines of touching sleepers (chunk TL1).** A woken slime is free, and a
+  free slime wakes a sleeper it touches, on screen (`Sleepers.wake`), so
+  sleepers whose centres are at most `CHAIN_LINK` (44 px) apart, link by
+  link, all wake once one does (`chain()`). Measured on the simulation's
+  base slimes: a woken slime wakes a sleeper 44 px away on the next tick,
+  not one 45 px away; `tests/e2e/test_level_progress.gd` checks it in
+  play. A line off screen wakes as it comes into view: the estimate
+  doesn't model the view.
 - **Progress.** From the first slime, section by section: every sleeper
   of the sections so far that a called slime of a size the train can make
-  reaches is woken; n base slimes of one species make sizes up to n (3 at
-  most); repeat until nothing more wakes. The section progresses when the
-  base slimes awake by then weigh at least its basket's quota.
+  reaches, or that touches a woken one, is woken; n base slimes of one
+  species make sizes up to n (3 at most); repeat until nothing more wakes.
+  The section progresses when the base slimes awake by then weigh at least
+  its basket's quota. `estimate(c, 1)` never fuses: what calls wake with
+  base slimes alone (the test level's played test uses it).
 - **A warning, not a FAIL.** Being static, the estimate can be wrong both
   ways (a climb it doesn't see, a lip it doesn't either), so rule 12 only
   warns. The proof is in play: the scaffolded level's own test plays
@@ -238,7 +251,14 @@ progress (only A, B and C can be woken, 3 of the quota's 6, and three
 species can't fuse), and sections 2 and 3 follow from it (by then only one
 more base slime, `s2.sleeper.16`, a D; since chunk R22 moved `Dip2Hollow`,
 `s2.sleeper.15` is 0.2 screens from the rim, beyond a base slime's hop
-sideways): 3 warnings. `tests/e2e/test_level_progress.gd` covers the
+sideways): 3 warnings. Chunk TL1 moved sleepers within a base slime's
+hop and lined them up touching (docs/dev/README.md, "Chunk TL1"): no
+warning since, and `tests/e2e/test_test_level_playable_e2e.gd` plays each
+section to its basket full with base slimes only. The probes also showed
+the estimate optimistic about the hills: a size-3 slime called under a
+hill's bump hits its underside (a ledge overhead), so the hills' sleepers
+count for sizes 2 and 3 in the estimate but didn't wake in the probes; no
+basket counts on them. `tests/e2e/test_level_progress.gd` covers the
 estimate on small levels built in code.
 
 ### The scaffolder

@@ -92,7 +92,9 @@ func test_every_sleeper_is_in_a_row_and_the_rows_are_on_one_ledge() -> void:
 			var last: Vector2 = level.data.sleepers[row[row.size() - 1]]["position"]
 			assert_lt(absf(last.y - first.y), 60.0, "%s to %s: one ledge" % [row[0], row[row.size() - 1]])
 		assert_eq(count, _sleepers_of(section).size())
-	assert_eq(checker.sleeper_rows(3).size(), 9, "section 3: 2 ramp ledges, 6 shelves and the rim")
+	assert_eq(checker.sleeper_rows(3).size(), 8,
+			"section 3: the ramp's shelf, 5 shelves and the rim's two parts (chunk TL1; was 2 ramp ledges, 6 shelves "
+			+ "and the rim)")
 
 
 func test_section_1_every_sleepers_spot_leads_back_to_the_loop() -> void:

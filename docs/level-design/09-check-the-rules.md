@@ -82,7 +82,7 @@ slimes a called slime can wake by then:
 
 ```
 rule 12  PASS    A frontier gate opens through the switch-plus-basket set
-         warn: s1.basket (x 3.90): section 1 may not progress: its basket's quota is 4, but only about 2 base slimes can be awake by then (A 1, B 1; largest size 1). Out of a called slime's reach: s1.sleeper.02, s1.sleeper.03, s1.sleeper.04, s1.sleeper.05. Bring sleepers within a called base slime's hop of the loop (133 px up, 150 px sideways), let same-species pairs wake first, or lower the quota. A static estimate: play it to be sure
+         warn: s1.basket (x 3.90): section 1 may not progress: its basket's quota is 4, but only about 2 base slimes can be awake by then (A 1, B 1; largest size 1). Out of a called slime's reach: s1.sleeper.02, s1.sleeper.03, s1.sleeper.04, s1.sleeper.05. Bring sleepers within a called base slime's hop of the loop (133 px up, 150 px sideways), line them up touching (a woken sleeper wakes those it touches), let same-species pairs wake first, or lower the quota. A static estimate: play it to be sure
 ```
 
 (The first skeleton's section 1, whose sleepers sat on plates out of a base

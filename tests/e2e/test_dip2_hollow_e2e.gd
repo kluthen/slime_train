@@ -1,8 +1,10 @@
 extends GutTest
 ## Chunk R22: the second dip's hollow (`Terrain/Dip2Hollow`, holding
-## `s2.sleeper.15` and `.16`) moved off the loop's path to keep level rule
-## 22 (b): it sits over the dip's far slope, and its sleepers must still be
-## woken by a call. Its rule 22 result is in test_level_checker.gd (the
+## `s2.sleeper.15` and `.16` then; `.15` to `.18`, lined up touching, since
+## chunk TL1) moved off the loop's path to keep level rule 22 (b): it sits
+## over the dip's far slope, and its sleepers must still be woken by a call.
+## The sleeper tried is the one nearest the far rim (`.16` before chunk TL1,
+## `.18` since: the others wake with it). Its rule 22 result is in test_level_checker.gd (the
 ## test level passes every rule), its ways back in
 ## test_level_ways_back_e2e.gd (rule 7).
 ##
@@ -19,7 +21,7 @@ extends GutTest
 # @test-link [[req_waking_sleepers]]
 
 const LEVEL_SCENE := "res://levels/test/level.tscn"
-const SLEEPER := "s2.sleeper.16"
+const SLEEPER := "s2.sleeper.18"
 const SEED := 1
 ## The far rim's spots the caller starts from, x in screens (the rim is at
 ## y -20 from 10.5 on; the train carries the caller right a little first).

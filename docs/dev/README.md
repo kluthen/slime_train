@@ -553,6 +553,66 @@ five are 0.15 screens past the first sleeper within 30 s (18 s); a slime
 of every size (split or whole) is past it within 10 s (6 to 7 s; before,
 a size 2 or 3 never was).
 
+#### Chunk TL1: playable from fresh
+
+Before chunk TL1 the level couldn't be finished from a fresh game: only
+`s1.sleeper.01` and one sleeper of the fusion dip's hollow were within a
+called base slime's hop (133 px up, 150 px sideways), so 3 base slimes
+could be awake against basket 1's quota of 6, and the progress estimate
+(rule 12) warned on all three sections. Chunk TL1 moved sleepers where a
+called base slime reaches them, lined up touching (centres 38 to 40 px
+apart, under `LevelProgress.CHAIN_LINK`, 44 px): a woken sleeper wakes the
+ones it touches, so one call wakes the whole line. Every ledge a base
+slime is called up to keeps its underside at least 130 px over the loop's
+ground under it (rule 22 (b)). The same stable IDs, numbered left to right
+as before; x in screens, y in px:
+
+| Where | Before | After |
+|---|---|---|
+| 1.3 fusion dip, near rim | nothing | `DipHollowNear` 2.58 to 2.76, floor -110 (110 px over the rim at 2.5), open toward the rim, lip at the back: `s1.sleeper.14` to `.17` (A, A, B, B) at 2.615 to 2.719, y -134 |
+| 1.3 fusion dip, far rim | `DipHollow` 3.3 to 3.46, lips at both ends: `.14`, `.15` (C, C) at 3.34, 3.42 | `DipHollow` 3.26 to 3.46, open toward the rim: `.18` to `.21` (C x4) at 3.331 to 3.435, y -174 |
+| 1.5 tree | lower platform: `.16` to `.21` (A, A, B, B, C, C) at 4.96 to 5.26, y -384 (285 px up, beyond any hop) | empty (moved to the dip's hollows); the bough keeps `.22` to `.24` (A x3) |
+| 2.1 descent | the ground 8.6, -100 to 8.75, -65; `DescentLedge1` 8.55 to 8.72, `.01` to `.03` at 8.58 to 8.69; `DescentLedge2` 8.78 to 8.95, top -250, `.04` to `.06` at 8.81 to 8.92, y -274 | the ground steeper at its top (8.6, -100; 8.63, -70; 8.75, -45; 8.9, -28); `DescentLedge1` 8.4 to 8.57, `.01` to `.03` at 8.43 to 8.54; `DescentLedge2` 8.66 to 8.78, top -215, 20 px thick (115 px over the pillar, 92 px from it): `.04` to `.06` at 8.68 to 8.749, y -239 |
+| 2.2 parade, second ledge | A, B, C, D at 9.63 to 9.78 | its A, `.11`, at 9.63 |
+| 2.3 second dip, near rim | nothing | `Dip2HollowNear` 10.08 to 10.22, floor -130 (110 px over the rim at 10.0), open toward the rim: `.12` to `.14` (B, C, D) at 10.112 to 10.181, y -154 |
+| 2.3 second dip, far rim | `.15`, `.16` (D, D) at 10.3, 10.38 | `.15` to `.18` (A, B, D, D) at 10.297 to 10.401, y -159 |
+| 2.5 ledge by switch 2 | A, B, C, D at 10.775 to 10.904 | its C and D, `.19`, `.20`, at 10.861, 10.904 (the A and B moved to the dip) |
+| 3.1, 3.3 the ramp | `RampLedge1` 12.96 to 13.18 (top -210) and `RampLedge2` 13.22 to 13.42 (top -160), 5 E each; the left first tier `ShelfL1` 13.56 to 14.18 (top -105 to -90), 15 | one `RampShelf`, top (13.31, -110), (13.7, -58), (14.18, -55), 20 px thick: 115 px over the ramp at 13.2, down into the bowl as the left first tier: its 25 (the 10 E, then the tier's 15) 39 px apart along it from 13.327 |
+| 3.5 the rim | 15.05 to 16.192, top -300 to -310, 30 at 0.038 screens from 15.07 | its low part `RimLow` 14.98 to 15.54, top -232 to -240 (120 px over the plateau at 15.62): its first 17, 0.033 screens (38 px) apart from 15.0; its high part `Rim` 15.66 to 16.2, top -300 to -310: the other 13, 0.04 apart from 15.68 |
+
+The rim's branch box is now its high part (x 15.64 to 16.22) and the left
+shelves' stops above the ramp's shelf (y -520 to -160): the hollows, the
+ramp's shelf and the rim's low part are in no branch, like the dip
+hollows (a slime woken there hops straight for the loop). The left
+shelves' route back drops onto the ramp's shelf at 14.14, y -79; the
+rim's runs along its high part and down onto the plateau (15.62, -144).
+Section 3's IDs are numbered left to right over all its ledges, so most of
+its IDs now name other spots than before (the same 130 IDs, species
+counts unchanged).
+
+With base slimes only (the train never fusing: `LevelProgress.estimate(c,
+1)`), 10 base slimes can be awake by basket 1 (quota 6), 20 by basket 2
+(15) and 62 by basket 3 (60); the checker gives no warning (3 before).
+`LevelProgress` also counts lines of touching sleepers (`chain()`), and
+`estimate(c, 1)` never fuses (base slimes only).
+`tests/e2e/test_test_level_playable_e2e.gd` plays it: from `fresh`,
+calls (the camera on the spot, a tap on each line's easiest sleeper when a
+train slime is at its take-off point, three passes) wake 10 base slimes,
+a tap flips switch 1, basket 1 fills, fires and gate 1 opens; the same
+from `gate1-open` to gate 2 and from `gate2-open` to basket 3 and the
+celebration; and it checks the checker gives the level no warning. About
+1.5 minutes (sections 1, 2, 3: about 11, 15 and 50 s; the checker 17 s).
+Probes over seeds 1 to 6: every seed finishes all three sections; a call
+misses at most twice in a row (a missed call: the called slimes fall short
+into the dip or under the ledge; the next pass calls again).
+
+The fixtures were regenerated (`tools/level.sh fixture --level=test`);
+their recipes pick sleepers by place and species, so each keeps its
+meaning: `bump` still takes the eight C nearest the dip (now the far
+hollow's four among them), `s2-basket-offscreen` the cave's, `lost` the
+parade's first D, `gate1-open` and `gate2-open` the first slime and
+section 1's first 19 sleepers.
+
 The scene is generated by `tools/greybox_test_level.gd` from tables of
 points (x in screens, y in px), written since chunk LD1 on the builder
 helpers of `tools/level_builder/` (the same output):

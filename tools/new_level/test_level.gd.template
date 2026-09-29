@@ -12,8 +12,9 @@ extends GutTest
 ## - section 1 plays to its basket full: the level report's progress
 ##   estimate (LevelProgress) says it can, then scripted calls wake the
 ##   sleepers it counts on, each tapped when a train slime is at the loop
-##   point its called hop takes off from, and a tap on the switch sends the
-##   train into the basket until the quota is met (a few simulated minutes);
+##   point its called hop takes off from (a sleeper no hop reaches wakes
+##   with the ones it touches), and a tap on the switch sends the train into
+##   the basket until the quota is met (a few simulated minutes);
 ## - every fixture in levels/{{LEVEL_ID}}/fixtures/ loads through test mode,
 ##   and none is older than the level (a fixture saved before the level
 ##   changed loads without what it gained since: rerun the fixture maker).
@@ -93,7 +94,12 @@ func test_section_1_plays_to_its_basket_full() -> void:
 	var asleep: Array = plan["woken"].filter(func(id): return LevelChecker.section_of(id) == 1)
 	for attempt in WAKE_TRIES:
 		for id in asleep.duplicate():
-			if _wake(game, checker, id):
+			# A sleeper touching a woken one wakes with it (LevelProgress.chain):
+			# no call of its own when no hop reaches it.
+			if sim.slimes.state_of(_slime(sim, id)) != SlimeBodies.SLEEPER:
+				asleep.erase(id)
+			elif LevelProgress.smallest_size(checker, 1, checker.data.sleepers[id]["position"]) > 0 \
+					and _wake(game, checker, id):
 				asleep.erase(id)
 	assert_eq(asleep, [], "every sleeper the estimate counts on is woken by a call from the loop")
 	if not asleep.is_empty():

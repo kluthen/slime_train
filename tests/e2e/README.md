@@ -109,7 +109,15 @@ pattern; `scripts/` holds the JSON run files. How to write one:
   codes.
 - `test_dip2_hollow_e2e.gd` (chunk R22) checks that the second dip's hollow,
   moved over the dip's far slope for rule 22 (b), is still reached by a
-  call: a base slime called from the far rim wakes `s2.sleeper.16`.
+  call: a base slime called from the far rim wakes the sleeper nearest it
+  (`s2.sleeper.18` since chunk TL1; `.16` before).
+- `test_test_level_playable_e2e.gd` (chunk TL1) plays the test level from
+  a fresh game by calls alone, base slimes only: section 1 from `fresh`
+  until gate 1 opens, section 2 from `gate1-open` until gate 2 opens,
+  section 3 from `gate2-open` until basket 3 fires and the celebration
+  plays (calls on the sleepers the progress estimate counts on, a tap on
+  each switch); and the level-rules checker gives the level no warning.
+  About 1.5 minutes.
 - `test_new_level_e2e.gd` (chunk LD1) scaffolds throwaway levels with
   `tools/new_level.gd` (1, 2 and 4 sections), checks they load, pass the
   checker and their generated test, appear in test mode, and that the

@@ -86,9 +86,11 @@ section 2: basket s2.basket, quota 4; awake by then about 10 base slimes (A 3, B
 - **Progress:** per basket, the base slimes a called slime can wake by
   then, and whether they fill its quota. It starts from the first slime,
   wakes every sleeper of the sections so far that a called slime of a size
-  the train can make reaches, lets same-species slimes fuse up to size 3
-  (a pair of A reaches what a lone A can't), and repeats until nothing
-  more wakes. "MAY NOT PROGRESS" lists the sleepers out of reach; the
+  the train can make reaches, and every sleeper touching a woken one (a
+  woken slime wakes the sleepers it touches: line sleepers up, centres at
+  most 44 px apart, and one call wakes the line), lets same-species slimes
+  fuse up to size 3 (a pair of A reaches what a lone A can't), and repeats
+  until nothing more wakes. "MAY NOT PROGRESS" lists the sleepers out of reach; the
   checker warns about it under rule 12 ([09](09-check-the-rules.md)). The
   level's own test plays section 1 for real ([08](08-fixtures-and-testing.md)).
 

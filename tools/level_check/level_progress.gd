@@ -15,19 +15,28 @@ extends RefCounted
 ## is at most that rise below it (take_off()). Obstacles on the way (a ledge
 ## overhead, a lip) aren't modelled.
 ##
+## A woken slime is free, and a free slime wakes a sleeper it touches (on
+## screen, Sleepers.wake): so sleepers lined up touching (centres at most
+## CHAIN_LINK apart) all wake once one of them does (chain(), chunk TL1).
+##
 ## A section progresses when its basket can be filled: the base slimes the
 ## train can have by then (the first slime, and every sleeper of that
 ## section or an earlier one a called slime of a size the train can make
-## reaches) weigh at least its quota. The sizes the train can make grow as
-## it wakes slimes: n base slimes of one species fuse up to size n
-## (SlimeBodies.MAX_SIZE at most), and only the same species fuse. So the
-## estimate wakes what it can, grows the sizes, and repeats until nothing
-## more wakes (estimate()).
+## reaches, or that touches one woken) weigh at least its quota. The sizes
+## the train can make grow as it wakes slimes: n base slimes of one species
+## fuse up to size n (SlimeBodies.MAX_SIZE at most), and only the same
+## species fuse. So the estimate wakes what it can, grows the sizes, and
+## repeats until nothing more wakes (estimate()).
 
 ## How often the loop's routes are sampled for take-off points, px.
 const SAMPLE := 8.0
 ## The most sleepers a warning names by ID; the rest are counted.
 const NAMED := 6
+## Two sleepers whose centres are at most this far apart touch, px: a woken
+## one wakes the other on the next tick, both on screen. Measured on the
+## simulation's size-1 bodies (a woken sleeper wakes one 44 px away, not
+## one 45 px away); tests/e2e/test_level_progress.gd checks it in play.
+const CHAIN_LINK := 44.0
 
 
 ## The best take-off point on the loop for a called slime of `size` to hop
@@ -79,9 +88,11 @@ static func max_rise(size: int) -> float:
 ## (those it doesn't), "species" (letter -> base slimes the train can have
 ## by then, the first slime included), "available" (their total),
 ## "largest" (the largest size the train can make by then), "progresses"
-## (available >= quota)}.
+## (available >= quota)}. With `max_size` 1 the train never fuses: what
+## calls alone wake with base slimes (the test level's played test).
 # @spec-link [[rule_gate_opens_via_switch_basket_set]]
-static func estimate(c: LevelChecker) -> Array:
+# @spec-link [[req_waking_sleepers]]
+static func estimate(c: LevelChecker, max_size := SlimeBodies.MAX_SIZE) -> Array:
 	var out := []
 	var pool := {}
 	if not c.data.first_slime.is_empty():
@@ -99,9 +110,9 @@ static func estimate(c: LevelChecker) -> Array:
 		var more := true
 		while more:
 			more = false
-			var largest := _largest(pool)
+			var largest := mini(_largest(pool), max_size)
 			for id in waiting.duplicate():
-				if sizes[id] > 0 and sizes[id] <= largest:
+				if (sizes[id] > 0 and sizes[id] <= largest) or _touches(c, id, woken):
 					woken.append(id)
 					waiting.erase(id)
 					var letter: String = c.data.sleepers[id]["species"]
@@ -114,7 +125,8 @@ static func estimate(c: LevelChecker) -> Array:
 			available += pool[letter]
 		var quota: int = c.data.baskets[basket]["quota"]
 		out.append({"section": section, "basket": basket, "quota": quota, "woken": woken.duplicate(),
-				"unreached": waiting, "species": _sorted(pool), "available": available, "largest": _largest(pool),
+				"unreached": waiting, "species": _sorted(pool), "available": available,
+				"largest": mini(_largest(pool), max_size),
 				"progresses": available >= quota})
 	return out
 
@@ -133,12 +145,39 @@ static func warnings(c: LevelChecker) -> Array:
 		out.append(LevelChecker.finding(one["basket"], box.get_center().x,
 				("section %d may not progress: its basket's quota is %d, but only about %d base slimes can be awake "
 				+ "by then (%s; largest size %d). Out of a called slime's reach: %s%s. Bring sleepers within a called "
-				+ "base slime's hop of the loop (%.0f px up, %.0f px sideways), let same-species pairs wake first, or "
-				+ "lower the quota. A static estimate: play it to be sure")
+				+ "base slime's hop of the loop (%.0f px up, %.0f px sideways), line them up touching (a woken "
+				+ "sleeper wakes those it touches), let same-species pairs wake first, or lower the quota. A static "
+				+ "estimate: play it to be sure")
 				% [one["section"], one["quota"], one["available"], _counts_text(one["species"]), one["largest"],
 				", ".join(named) if not named.is_empty() else "none",
 				" and %d more" % rest if rest > 0 else "", max_rise(1), Train.hop_reach(1)]))
 	return out
+
+
+## The sleepers lined up touching sleeper `stable_id` (centres at most
+## CHAIN_LINK apart, link by link), itself included, in natural order: once
+## one of them wakes, on screen, they all do.
+# @spec-link [[req_waking_sleepers]]
+static func chain(c: LevelChecker, stable_id: String) -> Array:
+	var out := [stable_id]
+	var k := 0
+	while k < out.size():
+		var at: Vector2 = c.data.sleepers[out[k]]["position"]
+		for other in c.data.sleepers:
+			if not other in out and at.distance_to(c.data.sleepers[other]["position"]) <= CHAIN_LINK:
+				out.append(other)
+		k += 1
+	out.sort_custom(func(a: String, b: String): return a.naturalnocasecmp_to(b) < 0)
+	return out
+
+
+## Whether sleeper `stable_id` touches one of `woken` (CHAIN_LINK).
+static func _touches(c: LevelChecker, stable_id: String, woken: Array) -> bool:
+	var at: Vector2 = c.data.sleepers[stable_id]["position"]
+	for other in woken:
+		if at.distance_to(c.data.sleepers[other]["position"]) <= CHAIN_LINK:
+			return true
+	return false
 
 
 ## The outgoing routes' points of the loop in use at `section`, every

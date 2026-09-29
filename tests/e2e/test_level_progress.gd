@@ -14,6 +14,7 @@ extends GutTest
 
 # @test-link [[rule_gate_opens_via_switch_basket_set]]
 # @test-link [[rule_sleepers_never_on_loop]]
+# @test-link [[req_waking_sleepers]]
 
 const S := LevelData.SCREEN
 const FLOOR_Y := 600.0
@@ -119,3 +120,47 @@ func test_the_take_off_is_the_loop_point_least_below_within_a_hop_sideways() -> 
 	var far := Vector2((DROP_X + 0.3) * S, LOOP_Y - 110.0)
 	assert_false(LevelProgress.take_off(checker, 1, far)["reaches"])
 	assert_eq(LevelProgress.smallest_size(checker, 1, far), 0, "310 px up from under it: beyond every size")
+
+
+# Chunk TL1: a woken slime is free and wakes a sleeper it touches, so a line
+# of sleepers touching each other (LevelProgress.CHAIN_LINK) all wake once
+# one does; the estimate counts them.
+func test_sleepers_lined_up_touching_wake_with_the_one_a_call_reaches() -> void:
+	# One above the other (numbered top to bottom): 04 within a called base
+	# slime's hop; 03 and 02 beyond it, each 40 px over the one below
+	# (touching); 01 50 px over 02 (not touching). C, B, C, B: no two of one
+	# species touching, and base slimes only.
+	var level := _level([[1.0, 110.0, "B"], [1.0, 150.0, "C"], [1.0, 190.0, "B"], [1.0, 240.0, "C"]], 4)
+	var checker := LevelChecker.new(level)
+	assert_eq(LevelProgress.chain(checker, "s1.sleeper.03"), ["s1.sleeper.02", "s1.sleeper.03", "s1.sleeper.04"])
+	assert_eq(LevelProgress.chain(checker, "s1.sleeper.01"), ["s1.sleeper.01"])
+	var plan: Dictionary = LevelProgress.estimate(checker, 1)[0]
+	var woken: Array = plan["woken"].duplicate()
+	woken.sort()
+	assert_eq(woken, ["s1.sleeper.02", "s1.sleeper.03", "s1.sleeper.04"])
+	assert_eq(plan["unreached"], ["s1.sleeper.01"], "50 px from 02: not touching; 240 px up: beyond a base slime")
+	assert_eq(plan["largest"], 1, "base slimes only")
+	assert_eq(plan["available"], 4, "the first slime and the line")
+	assert_true(plan["progresses"])
+	assert_eq(checker.check(12, true)["warnings"], [])
+
+
+func test_a_woken_slime_wakes_a_sleeper_within_the_chain_link_in_play() -> void:
+	# The simulation's side of CHAIN_LINK: two sleepers on the ground, one
+	# woken (as Sleepers.wake does), both on screen.
+	var level := _level([], 2)
+	for gap in [LevelProgress.CHAIN_LINK, LevelProgress.CHAIN_LINK + 4.0]:
+		var sim := LevelChecker.new(level).start_state(1)
+		for slime_id in sim.slimes.ids():
+			sim.slimes.remove(slime_id)
+		var at := Vector2(0.8 * S, LOOP_Y)
+		var woken := sim.slimes.create(Species.from_letter("A"), 1, at, SlimeBodies.SLEEPER)
+		var other := sim.slimes.create(Species.from_letter("B"), 1, at + Vector2(gap, 0.0), SlimeBodies.SLEEPER)
+		sim.view.set_to(at, 1.0, ScreenView.DEFAULT_SIZE)
+		sim.slimes.set_state(woken, SlimeBodies.FREE)
+		sim.free_slimes.restore_record(woken, {"phase": FreeSlimes.UNSURE, "since": sim.tick,
+				"point": sim.slimes.centre_of(woken), "route": ""})
+		sim.run(10)
+		var awake := sim.slimes.state_of(other) != SlimeBodies.SLEEPER
+		assert_eq(awake, gap <= LevelProgress.CHAIN_LINK, "a sleeper %.0f px from a woken slime %s within 10 ticks"
+				% [gap, "wakes" if gap <= LevelProgress.CHAIN_LINK else "doesn't wake"])

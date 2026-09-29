@@ -75,7 +75,9 @@ const BEDROCK := [
 ## cave (2.4) to basket 2's pit and slide 2's chute (2.5), then back along
 ## the tunnel's roof. Its top is y -20 on the flat; the loop rides RIDE above.
 const S2_CRUST := [
-	[8.5, -100], [8.6, -100], [8.75, -65], [8.9, -30], [9.0, -20],
+	# 2.1 Descent: steeper at its top since chunk TL1 (the lower D ledge
+	# hangs over it, within a called base slime's hop of the pillar).
+	[8.5, -100], [8.6, -100], [8.63, -70], [8.75, -45], [8.9, -28], [9.0, -20],
 	# 2.3 Second dip.
 	[10.0, -20], [10.05, 0], [10.15, 70], [10.25, 100], [10.35, 70], [10.45, 0], [10.5, -20],
 	# 2.5 Basket 2's pit, then the chute's near wall.
@@ -84,9 +86,13 @@ const S2_CRUST := [
 ]
 ## Section 2's floating pieces: name -> outline.
 const S2_PIECES := {
-	# 2.1 Descent: the D ledges.
-	"DescentLedge1": [[8.55, -330], [8.72, -330], [8.72, -305], [8.55, -305]],
-	"DescentLedge2": [[8.78, -250], [8.95, -250], [8.95, -225], [8.78, -225]],
+	# 2.1 Descent: the D ledges. The lower one (chunk TL1) hangs over the
+	# descent, 115 px over the pillar's top, where a called base slime takes
+	# off from, and at least 130 px over the ground under it (rule 22 (b));
+	# the upper one over the pillar, clear of it, so a slime woken there
+	# drops onto the loop, not onto the lower ledge.
+	"DescentLedge1": [[8.4, -330], [8.57, -330], [8.57, -305], [8.4, -305]],
+	"DescentLedge2": [[8.66, -215], [8.78, -215], [8.78, -195], [8.66, -195]],
 	# 2.2 Parade: the overhang ledges.
 	"ParadeLedge1": [[9.15, -240], [9.36, -240], [9.36, -215], [9.15, -215]],
 	"ParadeLedge2": [[9.6, -240], [9.81, -240], [9.81, -215], [9.6, -215]],
@@ -97,6 +103,11 @@ const S2_PIECES := {
 	# the loop's flat only 110 px up). Open toward the rim, a lip at the
 	# back.
 	"Dip2Hollow": [[10.26, -155], [10.28, -135], [10.42, -135], [10.42, -115], [10.26, -115]],
+	# The same over the second dip's near slope (chunk TL1), reached from
+	# its near rim (y -20 at 10.0): its floor 110 px over the rim, its
+	# underside at least 130 px over the loop's ground, open toward the rim
+	# (a slime woken there heads for it), a lip at the back.
+	"Dip2HollowNear": [[10.08, -130], [10.2, -130], [10.22, -150], [10.22, -110], [10.08, -110]],
 	# 2.4 The cave: the stepped climb, the pocket, then the tunnel's two
 	# shelves (each with a lip where the way turns) down to the loop.
 	"CaveStep1": [[10.5, -180], [10.62, -180], [10.62, -155], [10.5, -155]],
@@ -129,29 +140,43 @@ const S3_CRUST_REST := [
 	[16.4, 160], [14.5, 176], [12.72, 190],
 ]
 ## Section 3's ledges: [name, x0, x1, top at x0, top at x1] (x in screens),
-## 25 px thick. The entry ramp's two side ledges are flat; the bowl's shelves
-## tilt inward (down toward the bowl's middle), in three tiers on each side,
-## each tier's inner end past the one above, so a woken slime rolls off into
-## the bowl, which is the loop (rules 7, 8). The rim tilts down toward the
-## bowl too.
-const S3_RAMP_LEDGES := [
-	["RampLedge1", 12.96, 13.18, -210, -210],
-	["RampLedge2", 13.22, 13.42, -160, -160],
-]
+## 25 px thick. The bowl's shelves tilt inward (down toward the bowl's
+## middle), in three tiers on each side, each tier's inner end past the one
+## above, so a woken slime rolls off into the bowl, which is the loop (rules
+## 7, 8). The rim tilts down toward the bowl too, in two parts (chunk TL1):
+## its low part over the far wall, 120 px over the plateau's start, where a
+## called base slime takes off from, and at least 130 px over the wall under
+## it (rule 22 (b)); its high part over the plateau, as before.
 const S3_SHELVES := [
-	["ShelfL1", 13.56, 14.18, -105, -90],
 	["ShelfL2", 13.49, 14.11, -265, -250],
 	["ShelfL3", 13.42, 14.04, -425, -410],
 	["ShelfR1", 14.28, 14.9, -90, -105],
 	["ShelfR2", 14.34, 14.96, -250, -265],
 	["ShelfR3", 14.4, 15.02, -410, -425],
 ]
-const S3_RIM := ["Rim", 15.05, 16.192, -300, -310]
+const S3_RIM_LOW := ["RimLow", 14.98, 15.54, -232, -240]
+const S3_RIM := ["Rim", 15.66, 16.2, -300, -310]
 const S3_LEDGE_THICKNESS := 25.0
+## The ramp's shelf (chunk TL1; it replaces the ramp's two side ledges and
+## the left shelves' first tier): from the entry ramp, 115 px over the ramp
+## where a called base slime takes off from, down into the bowl as its left
+## first tier, its inner end past the tier above. Its underside everywhere
+## at least 130 px over the loop's ground under it (rule 22 (b)), 20 px
+## thick. Its top, [x, y] left to right: its sleepers are lined up touching
+## along it.
+const S3_RAMP_SHELF := [[13.31, -110], [13.7, -58], [14.18, -55]]
+const S3_RAMP_SHELF_THICKNESS := 20.0
 ## Floating greybox pieces: name -> outline.
 const PIECES := {
 	"FirstLedge": [[0.42, 335], [0.5, 335], [0.5, 355], [0.42, 355]],
-	"DipHollow": [[3.3, -170], [3.32, -150], [3.44, -150], [3.46, -170], [3.46, -130], [3.3, -130]],
+	# 1.3 The fusion dip's hollows (chunk TL1: two, of four sleepers each):
+	# over its far slope, reached from its far rim (y -40 at 3.5), and over
+	# its near slope, reached from its near rim (y 0 at 2.5). Each open
+	# toward its rim (the called slime comes from there, and a slime woken
+	# there heads for it), a lip at the back, its floor 110 px over its rim
+	# and its underside at least 130 px over the loop's ground (rule 22 (b)).
+	"DipHollowNear": [[2.58, -110], [2.74, -110], [2.76, -130], [2.76, -90], [2.58, -90]],
+	"DipHollow": [[3.26, -170], [3.28, -150], [3.46, -150], [3.46, -130], [3.26, -130]],
 	"HighStep": [[3.7, -330], [4.15, -330], [4.41, -210], [3.7, -210]],
 	"TreeClimb": [[4.72, -238], [4.9, -360], [4.9, -330], [4.72, -208]],
 	"TreePlatform": [[4.9, -360], [5.5, -360], [5.5, -320], [4.9, -320]],
@@ -193,7 +218,7 @@ const SLIDE := [
 ## entrance; then slide 2, its return route (while gate 2 is closed), down
 ## the chute and back along the tunnel to slide 1's tail.
 const S2_LOOP := [
-	[7.6, -124], [8.0, -124], [8.5, -124], [8.6, -124], [8.75, -89], [8.9, -54], [9.0, -44],
+	[7.6, -124], [8.0, -124], [8.5, -124], [8.6, -124], [8.63, -94], [8.75, -69], [8.9, -52], [9.0, -44],
 	[10.0, -44], [10.05, -24], [10.15, 46], [10.25, 76], [10.35, 46], [10.45, -24], [10.5, -44],
 	[12.2, -44], [12.66, -44],
 ]
@@ -215,27 +240,34 @@ const S3_SLIDE := [
 ## plateau. Set 3 has no gate: its target is the celebration (D77).
 const TRAPDOOR_3 := [15.72, -120, 16.3, -95]
 ## The bowl's routes back: down the tiers of shelves from their inner ends
-## to the bowl's floor (the loop), and along the rim to its left end, then
-## down to the floor.
+## to the bowl's floor (the loop), the left ones by the ramp's shelf, and
+## along the rim's high part to its left end, then down to the plateau.
 const ROUTE_BACK_LEFT_SHELVES := [
-	[13.44, -449], [14.04, -434], [14.07, -275], [14.11, -274], [14.14, -115], [14.18, -114],
+	[13.44, -449], [14.04, -434], [14.07, -275], [14.11, -274], [14.14, -79], [14.18, -79],
 	[14.23, 76],
 ]
 const ROUTE_BACK_RIGHT_SHELVES := [
 	[15.0, -449], [14.4, -434], [14.37, -275], [14.34, -274], [14.31, -115], [14.28, -114],
 	[14.23, 76],
 ]
-const ROUTE_BACK_RIM := [[16.17, -334], [15.07, -324], [15.02, 76]]
-## Section 3's sleepers: 5 E on each ramp ledge; 15 on each shelf and 30 on
-## the rim, their species taken in turn from S3_SPECIES_CYCLE (README
-## population: shelves A, B, C, D 15 each and E 30; rim A, B, C, D 5 each
-## and E 10). Spacing along a ledge, in screens.
+const ROUTE_BACK_RIM := [[16.18, -334], [15.68, -324], [15.62, -144]]
+## Section 3's sleepers: 15 on each shelf and 30 on the rim, their species
+## taken in turn from S3_SPECIES_CYCLE (README population: shelves A, B, C,
+## D 15 each and E 30; rim A, B, C, D 5 each and E 10); the ramp's 10 E and
+## the first tier's 15 (the cycle's first 15) on the ramp's shelf, the E
+## first; the rim's first S3_ON_RIM_LOW on its low part. Spacing along a
+## ledge, in screens; on the ramp's shelf and the rim's low part, px along
+## the top: under LevelProgress.CHAIN_LINK, so a woken sleeper wakes the
+## whole line (chunk TL1).
 const S3_SPECIES_CYCLE := ["A", "E", "B", "E", "C", "D"]
-const S3_SLEEPERS_PER_RAMP_LEDGE := 5
+const S3_RAMP_E := 10
 const S3_SLEEPERS_PER_SHELF := 15
 const S3_SLEEPERS_ON_RIM := 30
+const S3_ON_RIM_LOW := 17
 const S3_SLEEPER_STEP := 0.04
-const S3_RIM_STEP := 0.038
+const S3_RIM_STEP := 0.04
+const S3_RIM_LOW_STEP := 0.033
+const S3_RAMP_SHELF_STEP := 39.0
 ## Frontier set 2's doors (chunk 15), as TRAPDOOR and ENTRANCE_LID: switch
 ## 2's trapdoor over basket 2's pit, and gate 2's lid over slide 2's chute.
 const TRAPDOOR_2 := [12.2, -20, 12.55, 5]
@@ -263,11 +295,13 @@ const ROUTE_BACK_TREE := [[4.95, -384], [5.5, -384], [5.85, -254], [5.95, -121]]
 ## Sleepers other than the hills', left to right: [x, y, species].
 const SLEEPERS_BEFORE_HILLS := [[0.46, 311, "B"]]
 const SLEEPERS_AFTER_HILLS := [
-	# 1.3 Fusion dip: the hollow on the rim.
-	[3.34, -174, "C"], [3.42, -174, "C"],
-	# 1.5 Tree: lower platform, then the high bough.
-	[4.96, -384, "A"], [5.02, -384, "A"], [5.08, -384, "B"], [5.14, -384, "B"],
-	[5.2, -384, "C"], [5.26, -384, "C"],
+	# 1.3 Fusion dip: the hollows on its rims (chunk TL1: the tree's lower
+	# platform's six sleepers moved here), each four lined up touching
+	# (LevelProgress.CHAIN_LINK), same-species pairs: A, A, B, B on the near
+	# rim, four C on the far rim.
+	[2.615, -134, "A"], [2.6497, -134, "A"], [2.6844, -134, "B"], [2.7191, -134, "B"],
+	[3.3312, -174, "C"], [3.3659, -174, "C"], [3.4006, -174, "C"], [3.4353, -174, "C"],
+	# 1.5 Tree: the high bough.
 	[5.33, -664, "A"], [5.39, -664, "A"], [5.45, -664, "A"],
 	# 1.6 Frontier set 1: the ledges above the switch.
 	[6.25, -344, "B"], [6.33, -344, "B"], [6.55, -384, "C"], [6.62, -384, "C"], [6.69, -384, "C"],
@@ -276,16 +310,21 @@ const HILL_SPECIES := ["A", "B", "C"]
 ## Section 2's sleepers (chunk 15), numbered left to right when placed: [x,
 ## y, species] (README population: A 7, B 7, C 7, D 19).
 const S2_SLEEPERS := [
-	# 2.1 Descent: 6 D on the side ledges.
-	[8.58, -354, "D"], [8.635, -354, "D"], [8.69, -354, "D"],
-	[8.81, -274, "D"], [8.865, -274, "D"], [8.92, -274, "D"],
-	# 2.2 Parade: A, B, C and D, 2 of each, on the overhang ledges.
+	# 2.1 Descent: 6 D on the side ledges; the lower ledge's three lined up
+	# touching (chunk TL1).
+	[8.43, -354, "D"], [8.485, -354, "D"], [8.54, -354, "D"],
+	[8.68, -239, "D"], [8.7147, -239, "D"], [8.7494, -239, "D"],
+	# 2.2 Parade: A, B, C and D on the first overhang ledge, an A on the
+	# second (chunk TL1: its B, C and D moved to the second dip).
 	[9.18, -264, "A"], [9.23, -264, "B"], [9.28, -264, "C"], [9.33, -264, "D"],
-	[9.63, -264, "A"], [9.68, -264, "B"], [9.73, -264, "C"], [9.78, -264, "D"],
-	# 2.3 Second dip: 2 D in the hollow over its far slope.
-	[10.3, -159, "D"], [10.38, -159, "D"],
+	[9.63, -264, "A"],
+	# 2.3 Second dip: the hollows over its slopes, each line touching
+	# (chunk TL1): B, C and D over the near one; A, B and 2 D over the far
+	# one (the A and B from the ledge by the switch).
+	[10.112, -154, "B"], [10.1467, -154, "C"], [10.1814, -154, "D"],
+	[10.297, -159, "A"], [10.3317, -159, "B"], [10.3664, -159, "D"], [10.4011, -159, "D"],
 	# 2.5 Frontier set 2, the ledge by the switch.
-	[10.775, -254, "A"], [10.818, -254, "B"], [10.861, -254, "C"], [10.904, -254, "D"],
+	[10.861, -254, "C"], [10.904, -254, "D"],
 	# 2.4 The cave pocket: A 3, B 3, C 3, D 5.
 	[10.98, -724, "A"], [11.028, -724, "B"], [11.076, -724, "C"], [11.124, -724, "D"],
 	[11.172, -724, "A"], [11.22, -724, "B"], [11.268, -724, "C"], [11.316, -724, "D"],
@@ -326,11 +365,15 @@ func _build() -> LevelBuilder:
 	var s3_crust: Array = S3_SURFACE.duplicate()
 	s3_crust.append_array(S3_CRUST_REST)
 	b.terrain(terrain, "S3Crust", s3_crust)
-	for ledge in S3_RAMP_LEDGES + S3_SHELVES + [S3_RIM]:
+	for ledge in S3_SHELVES + [S3_RIM_LOW, S3_RIM]:
 		b.terrain(terrain, ledge[0], [
 			[ledge[1], ledge[3]], [ledge[2], ledge[4]],
 			[ledge[2], ledge[4] + S3_LEDGE_THICKNESS], [ledge[1], ledge[3] + S3_LEDGE_THICKNESS],
 		])
+	var ramp_shelf: Array = S3_RAMP_SHELF.duplicate()
+	for i in range(S3_RAMP_SHELF.size() - 1, -1, -1):
+		ramp_shelf.append([S3_RAMP_SHELF[i][0], S3_RAMP_SHELF[i][1] + S3_RAMP_SHELF_THICKNESS])
+	b.terrain(terrain, "RampShelf", ramp_shelf)
 	for i in HILL_BUMPS.size():
 		var x: float = HILL_BUMPS[i][0]
 		var tilt: float = BUMP_TILT * HILL_BUMPS[i][1]
@@ -430,8 +473,29 @@ func _build_section_2(b: LevelBuilder) -> void:
 	b.frame(frontier, "s2", "gate", B.at(12.6, -100), Vector2(0.8 * S, 600), 0.9, Vector2(0, -40))
 
 
+## Sleepers resting on the ledge top `top` ([x, y] left to right, x in
+## screens), one per entry of `species`, the first `start` px along the top
+## from its left end and the next each `step` px further (chunk TL1).
+static func _along(top: Array, start: float, step: float, species: Array) -> Array:
+	var out := []
+	var at := start
+	var k := 0
+	for i in top.size() - 1:
+		var a := B.at(top[i][0], top[i][1])
+		var b := B.at(top[i + 1][0], top[i + 1][1])
+		var length := a.distance_to(b)
+		while k < species.size() and at <= length:
+			var point := a.lerp(b, at / length)
+			out.append([point.x / S, point.y - RIDE, species[k]])
+			k += 1
+			at += step
+		at -= length
+	assert(k == species.size(), "greybox_test_level: the ledge is too short for its sleepers")
+	return out
+
+
 ## Section 3, "Big bowl" (chunk 16; README "Section 3"): its 130 sleepers on
-## the ramp's ledges, the bowl's shelves and the rim, numbered left to right
+## the ramp's shelf, the bowl's shelves and the rim, numbered left to right
 ## (then top to bottom); the shelves' and the rim's branches with their
 ## routes back; the framing zones; and frontier set 3, whose basket's target
 ## is the level-complete celebration (no gate, no rule: the celebration
@@ -439,32 +503,42 @@ func _build_section_2(b: LevelBuilder) -> void:
 func _build_section_3(b: LevelBuilder) -> void:
 	var section := b.group(b.level, "Section3")
 	var sleepers := b.group(section, "Sleepers")
-	var placed: Array = []
-	for ledge in S3_RAMP_LEDGES:
-		for i in S3_SLEEPERS_PER_RAMP_LEDGE:
-			placed.append(B.on_ledge(ledge, ledge[1] + 0.02 + S3_SLEEPER_STEP * i, "E"))
+	var on_ramp_shelf: Array = []
+	for i in S3_RAMP_E:
+		on_ramp_shelf.append("E")
 	var n := 0
+	for i in S3_SLEEPERS_PER_SHELF:
+		on_ramp_shelf.append(S3_SPECIES_CYCLE[n % S3_SPECIES_CYCLE.size()])
+		n += 1
+	var placed: Array = _along(S3_RAMP_SHELF, S3_RAMP_SHELF_STEP * 0.5, S3_RAMP_SHELF_STEP, on_ramp_shelf)
 	for shelf in S3_SHELVES:
 		for i in S3_SLEEPERS_PER_SHELF:
 			placed.append(B.on_ledge(shelf, shelf[1] + 0.02 + S3_SLEEPER_STEP * i,
 					S3_SPECIES_CYCLE[n % S3_SPECIES_CYCLE.size()]))
 			n += 1
 	for i in S3_SLEEPERS_ON_RIM:
-		placed.append(B.on_ledge(S3_RIM, S3_RIM[1] + 0.02 + S3_RIM_STEP * i,
-				S3_SPECIES_CYCLE[i % S3_SPECIES_CYCLE.size()]))
+		var species: String = S3_SPECIES_CYCLE[i % S3_SPECIES_CYCLE.size()]
+		if i < S3_ON_RIM_LOW:
+			placed.append(B.on_ledge(S3_RIM_LOW, S3_RIM_LOW[1] + 0.02 + S3_RIM_LOW_STEP * i, species))
+		else:
+			placed.append(B.on_ledge(S3_RIM, S3_RIM[1] + 0.02 + S3_RIM_STEP * (i - S3_ON_RIM_LOW), species))
 	b.sleeper_row(sleepers, "s3", placed)
 
 	var bowl := b.group(section, "Bowl")
 	b.frame(bowl, "s3", "bowl", B.at(14.375, -150), Vector2(1.85 * S, 500), 0.5, Vector2(0, -200))
 	var left := b.group(bowl, "LeftShelves")
-	b.branch(left, "s3", "left-shelves", Rect2(13.41 * S, -520, 0.83 * S, 440))
+	# Above the ramp's shelf (chunk TL1): its sleepers, like the dip
+	# hollows', are in no branch; a woken one hops straight for the loop.
+	b.branch(left, "s3", "left-shelves", Rect2(13.41 * S, -520, 0.83 * S, 360))
 	b.route_back(left, "s3", "left-shelves", ROUTE_BACK_LEFT_SHELVES)
 	var right := b.group(bowl, "RightShelves")
 	b.branch(right, "s3", "right-shelves", Rect2(14.26 * S, -520, 0.77 * S, 440))
 	b.route_back(right, "s3", "right-shelves", ROUTE_BACK_RIGHT_SHELVES)
 
 	var rim := b.group(section, "Rim")
-	b.branch(rim, "s3", "rim", Rect2(15.04 * S, -400, 1.18 * S, 115))
+	# The rim's high part (chunk TL1); its low part, like the dip hollows,
+	# is in no branch.
+	b.branch(rim, "s3", "rim", Rect2(15.64 * S, -400, 0.58 * S, 115))
 	b.route_back(rim, "s3", "rim", ROUTE_BACK_RIM)
 
 	var frontier := b.group(section, "FrontierSet")

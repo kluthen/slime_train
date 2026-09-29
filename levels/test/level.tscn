@@ -48,746 +48,756 @@ point_count = 5
 
 [sub_resource type="Curve2D" id="Curve2D_xvs6c"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 3801.6, -170, 0, 0, 0, 0, 3824.64, -150, 0, 0, 0, 0, 3962.88, -150, 0, 0, 0, 0, 3985.92, -170, 0, 0, 0, 0, 3985.92, -130, 0, 0, 0, 0, 3801.6, -130, 0, 0, 0, 0, 3801.6, -170)
+"points": PackedVector2Array(0, 0, 0, 0, 2972.16, -110, 0, 0, 0, 0, 3156.48, -110, 0, 0, 0, 0, 3179.52, -130, 0, 0, 0, 0, 3179.52, -90, 0, 0, 0, 0, 2972.16, -90, 0, 0, 0, 0, 2972.16, -110)
 }
-point_count = 7
+point_count = 6
 
 [sub_resource type="Curve2D" id="Curve2D_cpl0j"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 3755.52, -170, 0, 0, 0, 0, 3778.56, -150, 0, 0, 0, 0, 3985.92, -150, 0, 0, 0, 0, 3985.92, -130, 0, 0, 0, 0, 3755.52, -130, 0, 0, 0, 0, 3755.52, -170)
+}
+point_count = 6
+
+[sub_resource type="Curve2D" id="Curve2D_pyu8y"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 4262.4, -330, 0, 0, 0, 0, 4780.8, -330, 0, 0, 0, 0, 5080.32, -210, 0, 0, 0, 0, 4262.4, -210, 0, 0, 0, 0, 4262.4, -330)
 }
 point_count = 5
 
-[sub_resource type="Curve2D" id="Curve2D_pyu8y"]
+[sub_resource type="Curve2D" id="Curve2D_0cx2k"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 5437.44, -238, 0, 0, 0, 0, 5644.8, -360, 0, 0, 0, 0, 5644.8, -330, 0, 0, 0, 0, 5437.44, -208, 0, 0, 0, 0, 5437.44, -238)
 }
 point_count = 5
 
-[sub_resource type="Curve2D" id="Curve2D_0cx2k"]
+[sub_resource type="Curve2D" id="Curve2D_cangm"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 5644.8, -360, 0, 0, 0, 0, 6336, -360, 0, 0, 0, 0, 6336, -320, 0, 0, 0, 0, 5644.8, -320, 0, 0, 0, 0, 5644.8, -360)
 }
 point_count = 5
 
-[sub_resource type="Curve2D" id="Curve2D_cangm"]
+[sub_resource type="Curve2D" id="Curve2D_w6ip2"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 6105.6, -640, 0, 0, 0, 0, 6312.96, -640, 0, 0, 0, 0, 6312.96, -615, 0, 0, 0, 0, 6105.6, -615, 0, 0, 0, 0, 6105.6, -640)
 }
 point_count = 5
 
-[sub_resource type="Curve2D" id="Curve2D_w6ip2"]
+[sub_resource type="Curve2D" id="Curve2D_uypen"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 6336, -360, 0, 0, 0, 0, 6739.2, -230, 0, 0, 0, 0, 6739.2, -200, 0, 0, 0, 0, 6336, -330, 0, 0, 0, 0, 6336, -360)
 }
 point_count = 5
 
-[sub_resource type="Curve2D" id="Curve2D_uypen"]
+[sub_resource type="Curve2D" id="Curve2D_kq1rg"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 8824.32, -100, 0, 0, 0, 0, 9792, -100, 0, 0, 0, 0, 9792, 180, 0, 0, 0, 0, 8755.2, 180, 0, 0, 0, 0, 8640, 150, 0, 0, 0, 0, 8824.32, 30, 0, 0, 0, 0, 8824.32, -100)
 }
 point_count = 7
 
-[sub_resource type="Curve2D" id="Curve2D_kq1rg"]
+[sub_resource type="Curve2D" id="Curve2D_vcfln"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 7142.4, -320, 0, 0, 0, 0, 7372.8, -320, 0, 0, 0, 0, 7372.8, -295, 0, 0, 0, 0, 7142.4, -295, 0, 0, 0, 0, 7142.4, -320)
 }
 point_count = 5
 
-[sub_resource type="Curve2D" id="Curve2D_vcfln"]
+[sub_resource type="Curve2D" id="Curve2D_i0p1l"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 7488, -360, 0, 0, 0, 0, 7776, -360, 0, 0, 0, 0, 7776, -335, 0, 0, 0, 0, 7488, -335, 0, 0, 0, 0, 7488, -360)
 }
 point_count = 5
 
-[sub_resource type="Curve2D" id="Curve2D_i0p1l"]
-_data = {
-"points": PackedVector2Array(0, 0, 0, 0, 9792, -100, 0, 0, 0, 0, 9907.2, -100, 0, 0, 0, 0, 10080, -65, 0, 0, 0, 0, 10252.8, -30, 0, 0, 0, 0, 10368, -20, 0, 0, 0, 0, 11520, -20, 0, 0, 0, 0, 11577.6, 0, 0, 0, 0, 0, 11692.8, 70, 0, 0, 0, 0, 11808, 100, 0, 0, 0, 0, 11923.2, 70, 0, 0, 0, 0, 12038.4, 0, 0, 0, 0, 0, 12096, -20, 0, 0, 0, 0, 14054.4, -20, 0, 0, 0, 0, 14054.4, 150, 0, 0, 0, 0, 14457.6, 150, 0, 0, 0, 0, 14457.6, -20, 0, 0, 0, 0, 14515.2, -20, 0, 0, 0, 0, 14515.2, 190, 0, 0, 0, 0, 12096, 188, 0, 0, 0, 0, 9792, 180, 0, 0, 0, 0, 9792, -100)
-}
-point_count = 21
-
 [sub_resource type="Curve2D" id="Curve2D_inf4c"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 9849.6, -330, 0, 0, 0, 0, 10045.44, -330, 0, 0, 0, 0, 10045.44, -305, 0, 0, 0, 0, 9849.6, -305, 0, 0, 0, 0, 9849.6, -330)
+"points": PackedVector2Array(0, 0, 0, 0, 9792, -100, 0, 0, 0, 0, 9907.2, -100, 0, 0, 0, 0, 9941.76, -70, 0, 0, 0, 0, 10080, -45, 0, 0, 0, 0, 10252.8, -28, 0, 0, 0, 0, 10368, -20, 0, 0, 0, 0, 11520, -20, 0, 0, 0, 0, 11577.6, 0, 0, 0, 0, 0, 11692.8, 70, 0, 0, 0, 0, 11808, 100, 0, 0, 0, 0, 11923.2, 70, 0, 0, 0, 0, 12038.4, 0, 0, 0, 0, 0, 12096, -20, 0, 0, 0, 0, 14054.4, -20, 0, 0, 0, 0, 14054.4, 150, 0, 0, 0, 0, 14457.6, 150, 0, 0, 0, 0, 14457.6, -20, 0, 0, 0, 0, 14515.2, -20, 0, 0, 0, 0, 14515.2, 190, 0, 0, 0, 0, 12096, 188, 0, 0, 0, 0, 9792, 180, 0, 0, 0, 0, 9792, -100)
 }
-point_count = 5
+point_count = 22
 
 [sub_resource type="Curve2D" id="Curve2D_pfppo"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 10114.56, -250, 0, 0, 0, 0, 10310.4, -250, 0, 0, 0, 0, 10310.4, -225, 0, 0, 0, 0, 10114.56, -225, 0, 0, 0, 0, 10114.56, -250)
+"points": PackedVector2Array(0, 0, 0, 0, 9676.8, -330, 0, 0, 0, 0, 9872.64, -330, 0, 0, 0, 0, 9872.64, -305, 0, 0, 0, 0, 9676.8, -305, 0, 0, 0, 0, 9676.8, -330)
 }
 point_count = 5
 
 [sub_resource type="Curve2D" id="Curve2D_ho3ol"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 10540.8, -240, 0, 0, 0, 0, 10782.72, -240, 0, 0, 0, 0, 10782.72, -215, 0, 0, 0, 0, 10540.8, -215, 0, 0, 0, 0, 10540.8, -240)
+"points": PackedVector2Array(0, 0, 0, 0, 9976.32, -215, 0, 0, 0, 0, 10114.56, -215, 0, 0, 0, 0, 10114.56, -195, 0, 0, 0, 0, 9976.32, -195, 0, 0, 0, 0, 9976.32, -215)
 }
 point_count = 5
 
 [sub_resource type="Curve2D" id="Curve2D_dpg3h"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 11059.2, -240, 0, 0, 0, 0, 11301.12, -240, 0, 0, 0, 0, 11301.12, -215, 0, 0, 0, 0, 11059.2, -215, 0, 0, 0, 0, 11059.2, -240)
+"points": PackedVector2Array(0, 0, 0, 0, 10540.8, -240, 0, 0, 0, 0, 10782.72, -240, 0, 0, 0, 0, 10782.72, -215, 0, 0, 0, 0, 10540.8, -215, 0, 0, 0, 0, 10540.8, -240)
 }
 point_count = 5
 
 [sub_resource type="Curve2D" id="Curve2D_2o00g"]
 _data = {
+"points": PackedVector2Array(0, 0, 0, 0, 11059.2, -240, 0, 0, 0, 0, 11301.12, -240, 0, 0, 0, 0, 11301.12, -215, 0, 0, 0, 0, 11059.2, -215, 0, 0, 0, 0, 11059.2, -240)
+}
+point_count = 5
+
+[sub_resource type="Curve2D" id="Curve2D_d8lll"]
+_data = {
 "points": PackedVector2Array(0, 0, 0, 0, 11819.52, -155, 0, 0, 0, 0, 11842.56, -135, 0, 0, 0, 0, 12003.84, -135, 0, 0, 0, 0, 12003.84, -115, 0, 0, 0, 0, 11819.52, -115, 0, 0, 0, 0, 11819.52, -155)
 }
 point_count = 6
 
-[sub_resource type="Curve2D" id="Curve2D_d8lll"]
+[sub_resource type="Curve2D" id="Curve2D_flydm"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 11612.16, -130, 0, 0, 0, 0, 11750.4, -130, 0, 0, 0, 0, 11773.44, -150, 0, 0, 0, 0, 11773.44, -110, 0, 0, 0, 0, 11612.16, -110, 0, 0, 0, 0, 11612.16, -130)
+}
+point_count = 6
+
+[sub_resource type="Curve2D" id="Curve2D_ksvl0"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 12096, -180, 0, 0, 0, 0, 12234.24, -180, 0, 0, 0, 0, 12234.24, -155, 0, 0, 0, 0, 12096, -155, 0, 0, 0, 0, 12096, -180)
 }
 point_count = 5
 
-[sub_resource type="Curve2D" id="Curve2D_flydm"]
+[sub_resource type="Curve2D" id="Curve2D_otdug"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 12234.24, -310, 0, 0, 0, 0, 12372.48, -310, 0, 0, 0, 0, 12372.48, -285, 0, 0, 0, 0, 12234.24, -285, 0, 0, 0, 0, 12234.24, -310)
 }
 point_count = 5
 
-[sub_resource type="Curve2D" id="Curve2D_ksvl0"]
+[sub_resource type="Curve2D" id="Curve2D_gatfh"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 12372.48, -440, 0, 0, 0, 0, 12510.72, -440, 0, 0, 0, 0, 12510.72, -415, 0, 0, 0, 0, 12372.48, -415, 0, 0, 0, 0, 12372.48, -440)
 }
 point_count = 5
 
-[sub_resource type="Curve2D" id="Curve2D_otdug"]
+[sub_resource type="Curve2D" id="Curve2D_5m1ad"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 12510.72, -570, 0, 0, 0, 0, 12614.4, -570, 0, 0, 0, 0, 12614.4, -545, 0, 0, 0, 0, 12510.72, -545, 0, 0, 0, 0, 12510.72, -570)
 }
 point_count = 5
 
-[sub_resource type="Curve2D" id="Curve2D_gatfh"]
+[sub_resource type="Curve2D" id="Curve2D_rv3o4"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 12614.4, -700, 0, 0, 0, 0, 13420.8, -700, 0, 0, 0, 0, 13420.8, -675, 0, 0, 0, 0, 12614.4, -675, 0, 0, 0, 0, 12614.4, -700)
 }
 point_count = 5
 
-[sub_resource type="Curve2D" id="Curve2D_5m1ad"]
+[sub_resource type="Curve2D" id="Curve2D_tfq22"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 12695.04, -500, 0, 0, 0, 0, 13708.8, -550, 0, 0, 0, 0, 13708.8, -620, 0, 0, 0, 0, 13743.36, -620, 0, 0, 0, 0, 13743.36, -525, 0, 0, 0, 0, 12695.04, -475, 0, 0, 0, 0, 12695.04, -500)
 }
 point_count = 7
 
-[sub_resource type="Curve2D" id="Curve2D_rv3o4"]
+[sub_resource type="Curve2D" id="Curve2D_ug44n"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 12591.36, -430, 0, 0, 0, 0, 12614.4, -430, 0, 0, 0, 0, 12614.4, -360, 0, 0, 0, 0, 13685.76, -310, 0, 0, 0, 0, 13685.76, -285, 0, 0, 0, 0, 12591.36, -335, 0, 0, 0, 0, 12591.36, -430)
 }
 point_count = 7
 
-[sub_resource type="Curve2D" id="Curve2D_tfq22"]
+[sub_resource type="Curve2D" id="Curve2D_dwgjd"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 12389.76, -230, 0, 0, 0, 0, 12585.6, -230, 0, 0, 0, 0, 12585.6, -205, 0, 0, 0, 0, 12389.76, -205, 0, 0, 0, 0, 12389.76, -230)
 }
 point_count = 5
 
-[sub_resource type="Curve2D" id="Curve2D_ug44n"]
+[sub_resource type="Curve2D" id="Curve2D_pd65k"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 13824, -260, 0, 0, 0, 0, 14129.28, -260, 0, 0, 0, 0, 14129.28, -235, 0, 0, 0, 0, 13824, -235, 0, 0, 0, 0, 13824, -260)
 }
 point_count = 5
 
-[sub_resource type="Curve2D" id="Curve2D_dwgjd"]
+[sub_resource type="Curve2D" id="Curve2D_7qcwl"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 14653.44, -20, 0, 0, 0, 0, 14976, -20, 0, 0, 0, 0, 15091.2, -12, 0, 0, 0, 0, 15206.4, 8, 0, 0, 0, 0, 15321.6, 38, 0, 0, 0, 0, 15436.8, 68, 0, 0, 0, 0, 15552, 90, 0, 0, 0, 0, 15667.2, 100, 0, 0, 0, 0, 17337.6, 100, 0, 0, 0, 0, 17452.8, 90, 0, 0, 0, 0, 17568, 62, 0, 0, 0, 0, 17683.2, 20, 0, 0, 0, 0, 17798.4, -32, 0, 0, 0, 0, 17913.6, -88, 0, 0, 0, 0, 17994.24, -120, 0, 0, 0, 0, 18109.44, -120, 0, 0, 0, 0, 18109.44, 100, 0, 0, 0, 0, 18777.6, 100, 0, 0, 0, 0, 18777.6, -120, 0, 0, 0, 0, 18892.8, -120, 0, 0, 0, 0, 18892.8, 160, 0, 0, 0, 0, 16704, 176, 0, 0, 0, 0, 14653.44, 190, 0, 0, 0, 0, 14653.44, -20)
 }
 point_count = 24
 
-[sub_resource type="Curve2D" id="Curve2D_pd65k"]
-_data = {
-"points": PackedVector2Array(0, 0, 0, 0, 14929.92, -210, 0, 0, 0, 0, 15183.36, -210, 0, 0, 0, 0, 15183.36, -185, 0, 0, 0, 0, 14929.92, -185, 0, 0, 0, 0, 14929.92, -210)
-}
-point_count = 5
-
-[sub_resource type="Curve2D" id="Curve2D_7qcwl"]
-_data = {
-"points": PackedVector2Array(0, 0, 0, 0, 15229.44, -160, 0, 0, 0, 0, 15459.84, -160, 0, 0, 0, 0, 15459.84, -135, 0, 0, 0, 0, 15229.44, -135, 0, 0, 0, 0, 15229.44, -160)
-}
-point_count = 5
-
 [sub_resource type="Curve2D" id="Curve2D_1g578"]
-_data = {
-"points": PackedVector2Array(0, 0, 0, 0, 15621.12, -105, 0, 0, 0, 0, 16335.36, -90, 0, 0, 0, 0, 16335.36, -65, 0, 0, 0, 0, 15621.12, -80, 0, 0, 0, 0, 15621.12, -105)
-}
-point_count = 5
-
-[sub_resource type="Curve2D" id="Curve2D_ded4q"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 15540.48, -265, 0, 0, 0, 0, 16254.72, -250, 0, 0, 0, 0, 16254.72, -225, 0, 0, 0, 0, 15540.48, -240, 0, 0, 0, 0, 15540.48, -265)
 }
 point_count = 5
 
-[sub_resource type="Curve2D" id="Curve2D_pq8vo"]
+[sub_resource type="Curve2D" id="Curve2D_ded4q"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 15459.84, -425, 0, 0, 0, 0, 16174.08, -410, 0, 0, 0, 0, 16174.08, -385, 0, 0, 0, 0, 15459.84, -400, 0, 0, 0, 0, 15459.84, -425)
 }
 point_count = 5
 
-[sub_resource type="Curve2D" id="Curve2D_eq6mv"]
+[sub_resource type="Curve2D" id="Curve2D_pq8vo"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 16450.56, -90, 0, 0, 0, 0, 17164.8, -105, 0, 0, 0, 0, 17164.8, -80, 0, 0, 0, 0, 16450.56, -65, 0, 0, 0, 0, 16450.56, -90)
 }
 point_count = 5
 
-[sub_resource type="Curve2D" id="Curve2D_e6vn2"]
+[sub_resource type="Curve2D" id="Curve2D_eq6mv"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 16519.68, -250, 0, 0, 0, 0, 17233.92, -265, 0, 0, 0, 0, 17233.92, -240, 0, 0, 0, 0, 16519.68, -225, 0, 0, 0, 0, 16519.68, -250)
 }
 point_count = 5
 
-[sub_resource type="Curve2D" id="Curve2D_smxb2"]
+[sub_resource type="Curve2D" id="Curve2D_e6vn2"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 16588.8, -410, 0, 0, 0, 0, 17303.04, -425, 0, 0, 0, 0, 17303.04, -400, 0, 0, 0, 0, 16588.8, -385, 0, 0, 0, 0, 16588.8, -410)
 }
 point_count = 5
 
+[sub_resource type="Curve2D" id="Curve2D_smxb2"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 17256.96, -232, 0, 0, 0, 0, 17902.08, -240, 0, 0, 0, 0, 17902.08, -215, 0, 0, 0, 0, 17256.96, -207, 0, 0, 0, 0, 17256.96, -232)
+}
+point_count = 5
+
 [sub_resource type="Curve2D" id="Curve2D_8mxv2"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 17337.6, -300, 0, 0, 0, 0, 18653.184, -310, 0, 0, 0, 0, 18653.184, -285, 0, 0, 0, 0, 17337.6, -275, 0, 0, 0, 0, 17337.6, -300)
+"points": PackedVector2Array(0, 0, 0, 0, 18040.32, -300, 0, 0, 0, 0, 18662.4, -310, 0, 0, 0, 0, 18662.4, -285, 0, 0, 0, 0, 18040.32, -275, 0, 0, 0, 0, 18040.32, -300)
 }
 point_count = 5
 
 [sub_resource type="Curve2D" id="Curve2D_ly6kx"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 1290.24, -182, 0, 0, 0, 0, 1474.56, -158, 0, 0, 0, 0, 1474.56, -133, 0, 0, 0, 0, 1290.24, -157, 0, 0, 0, 0, 1290.24, -182)
+"points": PackedVector2Array(0, 0, 0, 0, 15333.12, -110, 0, 0, 0, 0, 15782.4, -58, 0, 0, 0, 0, 16335.36, -55, 0, 0, 0, 0, 16335.36, -35, 0, 0, 0, 0, 15782.4, -38, 0, 0, 0, 0, 15333.12, -90, 0, 0, 0, 0, 15333.12, -110)
 }
-point_count = 5
+point_count = 7
 
 [sub_resource type="Curve2D" id="Curve2D_y7en6"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 1578.24, -158, 0, 0, 0, 0, 1762.56, -182, 0, 0, 0, 0, 1762.56, -157, 0, 0, 0, 0, 1578.24, -133, 0, 0, 0, 0, 1578.24, -158)
+"points": PackedVector2Array(0, 0, 0, 0, 1290.24, -182, 0, 0, 0, 0, 1474.56, -158, 0, 0, 0, 0, 1474.56, -133, 0, 0, 0, 0, 1290.24, -157, 0, 0, 0, 0, 1290.24, -182)
 }
 point_count = 5
 
 [sub_resource type="Curve2D" id="Curve2D_1lioe"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 1866.24, -182, 0, 0, 0, 0, 2050.56, -158, 0, 0, 0, 0, 2050.56, -133, 0, 0, 0, 0, 1866.24, -157, 0, 0, 0, 0, 1866.24, -182)
+"points": PackedVector2Array(0, 0, 0, 0, 1578.24, -158, 0, 0, 0, 0, 1762.56, -182, 0, 0, 0, 0, 1762.56, -157, 0, 0, 0, 0, 1578.24, -133, 0, 0, 0, 0, 1578.24, -158)
 }
 point_count = 5
 
 [sub_resource type="Curve2D" id="Curve2D_1i3nw"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 2154.24, -158, 0, 0, 0, 0, 2338.56, -182, 0, 0, 0, 0, 2338.56, -157, 0, 0, 0, 0, 2154.24, -133, 0, 0, 0, 0, 2154.24, -158)
+"points": PackedVector2Array(0, 0, 0, 0, 1866.24, -182, 0, 0, 0, 0, 2050.56, -158, 0, 0, 0, 0, 2050.56, -133, 0, 0, 0, 0, 1866.24, -157, 0, 0, 0, 0, 1866.24, -182)
 }
 point_count = 5
 
 [sub_resource type="Curve2D" id="Curve2D_2cvbc"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 2442.24, -182, 0, 0, 0, 0, 2626.56, -158, 0, 0, 0, 0, 2626.56, -133, 0, 0, 0, 0, 2442.24, -157, 0, 0, 0, 0, 2442.24, -182)
+"points": PackedVector2Array(0, 0, 0, 0, 2154.24, -158, 0, 0, 0, 0, 2338.56, -182, 0, 0, 0, 0, 2338.56, -157, 0, 0, 0, 0, 2154.24, -133, 0, 0, 0, 0, 2154.24, -158)
 }
 point_count = 5
 
 [sub_resource type="Curve2D" id="Curve2D_b08i2"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 2730.24, -158, 0, 0, 0, 0, 2914.56, -182, 0, 0, 0, 0, 2914.56, -157, 0, 0, 0, 0, 2730.24, -133, 0, 0, 0, 0, 2730.24, -158)
+"points": PackedVector2Array(0, 0, 0, 0, 2442.24, -182, 0, 0, 0, 0, 2626.56, -158, 0, 0, 0, 0, 2626.56, -133, 0, 0, 0, 0, 2442.24, -157, 0, 0, 0, 0, 2442.24, -182)
 }
 point_count = 5
 
 [sub_resource type="Curve2D" id="Curve2D_5txup"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 5932.8, -615, 0, 0, 0, 0, 6105.6, -615, 0, 0, 0, 0, 6105.6, -60, 0, 0, 0, 0, 5932.8, -60, 0, 0, 0, 0, 5932.8, -615)
+"points": PackedVector2Array(0, 0, 0, 0, 2730.24, -158, 0, 0, 0, 0, 2914.56, -182, 0, 0, 0, 0, 2914.56, -157, 0, 0, 0, 0, 2730.24, -133, 0, 0, 0, 0, 2730.24, -158)
 }
 point_count = 5
 
 [sub_resource type="Curve2D" id="Curve2D_aksnr"]
 _data = {
+"points": PackedVector2Array(0, 0, 0, 0, 5932.8, -615, 0, 0, 0, 0, 6105.6, -615, 0, 0, 0, 0, 6105.6, -60, 0, 0, 0, 0, 5932.8, -60, 0, 0, 0, 0, 5932.8, -615)
+}
+point_count = 5
+
+[sub_resource type="Curve2D" id="Curve2D_31bh5"]
+_data = {
 "points": PackedVector2Array(0, 0, 0, 0, 241.92, 476, 0, 0, 0, 0, 288, 416, 0, 0, 0, 0, 691.2, 436, 0, 0, 0, 0, 760.32, 386, 0, 0, 0, 0, 864, 306, 0, 0, 0, 0, 1036.8, 176, 0, 0, 0, 0, 1209.6, 56, 0, 0, 0, 0, 1324.8, 26, 0, 0, 0, 0, 1497.6, -4, 0, 0, 0, 0, 1670.4, 16, 0, 0, 0, 0, 1843.2, -24, 0, 0, 0, 0, 2016, 6, 0, 0, 0, 0, 2188.8, -34, 0, 0, 0, 0, 2361.6, -4, 0, 0, 0, 0, 2534.4, -44, 0, 0, 0, 0, 2707.2, -14, 0, 0, 0, 0, 2880, -24, 0, 0, 0, 0, 3018.24, 36, 0, 0, 0, 0, 3168, 146, 0, 0, 0, 0, 3340.8, 206, 0, 0, 0, 0, 3456, 216, 0, 0, 0, 0, 3571.2, 206, 0, 0, 0, 0, 3744, 146, 0, 0, 0, 0, 3893.76, 36, 0, 0, 0, 0, 4032, -64, 0, 0, 0, 0, 4147.2, -74, 0, 0, 0, 0, 4608, -74, 0, 0, 0, 0, 5184, -74, 0, 0, 0, 0, 5529.6, -84, 0, 0, 0, 0, 5990.4, -94, 0, 0, 0, 0, 6451.2, -104, 0, 0, 0, 0, 6912, -124, 0, 0, 0, 0, 7476.48, -124, 0, 0, 0, 0, 8755.2, -124)
 }
 point_count = 34
 
-[sub_resource type="Curve2D" id="Curve2D_31bh5"]
+[sub_resource type="Curve2D" id="Curve2D_4wsfq"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 8755.2, -124, 0, 0, 0, 0, 8686.08, 0, 0, 0, 0, 0, 8559.36, 150, 0, 0, 0, 0, 8421.12, 300, 0, 0, 0, 0, 8064, 406, 0, 0, 0, 0, 5760, 436, 0, 0, 0, 0, 3456, 461, 0, 0, 0, 0, 1728, 471, 0, 0, 0, 0, 898.56, 561, 0, 0, 0, 0, 737.28, 576, 0, 0, 0, 0, 322.56, 586, 0, 0, 0, 0, 293.76, 566, 0, 0, 0, 0, 241.92, 476)
 }
 point_count = 13
 
-[sub_resource type="Curve2D" id="Curve2D_4wsfq"]
-_data = {
-"points": PackedVector2Array(0, 0, 0, 0, 8755.2, -124, 0, 0, 0, 0, 9216, -124, 0, 0, 0, 0, 9792, -124, 0, 0, 0, 0, 9907.2, -124, 0, 0, 0, 0, 10080, -89, 0, 0, 0, 0, 10252.8, -54, 0, 0, 0, 0, 10368, -44, 0, 0, 0, 0, 11520, -44, 0, 0, 0, 0, 11577.6, -24, 0, 0, 0, 0, 11692.8, 46, 0, 0, 0, 0, 11808, 76, 0, 0, 0, 0, 11923.2, 46, 0, 0, 0, 0, 12038.4, -24, 0, 0, 0, 0, 12096, -44, 0, 0, 0, 0, 14054.4, -44, 0, 0, 0, 0, 14584.32, -44)
-}
-point_count = 16
-
 [sub_resource type="Curve2D" id="Curve2D_dy387"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 8755.2, -124, 0, 0, 0, 0, 9216, -124, 0, 0, 0, 0, 9792, -124, 0, 0, 0, 0, 9907.2, -124, 0, 0, 0, 0, 9941.76, -94, 0, 0, 0, 0, 10080, -69, 0, 0, 0, 0, 10252.8, -52, 0, 0, 0, 0, 10368, -44, 0, 0, 0, 0, 11520, -44, 0, 0, 0, 0, 11577.6, -24, 0, 0, 0, 0, 11692.8, 46, 0, 0, 0, 0, 11808, 76, 0, 0, 0, 0, 11923.2, 46, 0, 0, 0, 0, 12038.4, -24, 0, 0, 0, 0, 12096, -44, 0, 0, 0, 0, 14054.4, -44, 0, 0, 0, 0, 14584.32, -44)
+}
+point_count = 17
+
+[sub_resource type="Curve2D" id="Curve2D_x3cj2"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 14584.32, -44, 0, 0, 0, 0, 14584.32, 120, 0, 0, 0, 0, 14561.28, 250, 0, 0, 0, 0, 14457.6, 285, 0, 0, 0, 0, 12096, 314, 0, 0, 0, 0, 9792, 336, 0, 0, 0, 0, 9561.6, 345, 0, 0, 0, 0, 9216, 351, 0, 0, 0, 0, 8409.6, 366, 0, 0, 0, 0, 8064, 406, 0, 0, 0, 0, 5760, 436, 0, 0, 0, 0, 3456, 461, 0, 0, 0, 0, 1728, 471, 0, 0, 0, 0, 898.56, 561, 0, 0, 0, 0, 737.28, 576, 0, 0, 0, 0, 322.56, 586, 0, 0, 0, 0, 293.76, 566, 0, 0, 0, 0, 241.92, 476)
 }
 point_count = 18
 
-[sub_resource type="Curve2D" id="Curve2D_x3cj2"]
+[sub_resource type="Curve2D" id="Curve2D_omv3h"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 14584.32, -44, 0, 0, 0, 0, 14976, -44, 0, 0, 0, 0, 15091.2, -36, 0, 0, 0, 0, 15206.4, -16, 0, 0, 0, 0, 15321.6, 14, 0, 0, 0, 0, 15436.8, 44, 0, 0, 0, 0, 15552, 66, 0, 0, 0, 0, 15667.2, 76, 0, 0, 0, 0, 17337.6, 76, 0, 0, 0, 0, 17452.8, 66, 0, 0, 0, 0, 17568, 38, 0, 0, 0, 0, 17683.2, -4, 0, 0, 0, 0, 17798.4, -56, 0, 0, 0, 0, 17913.6, -112, 0, 0, 0, 0, 17994.24, -144, 0, 0, 0, 0, 18109.44, -144, 0, 0, 0, 0, 18892.8, -144)
 }
 point_count = 17
 
-[sub_resource type="Curve2D" id="Curve2D_omv3h"]
+[sub_resource type="Curve2D" id="Curve2D_vm4o7"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 18892.8, -144, 0, 0, 0, 0, 18979.2, -60, 0, 0, 0, 0, 18979.2, 150, 0, 0, 0, 0, 18950.4, 240, 0, 0, 0, 0, 18777.6, 247, 0, 0, 0, 0, 16704, 262, 0, 0, 0, 0, 15321.6, 276, 0, 0, 0, 0, 14584.32, 283, 0, 0, 0, 0, 14457.6, 285, 0, 0, 0, 0, 12096, 314, 0, 0, 0, 0, 9792, 336, 0, 0, 0, 0, 9561.6, 345, 0, 0, 0, 0, 9216, 351, 0, 0, 0, 0, 8409.6, 366, 0, 0, 0, 0, 8064, 406, 0, 0, 0, 0, 5760, 436, 0, 0, 0, 0, 3456, 461, 0, 0, 0, 0, 1728, 471, 0, 0, 0, 0, 898.56, 561, 0, 0, 0, 0, 737.28, 576, 0, 0, 0, 0, 322.56, 586, 0, 0, 0, 0, 293.76, 566, 0, 0, 0, 0, 241.92, 476)
 }
 point_count = 23
 
-[sub_resource type="Curve2D" id="Curve2D_vm4o7"]
+[sub_resource type="Curve2D" id="Curve2D_8bo8e"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 4377.6, -354, 0, 0, 0, 0, 4780.8, -354, 0, 0, 0, 0, 5080.32, -234, 0, 0, 0, 0, 5184, -194, 0, 0, 0, 0, 5253.12, -120, 0, 0, 0, 0, 5276.16, -76)
 }
 point_count = 6
 
-[sub_resource type="Curve2D" id="Curve2D_8bo8e"]
+[sub_resource type="Curve2D" id="Curve2D_56bx2"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 5702.4, -384, 0, 0, 0, 0, 6336, -384, 0, 0, 0, 0, 6739.2, -254, 0, 0, 0, 0, 6854.4, -121)
 }
 point_count = 4
 
-[sub_resource type="Curve2D" id="Curve2D_56bx2"]
+[sub_resource type="Curve2D" id="Curve2D_44ljc"]
 _data = {
 "points": PackedVector2Array(0, 0, 0, 0, 12648.96, -724, 0, 0, 0, 0, 13397.76, -724, 0, 0, 0, 0, 13478.4, -562, 0, 0, 0, 0, 12729.6, -526, 0, 0, 0, 0, 12660.48, -382, 0, 0, 0, 0, 13662.72, -335, 0, 0, 0, 0, 13731.84, -44)
 }
 point_count = 7
 
-[sub_resource type="Curve2D" id="Curve2D_44ljc"]
-_data = {
-"points": PackedVector2Array(0, 0, 0, 0, 15482.88, -449, 0, 0, 0, 0, 16174.08, -434, 0, 0, 0, 0, 16208.64, -275, 0, 0, 0, 0, 16254.72, -274, 0, 0, 0, 0, 16289.28, -115, 0, 0, 0, 0, 16335.36, -114, 0, 0, 0, 0, 16392.96, 76)
-}
-point_count = 7
-
 [sub_resource type="Curve2D" id="Curve2D_yovr3"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 17280, -449, 0, 0, 0, 0, 16588.8, -434, 0, 0, 0, 0, 16554.24, -275, 0, 0, 0, 0, 16519.68, -274, 0, 0, 0, 0, 16485.12, -115, 0, 0, 0, 0, 16450.56, -114, 0, 0, 0, 0, 16392.96, 76)
+"points": PackedVector2Array(0, 0, 0, 0, 15482.88, -449, 0, 0, 0, 0, 16174.08, -434, 0, 0, 0, 0, 16208.64, -275, 0, 0, 0, 0, 16254.72, -274, 0, 0, 0, 0, 16289.28, -79, 0, 0, 0, 0, 16335.36, -79, 0, 0, 0, 0, 16392.96, 76)
 }
 point_count = 7
 
 [sub_resource type="Curve2D" id="Curve2D_jy66y"]
 _data = {
-"points": PackedVector2Array(0, 0, 0, 0, 18627.84, -334, 0, 0, 0, 0, 17360.64, -324, 0, 0, 0, 0, 17303.04, 76)
+"points": PackedVector2Array(0, 0, 0, 0, 17280, -449, 0, 0, 0, 0, 16588.8, -434, 0, 0, 0, 0, 16554.24, -275, 0, 0, 0, 0, 16519.68, -274, 0, 0, 0, 0, 16485.12, -115, 0, 0, 0, 0, 16450.56, -114, 0, 0, 0, 0, 16392.96, 76)
+}
+point_count = 7
+
+[sub_resource type="Curve2D" id="Curve2D_wwxkb"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 18639.36, -334, 0, 0, 0, 0, 18063.36, -324, 0, 0, 0, 0, 17994.24, -144)
 }
 point_count = 3
 
-[node name="TestLevel" type="Node2D" unique_id=48209365]
+[node name="TestLevel" type="Node2D" unique_id=1021953943]
 script = ExtResource("1_00d6t")
 level_id = "test"
 
-[node name="Terrain" type="Node2D" parent="." unique_id=1366444861]
+[node name="Terrain" type="Node2D" parent="." unique_id=1300163356]
 
-[node name="Crust" type="Path2D" parent="Terrain" unique_id=1533251924 instance=ExtResource("2_bmsnt")]
+[node name="Crust" type="Path2D" parent="Terrain" unique_id=2126745030 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_optph")
 script = ExtResource("3_51gvc")
 
-[node name="Bedrock" type="Path2D" parent="Terrain" unique_id=1909182737 instance=ExtResource("2_bmsnt")]
+[node name="Bedrock" type="Path2D" parent="Terrain" unique_id=1572900181 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_xld28")
 script = ExtResource("3_51gvc")
 
-[node name="FirstLedge" type="Path2D" parent="Terrain" unique_id=2110931992 instance=ExtResource("2_bmsnt")]
+[node name="FirstLedge" type="Path2D" parent="Terrain" unique_id=1291941592 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_0lv05")
 script = ExtResource("3_51gvc")
 
-[node name="DipHollow" type="Path2D" parent="Terrain" unique_id=1720402347 instance=ExtResource("2_bmsnt")]
+[node name="DipHollowNear" type="Path2D" parent="Terrain" unique_id=1085490325 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_xvs6c")
 script = ExtResource("3_51gvc")
 
-[node name="HighStep" type="Path2D" parent="Terrain" unique_id=448093424 instance=ExtResource("2_bmsnt")]
+[node name="DipHollow" type="Path2D" parent="Terrain" unique_id=1512913917 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_cpl0j")
 script = ExtResource("3_51gvc")
 
-[node name="TreeClimb" type="Path2D" parent="Terrain" unique_id=1672040797 instance=ExtResource("2_bmsnt")]
+[node name="HighStep" type="Path2D" parent="Terrain" unique_id=1241071628 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_pyu8y")
 script = ExtResource("3_51gvc")
 
-[node name="TreePlatform" type="Path2D" parent="Terrain" unique_id=827631317 instance=ExtResource("2_bmsnt")]
+[node name="TreeClimb" type="Path2D" parent="Terrain" unique_id=359659800 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_0cx2k")
 script = ExtResource("3_51gvc")
 
-[node name="TreeBough" type="Path2D" parent="Terrain" unique_id=840984324 instance=ExtResource("2_bmsnt")]
+[node name="TreePlatform" type="Path2D" parent="Terrain" unique_id=390620936 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_cangm")
 script = ExtResource("3_51gvc")
 
-[node name="TreeBack" type="Path2D" parent="Terrain" unique_id=271444605 instance=ExtResource("2_bmsnt")]
+[node name="TreeBough" type="Path2D" parent="Terrain" unique_id=285938731 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_w6ip2")
 script = ExtResource("3_51gvc")
 
-[node name="Pillar" type="Path2D" parent="Terrain" unique_id=361041084 instance=ExtResource("2_bmsnt")]
+[node name="TreeBack" type="Path2D" parent="Terrain" unique_id=357317237 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_uypen")
 script = ExtResource("3_51gvc")
 
-[node name="LedgeB" type="Path2D" parent="Terrain" unique_id=2102354002 instance=ExtResource("2_bmsnt")]
+[node name="Pillar" type="Path2D" parent="Terrain" unique_id=1955186970 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_kq1rg")
 script = ExtResource("3_51gvc")
 
-[node name="LedgeC" type="Path2D" parent="Terrain" unique_id=1470555607 instance=ExtResource("2_bmsnt")]
+[node name="LedgeB" type="Path2D" parent="Terrain" unique_id=393954007 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_vcfln")
 script = ExtResource("3_51gvc")
 
-[node name="S2Crust" type="Path2D" parent="Terrain" unique_id=317901860 instance=ExtResource("2_bmsnt")]
+[node name="LedgeC" type="Path2D" parent="Terrain" unique_id=1110225540 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_i0p1l")
 script = ExtResource("3_51gvc")
 
-[node name="DescentLedge1" type="Path2D" parent="Terrain" unique_id=473144759 instance=ExtResource("2_bmsnt")]
+[node name="S2Crust" type="Path2D" parent="Terrain" unique_id=1353435209 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_inf4c")
 script = ExtResource("3_51gvc")
 
-[node name="DescentLedge2" type="Path2D" parent="Terrain" unique_id=1670864590 instance=ExtResource("2_bmsnt")]
+[node name="DescentLedge1" type="Path2D" parent="Terrain" unique_id=2024017046 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_pfppo")
 script = ExtResource("3_51gvc")
 
-[node name="ParadeLedge1" type="Path2D" parent="Terrain" unique_id=173919205 instance=ExtResource("2_bmsnt")]
+[node name="DescentLedge2" type="Path2D" parent="Terrain" unique_id=2028872140 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_ho3ol")
 script = ExtResource("3_51gvc")
 
-[node name="ParadeLedge2" type="Path2D" parent="Terrain" unique_id=1017566499 instance=ExtResource("2_bmsnt")]
+[node name="ParadeLedge1" type="Path2D" parent="Terrain" unique_id=1819718194 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_dpg3h")
 script = ExtResource("3_51gvc")
 
-[node name="Dip2Hollow" type="Path2D" parent="Terrain" unique_id=2000943231 instance=ExtResource("2_bmsnt")]
+[node name="ParadeLedge2" type="Path2D" parent="Terrain" unique_id=88267366 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_2o00g")
 script = ExtResource("3_51gvc")
 
-[node name="CaveStep1" type="Path2D" parent="Terrain" unique_id=1863103942 instance=ExtResource("2_bmsnt")]
+[node name="Dip2Hollow" type="Path2D" parent="Terrain" unique_id=2025188225 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_d8lll")
 script = ExtResource("3_51gvc")
 
-[node name="CaveStep2" type="Path2D" parent="Terrain" unique_id=1628114157 instance=ExtResource("2_bmsnt")]
+[node name="Dip2HollowNear" type="Path2D" parent="Terrain" unique_id=701188464 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_flydm")
 script = ExtResource("3_51gvc")
 
-[node name="CaveStep3" type="Path2D" parent="Terrain" unique_id=1756069764 instance=ExtResource("2_bmsnt")]
+[node name="CaveStep1" type="Path2D" parent="Terrain" unique_id=1802129459 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_ksvl0")
 script = ExtResource("3_51gvc")
 
-[node name="CaveStep4" type="Path2D" parent="Terrain" unique_id=1810543810 instance=ExtResource("2_bmsnt")]
+[node name="CaveStep2" type="Path2D" parent="Terrain" unique_id=367096920 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_otdug")
 script = ExtResource("3_51gvc")
 
-[node name="CavePocket" type="Path2D" parent="Terrain" unique_id=1243487860 instance=ExtResource("2_bmsnt")]
+[node name="CaveStep3" type="Path2D" parent="Terrain" unique_id=936790806 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_gatfh")
 script = ExtResource("3_51gvc")
 
-[node name="CaveShelfA" type="Path2D" parent="Terrain" unique_id=536309574 instance=ExtResource("2_bmsnt")]
+[node name="CaveStep4" type="Path2D" parent="Terrain" unique_id=1712511223 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_5m1ad")
 script = ExtResource("3_51gvc")
 
-[node name="CaveShelfB" type="Path2D" parent="Terrain" unique_id=850761780 instance=ExtResource("2_bmsnt")]
+[node name="CavePocket" type="Path2D" parent="Terrain" unique_id=670814649 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_rv3o4")
 script = ExtResource("3_51gvc")
 
-[node name="Set2Ledge1" type="Path2D" parent="Terrain" unique_id=1847260721 instance=ExtResource("2_bmsnt")]
+[node name="CaveShelfA" type="Path2D" parent="Terrain" unique_id=1972636594 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_tfq22")
 script = ExtResource("3_51gvc")
 
-[node name="Set2Ledge2" type="Path2D" parent="Terrain" unique_id=1111510564 instance=ExtResource("2_bmsnt")]
+[node name="CaveShelfB" type="Path2D" parent="Terrain" unique_id=1870442320 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_ug44n")
 script = ExtResource("3_51gvc")
 
-[node name="S3Crust" type="Path2D" parent="Terrain" unique_id=590695527 instance=ExtResource("2_bmsnt")]
+[node name="Set2Ledge1" type="Path2D" parent="Terrain" unique_id=722153175 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_dwgjd")
 script = ExtResource("3_51gvc")
 
-[node name="RampLedge1" type="Path2D" parent="Terrain" unique_id=835731700 instance=ExtResource("2_bmsnt")]
+[node name="Set2Ledge2" type="Path2D" parent="Terrain" unique_id=668405878 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_pd65k")
 script = ExtResource("3_51gvc")
 
-[node name="RampLedge2" type="Path2D" parent="Terrain" unique_id=1931660926 instance=ExtResource("2_bmsnt")]
+[node name="S3Crust" type="Path2D" parent="Terrain" unique_id=217790459 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_7qcwl")
 script = ExtResource("3_51gvc")
 
-[node name="ShelfL1" type="Path2D" parent="Terrain" unique_id=1150347053 instance=ExtResource("2_bmsnt")]
+[node name="ShelfL2" type="Path2D" parent="Terrain" unique_id=1529979480 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_1g578")
 script = ExtResource("3_51gvc")
 
-[node name="ShelfL2" type="Path2D" parent="Terrain" unique_id=1320459958 instance=ExtResource("2_bmsnt")]
+[node name="ShelfL3" type="Path2D" parent="Terrain" unique_id=1555701272 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_ded4q")
 script = ExtResource("3_51gvc")
 
-[node name="ShelfL3" type="Path2D" parent="Terrain" unique_id=562068065 instance=ExtResource("2_bmsnt")]
+[node name="ShelfR1" type="Path2D" parent="Terrain" unique_id=2110915307 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_pq8vo")
 script = ExtResource("3_51gvc")
 
-[node name="ShelfR1" type="Path2D" parent="Terrain" unique_id=98122468 instance=ExtResource("2_bmsnt")]
+[node name="ShelfR2" type="Path2D" parent="Terrain" unique_id=1152264429 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_eq6mv")
 script = ExtResource("3_51gvc")
 
-[node name="ShelfR2" type="Path2D" parent="Terrain" unique_id=1879034007 instance=ExtResource("2_bmsnt")]
+[node name="ShelfR3" type="Path2D" parent="Terrain" unique_id=1318177641 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_e6vn2")
 script = ExtResource("3_51gvc")
 
-[node name="ShelfR3" type="Path2D" parent="Terrain" unique_id=385389915 instance=ExtResource("2_bmsnt")]
+[node name="RimLow" type="Path2D" parent="Terrain" unique_id=802076489 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_smxb2")
 script = ExtResource("3_51gvc")
 
-[node name="Rim" type="Path2D" parent="Terrain" unique_id=426170899 instance=ExtResource("2_bmsnt")]
+[node name="Rim" type="Path2D" parent="Terrain" unique_id=1908751213 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_8mxv2")
 script = ExtResource("3_51gvc")
 
-[node name="HillBump1" type="Path2D" parent="Terrain" unique_id=192130378 instance=ExtResource("2_bmsnt")]
+[node name="RampShelf" type="Path2D" parent="Terrain" unique_id=1684912678 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_ly6kx")
 script = ExtResource("3_51gvc")
 
-[node name="HillBump2" type="Path2D" parent="Terrain" unique_id=1429290138 instance=ExtResource("2_bmsnt")]
+[node name="HillBump1" type="Path2D" parent="Terrain" unique_id=1482543491 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_y7en6")
 script = ExtResource("3_51gvc")
 
-[node name="HillBump3" type="Path2D" parent="Terrain" unique_id=1983189872 instance=ExtResource("2_bmsnt")]
+[node name="HillBump2" type="Path2D" parent="Terrain" unique_id=277560398 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_1lioe")
 script = ExtResource("3_51gvc")
 
-[node name="HillBump4" type="Path2D" parent="Terrain" unique_id=405628533 instance=ExtResource("2_bmsnt")]
+[node name="HillBump3" type="Path2D" parent="Terrain" unique_id=1645294590 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_1i3nw")
 script = ExtResource("3_51gvc")
 
-[node name="HillBump5" type="Path2D" parent="Terrain" unique_id=769517762 instance=ExtResource("2_bmsnt")]
+[node name="HillBump4" type="Path2D" parent="Terrain" unique_id=815070695 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_2cvbc")
 script = ExtResource("3_51gvc")
 
-[node name="HillBump6" type="Path2D" parent="Terrain" unique_id=1362148846 instance=ExtResource("2_bmsnt")]
+[node name="HillBump5" type="Path2D" parent="Terrain" unique_id=1675726219 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_b08i2")
 script = ExtResource("3_51gvc")
 
-[node name="TreeTrunk" type="Path2D" parent="Terrain" unique_id=683643277 instance=ExtResource("2_bmsnt")]
-z_index = -1
+[node name="HillBump6" type="Path2D" parent="Terrain" unique_id=865992528 instance=ExtResource("2_bmsnt")]
 curve = SubResource("Curve2D_5txup")
+script = ExtResource("3_51gvc")
+
+[node name="TreeTrunk" type="Path2D" parent="Terrain" unique_id=1324103405 instance=ExtResource("2_bmsnt")]
+z_index = -1
+curve = SubResource("Curve2D_aksnr")
 script = ExtResource("3_51gvc")
 fill_color = Color(0.18, 0.18, 0.2, 1)
 outline_width = 0.0
 has_collision = false
 
-[node name="Loop" type="Node2D" parent="." unique_id=2138299065 instance=ExtResource("4_f25q8")]
+[node name="Loop" type="Node2D" parent="." unique_id=328786896 instance=ExtResource("4_f25q8")]
 script = ExtResource("5_ik0tp")
 
-[node name="S1Loop" type="Path2D" parent="Loop" unique_id=709319809 instance=ExtResource("6_repe7")]
-curve = SubResource("Curve2D_aksnr")
+[node name="S1Loop" type="Path2D" parent="Loop" unique_id=1146655383 instance=ExtResource("6_repe7")]
+curve = SubResource("Curve2D_31bh5")
 script = ExtResource("7_kj71e")
 stable_id = "s1.loop"
 
-[node name="S1Slide" type="Path2D" parent="Loop" unique_id=750518708 instance=ExtResource("6_repe7")]
-curve = SubResource("Curve2D_31bh5")
+[node name="S1Slide" type="Path2D" parent="Loop" unique_id=798564660 instance=ExtResource("6_repe7")]
+curve = SubResource("Curve2D_4wsfq")
 script = ExtResource("7_kj71e")
 stable_id = "s1.slide"
 kind = "return"
 gate_id = "s1.gate"
 
-[node name="S2Loop" type="Path2D" parent="Loop" unique_id=1212175448 instance=ExtResource("6_repe7")]
-curve = SubResource("Curve2D_4wsfq")
+[node name="S2Loop" type="Path2D" parent="Loop" unique_id=1603356126 instance=ExtResource("6_repe7")]
+curve = SubResource("Curve2D_dy387")
 script = ExtResource("7_kj71e")
 stable_id = "s2.loop"
 section = 2
 
-[node name="S2Slide" type="Path2D" parent="Loop" unique_id=54424106 instance=ExtResource("6_repe7")]
-curve = SubResource("Curve2D_dy387")
+[node name="S2Slide" type="Path2D" parent="Loop" unique_id=1299184189 instance=ExtResource("6_repe7")]
+curve = SubResource("Curve2D_x3cj2")
 script = ExtResource("7_kj71e")
 stable_id = "s2.slide"
 section = 2
 kind = "return"
 gate_id = "s2.gate"
 
-[node name="S3Loop" type="Path2D" parent="Loop" unique_id=1313003697 instance=ExtResource("6_repe7")]
-curve = SubResource("Curve2D_x3cj2")
+[node name="S3Loop" type="Path2D" parent="Loop" unique_id=1820447095 instance=ExtResource("6_repe7")]
+curve = SubResource("Curve2D_omv3h")
 script = ExtResource("7_kj71e")
 stable_id = "s3.loop"
 section = 3
 
-[node name="S3Slide" type="Path2D" parent="Loop" unique_id=904686434 instance=ExtResource("6_repe7")]
-curve = SubResource("Curve2D_omv3h")
+[node name="S3Slide" type="Path2D" parent="Loop" unique_id=530299344 instance=ExtResource("6_repe7")]
+curve = SubResource("Curve2D_vm4o7")
 script = ExtResource("7_kj71e")
 stable_id = "s3.slide"
 section = 3
 kind = "return"
 
-[node name="Start" type="Node2D" parent="." unique_id=1923418846]
+[node name="Start" type="Node2D" parent="." unique_id=724157365]
 
-[node name="SplitZone" type="Area2D" parent="Start" unique_id=796649513 instance=ExtResource("8_5o5uu")]
+[node name="SplitZone" type="Area2D" parent="Start" unique_id=2048884366 instance=ExtResource("8_5o5uu")]
 position = Vector2(328.32, 465)
 script = ExtResource("9_qr35x")
 stable_id = "start.split-zone"
 size = Vector2(587.52, 190)
 
-[node name="FirstSlime" type="Node2D" parent="Start" unique_id=1049923770 instance=ExtResource("10_ditvt")]
+[node name="FirstSlime" type="Node2D" parent="Start" unique_id=1646328955 instance=ExtResource("10_ditvt")]
 position = Vector2(218.88, 476)
 script = ExtResource("11_v5ev3")
 
-[node name="Section1" type="Node2D" parent="." unique_id=619872332]
+[node name="Section1" type="Node2D" parent="." unique_id=1499084167]
 
-[node name="Sleepers" type="Node2D" parent="Section1" unique_id=1515109236]
+[node name="Sleepers" type="Node2D" parent="Section1" unique_id=1252006536]
 
-[node name="Sleeper01" type="Node2D" parent="Section1/Sleepers" unique_id=407503168 instance=ExtResource("12_7r20d")]
+[node name="Sleeper01" type="Node2D" parent="Section1/Sleepers" unique_id=16509358 instance=ExtResource("12_7r20d")]
 position = Vector2(529.92, 311)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.01"
 species = "B"
 
-[node name="Sleeper02" type="Node2D" parent="Section1/Sleepers" unique_id=747273322 instance=ExtResource("12_7r20d")]
+[node name="Sleeper02" type="Node2D" parent="Section1/Sleepers" unique_id=1977618704 instance=ExtResource("12_7r20d")]
 position = Vector2(1336.32, -200)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.02"
 
-[node name="Sleeper03" type="Node2D" parent="Section1/Sleepers" unique_id=1071833382 instance=ExtResource("12_7r20d")]
+[node name="Sleeper03" type="Node2D" parent="Section1/Sleepers" unique_id=614549332 instance=ExtResource("12_7r20d")]
 position = Vector2(1428.48, -188)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.03"
 species = "B"
 
-[node name="Sleeper04" type="Node2D" parent="Section1/Sleepers" unique_id=470385934 instance=ExtResource("12_7r20d")]
+[node name="Sleeper04" type="Node2D" parent="Section1/Sleepers" unique_id=1032844948 instance=ExtResource("12_7r20d")]
 position = Vector2(1624.32, -188)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.04"
 species = "C"
 
-[node name="Sleeper05" type="Node2D" parent="Section1/Sleepers" unique_id=378194514 instance=ExtResource("12_7r20d")]
+[node name="Sleeper05" type="Node2D" parent="Section1/Sleepers" unique_id=544887970 instance=ExtResource("12_7r20d")]
 position = Vector2(1716.48, -200)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.05"
 
-[node name="Sleeper06" type="Node2D" parent="Section1/Sleepers" unique_id=956126367 instance=ExtResource("12_7r20d")]
+[node name="Sleeper06" type="Node2D" parent="Section1/Sleepers" unique_id=999141523 instance=ExtResource("12_7r20d")]
 position = Vector2(1912.32, -200)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.06"
 species = "B"
 
-[node name="Sleeper07" type="Node2D" parent="Section1/Sleepers" unique_id=1030410665 instance=ExtResource("12_7r20d")]
+[node name="Sleeper07" type="Node2D" parent="Section1/Sleepers" unique_id=112109190 instance=ExtResource("12_7r20d")]
 position = Vector2(2004.48, -188)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.07"
 species = "C"
 
-[node name="Sleeper08" type="Node2D" parent="Section1/Sleepers" unique_id=2019223049 instance=ExtResource("12_7r20d")]
+[node name="Sleeper08" type="Node2D" parent="Section1/Sleepers" unique_id=1744817130 instance=ExtResource("12_7r20d")]
 position = Vector2(2200.32, -188)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.08"
 
-[node name="Sleeper09" type="Node2D" parent="Section1/Sleepers" unique_id=1671512532 instance=ExtResource("12_7r20d")]
+[node name="Sleeper09" type="Node2D" parent="Section1/Sleepers" unique_id=1346120490 instance=ExtResource("12_7r20d")]
 position = Vector2(2292.48, -200)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.09"
 species = "B"
 
-[node name="Sleeper10" type="Node2D" parent="Section1/Sleepers" unique_id=594697074 instance=ExtResource("12_7r20d")]
+[node name="Sleeper10" type="Node2D" parent="Section1/Sleepers" unique_id=296205049 instance=ExtResource("12_7r20d")]
 position = Vector2(2488.32, -200)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.10"
 species = "C"
 
-[node name="Sleeper11" type="Node2D" parent="Section1/Sleepers" unique_id=632310124 instance=ExtResource("12_7r20d")]
+[node name="Sleeper11" type="Node2D" parent="Section1/Sleepers" unique_id=339277056 instance=ExtResource("12_7r20d")]
 position = Vector2(2580.48, -188)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.11"
 
-[node name="Sleeper12" type="Node2D" parent="Section1/Sleepers" unique_id=1858120343 instance=ExtResource("12_7r20d")]
+[node name="Sleeper12" type="Node2D" parent="Section1/Sleepers" unique_id=277103795 instance=ExtResource("12_7r20d")]
 position = Vector2(2776.32, -188)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.12"
 species = "B"
 
-[node name="Sleeper13" type="Node2D" parent="Section1/Sleepers" unique_id=86911274 instance=ExtResource("12_7r20d")]
+[node name="Sleeper13" type="Node2D" parent="Section1/Sleepers" unique_id=181090144 instance=ExtResource("12_7r20d")]
 position = Vector2(2868.48, -200)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.13"
 species = "C"
 
-[node name="Sleeper14" type="Node2D" parent="Section1/Sleepers" unique_id=312668110 instance=ExtResource("12_7r20d")]
-position = Vector2(3847.68, -174)
+[node name="Sleeper14" type="Node2D" parent="Section1/Sleepers" unique_id=647736861 instance=ExtResource("12_7r20d")]
+position = Vector2(3012.48, -134)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.14"
-species = "C"
 
-[node name="Sleeper15" type="Node2D" parent="Section1/Sleepers" unique_id=216608196 instance=ExtResource("12_7r20d")]
-position = Vector2(3939.84, -174)
+[node name="Sleeper15" type="Node2D" parent="Section1/Sleepers" unique_id=353955307 instance=ExtResource("12_7r20d")]
+position = Vector2(3052.4543, -134)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.15"
-species = "C"
 
-[node name="Sleeper16" type="Node2D" parent="Section1/Sleepers" unique_id=190314679 instance=ExtResource("12_7r20d")]
-position = Vector2(5713.92, -384)
+[node name="Sleeper16" type="Node2D" parent="Section1/Sleepers" unique_id=487962662 instance=ExtResource("12_7r20d")]
+position = Vector2(3092.4287, -134)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.16"
+species = "B"
 
-[node name="Sleeper17" type="Node2D" parent="Section1/Sleepers" unique_id=59021560 instance=ExtResource("12_7r20d")]
-position = Vector2(5783.04, -384)
+[node name="Sleeper17" type="Node2D" parent="Section1/Sleepers" unique_id=721325950 instance=ExtResource("12_7r20d")]
+position = Vector2(3132.4033, -134)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.17"
+species = "B"
 
-[node name="Sleeper18" type="Node2D" parent="Section1/Sleepers" unique_id=477484965 instance=ExtResource("12_7r20d")]
-position = Vector2(5852.16, -384)
+[node name="Sleeper18" type="Node2D" parent="Section1/Sleepers" unique_id=845036533 instance=ExtResource("12_7r20d")]
+position = Vector2(3837.5425, -174)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.18"
-species = "B"
+species = "C"
 
-[node name="Sleeper19" type="Node2D" parent="Section1/Sleepers" unique_id=860354400 instance=ExtResource("12_7r20d")]
-position = Vector2(5921.28, -384)
+[node name="Sleeper19" type="Node2D" parent="Section1/Sleepers" unique_id=786180960 instance=ExtResource("12_7r20d")]
+position = Vector2(3877.5168, -174)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.19"
-species = "B"
+species = "C"
 
-[node name="Sleeper20" type="Node2D" parent="Section1/Sleepers" unique_id=1799257036 instance=ExtResource("12_7r20d")]
-position = Vector2(5990.4, -384)
+[node name="Sleeper20" type="Node2D" parent="Section1/Sleepers" unique_id=1266428258 instance=ExtResource("12_7r20d")]
+position = Vector2(3917.4912, -174)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.20"
 species = "C"
 
-[node name="Sleeper21" type="Node2D" parent="Section1/Sleepers" unique_id=1431860054 instance=ExtResource("12_7r20d")]
-position = Vector2(6059.52, -384)
+[node name="Sleeper21" type="Node2D" parent="Section1/Sleepers" unique_id=769016632 instance=ExtResource("12_7r20d")]
+position = Vector2(3957.4656, -174)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.21"
 species = "C"
 
-[node name="Sleeper22" type="Node2D" parent="Section1/Sleepers" unique_id=1217342900 instance=ExtResource("12_7r20d")]
+[node name="Sleeper22" type="Node2D" parent="Section1/Sleepers" unique_id=1279058631 instance=ExtResource("12_7r20d")]
 position = Vector2(6140.16, -664)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.22"
 
-[node name="Sleeper23" type="Node2D" parent="Section1/Sleepers" unique_id=766125293 instance=ExtResource("12_7r20d")]
+[node name="Sleeper23" type="Node2D" parent="Section1/Sleepers" unique_id=66843191 instance=ExtResource("12_7r20d")]
 position = Vector2(6209.28, -664)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.23"
 
-[node name="Sleeper24" type="Node2D" parent="Section1/Sleepers" unique_id=1696063369 instance=ExtResource("12_7r20d")]
+[node name="Sleeper24" type="Node2D" parent="Section1/Sleepers" unique_id=1883216797 instance=ExtResource("12_7r20d")]
 position = Vector2(6278.4, -664)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.24"
 
-[node name="Sleeper25" type="Node2D" parent="Section1/Sleepers" unique_id=1853837361 instance=ExtResource("12_7r20d")]
+[node name="Sleeper25" type="Node2D" parent="Section1/Sleepers" unique_id=1805817818 instance=ExtResource("12_7r20d")]
 position = Vector2(7200, -344)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.25"
 species = "B"
 
-[node name="Sleeper26" type="Node2D" parent="Section1/Sleepers" unique_id=815460952 instance=ExtResource("12_7r20d")]
+[node name="Sleeper26" type="Node2D" parent="Section1/Sleepers" unique_id=1539978373 instance=ExtResource("12_7r20d")]
 position = Vector2(7292.16, -344)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.26"
 species = "B"
 
-[node name="Sleeper27" type="Node2D" parent="Section1/Sleepers" unique_id=623510413 instance=ExtResource("12_7r20d")]
+[node name="Sleeper27" type="Node2D" parent="Section1/Sleepers" unique_id=954449245 instance=ExtResource("12_7r20d")]
 position = Vector2(7545.6, -384)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.27"
 species = "C"
 
-[node name="Sleeper28" type="Node2D" parent="Section1/Sleepers" unique_id=172120139 instance=ExtResource("12_7r20d")]
+[node name="Sleeper28" type="Node2D" parent="Section1/Sleepers" unique_id=820640355 instance=ExtResource("12_7r20d")]
 position = Vector2(7626.24, -384)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.28"
 species = "C"
 
-[node name="Sleeper29" type="Node2D" parent="Section1/Sleepers" unique_id=1364844782 instance=ExtResource("12_7r20d")]
+[node name="Sleeper29" type="Node2D" parent="Section1/Sleepers" unique_id=679144078 instance=ExtResource("12_7r20d")]
 position = Vector2(7706.88, -384)
 script = ExtResource("13_kjof1")
 stable_id = "s1.sleeper.29"
 species = "C"
 
-[node name="HighStep" type="Node2D" parent="Section1" unique_id=810834820]
+[node name="HighStep" type="Node2D" parent="Section1" unique_id=2030665269]
 
-[node name="Branch" type="Area2D" parent="Section1/HighStep" unique_id=1543974832 instance=ExtResource("14_0u2tl")]
+[node name="Branch" type="Area2D" parent="Section1/HighStep" unique_id=297176937 instance=ExtResource("14_0u2tl")]
 position = Vector2(4711.6797, -365)
 script = ExtResource("15_b4wed")
 stable_id = "s1.branch.high-step"
 size = Vector2(944.64, 390)
 
-[node name="RouteBack" type="Path2D" parent="Section1/HighStep" unique_id=131599492 instance=ExtResource("16_krscb")]
-curve = SubResource("Curve2D_vm4o7")
+[node name="RouteBack" type="Path2D" parent="Section1/HighStep" unique_id=1843245300 instance=ExtResource("16_krscb")]
+curve = SubResource("Curve2D_8bo8e")
 script = ExtResource("17_ynxg7")
 stable_id = "s1.route-back.high-step"
 serves = "s1.branch.high-step"
 
-[node name="Frame" type="Area2D" parent="Section1/HighStep" unique_id=818422327 instance=ExtResource("18_6fems")]
+[node name="Frame" type="Area2D" parent="Section1/HighStep" unique_id=532903570 instance=ExtResource("18_6fems")]
 position = Vector2(4608, -250)
 script = ExtResource("19_e8tkc")
 stable_id = "s1.frame.high-step"
@@ -795,21 +805,21 @@ size = Vector2(1152, 600)
 zoom = 0.85
 offset = Vector2(0, -120)
 
-[node name="Tree" type="Node2D" parent="Section1" unique_id=635842448]
+[node name="Tree" type="Node2D" parent="Section1" unique_id=791353914]
 
-[node name="Branch" type="Area2D" parent="Section1/Tree" unique_id=1131457242 instance=ExtResource("14_0u2tl")]
+[node name="Branch" type="Area2D" parent="Section1/Tree" unique_id=1607974098 instance=ExtResource("14_0u2tl")]
 position = Vector2(6048, -505)
 script = ExtResource("15_b4wed")
 stable_id = "s1.branch.tree"
 size = Vector2(1497.6, 790)
 
-[node name="RouteBack" type="Path2D" parent="Section1/Tree" unique_id=925417054 instance=ExtResource("16_krscb")]
-curve = SubResource("Curve2D_8bo8e")
+[node name="RouteBack" type="Path2D" parent="Section1/Tree" unique_id=288271984 instance=ExtResource("16_krscb")]
+curve = SubResource("Curve2D_56bx2")
 script = ExtResource("17_ynxg7")
 stable_id = "s1.route-back.tree"
 serves = "s1.branch.tree"
 
-[node name="Frame" type="Area2D" parent="Section1/Tree" unique_id=1386292303 instance=ExtResource("18_6fems")]
+[node name="Frame" type="Area2D" parent="Section1/Tree" unique_id=800588428 instance=ExtResource("18_6fems")]
 position = Vector2(5760, -300)
 script = ExtResource("19_e8tkc")
 stable_id = "s1.frame.tree"
@@ -817,15 +827,15 @@ size = Vector2(1152, 700)
 zoom = 0.7
 offset = Vector2(0, -250)
 
-[node name="FrontierSet" type="Node2D" parent="Section1" unique_id=1079435824]
+[node name="FrontierSet" type="Node2D" parent="Section1" unique_id=1555669384]
 
-[node name="Signpost" type="Node2D" parent="Section1/FrontierSet" unique_id=1977512019 instance=ExtResource("20_djtld")]
+[node name="Signpost" type="Node2D" parent="Section1/FrontierSet" unique_id=1751956422 instance=ExtResource("20_djtld")]
 position = Vector2(7372.8, -100)
 script = ExtResource("21_s8ue3")
 stable_id = "s1.signpost"
 switch_id = "s1.switch"
 
-[node name="Switch" type="Area2D" parent="Section1/FrontierSet" unique_id=1378444182 instance=ExtResource("22_8u4d3")]
+[node name="Switch" type="Area2D" parent="Section1/FrontierSet" unique_id=1759595880 instance=ExtResource("22_8u4d3")]
 position = Vector2(7453.44, -124)
 script = ExtResource("23_1xtbr")
 stable_id = "s1.switch"
@@ -833,7 +843,7 @@ size = Vector2(80, 80)
 basket_id = "s1.basket"
 trapdoor = Rect2(34.56006, 24, 910.0801, 25)
 
-[node name="Basket" type="Area2D" parent="Section1/FrontierSet" unique_id=935052864 instance=ExtResource("24_sh6x2")]
+[node name="Basket" type="Area2D" parent="Section1/FrontierSet" unique_id=1280195254 instance=ExtResource("24_sh6x2")]
 position = Vector2(7943.04, 0)
 script = ExtResource("25_0k230")
 stable_id = "s1.basket"
@@ -841,252 +851,252 @@ size = Vector2(933.12, 200)
 quota = 6
 on_full_object = "s1.gate"
 
-[node name="Gate" type="Node2D" parent="Section1/FrontierSet" unique_id=1344843316 instance=ExtResource("26_hikek")]
+[node name="Gate" type="Node2D" parent="Section1/FrontierSet" unique_id=968712204 instance=ExtResource("26_hikek")]
 position = Vector2(8985.6, -180)
 script = ExtResource("27_ufdgs")
 stable_id = "s1.gate"
 entrance_lid = Rect2(-357.11914, 80, 207.35938, 32)
 
-[node name="Section2" type="Node2D" parent="." unique_id=1318939632]
+[node name="Section2" type="Node2D" parent="." unique_id=665733058]
 
-[node name="Sleepers" type="Node2D" parent="Section2" unique_id=1189674206]
+[node name="Sleepers" type="Node2D" parent="Section2" unique_id=1427517979]
 
-[node name="Sleeper01" type="Node2D" parent="Section2/Sleepers" unique_id=17782097 instance=ExtResource("12_7r20d")]
-position = Vector2(9884.16, -354)
+[node name="Sleeper01" type="Node2D" parent="Section2/Sleepers" unique_id=1310945557 instance=ExtResource("12_7r20d")]
+position = Vector2(9711.36, -354)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.01"
 species = "D"
 
-[node name="Sleeper02" type="Node2D" parent="Section2/Sleepers" unique_id=430637408 instance=ExtResource("12_7r20d")]
-position = Vector2(9947.52, -354)
+[node name="Sleeper02" type="Node2D" parent="Section2/Sleepers" unique_id=497405082 instance=ExtResource("12_7r20d")]
+position = Vector2(9774.72, -354)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.02"
 species = "D"
 
-[node name="Sleeper03" type="Node2D" parent="Section2/Sleepers" unique_id=1169450758 instance=ExtResource("12_7r20d")]
-position = Vector2(10010.88, -354)
+[node name="Sleeper03" type="Node2D" parent="Section2/Sleepers" unique_id=2029960505 instance=ExtResource("12_7r20d")]
+position = Vector2(9838.08, -354)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.03"
 species = "D"
 
-[node name="Sleeper04" type="Node2D" parent="Section2/Sleepers" unique_id=1788194798 instance=ExtResource("12_7r20d")]
-position = Vector2(10149.12, -274)
+[node name="Sleeper04" type="Node2D" parent="Section2/Sleepers" unique_id=589141323 instance=ExtResource("12_7r20d")]
+position = Vector2(9999.36, -239)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.04"
 species = "D"
 
-[node name="Sleeper05" type="Node2D" parent="Section2/Sleepers" unique_id=469757552 instance=ExtResource("12_7r20d")]
-position = Vector2(10212.48, -274)
+[node name="Sleeper05" type="Node2D" parent="Section2/Sleepers" unique_id=1462044903 instance=ExtResource("12_7r20d")]
+position = Vector2(10039.334, -239)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.05"
 species = "D"
 
-[node name="Sleeper06" type="Node2D" parent="Section2/Sleepers" unique_id=607378781 instance=ExtResource("12_7r20d")]
-position = Vector2(10275.84, -274)
+[node name="Sleeper06" type="Node2D" parent="Section2/Sleepers" unique_id=1721791064 instance=ExtResource("12_7r20d")]
+position = Vector2(10079.309, -239)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.06"
 species = "D"
 
-[node name="Sleeper07" type="Node2D" parent="Section2/Sleepers" unique_id=1321801717 instance=ExtResource("12_7r20d")]
+[node name="Sleeper07" type="Node2D" parent="Section2/Sleepers" unique_id=236694106 instance=ExtResource("12_7r20d")]
 position = Vector2(10575.36, -264)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.07"
 
-[node name="Sleeper08" type="Node2D" parent="Section2/Sleepers" unique_id=1242275168 instance=ExtResource("12_7r20d")]
+[node name="Sleeper08" type="Node2D" parent="Section2/Sleepers" unique_id=531428338 instance=ExtResource("12_7r20d")]
 position = Vector2(10632.96, -264)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.08"
 species = "B"
 
-[node name="Sleeper09" type="Node2D" parent="Section2/Sleepers" unique_id=1567021150 instance=ExtResource("12_7r20d")]
+[node name="Sleeper09" type="Node2D" parent="Section2/Sleepers" unique_id=278721587 instance=ExtResource("12_7r20d")]
 position = Vector2(10690.56, -264)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.09"
 species = "C"
 
-[node name="Sleeper10" type="Node2D" parent="Section2/Sleepers" unique_id=1145755954 instance=ExtResource("12_7r20d")]
+[node name="Sleeper10" type="Node2D" parent="Section2/Sleepers" unique_id=2062851497 instance=ExtResource("12_7r20d")]
 position = Vector2(10748.16, -264)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.10"
 species = "D"
 
-[node name="Sleeper11" type="Node2D" parent="Section2/Sleepers" unique_id=1245997816 instance=ExtResource("12_7r20d")]
+[node name="Sleeper11" type="Node2D" parent="Section2/Sleepers" unique_id=1766445497 instance=ExtResource("12_7r20d")]
 position = Vector2(11093.76, -264)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.11"
 
-[node name="Sleeper12" type="Node2D" parent="Section2/Sleepers" unique_id=1595391350 instance=ExtResource("12_7r20d")]
-position = Vector2(11151.36, -264)
+[node name="Sleeper12" type="Node2D" parent="Section2/Sleepers" unique_id=776212911 instance=ExtResource("12_7r20d")]
+position = Vector2(11649.024, -154)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.12"
 species = "B"
 
-[node name="Sleeper13" type="Node2D" parent="Section2/Sleepers" unique_id=1244365996 instance=ExtResource("12_7r20d")]
-position = Vector2(11208.96, -264)
+[node name="Sleeper13" type="Node2D" parent="Section2/Sleepers" unique_id=589151721 instance=ExtResource("12_7r20d")]
+position = Vector2(11688.998, -154)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.13"
 species = "C"
 
-[node name="Sleeper14" type="Node2D" parent="Section2/Sleepers" unique_id=370062621 instance=ExtResource("12_7r20d")]
-position = Vector2(11266.56, -264)
+[node name="Sleeper14" type="Node2D" parent="Section2/Sleepers" unique_id=2044247605 instance=ExtResource("12_7r20d")]
+position = Vector2(11728.973, -154)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.14"
 species = "D"
 
-[node name="Sleeper15" type="Node2D" parent="Section2/Sleepers" unique_id=249973481 instance=ExtResource("12_7r20d")]
-position = Vector2(11865.6, -159)
+[node name="Sleeper15" type="Node2D" parent="Section2/Sleepers" unique_id=319442622 instance=ExtResource("12_7r20d")]
+position = Vector2(11862.144, -159)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.15"
-species = "D"
 
-[node name="Sleeper16" type="Node2D" parent="Section2/Sleepers" unique_id=1512828560 instance=ExtResource("12_7r20d")]
-position = Vector2(11957.76, -159)
+[node name="Sleeper16" type="Node2D" parent="Section2/Sleepers" unique_id=1661963863 instance=ExtResource("12_7r20d")]
+position = Vector2(11902.118, -159)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.16"
-species = "D"
-
-[node name="Sleeper17" type="Node2D" parent="Section2/Sleepers" unique_id=1398719386 instance=ExtResource("12_7r20d")]
-position = Vector2(12412.8, -254)
-script = ExtResource("13_kjof1")
-stable_id = "s2.sleeper.17"
-
-[node name="Sleeper18" type="Node2D" parent="Section2/Sleepers" unique_id=2065398001 instance=ExtResource("12_7r20d")]
-position = Vector2(12462.336, -254)
-script = ExtResource("13_kjof1")
-stable_id = "s2.sleeper.18"
 species = "B"
 
-[node name="Sleeper19" type="Node2D" parent="Section2/Sleepers" unique_id=1769338698 instance=ExtResource("12_7r20d")]
+[node name="Sleeper17" type="Node2D" parent="Section2/Sleepers" unique_id=571907477 instance=ExtResource("12_7r20d")]
+position = Vector2(11942.093, -159)
+script = ExtResource("13_kjof1")
+stable_id = "s2.sleeper.17"
+species = "D"
+
+[node name="Sleeper18" type="Node2D" parent="Section2/Sleepers" unique_id=2108479311 instance=ExtResource("12_7r20d")]
+position = Vector2(11982.067, -159)
+script = ExtResource("13_kjof1")
+stable_id = "s2.sleeper.18"
+species = "D"
+
+[node name="Sleeper19" type="Node2D" parent="Section2/Sleepers" unique_id=803095510 instance=ExtResource("12_7r20d")]
 position = Vector2(12511.872, -254)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.19"
 species = "C"
 
-[node name="Sleeper20" type="Node2D" parent="Section2/Sleepers" unique_id=1185565891 instance=ExtResource("12_7r20d")]
+[node name="Sleeper20" type="Node2D" parent="Section2/Sleepers" unique_id=1353858568 instance=ExtResource("12_7r20d")]
 position = Vector2(12561.408, -254)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.20"
 species = "D"
 
-[node name="Sleeper21" type="Node2D" parent="Section2/Sleepers" unique_id=1217549432 instance=ExtResource("12_7r20d")]
+[node name="Sleeper21" type="Node2D" parent="Section2/Sleepers" unique_id=1398823474 instance=ExtResource("12_7r20d")]
 position = Vector2(12648.96, -724)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.21"
 
-[node name="Sleeper22" type="Node2D" parent="Section2/Sleepers" unique_id=1697553375 instance=ExtResource("12_7r20d")]
+[node name="Sleeper22" type="Node2D" parent="Section2/Sleepers" unique_id=884398835 instance=ExtResource("12_7r20d")]
 position = Vector2(12704.256, -724)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.22"
 species = "B"
 
-[node name="Sleeper23" type="Node2D" parent="Section2/Sleepers" unique_id=316170338 instance=ExtResource("12_7r20d")]
+[node name="Sleeper23" type="Node2D" parent="Section2/Sleepers" unique_id=536648753 instance=ExtResource("12_7r20d")]
 position = Vector2(12759.552, -724)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.23"
 species = "C"
 
-[node name="Sleeper24" type="Node2D" parent="Section2/Sleepers" unique_id=1535919444 instance=ExtResource("12_7r20d")]
+[node name="Sleeper24" type="Node2D" parent="Section2/Sleepers" unique_id=1895467380 instance=ExtResource("12_7r20d")]
 position = Vector2(12814.848, -724)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.24"
 species = "D"
 
-[node name="Sleeper25" type="Node2D" parent="Section2/Sleepers" unique_id=1702930684 instance=ExtResource("12_7r20d")]
+[node name="Sleeper25" type="Node2D" parent="Section2/Sleepers" unique_id=378699933 instance=ExtResource("12_7r20d")]
 position = Vector2(12870.144, -724)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.25"
 
-[node name="Sleeper26" type="Node2D" parent="Section2/Sleepers" unique_id=560215233 instance=ExtResource("12_7r20d")]
+[node name="Sleeper26" type="Node2D" parent="Section2/Sleepers" unique_id=2028598704 instance=ExtResource("12_7r20d")]
 position = Vector2(12925.44, -724)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.26"
 species = "B"
 
-[node name="Sleeper27" type="Node2D" parent="Section2/Sleepers" unique_id=1971563634 instance=ExtResource("12_7r20d")]
+[node name="Sleeper27" type="Node2D" parent="Section2/Sleepers" unique_id=296136978 instance=ExtResource("12_7r20d")]
 position = Vector2(12980.736, -724)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.27"
 species = "C"
 
-[node name="Sleeper28" type="Node2D" parent="Section2/Sleepers" unique_id=1925712032 instance=ExtResource("12_7r20d")]
+[node name="Sleeper28" type="Node2D" parent="Section2/Sleepers" unique_id=351685714 instance=ExtResource("12_7r20d")]
 position = Vector2(13036.032, -724)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.28"
 species = "D"
 
-[node name="Sleeper29" type="Node2D" parent="Section2/Sleepers" unique_id=634341151 instance=ExtResource("12_7r20d")]
+[node name="Sleeper29" type="Node2D" parent="Section2/Sleepers" unique_id=978955681 instance=ExtResource("12_7r20d")]
 position = Vector2(13091.328, -724)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.29"
 
-[node name="Sleeper30" type="Node2D" parent="Section2/Sleepers" unique_id=873950573 instance=ExtResource("12_7r20d")]
+[node name="Sleeper30" type="Node2D" parent="Section2/Sleepers" unique_id=1634022365 instance=ExtResource("12_7r20d")]
 position = Vector2(13146.624, -724)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.30"
 species = "B"
 
-[node name="Sleeper31" type="Node2D" parent="Section2/Sleepers" unique_id=1665713919 instance=ExtResource("12_7r20d")]
+[node name="Sleeper31" type="Node2D" parent="Section2/Sleepers" unique_id=635247273 instance=ExtResource("12_7r20d")]
 position = Vector2(13201.92, -724)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.31"
 species = "C"
 
-[node name="Sleeper32" type="Node2D" parent="Section2/Sleepers" unique_id=477265729 instance=ExtResource("12_7r20d")]
+[node name="Sleeper32" type="Node2D" parent="Section2/Sleepers" unique_id=2005853408 instance=ExtResource("12_7r20d")]
 position = Vector2(13257.216, -724)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.32"
 species = "D"
 
-[node name="Sleeper33" type="Node2D" parent="Section2/Sleepers" unique_id=918033806 instance=ExtResource("12_7r20d")]
+[node name="Sleeper33" type="Node2D" parent="Section2/Sleepers" unique_id=576362726 instance=ExtResource("12_7r20d")]
 position = Vector2(13312.512, -724)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.33"
 species = "D"
 
-[node name="Sleeper34" type="Node2D" parent="Section2/Sleepers" unique_id=668480860 instance=ExtResource("12_7r20d")]
+[node name="Sleeper34" type="Node2D" parent="Section2/Sleepers" unique_id=68296632 instance=ExtResource("12_7r20d")]
 position = Vector2(13367.808, -724)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.34"
 species = "D"
 
-[node name="Sleeper35" type="Node2D" parent="Section2/Sleepers" unique_id=508244703 instance=ExtResource("12_7r20d")]
+[node name="Sleeper35" type="Node2D" parent="Section2/Sleepers" unique_id=1116241068 instance=ExtResource("12_7r20d")]
 position = Vector2(13852.8, -284)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.35"
 
-[node name="Sleeper36" type="Node2D" parent="Section2/Sleepers" unique_id=427217201 instance=ExtResource("12_7r20d")]
+[node name="Sleeper36" type="Node2D" parent="Section2/Sleepers" unique_id=1740912877 instance=ExtResource("12_7r20d")]
 position = Vector2(13902.336, -284)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.36"
 species = "B"
 
-[node name="Sleeper37" type="Node2D" parent="Section2/Sleepers" unique_id=1878472913 instance=ExtResource("12_7r20d")]
+[node name="Sleeper37" type="Node2D" parent="Section2/Sleepers" unique_id=809984960 instance=ExtResource("12_7r20d")]
 position = Vector2(13951.872, -284)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.37"
 species = "C"
 
-[node name="Sleeper38" type="Node2D" parent="Section2/Sleepers" unique_id=885485207 instance=ExtResource("12_7r20d")]
+[node name="Sleeper38" type="Node2D" parent="Section2/Sleepers" unique_id=677055958 instance=ExtResource("12_7r20d")]
 position = Vector2(14001.408, -284)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.38"
 species = "D"
 
-[node name="Sleeper39" type="Node2D" parent="Section2/Sleepers" unique_id=53617629 instance=ExtResource("12_7r20d")]
+[node name="Sleeper39" type="Node2D" parent="Section2/Sleepers" unique_id=402865524 instance=ExtResource("12_7r20d")]
 position = Vector2(14050.944, -284)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.39"
 species = "D"
 
-[node name="Sleeper40" type="Node2D" parent="Section2/Sleepers" unique_id=1119511848 instance=ExtResource("12_7r20d")]
+[node name="Sleeper40" type="Node2D" parent="Section2/Sleepers" unique_id=448756555 instance=ExtResource("12_7r20d")]
 position = Vector2(14100.48, -284)
 script = ExtResource("13_kjof1")
 stable_id = "s2.sleeper.40"
 species = "D"
 
-[node name="Parade" type="Node2D" parent="Section2" unique_id=829342780]
+[node name="Parade" type="Node2D" parent="Section2" unique_id=161106434]
 
-[node name="Frame" type="Area2D" parent="Section2/Parade" unique_id=368283995 instance=ExtResource("18_6fems")]
+[node name="Frame" type="Area2D" parent="Section2/Parade" unique_id=1179929965 instance=ExtResource("18_6fems")]
 position = Vector2(10944, -150)
 script = ExtResource("19_e8tkc")
 stable_id = "s2.frame.parade"
@@ -1094,21 +1104,21 @@ size = Vector2(1152, 500)
 zoom = 0.85
 offset = Vector2(0, -100)
 
-[node name="Cave" type="Node2D" parent="Section2" unique_id=913319209]
+[node name="Cave" type="Node2D" parent="Section2" unique_id=1616653331]
 
-[node name="Branch" type="Area2D" parent="Section2/Cave" unique_id=1775371985 instance=ExtResource("14_0u2tl")]
+[node name="Branch" type="Area2D" parent="Section2/Cave" unique_id=291719997 instance=ExtResource("14_0u2tl")]
 position = Vector2(13184.64, -550)
 script = ExtResource("15_b4wed")
 stable_id = "s2.branch.cave"
 size = Vector2(1163.52, 540)
 
-[node name="RouteBack" type="Path2D" parent="Section2/Cave" unique_id=570207589 instance=ExtResource("16_krscb")]
-curve = SubResource("Curve2D_56bx2")
+[node name="RouteBack" type="Path2D" parent="Section2/Cave" unique_id=584918720 instance=ExtResource("16_krscb")]
+curve = SubResource("Curve2D_44ljc")
 script = ExtResource("17_ynxg7")
 stable_id = "s2.route-back.cave"
 serves = "s2.branch.cave"
 
-[node name="Frame" type="Area2D" parent="Section2/Cave" unique_id=1058031521 instance=ExtResource("18_6fems")]
+[node name="Frame" type="Area2D" parent="Section2/Cave" unique_id=1861546395 instance=ExtResource("18_6fems")]
 position = Vector2(12960, -150)
 script = ExtResource("19_e8tkc")
 stable_id = "s2.frame.cave"
@@ -1116,15 +1126,15 @@ size = Vector2(1497.6, 500)
 zoom = 0.7
 offset = Vector2(0, -140)
 
-[node name="FrontierSet" type="Node2D" parent="Section2" unique_id=1651189823]
+[node name="FrontierSet" type="Node2D" parent="Section2" unique_id=857875426]
 
-[node name="Signpost" type="Node2D" parent="Section2/FrontierSet" unique_id=12220204 instance=ExtResource("20_djtld")]
+[node name="Signpost" type="Node2D" parent="Section2/FrontierSet" unique_id=1926952051 instance=ExtResource("20_djtld")]
 position = Vector2(12556.8, -20)
 script = ExtResource("21_s8ue3")
 stable_id = "s2.signpost"
 switch_id = "s2.switch"
 
-[node name="Switch" type="Area2D" parent="Section2/FrontierSet" unique_id=847500574 instance=ExtResource("22_8u4d3")]
+[node name="Switch" type="Area2D" parent="Section2/FrontierSet" unique_id=1311319410 instance=ExtResource("22_8u4d3")]
 position = Vector2(12637.44, -44)
 script = ExtResource("23_1xtbr")
 stable_id = "s2.switch"
@@ -1132,7 +1142,7 @@ size = Vector2(80, 80)
 basket_id = "s2.basket"
 trapdoor = Rect2(1416.96, 24, 403.19922, 25)
 
-[node name="Basket" type="Area2D" parent="Section2/FrontierSet" unique_id=2096804920 instance=ExtResource("24_sh6x2")]
+[node name="Basket" type="Area2D" parent="Section2/FrontierSet" unique_id=849900816 instance=ExtResource("24_sh6x2")]
 position = Vector2(14256, 65)
 script = ExtResource("25_0k230")
 stable_id = "s2.basket"
@@ -1140,13 +1150,13 @@ size = Vector2(403.2, 170)
 quota = 15
 on_full_object = "s2.gate"
 
-[node name="Gate" type="Node2D" parent="Section2/FrontierSet" unique_id=1136329099 instance=ExtResource("26_hikek")]
+[node name="Gate" type="Node2D" parent="Section2/FrontierSet" unique_id=616245370 instance=ExtResource("26_hikek")]
 position = Vector2(14745.6, -100)
 script = ExtResource("27_ufdgs")
 stable_id = "s2.gate"
 entrance_lid = Rect2(-241.91992, 80, 161.28027, 32)
 
-[node name="Frame" type="Area2D" parent="Section2/FrontierSet" unique_id=800664861 instance=ExtResource("18_6fems")]
+[node name="Frame" type="Area2D" parent="Section2/FrontierSet" unique_id=1924867286 instance=ExtResource("18_6fems")]
 position = Vector2(14515.2, -100)
 script = ExtResource("19_e8tkc")
 stable_id = "s2.frame.gate"
@@ -1154,773 +1164,773 @@ size = Vector2(921.6, 600)
 zoom = 0.9
 offset = Vector2(0, -40)
 
-[node name="Section3" type="Node2D" parent="." unique_id=444546307]
+[node name="Section3" type="Node2D" parent="." unique_id=1208806839]
 
-[node name="Sleepers" type="Node2D" parent="Section3" unique_id=1829892463]
+[node name="Sleepers" type="Node2D" parent="Section3" unique_id=1468034387]
 
-[node name="Sleeper01" type="Node2D" parent="Section3/Sleepers" unique_id=2065835015 instance=ExtResource("12_7r20d")]
-position = Vector2(14952.96, -234)
+[node name="Sleeper01" type="Node2D" parent="Section3/Sleepers" unique_id=1651559149 instance=ExtResource("12_7r20d")]
+position = Vector2(15352.491, -131.75803)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.01"
 species = "E"
 
-[node name="Sleeper02" type="Node2D" parent="Section3/Sleepers" unique_id=2094676112 instance=ExtResource("12_7r20d")]
-position = Vector2(14999.04, -234)
+[node name="Sleeper02" type="Node2D" parent="Section3/Sleepers" unique_id=1514425665 instance=ExtResource("12_7r20d")]
+position = Vector2(15391.232, -127.27407)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.02"
 species = "E"
 
-[node name="Sleeper03" type="Node2D" parent="Section3/Sleepers" unique_id=2139981020 instance=ExtResource("12_7r20d")]
-position = Vector2(15045.12, -234)
+[node name="Sleeper03" type="Node2D" parent="Section3/Sleepers" unique_id=1510555378 instance=ExtResource("12_7r20d")]
+position = Vector2(15429.974, -122.790115)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.03"
 species = "E"
 
-[node name="Sleeper04" type="Node2D" parent="Section3/Sleepers" unique_id=195394041 instance=ExtResource("12_7r20d")]
-position = Vector2(15091.2, -234)
+[node name="Sleeper04" type="Node2D" parent="Section3/Sleepers" unique_id=1238134754 instance=ExtResource("12_7r20d")]
+position = Vector2(15468.715, -118.30617)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.04"
 species = "E"
 
-[node name="Sleeper05" type="Node2D" parent="Section3/Sleepers" unique_id=329263958 instance=ExtResource("12_7r20d")]
-position = Vector2(15137.28, -234)
+[node name="Sleeper05" type="Node2D" parent="Section3/Sleepers" unique_id=386027337 instance=ExtResource("12_7r20d")]
+position = Vector2(15482.88, -448.51614)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.05"
-species = "E"
 
-[node name="Sleeper06" type="Node2D" parent="Section3/Sleepers" unique_id=1493960612 instance=ExtResource("12_7r20d")]
-position = Vector2(15252.48, -184)
+[node name="Sleeper06" type="Node2D" parent="Section3/Sleepers" unique_id=920161845 instance=ExtResource("12_7r20d")]
+position = Vector2(15507.456, -113.82221)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.06"
 species = "E"
 
-[node name="Sleeper07" type="Node2D" parent="Section3/Sleepers" unique_id=936371248 instance=ExtResource("12_7r20d")]
-position = Vector2(15298.56, -184)
+[node name="Sleeper07" type="Node2D" parent="Section3/Sleepers" unique_id=1822531884 instance=ExtResource("12_7r20d")]
+position = Vector2(15528.96, -447.5484)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.07"
 species = "E"
 
-[node name="Sleeper08" type="Node2D" parent="Section3/Sleepers" unique_id=1999062118 instance=ExtResource("12_7r20d")]
-position = Vector2(15344.64, -184)
+[node name="Sleeper08" type="Node2D" parent="Section3/Sleepers" unique_id=1846000180 instance=ExtResource("12_7r20d")]
+position = Vector2(15546.197, -109.33826)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.08"
 species = "E"
 
-[node name="Sleeper09" type="Node2D" parent="Section3/Sleepers" unique_id=971184087 instance=ExtResource("12_7r20d")]
-position = Vector2(15390.72, -184)
+[node name="Sleeper09" type="Node2D" parent="Section3/Sleepers" unique_id=1776755277 instance=ExtResource("12_7r20d")]
+position = Vector2(15563.52, -288.51614)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.09"
 species = "E"
 
-[node name="Sleeper10" type="Node2D" parent="Section3/Sleepers" unique_id=1650785524 instance=ExtResource("12_7r20d")]
-position = Vector2(15436.8, -184)
+[node name="Sleeper10" type="Node2D" parent="Section3/Sleepers" unique_id=530025283 instance=ExtResource("12_7r20d")]
+position = Vector2(15575.04, -446.58066)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.10"
-species = "E"
+species = "B"
 
-[node name="Sleeper11" type="Node2D" parent="Section3/Sleepers" unique_id=2036666354 instance=ExtResource("12_7r20d")]
-position = Vector2(15482.88, -448.51614)
+[node name="Sleeper11" type="Node2D" parent="Section3/Sleepers" unique_id=1991554970 instance=ExtResource("12_7r20d")]
+position = Vector2(15584.939, -104.85431)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.11"
-
-[node name="Sleeper12" type="Node2D" parent="Section3/Sleepers" unique_id=756112452 instance=ExtResource("12_7r20d")]
-position = Vector2(15528.96, -447.5484)
-script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.12"
 species = "E"
 
-[node name="Sleeper13" type="Node2D" parent="Section3/Sleepers" unique_id=644862232 instance=ExtResource("12_7r20d")]
-position = Vector2(15563.52, -288.51614)
+[node name="Sleeper12" type="Node2D" parent="Section3/Sleepers" unique_id=326796651 instance=ExtResource("12_7r20d")]
+position = Vector2(15609.6, -287.5484)
+script = ExtResource("13_kjof1")
+stable_id = "s3.sleeper.12"
+species = "C"
+
+[node name="Sleeper13" type="Node2D" parent="Section3/Sleepers" unique_id=1615244197 instance=ExtResource("12_7r20d")]
+position = Vector2(15621.12, -445.6129)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.13"
 species = "E"
 
-[node name="Sleeper14" type="Node2D" parent="Section3/Sleepers" unique_id=1463450148 instance=ExtResource("12_7r20d")]
-position = Vector2(15575.04, -446.58066)
+[node name="Sleeper14" type="Node2D" parent="Section3/Sleepers" unique_id=1301422670 instance=ExtResource("12_7r20d")]
+position = Vector2(15623.681, -100.37035)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.14"
-species = "B"
+species = "E"
 
-[node name="Sleeper15" type="Node2D" parent="Section3/Sleepers" unique_id=1874225802 instance=ExtResource("12_7r20d")]
-position = Vector2(15609.6, -287.5484)
+[node name="Sleeper15" type="Node2D" parent="Section3/Sleepers" unique_id=1816812156 instance=ExtResource("12_7r20d")]
+position = Vector2(15655.68, -286.58066)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.15"
-species = "C"
+species = "D"
 
-[node name="Sleeper16" type="Node2D" parent="Section3/Sleepers" unique_id=1699031014 instance=ExtResource("12_7r20d")]
-position = Vector2(15621.12, -445.6129)
+[node name="Sleeper16" type="Node2D" parent="Section3/Sleepers" unique_id=196652330 instance=ExtResource("12_7r20d")]
+position = Vector2(15662.422, -95.8864)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.16"
 species = "E"
 
-[node name="Sleeper17" type="Node2D" parent="Section3/Sleepers" unique_id=1292458827 instance=ExtResource("12_7r20d")]
-position = Vector2(15644.16, -128.51613)
-script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.17"
-
-[node name="Sleeper18" type="Node2D" parent="Section3/Sleepers" unique_id=774207049 instance=ExtResource("12_7r20d")]
-position = Vector2(15655.68, -286.58066)
-script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.18"
-species = "D"
-
-[node name="Sleeper19" type="Node2D" parent="Section3/Sleepers" unique_id=1225429126 instance=ExtResource("12_7r20d")]
+[node name="Sleeper17" type="Node2D" parent="Section3/Sleepers" unique_id=580778894 instance=ExtResource("12_7r20d")]
 position = Vector2(15667.2, -444.64517)
 script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.19"
+stable_id = "s3.sleeper.17"
 species = "C"
 
-[node name="Sleeper20" type="Node2D" parent="Section3/Sleepers" unique_id=1483768042 instance=ExtResource("12_7r20d")]
-position = Vector2(15690.24, -127.548386)
+[node name="Sleeper18" type="Node2D" parent="Section3/Sleepers" unique_id=1351479529 instance=ExtResource("12_7r20d")]
+position = Vector2(15701.163, -91.40245)
 script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.20"
+stable_id = "s3.sleeper.18"
 species = "E"
 
-[node name="Sleeper21" type="Node2D" parent="Section3/Sleepers" unique_id=1555569597 instance=ExtResource("12_7r20d")]
+[node name="Sleeper19" type="Node2D" parent="Section3/Sleepers" unique_id=1484125488 instance=ExtResource("12_7r20d")]
 position = Vector2(15701.76, -285.6129)
+script = ExtResource("13_kjof1")
+stable_id = "s3.sleeper.19"
+
+[node name="Sleeper20" type="Node2D" parent="Section3/Sleepers" unique_id=986533619 instance=ExtResource("12_7r20d")]
+position = Vector2(15713.28, -443.67743)
+script = ExtResource("13_kjof1")
+stable_id = "s3.sleeper.20"
+species = "D"
+
+[node name="Sleeper21" type="Node2D" parent="Section3/Sleepers" unique_id=1902214729 instance=ExtResource("12_7r20d")]
+position = Vector2(15739.904, -86.918495)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.21"
 
-[node name="Sleeper22" type="Node2D" parent="Section3/Sleepers" unique_id=1933664609 instance=ExtResource("12_7r20d")]
-position = Vector2(15713.28, -443.67743)
+[node name="Sleeper22" type="Node2D" parent="Section3/Sleepers" unique_id=1038017403 instance=ExtResource("12_7r20d")]
+position = Vector2(15747.84, -284.64517)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.22"
-species = "D"
+species = "E"
 
-[node name="Sleeper23" type="Node2D" parent="Section3/Sleepers" unique_id=814843173 instance=ExtResource("12_7r20d")]
-position = Vector2(15736.32, -126.58064)
+[node name="Sleeper23" type="Node2D" parent="Section3/Sleepers" unique_id=603381760 instance=ExtResource("12_7r20d")]
+position = Vector2(15759.36, -442.7097)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.23"
-species = "B"
 
-[node name="Sleeper24" type="Node2D" parent="Section3/Sleepers" unique_id=443330657 instance=ExtResource("12_7r20d")]
-position = Vector2(15747.84, -284.64517)
+[node name="Sleeper24" type="Node2D" parent="Section3/Sleepers" unique_id=1941705713 instance=ExtResource("12_7r20d")]
+position = Vector2(15778.6455, -82.43454)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.24"
 species = "E"
 
-[node name="Sleeper25" type="Node2D" parent="Section3/Sleepers" unique_id=1801741900 instance=ExtResource("12_7r20d")]
-position = Vector2(15759.36, -442.7097)
+[node name="Sleeper25" type="Node2D" parent="Section3/Sleepers" unique_id=1244526718 instance=ExtResource("12_7r20d")]
+position = Vector2(15793.92, -283.67743)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.25"
+species = "B"
 
-[node name="Sleeper26" type="Node2D" parent="Section3/Sleepers" unique_id=603623496 instance=ExtResource("12_7r20d")]
-position = Vector2(15782.4, -125.6129)
+[node name="Sleeper26" type="Node2D" parent="Section3/Sleepers" unique_id=39175199 instance=ExtResource("12_7r20d")]
+position = Vector2(15805.44, -441.74194)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.26"
 species = "E"
 
-[node name="Sleeper27" type="Node2D" parent="Section3/Sleepers" unique_id=228694598 instance=ExtResource("12_7r20d")]
-position = Vector2(15793.92, -283.67743)
+[node name="Sleeper27" type="Node2D" parent="Section3/Sleepers" unique_id=176584243 instance=ExtResource("12_7r20d")]
+position = Vector2(15817.62, -81.808914)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.27"
 species = "B"
 
-[node name="Sleeper28" type="Node2D" parent="Section3/Sleepers" unique_id=1063592829 instance=ExtResource("12_7r20d")]
-position = Vector2(15805.44, -441.74194)
+[node name="Sleeper28" type="Node2D" parent="Section3/Sleepers" unique_id=1348198301 instance=ExtResource("12_7r20d")]
+position = Vector2(15840, -282.7097)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.28"
 species = "E"
 
-[node name="Sleeper29" type="Node2D" parent="Section3/Sleepers" unique_id=1790311220 instance=ExtResource("12_7r20d")]
-position = Vector2(15828.48, -124.645164)
+[node name="Sleeper29" type="Node2D" parent="Section3/Sleepers" unique_id=1765446972 instance=ExtResource("12_7r20d")]
+position = Vector2(15851.52, -440.7742)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.29"
-species = "C"
+species = "B"
 
-[node name="Sleeper30" type="Node2D" parent="Section3/Sleepers" unique_id=1150399921 instance=ExtResource("12_7r20d")]
-position = Vector2(15840, -282.7097)
+[node name="Sleeper30" type="Node2D" parent="Section3/Sleepers" unique_id=2128369374 instance=ExtResource("12_7r20d")]
+position = Vector2(15856.62, -81.597336)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.30"
 species = "E"
 
-[node name="Sleeper31" type="Node2D" parent="Section3/Sleepers" unique_id=987443456 instance=ExtResource("12_7r20d")]
-position = Vector2(15851.52, -440.7742)
-script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.31"
-species = "B"
-
-[node name="Sleeper32" type="Node2D" parent="Section3/Sleepers" unique_id=1039916976 instance=ExtResource("12_7r20d")]
-position = Vector2(15874.56, -123.67742)
-script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.32"
-species = "D"
-
-[node name="Sleeper33" type="Node2D" parent="Section3/Sleepers" unique_id=2133664199 instance=ExtResource("12_7r20d")]
+[node name="Sleeper31" type="Node2D" parent="Section3/Sleepers" unique_id=1741947494 instance=ExtResource("12_7r20d")]
 position = Vector2(15886.08, -281.74194)
 script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.33"
+stable_id = "s3.sleeper.31"
 species = "C"
 
-[node name="Sleeper34" type="Node2D" parent="Section3/Sleepers" unique_id=1343832213 instance=ExtResource("12_7r20d")]
+[node name="Sleeper32" type="Node2D" parent="Section3/Sleepers" unique_id=637986666 instance=ExtResource("12_7r20d")]
+position = Vector2(15895.619, -81.38575)
+script = ExtResource("13_kjof1")
+stable_id = "s3.sleeper.32"
+species = "C"
+
+[node name="Sleeper33" type="Node2D" parent="Section3/Sleepers" unique_id=992585747 instance=ExtResource("12_7r20d")]
 position = Vector2(15897.6, -439.80646)
 script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.34"
+stable_id = "s3.sleeper.33"
 species = "E"
 
-[node name="Sleeper35" type="Node2D" parent="Section3/Sleepers" unique_id=973534914 instance=ExtResource("12_7r20d")]
-position = Vector2(15920.64, -122.70968)
-script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.35"
-
-[node name="Sleeper36" type="Node2D" parent="Section3/Sleepers" unique_id=680330256 instance=ExtResource("12_7r20d")]
+[node name="Sleeper34" type="Node2D" parent="Section3/Sleepers" unique_id=513575318 instance=ExtResource("12_7r20d")]
 position = Vector2(15932.16, -280.7742)
 script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.36"
+stable_id = "s3.sleeper.34"
 species = "D"
 
-[node name="Sleeper37" type="Node2D" parent="Section3/Sleepers" unique_id=536977691 instance=ExtResource("12_7r20d")]
+[node name="Sleeper35" type="Node2D" parent="Section3/Sleepers" unique_id=2142429823 instance=ExtResource("12_7r20d")]
+position = Vector2(15934.619, -81.174164)
+script = ExtResource("13_kjof1")
+stable_id = "s3.sleeper.35"
+species = "D"
+
+[node name="Sleeper36" type="Node2D" parent="Section3/Sleepers" unique_id=1209009154 instance=ExtResource("12_7r20d")]
 position = Vector2(15943.68, -438.8387)
 script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.37"
+stable_id = "s3.sleeper.36"
 species = "C"
 
-[node name="Sleeper38" type="Node2D" parent="Section3/Sleepers" unique_id=1619697837 instance=ExtResource("12_7r20d")]
-position = Vector2(15966.72, -121.741936)
+[node name="Sleeper37" type="Node2D" parent="Section3/Sleepers" unique_id=14977994 instance=ExtResource("12_7r20d")]
+position = Vector2(15973.618, -80.96258)
 script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.38"
-species = "E"
+stable_id = "s3.sleeper.37"
 
-[node name="Sleeper39" type="Node2D" parent="Section3/Sleepers" unique_id=1315545412 instance=ExtResource("12_7r20d")]
+[node name="Sleeper38" type="Node2D" parent="Section3/Sleepers" unique_id=1816097636 instance=ExtResource("12_7r20d")]
 position = Vector2(15978.24, -279.80646)
 script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.39"
+stable_id = "s3.sleeper.38"
 
-[node name="Sleeper40" type="Node2D" parent="Section3/Sleepers" unique_id=1110803090 instance=ExtResource("12_7r20d")]
+[node name="Sleeper39" type="Node2D" parent="Section3/Sleepers" unique_id=409546544 instance=ExtResource("12_7r20d")]
 position = Vector2(15989.76, -437.87097)
 script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.40"
+stable_id = "s3.sleeper.39"
 species = "D"
 
-[node name="Sleeper41" type="Node2D" parent="Section3/Sleepers" unique_id=1106704947 instance=ExtResource("12_7r20d")]
-position = Vector2(16012.8, -120.77419)
+[node name="Sleeper40" type="Node2D" parent="Section3/Sleepers" unique_id=84540556 instance=ExtResource("12_7r20d")]
+position = Vector2(16012.617, -80.75099)
 script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.41"
-species = "B"
+stable_id = "s3.sleeper.40"
+species = "E"
 
-[node name="Sleeper42" type="Node2D" parent="Section3/Sleepers" unique_id=831260379 instance=ExtResource("12_7r20d")]
+[node name="Sleeper41" type="Node2D" parent="Section3/Sleepers" unique_id=669861002 instance=ExtResource("12_7r20d")]
 position = Vector2(16024.32, -278.8387)
 script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.42"
+stable_id = "s3.sleeper.41"
 species = "E"
 
-[node name="Sleeper43" type="Node2D" parent="Section3/Sleepers" unique_id=1579121261 instance=ExtResource("12_7r20d")]
+[node name="Sleeper42" type="Node2D" parent="Section3/Sleepers" unique_id=939740196 instance=ExtResource("12_7r20d")]
 position = Vector2(16035.84, -436.90323)
 script = ExtResource("13_kjof1")
+stable_id = "s3.sleeper.42"
+
+[node name="Sleeper43" type="Node2D" parent="Section3/Sleepers" unique_id=853606251 instance=ExtResource("12_7r20d")]
+position = Vector2(16051.617, -80.539406)
+script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.43"
-
-[node name="Sleeper44" type="Node2D" parent="Section3/Sleepers" unique_id=1833880191 instance=ExtResource("12_7r20d")]
-position = Vector2(16058.88, -119.80645)
-script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.44"
-species = "E"
-
-[node name="Sleeper45" type="Node2D" parent="Section3/Sleepers" unique_id=1075664741 instance=ExtResource("12_7r20d")]
-position = Vector2(16070.4, -277.87097)
-script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.45"
 species = "B"
 
-[node name="Sleeper46" type="Node2D" parent="Section3/Sleepers" unique_id=1255505996 instance=ExtResource("12_7r20d")]
+[node name="Sleeper44" type="Node2D" parent="Section3/Sleepers" unique_id=1347376938 instance=ExtResource("12_7r20d")]
+position = Vector2(16070.4, -277.87097)
+script = ExtResource("13_kjof1")
+stable_id = "s3.sleeper.44"
+species = "B"
+
+[node name="Sleeper45" type="Node2D" parent="Section3/Sleepers" unique_id=376186699 instance=ExtResource("12_7r20d")]
 position = Vector2(16081.92, -435.9355)
+script = ExtResource("13_kjof1")
+stable_id = "s3.sleeper.45"
+species = "E"
+
+[node name="Sleeper46" type="Node2D" parent="Section3/Sleepers" unique_id=567878775 instance=ExtResource("12_7r20d")]
+position = Vector2(16090.616, -80.32782)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.46"
 species = "E"
 
-[node name="Sleeper47" type="Node2D" parent="Section3/Sleepers" unique_id=882020590 instance=ExtResource("12_7r20d")]
-position = Vector2(16104.96, -118.83871)
-script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.47"
-species = "C"
-
-[node name="Sleeper48" type="Node2D" parent="Section3/Sleepers" unique_id=1721796582 instance=ExtResource("12_7r20d")]
+[node name="Sleeper47" type="Node2D" parent="Section3/Sleepers" unique_id=857245890 instance=ExtResource("12_7r20d")]
 position = Vector2(16116.48, -276.90323)
 script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.48"
+stable_id = "s3.sleeper.47"
 species = "E"
 
-[node name="Sleeper49" type="Node2D" parent="Section3/Sleepers" unique_id=1920321527 instance=ExtResource("12_7r20d")]
+[node name="Sleeper48" type="Node2D" parent="Section3/Sleepers" unique_id=1389915613 instance=ExtResource("12_7r20d")]
 position = Vector2(16128, -434.96774)
 script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.49"
+stable_id = "s3.sleeper.48"
 species = "B"
 
-[node name="Sleeper50" type="Node2D" parent="Section3/Sleepers" unique_id=1338250797 instance=ExtResource("12_7r20d")]
-position = Vector2(16151.04, -117.870964)
+[node name="Sleeper49" type="Node2D" parent="Section3/Sleepers" unique_id=639579418 instance=ExtResource("12_7r20d")]
+position = Vector2(16129.616, -80.116234)
 script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.50"
-species = "D"
-
-[node name="Sleeper51" type="Node2D" parent="Section3/Sleepers" unique_id=1777532962 instance=ExtResource("12_7r20d")]
-position = Vector2(16162.56, -275.9355)
-script = ExtResource("13_kjof1")
-stable_id = "s3.sleeper.51"
+stable_id = "s3.sleeper.49"
 species = "C"
 
-[node name="Sleeper52" type="Node2D" parent="Section3/Sleepers" unique_id=1419309147 instance=ExtResource("12_7r20d")]
-position = Vector2(16197.12, -116.90323)
+[node name="Sleeper50" type="Node2D" parent="Section3/Sleepers" unique_id=1013068206 instance=ExtResource("12_7r20d")]
+position = Vector2(16162.56, -275.9355)
+script = ExtResource("13_kjof1")
+stable_id = "s3.sleeper.50"
+species = "C"
+
+[node name="Sleeper51" type="Node2D" parent="Section3/Sleepers" unique_id=1304126823 instance=ExtResource("12_7r20d")]
+position = Vector2(16168.615, -79.90465)
+script = ExtResource("13_kjof1")
+stable_id = "s3.sleeper.51"
+species = "D"
+
+[node name="Sleeper52" type="Node2D" parent="Section3/Sleepers" unique_id=2104968674 instance=ExtResource("12_7r20d")]
+position = Vector2(16207.614, -79.69307)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.52"
 
-[node name="Sleeper53" type="Node2D" parent="Section3/Sleepers" unique_id=1660918685 instance=ExtResource("12_7r20d")]
+[node name="Sleeper53" type="Node2D" parent="Section3/Sleepers" unique_id=1760603917 instance=ExtResource("12_7r20d")]
 position = Vector2(16208.64, -274.96774)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.53"
 species = "D"
 
-[node name="Sleeper54" type="Node2D" parent="Section3/Sleepers" unique_id=1541071382 instance=ExtResource("12_7r20d")]
-position = Vector2(16243.2, -115.935486)
+[node name="Sleeper54" type="Node2D" parent="Section3/Sleepers" unique_id=861042576 instance=ExtResource("12_7r20d")]
+position = Vector2(16246.614, -79.481476)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.54"
 species = "E"
 
-[node name="Sleeper55" type="Node2D" parent="Section3/Sleepers" unique_id=904380170 instance=ExtResource("12_7r20d")]
-position = Vector2(16289.28, -114.96774)
+[node name="Sleeper55" type="Node2D" parent="Section3/Sleepers" unique_id=1602946425 instance=ExtResource("12_7r20d")]
+position = Vector2(16285.613, -79.2699)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.55"
 species = "B"
 
-[node name="Sleeper56" type="Node2D" parent="Section3/Sleepers" unique_id=388468373 instance=ExtResource("12_7r20d")]
+[node name="Sleeper56" type="Node2D" parent="Section3/Sleepers" unique_id=1832296731 instance=ExtResource("12_7r20d")]
 position = Vector2(16473.6, -114.48387)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.56"
 species = "E"
 
-[node name="Sleeper57" type="Node2D" parent="Section3/Sleepers" unique_id=131030267 instance=ExtResource("12_7r20d")]
+[node name="Sleeper57" type="Node2D" parent="Section3/Sleepers" unique_id=140238199 instance=ExtResource("12_7r20d")]
 position = Vector2(16519.68, -115.451614)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.57"
 species = "C"
 
-[node name="Sleeper58" type="Node2D" parent="Section3/Sleepers" unique_id=813795 instance=ExtResource("12_7r20d")]
+[node name="Sleeper58" type="Node2D" parent="Section3/Sleepers" unique_id=1687730575 instance=ExtResource("12_7r20d")]
 position = Vector2(16542.72, -274.48386)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.58"
 
-[node name="Sleeper59" type="Node2D" parent="Section3/Sleepers" unique_id=1176895373 instance=ExtResource("12_7r20d")]
+[node name="Sleeper59" type="Node2D" parent="Section3/Sleepers" unique_id=501922519 instance=ExtResource("12_7r20d")]
 position = Vector2(16565.76, -116.41936)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.59"
 species = "D"
 
-[node name="Sleeper60" type="Node2D" parent="Section3/Sleepers" unique_id=1784033660 instance=ExtResource("12_7r20d")]
+[node name="Sleeper60" type="Node2D" parent="Section3/Sleepers" unique_id=1393597022 instance=ExtResource("12_7r20d")]
 position = Vector2(16588.8, -275.4516)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.60"
 species = "E"
 
-[node name="Sleeper61" type="Node2D" parent="Section3/Sleepers" unique_id=1966629133 instance=ExtResource("12_7r20d")]
+[node name="Sleeper61" type="Node2D" parent="Section3/Sleepers" unique_id=602655960 instance=ExtResource("12_7r20d")]
 position = Vector2(16611.84, -434.48386)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.61"
 species = "E"
 
-[node name="Sleeper62" type="Node2D" parent="Section3/Sleepers" unique_id=1309902357 instance=ExtResource("12_7r20d")]
+[node name="Sleeper62" type="Node2D" parent="Section3/Sleepers" unique_id=1819825907 instance=ExtResource("12_7r20d")]
 position = Vector2(16611.84, -117.3871)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.62"
 
-[node name="Sleeper63" type="Node2D" parent="Section3/Sleepers" unique_id=1632769609 instance=ExtResource("12_7r20d")]
+[node name="Sleeper63" type="Node2D" parent="Section3/Sleepers" unique_id=139291332 instance=ExtResource("12_7r20d")]
 position = Vector2(16634.88, -276.41934)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.63"
 species = "B"
 
-[node name="Sleeper64" type="Node2D" parent="Section3/Sleepers" unique_id=2099766664 instance=ExtResource("12_7r20d")]
+[node name="Sleeper64" type="Node2D" parent="Section3/Sleepers" unique_id=1900620163 instance=ExtResource("12_7r20d")]
 position = Vector2(16657.92, -435.4516)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.64"
 species = "C"
 
-[node name="Sleeper65" type="Node2D" parent="Section3/Sleepers" unique_id=1717654007 instance=ExtResource("12_7r20d")]
+[node name="Sleeper65" type="Node2D" parent="Section3/Sleepers" unique_id=124540453 instance=ExtResource("12_7r20d")]
 position = Vector2(16657.92, -118.354836)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.65"
 species = "E"
 
-[node name="Sleeper66" type="Node2D" parent="Section3/Sleepers" unique_id=753036095 instance=ExtResource("12_7r20d")]
+[node name="Sleeper66" type="Node2D" parent="Section3/Sleepers" unique_id=863719132 instance=ExtResource("12_7r20d")]
 position = Vector2(16680.96, -277.3871)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.66"
 species = "E"
 
-[node name="Sleeper67" type="Node2D" parent="Section3/Sleepers" unique_id=798859638 instance=ExtResource("12_7r20d")]
+[node name="Sleeper67" type="Node2D" parent="Section3/Sleepers" unique_id=1836371287 instance=ExtResource("12_7r20d")]
 position = Vector2(16704, -436.41934)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.67"
 species = "D"
 
-[node name="Sleeper68" type="Node2D" parent="Section3/Sleepers" unique_id=59733327 instance=ExtResource("12_7r20d")]
+[node name="Sleeper68" type="Node2D" parent="Section3/Sleepers" unique_id=524463866 instance=ExtResource("12_7r20d")]
 position = Vector2(16704, -119.32258)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.68"
 species = "B"
 
-[node name="Sleeper69" type="Node2D" parent="Section3/Sleepers" unique_id=1412860187 instance=ExtResource("12_7r20d")]
+[node name="Sleeper69" type="Node2D" parent="Section3/Sleepers" unique_id=1376791837 instance=ExtResource("12_7r20d")]
 position = Vector2(16727.04, -278.35483)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.69"
 species = "C"
 
-[node name="Sleeper70" type="Node2D" parent="Section3/Sleepers" unique_id=1978055709 instance=ExtResource("12_7r20d")]
+[node name="Sleeper70" type="Node2D" parent="Section3/Sleepers" unique_id=1947168824 instance=ExtResource("12_7r20d")]
 position = Vector2(16750.08, -437.3871)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.70"
 
-[node name="Sleeper71" type="Node2D" parent="Section3/Sleepers" unique_id=817387349 instance=ExtResource("12_7r20d")]
+[node name="Sleeper71" type="Node2D" parent="Section3/Sleepers" unique_id=1489746300 instance=ExtResource("12_7r20d")]
 position = Vector2(16750.08, -120.29032)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.71"
 species = "E"
 
-[node name="Sleeper72" type="Node2D" parent="Section3/Sleepers" unique_id=298419981 instance=ExtResource("12_7r20d")]
+[node name="Sleeper72" type="Node2D" parent="Section3/Sleepers" unique_id=655077577 instance=ExtResource("12_7r20d")]
 position = Vector2(16773.12, -279.32257)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.72"
 species = "D"
 
-[node name="Sleeper73" type="Node2D" parent="Section3/Sleepers" unique_id=64357053 instance=ExtResource("12_7r20d")]
+[node name="Sleeper73" type="Node2D" parent="Section3/Sleepers" unique_id=274653369 instance=ExtResource("12_7r20d")]
 position = Vector2(16796.16, -438.35483)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.73"
 species = "E"
 
-[node name="Sleeper74" type="Node2D" parent="Section3/Sleepers" unique_id=1066851118 instance=ExtResource("12_7r20d")]
+[node name="Sleeper74" type="Node2D" parent="Section3/Sleepers" unique_id=621225443 instance=ExtResource("12_7r20d")]
 position = Vector2(16796.16, -121.258064)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.74"
 species = "C"
 
-[node name="Sleeper75" type="Node2D" parent="Section3/Sleepers" unique_id=211159888 instance=ExtResource("12_7r20d")]
+[node name="Sleeper75" type="Node2D" parent="Section3/Sleepers" unique_id=1766829535 instance=ExtResource("12_7r20d")]
 position = Vector2(16819.2, -280.2903)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.75"
 
-[node name="Sleeper76" type="Node2D" parent="Section3/Sleepers" unique_id=1177118934 instance=ExtResource("12_7r20d")]
+[node name="Sleeper76" type="Node2D" parent="Section3/Sleepers" unique_id=349554122 instance=ExtResource("12_7r20d")]
 position = Vector2(16842.24, -439.32257)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.76"
 species = "B"
 
-[node name="Sleeper77" type="Node2D" parent="Section3/Sleepers" unique_id=2128889188 instance=ExtResource("12_7r20d")]
+[node name="Sleeper77" type="Node2D" parent="Section3/Sleepers" unique_id=558951673 instance=ExtResource("12_7r20d")]
 position = Vector2(16842.24, -122.22581)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.77"
 species = "D"
 
-[node name="Sleeper78" type="Node2D" parent="Section3/Sleepers" unique_id=725679771 instance=ExtResource("12_7r20d")]
+[node name="Sleeper78" type="Node2D" parent="Section3/Sleepers" unique_id=2092795976 instance=ExtResource("12_7r20d")]
 position = Vector2(16865.28, -281.25806)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.78"
 species = "E"
 
-[node name="Sleeper79" type="Node2D" parent="Section3/Sleepers" unique_id=1791128428 instance=ExtResource("12_7r20d")]
+[node name="Sleeper79" type="Node2D" parent="Section3/Sleepers" unique_id=638066844 instance=ExtResource("12_7r20d")]
 position = Vector2(16888.32, -440.2903)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.79"
 species = "E"
 
-[node name="Sleeper80" type="Node2D" parent="Section3/Sleepers" unique_id=1711126233 instance=ExtResource("12_7r20d")]
+[node name="Sleeper80" type="Node2D" parent="Section3/Sleepers" unique_id=167892462 instance=ExtResource("12_7r20d")]
 position = Vector2(16888.32, -123.19355)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.80"
 
-[node name="Sleeper81" type="Node2D" parent="Section3/Sleepers" unique_id=1138310971 instance=ExtResource("12_7r20d")]
+[node name="Sleeper81" type="Node2D" parent="Section3/Sleepers" unique_id=1269086767 instance=ExtResource("12_7r20d")]
 position = Vector2(16911.36, -282.2258)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.81"
 species = "B"
 
-[node name="Sleeper82" type="Node2D" parent="Section3/Sleepers" unique_id=975622150 instance=ExtResource("12_7r20d")]
+[node name="Sleeper82" type="Node2D" parent="Section3/Sleepers" unique_id=374445091 instance=ExtResource("12_7r20d")]
 position = Vector2(16934.4, -441.25806)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.82"
 species = "C"
 
-[node name="Sleeper83" type="Node2D" parent="Section3/Sleepers" unique_id=777617703 instance=ExtResource("12_7r20d")]
+[node name="Sleeper83" type="Node2D" parent="Section3/Sleepers" unique_id=918247241 instance=ExtResource("12_7r20d")]
 position = Vector2(16934.4, -124.16129)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.83"
 species = "E"
 
-[node name="Sleeper84" type="Node2D" parent="Section3/Sleepers" unique_id=81149032 instance=ExtResource("12_7r20d")]
+[node name="Sleeper84" type="Node2D" parent="Section3/Sleepers" unique_id=2010223848 instance=ExtResource("12_7r20d")]
 position = Vector2(16957.44, -283.19354)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.84"
 species = "E"
 
-[node name="Sleeper85" type="Node2D" parent="Section3/Sleepers" unique_id=667839751 instance=ExtResource("12_7r20d")]
+[node name="Sleeper85" type="Node2D" parent="Section3/Sleepers" unique_id=1689564991 instance=ExtResource("12_7r20d")]
 position = Vector2(16980.48, -442.2258)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.85"
 species = "D"
 
-[node name="Sleeper86" type="Node2D" parent="Section3/Sleepers" unique_id=1341661073 instance=ExtResource("12_7r20d")]
+[node name="Sleeper86" type="Node2D" parent="Section3/Sleepers" unique_id=1709525394 instance=ExtResource("12_7r20d")]
 position = Vector2(16980.48, -125.129036)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.86"
 species = "B"
 
-[node name="Sleeper87" type="Node2D" parent="Section3/Sleepers" unique_id=192997170 instance=ExtResource("12_7r20d")]
+[node name="Sleeper87" type="Node2D" parent="Section3/Sleepers" unique_id=993253126 instance=ExtResource("12_7r20d")]
 position = Vector2(17003.52, -284.1613)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.87"
 species = "C"
 
-[node name="Sleeper88" type="Node2D" parent="Section3/Sleepers" unique_id=515814201 instance=ExtResource("12_7r20d")]
+[node name="Sleeper88" type="Node2D" parent="Section3/Sleepers" unique_id=1724996234 instance=ExtResource("12_7r20d")]
 position = Vector2(17026.56, -443.19354)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.88"
 
-[node name="Sleeper89" type="Node2D" parent="Section3/Sleepers" unique_id=314279532 instance=ExtResource("12_7r20d")]
+[node name="Sleeper89" type="Node2D" parent="Section3/Sleepers" unique_id=673206706 instance=ExtResource("12_7r20d")]
 position = Vector2(17026.56, -126.09677)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.89"
 species = "E"
 
-[node name="Sleeper90" type="Node2D" parent="Section3/Sleepers" unique_id=1600572487 instance=ExtResource("12_7r20d")]
+[node name="Sleeper90" type="Node2D" parent="Section3/Sleepers" unique_id=1083836913 instance=ExtResource("12_7r20d")]
 position = Vector2(17049.6, -285.12903)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.90"
 species = "D"
 
-[node name="Sleeper91" type="Node2D" parent="Section3/Sleepers" unique_id=1930518674 instance=ExtResource("12_7r20d")]
+[node name="Sleeper91" type="Node2D" parent="Section3/Sleepers" unique_id=1016717532 instance=ExtResource("12_7r20d")]
 position = Vector2(17072.64, -444.1613)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.91"
 species = "E"
 
-[node name="Sleeper92" type="Node2D" parent="Section3/Sleepers" unique_id=2142009358 instance=ExtResource("12_7r20d")]
+[node name="Sleeper92" type="Node2D" parent="Section3/Sleepers" unique_id=367852296 instance=ExtResource("12_7r20d")]
 position = Vector2(17072.64, -127.064514)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.92"
 species = "C"
 
-[node name="Sleeper93" type="Node2D" parent="Section3/Sleepers" unique_id=436175600 instance=ExtResource("12_7r20d")]
+[node name="Sleeper93" type="Node2D" parent="Section3/Sleepers" unique_id=1577274262 instance=ExtResource("12_7r20d")]
 position = Vector2(17095.68, -286.09677)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.93"
 
-[node name="Sleeper94" type="Node2D" parent="Section3/Sleepers" unique_id=642166850 instance=ExtResource("12_7r20d")]
+[node name="Sleeper94" type="Node2D" parent="Section3/Sleepers" unique_id=1550946658 instance=ExtResource("12_7r20d")]
 position = Vector2(17118.72, -445.12903)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.94"
 species = "B"
 
-[node name="Sleeper95" type="Node2D" parent="Section3/Sleepers" unique_id=327620601 instance=ExtResource("12_7r20d")]
+[node name="Sleeper95" type="Node2D" parent="Section3/Sleepers" unique_id=2132790358 instance=ExtResource("12_7r20d")]
 position = Vector2(17118.72, -128.03226)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.95"
 species = "D"
 
-[node name="Sleeper96" type="Node2D" parent="Section3/Sleepers" unique_id=1116495869 instance=ExtResource("12_7r20d")]
+[node name="Sleeper96" type="Node2D" parent="Section3/Sleepers" unique_id=942974161 instance=ExtResource("12_7r20d")]
 position = Vector2(17141.76, -287.0645)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.96"
 species = "E"
 
-[node name="Sleeper97" type="Node2D" parent="Section3/Sleepers" unique_id=1824487822 instance=ExtResource("12_7r20d")]
+[node name="Sleeper97" type="Node2D" parent="Section3/Sleepers" unique_id=331940168 instance=ExtResource("12_7r20d")]
 position = Vector2(17164.8, -446.09677)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.97"
 species = "E"
 
-[node name="Sleeper98" type="Node2D" parent="Section3/Sleepers" unique_id=1273944887 instance=ExtResource("12_7r20d")]
+[node name="Sleeper98" type="Node2D" parent="Section3/Sleepers" unique_id=963096666 instance=ExtResource("12_7r20d")]
 position = Vector2(17187.84, -288.03226)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.98"
 species = "B"
 
-[node name="Sleeper99" type="Node2D" parent="Section3/Sleepers" unique_id=1813146847 instance=ExtResource("12_7r20d")]
+[node name="Sleeper99" type="Node2D" parent="Section3/Sleepers" unique_id=1965100864 instance=ExtResource("12_7r20d")]
 position = Vector2(17210.88, -447.0645)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.99"
 species = "C"
 
-[node name="Sleeper100" type="Node2D" parent="Section3/Sleepers" unique_id=1169751203 instance=ExtResource("12_7r20d")]
+[node name="Sleeper100" type="Node2D" parent="Section3/Sleepers" unique_id=761114590 instance=ExtResource("12_7r20d")]
 position = Vector2(17256.96, -448.03226)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.100"
 species = "D"
 
-[node name="Sleeper101" type="Node2D" parent="Section3/Sleepers" unique_id=860247371 instance=ExtResource("12_7r20d")]
-position = Vector2(17360.64, -324.17514)
+[node name="Sleeper101" type="Node2D" parent="Section3/Sleepers" unique_id=598275856 instance=ExtResource("12_7r20d")]
+position = Vector2(17280, -256.2857)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.101"
 
-[node name="Sleeper102" type="Node2D" parent="Section3/Sleepers" unique_id=971710728 instance=ExtResource("12_7r20d")]
-position = Vector2(17404.416, -324.50787)
+[node name="Sleeper102" type="Node2D" parent="Section3/Sleepers" unique_id=550460358 instance=ExtResource("12_7r20d")]
+position = Vector2(17318.016, -256.75714)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.102"
 species = "E"
 
-[node name="Sleeper103" type="Node2D" parent="Section3/Sleepers" unique_id=479879084 instance=ExtResource("12_7r20d")]
-position = Vector2(17448.191, -324.84064)
+[node name="Sleeper103" type="Node2D" parent="Section3/Sleepers" unique_id=1618688167 instance=ExtResource("12_7r20d")]
+position = Vector2(17356.031, -257.22858)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.103"
 species = "B"
 
-[node name="Sleeper104" type="Node2D" parent="Section3/Sleepers" unique_id=164342374 instance=ExtResource("12_7r20d")]
-position = Vector2(17491.969, -325.17337)
+[node name="Sleeper104" type="Node2D" parent="Section3/Sleepers" unique_id=1487730289 instance=ExtResource("12_7r20d")]
+position = Vector2(17394.049, -257.7)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.104"
 species = "E"
 
-[node name="Sleeper105" type="Node2D" parent="Section3/Sleepers" unique_id=1365528644 instance=ExtResource("12_7r20d")]
-position = Vector2(17535.744, -325.50613)
+[node name="Sleeper105" type="Node2D" parent="Section3/Sleepers" unique_id=377398327 instance=ExtResource("12_7r20d")]
+position = Vector2(17432.064, -258.17142)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.105"
 species = "C"
 
-[node name="Sleeper106" type="Node2D" parent="Section3/Sleepers" unique_id=290795631 instance=ExtResource("12_7r20d")]
-position = Vector2(17579.52, -325.83887)
+[node name="Sleeper106" type="Node2D" parent="Section3/Sleepers" unique_id=1384432960 instance=ExtResource("12_7r20d")]
+position = Vector2(17470.08, -258.64285)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.106"
 species = "D"
 
-[node name="Sleeper107" type="Node2D" parent="Section3/Sleepers" unique_id=2129066372 instance=ExtResource("12_7r20d")]
-position = Vector2(17623.297, -326.17163)
+[node name="Sleeper107" type="Node2D" parent="Section3/Sleepers" unique_id=131971132 instance=ExtResource("12_7r20d")]
+position = Vector2(17508.096, -259.1143)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.107"
 
-[node name="Sleeper108" type="Node2D" parent="Section3/Sleepers" unique_id=343670181 instance=ExtResource("12_7r20d")]
-position = Vector2(17667.072, -326.50436)
+[node name="Sleeper108" type="Node2D" parent="Section3/Sleepers" unique_id=771453980 instance=ExtResource("12_7r20d")]
+position = Vector2(17546.111, -259.58572)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.108"
 species = "E"
 
-[node name="Sleeper109" type="Node2D" parent="Section3/Sleepers" unique_id=1412802716 instance=ExtResource("12_7r20d")]
-position = Vector2(17710.848, -326.83713)
+[node name="Sleeper109" type="Node2D" parent="Section3/Sleepers" unique_id=2050486969 instance=ExtResource("12_7r20d")]
+position = Vector2(17584.129, -260.05713)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.109"
 species = "B"
 
-[node name="Sleeper110" type="Node2D" parent="Section3/Sleepers" unique_id=1480548966 instance=ExtResource("12_7r20d")]
-position = Vector2(17754.623, -327.1699)
+[node name="Sleeper110" type="Node2D" parent="Section3/Sleepers" unique_id=1984649487 instance=ExtResource("12_7r20d")]
+position = Vector2(17622.145, -260.52856)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.110"
 species = "E"
 
-[node name="Sleeper111" type="Node2D" parent="Section3/Sleepers" unique_id=2119732774 instance=ExtResource("12_7r20d")]
-position = Vector2(17798.4, -327.50262)
+[node name="Sleeper111" type="Node2D" parent="Section3/Sleepers" unique_id=1703502127 instance=ExtResource("12_7r20d")]
+position = Vector2(17660.16, -261)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.111"
 species = "C"
 
-[node name="Sleeper112" type="Node2D" parent="Section3/Sleepers" unique_id=1833307930 instance=ExtResource("12_7r20d")]
-position = Vector2(17842.176, -327.8354)
+[node name="Sleeper112" type="Node2D" parent="Section3/Sleepers" unique_id=1560356131 instance=ExtResource("12_7r20d")]
+position = Vector2(17698.176, -261.47144)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.112"
 species = "D"
 
-[node name="Sleeper113" type="Node2D" parent="Section3/Sleepers" unique_id=1405043839 instance=ExtResource("12_7r20d")]
-position = Vector2(17885.951, -328.16812)
+[node name="Sleeper113" type="Node2D" parent="Section3/Sleepers" unique_id=921019095 instance=ExtResource("12_7r20d")]
+position = Vector2(17736.191, -261.94287)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.113"
 
-[node name="Sleeper114" type="Node2D" parent="Section3/Sleepers" unique_id=1029817505 instance=ExtResource("12_7r20d")]
-position = Vector2(17929.729, -328.5009)
+[node name="Sleeper114" type="Node2D" parent="Section3/Sleepers" unique_id=1092989908 instance=ExtResource("12_7r20d")]
+position = Vector2(17774.207, -262.41428)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.114"
 species = "E"
 
-[node name="Sleeper115" type="Node2D" parent="Section3/Sleepers" unique_id=1992891925 instance=ExtResource("12_7r20d")]
-position = Vector2(17973.504, -328.83362)
+[node name="Sleeper115" type="Node2D" parent="Section3/Sleepers" unique_id=2047923413 instance=ExtResource("12_7r20d")]
+position = Vector2(17812.225, -262.8857)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.115"
 species = "B"
 
-[node name="Sleeper116" type="Node2D" parent="Section3/Sleepers" unique_id=1291430214 instance=ExtResource("12_7r20d")]
-position = Vector2(18017.28, -329.16638)
+[node name="Sleeper116" type="Node2D" parent="Section3/Sleepers" unique_id=692101161 instance=ExtResource("12_7r20d")]
+position = Vector2(17850.24, -263.35715)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.116"
 species = "E"
 
-[node name="Sleeper117" type="Node2D" parent="Section3/Sleepers" unique_id=984413306 instance=ExtResource("12_7r20d")]
-position = Vector2(18061.057, -329.4991)
+[node name="Sleeper117" type="Node2D" parent="Section3/Sleepers" unique_id=1516797659 instance=ExtResource("12_7r20d")]
+position = Vector2(17888.256, -263.82858)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.117"
 species = "C"
 
-[node name="Sleeper118" type="Node2D" parent="Section3/Sleepers" unique_id=314817724 instance=ExtResource("12_7r20d")]
-position = Vector2(18104.832, -329.83188)
+[node name="Sleeper118" type="Node2D" parent="Section3/Sleepers" unique_id=1075279936 instance=ExtResource("12_7r20d")]
+position = Vector2(18063.36, -324.37036)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.118"
 species = "D"
 
-[node name="Sleeper119" type="Node2D" parent="Section3/Sleepers" unique_id=2038034280 instance=ExtResource("12_7r20d")]
-position = Vector2(18148.607, -330.1646)
+[node name="Sleeper119" type="Node2D" parent="Section3/Sleepers" unique_id=890534823 instance=ExtResource("12_7r20d")]
+position = Vector2(18109.44, -325.1111)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.119"
 
-[node name="Sleeper120" type="Node2D" parent="Section3/Sleepers" unique_id=1476883630 instance=ExtResource("12_7r20d")]
-position = Vector2(18192.385, -330.49738)
+[node name="Sleeper120" type="Node2D" parent="Section3/Sleepers" unique_id=676628101 instance=ExtResource("12_7r20d")]
+position = Vector2(18155.52, -325.85184)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.120"
 species = "E"
 
-[node name="Sleeper121" type="Node2D" parent="Section3/Sleepers" unique_id=363585602 instance=ExtResource("12_7r20d")]
-position = Vector2(18236.16, -330.8301)
+[node name="Sleeper121" type="Node2D" parent="Section3/Sleepers" unique_id=1542826811 instance=ExtResource("12_7r20d")]
+position = Vector2(18201.6, -326.5926)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.121"
 species = "B"
 
-[node name="Sleeper122" type="Node2D" parent="Section3/Sleepers" unique_id=902661019 instance=ExtResource("12_7r20d")]
-position = Vector2(18279.936, -331.16287)
+[node name="Sleeper122" type="Node2D" parent="Section3/Sleepers" unique_id=1715804441 instance=ExtResource("12_7r20d")]
+position = Vector2(18247.68, -327.33334)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.122"
 species = "E"
 
-[node name="Sleeper123" type="Node2D" parent="Section3/Sleepers" unique_id=733417389 instance=ExtResource("12_7r20d")]
-position = Vector2(18323.713, -331.49564)
+[node name="Sleeper123" type="Node2D" parent="Section3/Sleepers" unique_id=1343201918 instance=ExtResource("12_7r20d")]
+position = Vector2(18293.76, -328.07407)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.123"
 species = "C"
 
-[node name="Sleeper124" type="Node2D" parent="Section3/Sleepers" unique_id=69056216 instance=ExtResource("12_7r20d")]
-position = Vector2(18367.488, -331.82837)
+[node name="Sleeper124" type="Node2D" parent="Section3/Sleepers" unique_id=1813677677 instance=ExtResource("12_7r20d")]
+position = Vector2(18339.84, -328.81482)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.124"
 species = "D"
 
-[node name="Sleeper125" type="Node2D" parent="Section3/Sleepers" unique_id=245877311 instance=ExtResource("12_7r20d")]
-position = Vector2(18411.264, -332.16113)
+[node name="Sleeper125" type="Node2D" parent="Section3/Sleepers" unique_id=1842172958 instance=ExtResource("12_7r20d")]
+position = Vector2(18385.92, -329.55554)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.125"
 
-[node name="Sleeper126" type="Node2D" parent="Section3/Sleepers" unique_id=1322467067 instance=ExtResource("12_7r20d")]
-position = Vector2(18455.04, -332.49387)
+[node name="Sleeper126" type="Node2D" parent="Section3/Sleepers" unique_id=911987723 instance=ExtResource("12_7r20d")]
+position = Vector2(18432, -330.2963)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.126"
 species = "E"
 
-[node name="Sleeper127" type="Node2D" parent="Section3/Sleepers" unique_id=1053857128 instance=ExtResource("12_7r20d")]
-position = Vector2(18498.816, -332.82663)
+[node name="Sleeper127" type="Node2D" parent="Section3/Sleepers" unique_id=946203754 instance=ExtResource("12_7r20d")]
+position = Vector2(18478.08, -331.03705)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.127"
 species = "B"
 
-[node name="Sleeper128" type="Node2D" parent="Section3/Sleepers" unique_id=1679396005 instance=ExtResource("12_7r20d")]
-position = Vector2(18542.592, -333.15936)
+[node name="Sleeper128" type="Node2D" parent="Section3/Sleepers" unique_id=509939715 instance=ExtResource("12_7r20d")]
+position = Vector2(18524.16, -331.77777)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.128"
 species = "E"
 
-[node name="Sleeper129" type="Node2D" parent="Section3/Sleepers" unique_id=1428673478 instance=ExtResource("12_7r20d")]
-position = Vector2(18586.367, -333.49213)
+[node name="Sleeper129" type="Node2D" parent="Section3/Sleepers" unique_id=1914949087 instance=ExtResource("12_7r20d")]
+position = Vector2(18570.24, -332.51852)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.129"
 species = "C"
 
-[node name="Sleeper130" type="Node2D" parent="Section3/Sleepers" unique_id=547769647 instance=ExtResource("12_7r20d")]
-position = Vector2(18630.145, -333.82486)
+[node name="Sleeper130" type="Node2D" parent="Section3/Sleepers" unique_id=2135868986 instance=ExtResource("12_7r20d")]
+position = Vector2(18616.32, -333.25925)
 script = ExtResource("13_kjof1")
 stable_id = "s3.sleeper.130"
 species = "D"
 
-[node name="Bowl" type="Node2D" parent="Section3" unique_id=1663615355]
+[node name="Bowl" type="Node2D" parent="Section3" unique_id=1837350499]
 
-[node name="Frame" type="Area2D" parent="Section3/Bowl" unique_id=1631018052 instance=ExtResource("18_6fems")]
+[node name="Frame" type="Area2D" parent="Section3/Bowl" unique_id=1514096654 instance=ExtResource("18_6fems")]
 position = Vector2(16560, -150)
 script = ExtResource("19_e8tkc")
 stable_id = "s3.frame.bowl"
@@ -1928,57 +1938,57 @@ size = Vector2(2131.2, 500)
 zoom = 0.5
 offset = Vector2(0, -200)
 
-[node name="LeftShelves" type="Node2D" parent="Section3/Bowl" unique_id=1037439527]
+[node name="LeftShelves" type="Node2D" parent="Section3/Bowl" unique_id=2143703496]
 
-[node name="Branch" type="Area2D" parent="Section3/Bowl/LeftShelves" unique_id=1537306242 instance=ExtResource("14_0u2tl")]
-position = Vector2(15926.4, -300)
+[node name="Branch" type="Area2D" parent="Section3/Bowl/LeftShelves" unique_id=1619566420 instance=ExtResource("14_0u2tl")]
+position = Vector2(15926.4, -340)
 script = ExtResource("15_b4wed")
 stable_id = "s3.branch.left-shelves"
-size = Vector2(956.16, 440)
+size = Vector2(956.16, 360)
 
-[node name="RouteBack" type="Path2D" parent="Section3/Bowl/LeftShelves" unique_id=1812404820 instance=ExtResource("16_krscb")]
-curve = SubResource("Curve2D_44ljc")
+[node name="RouteBack" type="Path2D" parent="Section3/Bowl/LeftShelves" unique_id=885282523 instance=ExtResource("16_krscb")]
+curve = SubResource("Curve2D_yovr3")
 script = ExtResource("17_ynxg7")
 stable_id = "s3.route-back.left-shelves"
 serves = "s3.branch.left-shelves"
 
-[node name="RightShelves" type="Node2D" parent="Section3/Bowl" unique_id=459733107]
+[node name="RightShelves" type="Node2D" parent="Section3/Bowl" unique_id=2103177384]
 
-[node name="Branch" type="Area2D" parent="Section3/Bowl/RightShelves" unique_id=1491550790 instance=ExtResource("14_0u2tl")]
+[node name="Branch" type="Area2D" parent="Section3/Bowl/RightShelves" unique_id=1080020172 instance=ExtResource("14_0u2tl")]
 position = Vector2(16871.04, -300)
 script = ExtResource("15_b4wed")
 stable_id = "s3.branch.right-shelves"
 size = Vector2(887.04, 440)
 
-[node name="RouteBack" type="Path2D" parent="Section3/Bowl/RightShelves" unique_id=750611361 instance=ExtResource("16_krscb")]
-curve = SubResource("Curve2D_yovr3")
+[node name="RouteBack" type="Path2D" parent="Section3/Bowl/RightShelves" unique_id=1463298494 instance=ExtResource("16_krscb")]
+curve = SubResource("Curve2D_jy66y")
 script = ExtResource("17_ynxg7")
 stable_id = "s3.route-back.right-shelves"
 serves = "s3.branch.right-shelves"
 
-[node name="Rim" type="Node2D" parent="Section3" unique_id=1540690259]
+[node name="Rim" type="Node2D" parent="Section3" unique_id=1565646675]
 
-[node name="Branch" type="Area2D" parent="Section3/Rim" unique_id=799457776 instance=ExtResource("14_0u2tl")]
-position = Vector2(18005.76, -342.5)
+[node name="Branch" type="Area2D" parent="Section3/Rim" unique_id=1987123462 instance=ExtResource("14_0u2tl")]
+position = Vector2(18351.36, -342.5)
 script = ExtResource("15_b4wed")
 stable_id = "s3.branch.rim"
-size = Vector2(1359.36, 115)
+size = Vector2(668.16, 115)
 
-[node name="RouteBack" type="Path2D" parent="Section3/Rim" unique_id=1306446709 instance=ExtResource("16_krscb")]
-curve = SubResource("Curve2D_jy66y")
+[node name="RouteBack" type="Path2D" parent="Section3/Rim" unique_id=870218789 instance=ExtResource("16_krscb")]
+curve = SubResource("Curve2D_wwxkb")
 script = ExtResource("17_ynxg7")
 stable_id = "s3.route-back.rim"
 serves = "s3.branch.rim"
 
-[node name="FrontierSet" type="Node2D" parent="Section3" unique_id=131636403]
+[node name="FrontierSet" type="Node2D" parent="Section3" unique_id=565215583]
 
-[node name="Signpost" type="Node2D" parent="Section3/FrontierSet" unique_id=1612306857 instance=ExtResource("20_djtld")]
+[node name="Signpost" type="Node2D" parent="Section3/FrontierSet" unique_id=212436162 instance=ExtResource("20_djtld")]
 position = Vector2(17994.24, -120)
 script = ExtResource("21_s8ue3")
 stable_id = "s3.signpost"
 switch_id = "s3.switch"
 
-[node name="Switch" type="Area2D" parent="Section3/FrontierSet" unique_id=1733719314 instance=ExtResource("22_8u4d3")]
+[node name="Switch" type="Area2D" parent="Section3/FrontierSet" unique_id=2038938061 instance=ExtResource("22_8u4d3")]
 position = Vector2(18051.84, -144)
 script = ExtResource("23_1xtbr")
 stable_id = "s3.switch"
@@ -1986,7 +1996,7 @@ size = Vector2(80, 80)
 basket_id = "s3.basket"
 trapdoor = Rect2(57.59961, 24, 668.16016, 25)
 
-[node name="Basket" type="Area2D" parent="Section3/FrontierSet" unique_id=544674735 instance=ExtResource("24_sh6x2")]
+[node name="Basket" type="Area2D" parent="Section3/FrontierSet" unique_id=608454609 instance=ExtResource("24_sh6x2")]
 position = Vector2(18443.52, -10)
 script = ExtResource("25_0k230")
 stable_id = "s3.basket"
@@ -1995,7 +2005,7 @@ quota = 60
 outlet = "point"
 outlet_point = Vector2(249.28125, -134)
 
-[node name="Frame" type="Area2D" parent="Section3/FrontierSet" unique_id=371517481 instance=ExtResource("18_6fems")]
+[node name="Frame" type="Area2D" parent="Section3/FrontierSet" unique_id=1929097259 instance=ExtResource("18_6fems")]
 position = Vector2(18288, -150)
 script = ExtResource("19_e8tkc")
 stable_id = "s3.frame.basket"
