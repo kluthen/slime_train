@@ -46,8 +46,8 @@ value to try. When a value is tuned, update it here and log the result in
 The build picked these while making the chunks named. They are starting
 values, **to try**. The user approved the values of chunks 15 and 16 (D108,
 and the rows added later with D116, D118 and D119 in D120)
-and chunk 23 (D99–D101); the values of chunks 10, 12, 13, 14 and 17, and
-those chunk 23's build chose (23A–23D, D124), are still
+and chunk 23 (D99–D101, and those its build chose in 23A–23D, D124,
+approved in D125); the values of chunks 10, 12, 13, 14 and 17 are still
 **(proposed; to try)**: the user hasn't confirmed them one by one. Pixels are
 world pixels at zoom 1 on a 1152 px wide view unless noted. The code names in
 capitals are the build's own, for finding them in `docs/dev/README.md`.
@@ -143,11 +143,11 @@ The user's reports of 2026-09-29, all decided (D99, D100, D101).
 | Edge-button strips | 10% of the screen's width from the left and right edges, the whole height below the parent zone's top band | D99 |
 | Stuck-slime check | every 30 ticks (0.5 s) | D100 |
 | Stuck: overlapping | centres closer than a quarter of the smaller slime's radius | D100 |
-| Stuck: how long | 4 checks in a row (about 2 s); built as a move at the fourth check, 1.5 s after the first (checks at 0, 30, 60, 90 ticks) (proposed; to try) | D100, D124 |
+| Stuck: how long | 4 checks in a row (about 2 s); built as a move at the fourth check, 1.5 s after the first (checks at 0, 30, 60, 90 ticks) (to try) | D100, D124 |
 
 ### Chunk 23 as built (23A–23D)
 
-All **(proposed; to try)**, recorded in D124.
+All **to try**: recorded in D124, approved in D125.
 
 | Value | Start at | Source |
 |---|---|---|

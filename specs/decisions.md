@@ -1397,3 +1397,27 @@ the master spec (5.1, 5.2, 5.4, 5.5, 5.6), `slimes.md`, `tuning.md` and
      also in the state hash, with safe defaults when absent (23C);
   3. an optional key `stuck_slimes` (the stuck log), and the train's log
      key renamed `train.stalled` (an old `train.lost` key is ignored) (23A).
+
+## D125 — Chunk 23A to 23D's record approved: D124 and the save format (2026-09-29)
+The user approved D124 as written ("as for the rest i approve").
+- **D124's values and choices,** every one: stuck means couldn't fuse right
+  now (a same-species sleeper inside a train slime counts); the move at the
+  fourth check, 1.5 s after the first; the first free spot of 8 at the
+  start of the loop; the stuck and stalled logs of 64 cases; millimetres at
+  the reference phone's density on the desktop, in tests, and on a phone
+  reporting none; the resting thumb's 300 ticks, first touch only; the
+  placeholder strip arrow; the dead zone's edge counting as inside and the
+  ease finishing; how a gate is shown opening; a basket full only at
+  sunrise and a celebration paused by bedtime; the lasting mark after the
+  burst, the double hop and the placeholder bunting.
+- **The three save-format changes,** additive, the format number staying
+  1: `transient.frontier.celebration_hops`; the camera's `show_distance`
+  and `show_tick`; `stuck_slimes`, and the train's log key `train.lost`
+  renamed `train.stalled` (an old `train.lost` key is ignored).
+- **The numbers stay to try,** as chunks 15 and 16's did (D108): approved
+  as starting values, not confirmed in a playtest.
+- **Still with `ui_ux/`:** the strip arrow, the bunting, and the asleep
+  look of slimes in a basket stay placeholders or undesigned; approving
+  D124 doesn't design them.
+- The spec no longer tags these (proposed): the master spec (5.1, 5.2,
+  5.4, 5.5, 5.6), `slimes.md` and `tuning.md`.

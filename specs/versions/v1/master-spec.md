@@ -10,9 +10,8 @@ The defaults for the interaction details raised by the first UX review, and
 the points the build raised while building, were approved by the user on
 2026-09-29, as were the points chunk 16 added (the stalled train slime and
 its safety net, 5.2 and Definition of done 1; where a return route meets
-the start, now level rule 22 in 5.11). The only items tagged (proposed)
-are the details chunk 23's build chose (23A–23D), awaiting the user's
-approval.
+the start, now level rule 22 in 5.11), and the details chunk 23's build
+chose (23A–23D). Nothing here is tagged (proposed).
 
 ## 1. Concept and objective
 
@@ -180,7 +179,7 @@ One term per concept, used everywhere in the code and documents.
   loop is complete and the world stays open, with a one-time celebration
   (input stays live, the camera stays where it is), after which a small
   lasting mark at the start of the loop shows the level is complete. The
-  mark appears once the celebration's burst ends (proposed).
+  mark appears once the celebration's burst ends.
   Moving on to another level waits for paid levels (a later version).
 - The **start of the loop** carries a split zone.
 
@@ -225,8 +224,7 @@ One term per concept, used everywhere in the code and documents.
   is logged. It is a safety net until the cause is found and fixed.
   "Can't fuse" means the two couldn't fuse right now: another species,
   sizes adding up to more than 3, or one of them not awake; so a
-  same-species sleeper caught inside a train slime counts as stuck
-  (proposed).
+  same-species sleeper caught inside a train slime counts as stuck.
 - **Stalled:** a train slime whose progress along the loop hasn't
   advanced 24 px in 60 s, on screen or off, or whose centre leaves the
   level's bounds, is stalled. It isn't "lost", but has the same effect:
@@ -236,7 +234,7 @@ One term per concept, used everywhere in the code and documents.
   something that happens in normal play (Definition of done 1).
 - A slime moved to the start of the loop as stuck or stalled lands on the
   first free spot of a short row of spots there, one slime width apart
-  (proposed; the numbers are in `tuning.md`).
+  (the numbers are in `tuning.md`).
 
 **Waking**
 
@@ -337,7 +335,7 @@ centre is nearest the tap takes it.
   waits for sunrise too, so no gate opens and no celebration plays during
   bedtime. A basket that reaches its quota during bedtime becomes full only
   at sunrise, and a celebration playing when bedtime begins pauses and
-  plays the rest at sunrise (proposed).
+  plays the rest at sunrise.
 - **Where a basket releases its slimes** (after firing, and after an opt-out)
   belongs to the basket's own design, which is still to be planned (see Known
   gaps).
@@ -389,7 +387,7 @@ The screen has four tap zones, checked in this order:
   playtest: a touch on an edge strip held longer than about 5 s (a resting
   thumb) keeps moving the camera but stops counting as the first touch, so
   the next touch is handled as if no finger were down. Only a strip touch
-  that was taken as the first touch can become a resting thumb (proposed).
+  that was taken as the first touch can become a resting thumb.
 - **Tilt:** the world stays fixed on the screen and gravity turns with the
   phone, up to ±45°, with a dead zone of about 10°. Neutral is how the phone
   was held when the session started, or when it resumed on
@@ -418,7 +416,7 @@ The screen has four tap zones, checked in this order:
   zoom), the call happens but the camera doesn't move; such a call during a
   drag stops the drag where it is. A point on the box's edge counts as
   inside, and such a call made while the camera is easing to a stop after
-  an edge-button press lets the ease finish (proposed).
+  an edge-button press lets the ease finish.
 - **Automatic framing.** The child never controls the zoom. The camera's place
   decides the zoom, and sometimes the position. **Framing zones** are a level
   component: when the camera reaches one, it gently moves and zooms to that
@@ -435,7 +433,7 @@ The screen has four tap zones, checked in this order:
 - **Showing a gate open.** When a basket fires and its gate is off screen,
   the camera glides to the gate (about 1.5 s) to show it opening, and stays
   there under normal control. Input stays live: a touch takes control back
-  and does its normal job. (proposed:) The glide goes straight, at an even
+  and does its normal job. The glide goes straight, at an even
   pace, to the rail point nearest the gate's centre. A gate counts as in
   view only when its whole box is. No show starts while an edge button is
   held. A show replaces a call drag in progress, ends an idle or

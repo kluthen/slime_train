@@ -106,7 +106,7 @@ technology, not business behaviour:
   strips (23.2, 23.6b, 23.8), **23C** camera (23.1, 23.4, 23.10, 23.12)
   and **23D** bedtime baskets and the celebration's mark (23.5, 23.11).
   Their own values and choices, and three additive save-format changes,
-  are recorded in D124 and wait for the user's approval.
+  are recorded in D124, approved by the user (D125).
 - **Next:** **23E** objects and taps (23.6, 23.7, 23.9). New reports added
   to the list are placed after 23E. **In parallel:** chunk LD (the
   level-design toolkit, D123). Then 18 onward. (5N is a contingency, run only if chunk 22 fails, D96.)
