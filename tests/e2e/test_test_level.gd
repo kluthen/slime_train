@@ -173,6 +173,7 @@ func test_section_3_has_130_sleepers_by_species() -> void:
 		assert_between(x, 12.66, 16.5, "%s is in section 3" % sleeper.stable_id)
 
 
+# @test-link [[rule_max_200_slimes_per_level]]
 func test_the_level_has_200_base_slimes() -> void:
 	# README population table, the level: A 37, B 36, C 38, D 39, E 50.
 	var slimes := _of_type(Sleeper)
@@ -406,6 +407,7 @@ func test_frontier_set_3_is_placed_as_in_the_readme() -> void:
 	assert_false(level.data.gates.has("s3.gate"))
 
 
+# @test-link [[rule_framing_zone_wherever_wider_view_needed]]
 func test_framing_zones() -> void:
 	var tree: FramingZone = level.find("s1.frame.tree")
 	assert_lt(tree.zoom, 1.0, "zooms out")

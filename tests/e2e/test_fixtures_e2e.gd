@@ -149,6 +149,7 @@ func test_gate2_open_opens_gates_1_and_2_with_20_train_slimes() -> void:
 	_check_gate_fixture("gate2-open", ["s1.gate", "s2.gate"], 13.0)
 
 
+# @test-link [[rule_max_200_slimes_per_level]]
 func test_stress_still_has_60_in_basket_3_and_a_bowl_pile_that_rests() -> void:
 	var game := _boot({"fixture": "stress-still"})
 	var sim: Simulation = game.simulation

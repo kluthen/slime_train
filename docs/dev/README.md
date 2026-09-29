@@ -61,6 +61,8 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `tools/test.sh` | The one entry point for the test suite |
 | `tools/greybox_test_level.gd` | Generates the test level's greybox scene (see "Levels and components") |
 | `tools/bench_slimes.gd` | Times the slime tick (see "Slimes") |
+| `tools/bench_offscreen.gd` | Times the off-screen fallbacks (see "Off-screen simulation (chunk 15)") |
+| `tools/bench_level.gd` | Times the whole test level with its 200 slimes (see "Off-screen simulation (chunk 15)") |
 | `tools/make_fixture.gd` | Writes the test level's fixtures (see "Saves and fixtures") |
 | `docs/dev/img/` | Screenshots used by these notes (`docs/.gdignore` keeps Godot from importing anything under `docs/`) |
 | `spikes/` | Throwaway prototypes. Nothing else depends on them |
@@ -1615,6 +1617,40 @@ ms/tick). `tools/bench_slimes.gd` is unchanged by design (it settles only
 moving 10.796; mix still 12.865, moving 12.300 (before: 10.494, 10.077,
 11.773, 11.161; the spread is run-to-run noise).
 
+**The whole level, 200 slimes (chunk 16).** `tools/bench_level.gd` runs
+`Simulation.step` as the game does (the view follows the camera, off-screen
+simulation on, no input) and times every tick:
+
+```sh
+godot --headless --path . -s res://tools/bench_level.gd  # -- --ticks=600
+```
+
+- `start`: the level as new (the first slime and 199 sleepers), the camera
+  at the start; 600 ticks untimed first.
+- `stress-still`: the fixture, the camera where it puts it (the bowl, zoom
+  0.5); timed from tick 490, when the loaded pile rests, and over before the
+  idle camera's cue (35 s without a touch) changes the zoom. The script
+  prints `camera_steady=true` when the zoom and the rails held throughout.
+- `stress-moving`: the fixture, the camera on the bowl; 60 ticks untimed
+  (the rings take shape from the saved centres), then the train climbing out
+  of the bowl. Train slimes fuse on the way, so the bodies drop (200 to 138)
+  while the base slimes stay 200.
+
+One run, 2026-09-29, same machine (Ryzen 5 PRO 8640HS, Godot 4.7.2,
+headless; another Godot process was running a test suite alongside, so
+treat the numbers as a little high), 600 timed ticks each:
+
+| Case | Base slimes | Bodies | Median ms/tick | p95 ms/tick | Mean ms/tick | Notes |
+|---|---|---|---|---|---|---|
+| `start` | 200 | 200 | 1.067 | 1.315 | 1.117 | 196 parked |
+| `stress-still` | 200 | 200 | 1.422 | 1.832 | 1.491 | the 140 in the bowl resting all along, basket 3's 60 parked |
+| `stress-moving` | 200 | 200 to 138 | 15.398 | 19.695 | 15.870 | 1 parked; fusing as it goes |
+
+The first reading of `stress-still` (8.5 ms/tick, a scratch probe right after
+loading, before 16b) was the pile not resting yet; resting, it costs about
+as much as the level's start. `stress-moving` is the worst moving case, a
+measurement rather than a target (D96): beyond what normal play produces.
+
 **Tests.**
 - `tests/unit/test_offscreen.gd` (20 tests, synthetic level): parking and
   the margins, the train pace and the loop, dropping into a basket and the
@@ -2273,7 +2309,7 @@ adb logcat -v time -s godot:*
   blend costs ≤ 5 ms of GPU at full-resolution fields, 2.6 ms at half.
   Reported for spec-writer as the D94 native-contingency trigger.
 
-## Chunk 16 in progress (hand-off 2026-09-28, 16b 2026-09-29)
+## Chunk 16 in progress (hand-off 2026-09-28, 16b and 16c part A 2026-09-29)
 
 Chunk 16 ("Test level sections 2 and 3, full population") stopped part-way
 at the end of a session; sub-step 16b (the fixtures right, the suite green
@@ -2381,34 +2417,58 @@ text) when the chunk closes.
   - `test_fusion_e2e.gd`: the bump fixture test replaced by one watching all
     four for 20 s: a 2 + 2 and a 3 + 1 bump, nothing fused.
 
-**Not done yet (in order; for 16c).**
-1. Tests still to write:
-   - Level rule tests with `# @test-link` tags: rule 11 (species per
-     section: S1 A B C, S2 adds D, S3 adds E), rule 16
-     (`rule_max_200_slimes_per_level`: exactly 200), rule 9 (hints visible
-     from the loop), rules 3, 7, 8 over the whole level; check the other
-     rules with `atd check --atom <id>`. (`test_test_level.gd` already
-     counts the 200 and the species per section, untagged.)
-   - A whole-level DoD 1 e2e (new file): 15 minutes from `gate2-open` (and
-     `gate1-open`), no input, progress never goes back, nothing lost, same
-     hash twice in process and in a child process
-     (`--test-mode --seed= --fixture= --run-ticks=`, as
-     `test_offscreen_e2e._run_child`); an all-sizes lap with the camera on
-     the slime.
-2. `tools/bench_level.gd` (new): ms/tick with the 200 population and the
-   camera at the start, and on `stress-still` and `stress-moving`. On
-   `stress-still`, measure once the pile rests (tick 490 after loading)
-   and before the idle camera takes over (about 30 s in: it zooms in toward
-   IDLE_ZOOM, the rings go back to the full count and the pile's left end
-   parks; the pile stays resting), or keep the camera placed. First reading
-   (the scratch probe, 600 ticks right after loading, not the bench method,
-   before 16b): stress-still 8.5 ms/tick with the pile not resting.
-3. docs: the "Chunk 16" section (section 3 geometry, population table,
+**Done in 16c (part A).**
+- Level rule tests over sections 1 to 3, tagged by hand:
+  - new `tests/e2e/test_level_rules.gd`: rule 11 (S1 A, B, C; each later
+    section adds exactly one: D, then E), the species total 3 + sections - 1
+    (`req_scope_one_level_four_sections`: v1's 4 sections give 6; the test
+    level's 3 give 5), rule 9 (every exploration branch shows a sleeper, or
+    for the high step the top of its route back, in a settled rail view of
+    its section, framing zones included), rule 3 (in every gate state the
+    section's slide takes the frontier back to the start, and every segment
+    joins the next), rule 5 (the dips at 2.5 to 3.5 and 10 to 10.5 are at
+    least 80 px below both rims).
+  - new `tests/e2e/test_level_ways_back_e2e.gd`: rules 7 and 8 by behaviour.
+    From both ends of every row of sleepers (58 spots), with the level as
+    the loop first reaches that section (`fresh`, `gate1-open`,
+    `gate2-open`) and every other slime taken out, the sleeper's slime is
+    made free, heading back, and must rejoin the train within 70 s (left
+    alone, then lost). Slowest: section 1 24 s, section 2 46 s (the cave),
+    section 3 27 s. About 11 s.
+  - tags added on existing tests: `rule_max_200_slimes_per_level` (the
+    level's 200 in `test_test_level.gd`; the resting `stress-still` pile in
+    `test_fixtures_e2e.gd`), `rule_framing_zone_wherever_wider_view_needed`
+    (`test_framing_zones`), `rule_gate_opens_via_switch_basket_set` (one set
+    per section with its rule, `test_frontier_level.gd`).
+- `tools/bench_level.gd` and its numbers (above, "Tick cost").
+- Rule breaks the tests found, kept visible as GUT *pending* results rather
+  than failures (each list, `KNOWN_HINTLESS` and `KNOWN_STUCK`, is checked
+  to still break the rule, so a fixed entry must be taken out):
+  - rule 9, `s2.branch.cave`: the pocket's 14 sleepers sit at y -724, above
+    every rail view of section 2 (their top is about y -488 at zoom 1), and
+    no framing zone widens the view there.
+  - rule 7, the dip hollows (`s1.sleeper.14`, `.15`, `s2.sleeper.15`,
+    `.16`): a slime heading back aims at the loop far below and its hop is
+    too flat to clear the hollow's 20 px lip; it stays in the hollow.
+  - rule 7, the hills' bumps 2, 4 and 6, whose tops rise the way the loop
+    runs (`s1.sleeper.04`, `.08`, `.13`): the slime hops toward its high end
+    and snags on it (for `.04` its centre ends inside the 25 px slab's
+    outline). Tried and reverted: 60 px bumps and 10 px lips still left
+    `.08`, `.09`, `.14`, `.15`, `s2.sleeper.15`, `.16` stuck, so a level
+    tweak is not the whole fix; the heading-back aim (`FreeSlimes._way_back`)
+    is involved.
+
+**Not done yet (in order).**
+1. A whole-level DoD 1 e2e (new file): 15 minutes from `gate2-open` (and
+   `gate1-open`), no input, progress never goes back, nothing lost, same
+   hash twice in process and in a child process
+   (`--test-mode --seed= --fixture= --run-ticks=`, as
+   `test_offscreen_e2e._run_child`); an all-sizes lap with the camera on the
+   slime.
+2. docs: the "Chunk 16" section (section 3 geometry, population table,
    fixtures, rule tests, measurement), "The test level" (the "Fixtures"
    table has the chunk 16 rows since 16b).
-4. ATD tags by hand on the new tests (the 20 rule atoms,
-   `req_level_design_rules`, `req_scope_one_level_four_sections`,
-   `rule_max_200_slimes_per_level`, `req_test_level_and_test_mode`).
+3. The rule breaks above: decide the fixes (level or heading-back aim).
 
 **Known problems found.**
 - Pre-existing, in `src/sim/offscreen.gd` (owned elsewhere, not changed): a

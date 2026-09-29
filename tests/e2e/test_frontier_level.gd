@@ -55,6 +55,7 @@ func _gates_before(section: int) -> Array:
 	return gates
 
 
+# @test-link [[rule_gate_opens_via_switch_basket_set]]
 func test_there_is_a_frontier_set_per_section_with_its_rule() -> void:
 	assert_eq(data.switches.keys(), ["s1.switch", "s2.switch", "s3.switch"])
 	assert_eq(data.baskets.keys(), ["s1.basket", "s2.basket", "s3.basket"])
