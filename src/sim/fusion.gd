@@ -38,15 +38,28 @@ extends RefCounted
 ## dip at the train's pace and would rarely rest together for 3 s, so the
 ## bottom of a dip slows them a little (see dip_floors() for what a dip is):
 ##   - gathering: a train slime on a dip's floor waits there (doesn't hop)
-##     while a train slime it may fuse with (same species, sizes adding up
-##     to 3 at most) is less than DIP_GATHER px behind it along the loop, so
-##     the one behind catches up with it;
+##     for a train slime it may fuse with (same species, sizes adding up to
+##     3 at most) less than DIP_GATHER px behind it along the loop, so that
+##     one catches up with it. For the train slime directly behind it (no
+##     other train slime between them) it waits as long as that holds; for
+##     one with other slimes between them, which can't catch up while they
+##     are in the way, only until its own progress has not advanced for
+##     DIP_WAIT_SECONDS (Train's stall mark, "marked_at": a slime pushed on
+##     by the queue waits again, briefly);
 ##   - holding: on a dip's floor, two such train slimes that touch don't hop
 ##     until they fuse or lose contact.
 ## Both only on screen, where fusion can happen. Slimes that would bump, or
 ## of different species, are never held. A waiting slime is let go as soon
-## as nothing it may fuse with is behind it (the one behind hops on at the
-## train's pace, so the wait is short).
+## as no partner is behind it in reach, the one directly behind is not a
+## partner and its wait is up, or it fuses (a partner directly behind hops
+## on at the train's pace, so that wait is short).
+##
+## Why the cap (chunk 16f): the train reaches the dips as interleaved
+## species (A, B, C, A, ...), so a partner usually has a slime of another
+## species between them. Waiting for it with no limit held the whole queue
+## behind: it crept a few px a second and train slimes stalled (DoD 1).
+## The short wait still lets slimes bunch up at the bottom, where
+## same-species contacts fuse or bump (test level 1.3).
 ##
 ## State: the counts (pair of runtime ids -> ticks), in dump() and in saves.
 ## The dip floors are recomputed from the loop whenever the open gates
@@ -79,6 +92,11 @@ const DIP_FLOOR_RISE := 30.0
 ## How far behind a slime on a dip's floor (px along the loop) a slime it may
 ## fuse with makes it wait: two hops of a base slime.
 const DIP_GATHER := 300.0
+## The longest a slime on a dip's floor waits for a partner with other
+## slimes between them, s, counted from when its progress last advanced
+## (proposed for specs/tuning.md, chunk 16f).
+const DIP_WAIT_SECONDS := 5.0
+const DIP_WAIT_TICKS := 300
 ## The hop timer a held slime is kept at, s: it hops soon after it is let go.
 const DIP_HOLD_SECONDS := 0.25
 
@@ -245,6 +263,7 @@ func _bump(bodies: SlimeBodies, a: int, b: int) -> void:
 
 
 ## The dip nudge (see the class doc).
+# @spec-link [[rule_dip_may_nudge_fusion]]
 func _nudge(sim: Simulation) -> void:
 	var train := sim.train
 	if train == null:
@@ -256,23 +275,59 @@ func _nudge(sim: Simulation) -> void:
 	if _floors.is_empty():
 		return
 	var bodies := sim.slimes
-	# The train slimes on screen, and which of them are on a dip's floor.
+	# The train slimes, and those of them on screen.
+	var all: Array[int] = []
 	var ids: Array[int] = []
 	for slime_id in train.tracked_ids():
-		if bodies.state_of(slime_id) == SlimeBodies.TRAIN and on_screen(sim.view, bodies.centre_of(slime_id)):
+		if bodies.state_of(slime_id) != SlimeBodies.TRAIN:
+			continue
+		all.append(slime_id)
+		if on_screen(sim.view, bodies.centre_of(slime_id)):
 			ids.append(slime_id)
 	for slime_id in ids:
-		var at := train.distance_of(slime_id)
-		if not on_dip_floor(at):
-			continue
-		for other in ids:
-			if other == slime_id or not bodies.can_merge(slime_id, other):
-				continue
-			var behind := fposmod(at - train.distance_of(other), train.length())
-			var touching := bodies.touching(slime_id, other) and on_dip_floor(train.distance_of(other))
-			if touching or (behind > 0.0 and behind < DIP_GATHER):
-				bodies.set_hop_timer(slime_id, maxf(bodies.hop_timer_of(slime_id), DIP_HOLD_SECONDS))
-				break
+		if on_dip_floor(train.distance_of(slime_id)) and (_holding(sim, ids, slime_id) or _gathering(sim, all, ids, slime_id)):
+			bodies.set_hop_timer(slime_id, maxf(bodies.hop_timer_of(slime_id), DIP_HOLD_SECONDS))
+
+
+## Holding (the dip nudge): whether train slime `slime_id`, on a dip's floor,
+## touches a slime of `ids` (the train slimes on screen) that is on a dip's
+## floor too and that it may fuse with.
+func _holding(sim: Simulation, ids: Array[int], slime_id: int) -> bool:
+	var bodies := sim.slimes
+	for other in ids:
+		if other != slime_id and bodies.can_merge(slime_id, other) and bodies.touching(slime_id, other) \
+				and on_dip_floor(sim.train.distance_of(other)):
+			return true
+	return false
+
+
+## Gathering (the dip nudge): whether `slime_id` waits for a slime it may
+## fuse with, on screen (in `ids`) and less than DIP_GATHER px behind it
+## along the loop: as long as it likes for the train slime directly behind
+## it (among `all`, every train slime), and until it has not advanced for
+## DIP_WAIT_TICKS for one with other slimes between them.
+func _gathering(sim: Simulation, all: Array[int], ids: Array[int], slime_id: int) -> bool:
+	var train := sim.train
+	var at := train.distance_of(slime_id)
+	var next := -1
+	var nearest := INF
+	for other in all:
+		var behind := fposmod(at - train.distance_of(other), train.length())
+		if other != slime_id and behind > 0.0 and behind < nearest:
+			next = other
+			nearest = behind
+	if nearest >= DIP_GATHER:
+		return false
+	if ids.has(next) and sim.slimes.can_merge(slime_id, next):
+		return true
+	var marked_at: int = train.record_of(slime_id)["marked_at"]
+	if marked_at >= 0 and sim.tick - marked_at >= DIP_WAIT_TICKS:
+		return false
+	for other in ids:
+		var behind := fposmod(at - train.distance_of(other), train.length())
+		if other != slime_id and behind > 0.0 and behind < DIP_GATHER and sim.slimes.can_merge(slime_id, other):
+			return true
+	return false
 
 
 ## Whether the route from vertex `i`, followed in direction `step` (-1 or 1)

@@ -356,3 +356,93 @@ func test_a_dip_floor_is_the_bottom_of_a_deep_dip() -> void:
 func test_a_flat_loop_has_no_dip() -> void:
 	assert_eq(Fusion.dip_floors(_flat_level().loop, []), [] as Array[Vector2])
 	assert_eq(Fusion.dip_floors(null, []), [] as Array[Vector2])
+
+
+# --- The dip nudge ---------------------------------------------------------------
+
+## A level whose loop's outgoing route drops 276 px into a flat-bottomed dip
+## lying on the test floor (x -900 to 900, loop y -24, where a base slime's
+## centre rests), so train slimes put there are on a dip's floor.
+func _dip_level() -> LevelData:
+	var data := LevelData.new("fusion-dip", 1)
+	var loop := LoopData.new("n.loop")
+	loop.add_segment("n.loop.out", 1, LoopData.OUTGOING, PackedVector2Array([
+			Vector2(-1500, -300), Vector2(-1000, -300), Vector2(-900, -24), Vector2(900, -24),
+			Vector2(1000, -300), Vector2(1500, -300)]))
+	loop.add_segment("n.loop.back", 1, LoopData.RETURN, PackedVector2Array([
+			Vector2(1500, -300), Vector2(1500, 400), Vector2(-1500, 400), Vector2(-1500, -300)]), "n.gate")
+	data.loop = loop
+	return data
+
+
+## A simulation on _dip_level() with automatic hops off (hop timers stand
+## still, so a held slime's timer shows the nudge), the view on the dip's
+## middle, and train slimes of `species` (base slimes, or `sizes`) at `xs`
+## (x on the floor, larger is further along). Returns their ids.
+func _on_dip_floor(sim: Simulation, species: Array, xs: Array, sizes := []) -> Array[int]:
+	sim.slimes.terrain = TerrainSegments.new([Support.floor_polygon()])
+	sim.load_level(_dip_level())
+	sim.view.set_to(Vector2(0, -100), 1.0, ScreenView.DEFAULT_SIZE)
+	sim.slimes.auto_hops = false
+	var floor_start := 500.0 + Vector2(100, 276).length()  # the loop at x -900
+	var ids: Array[int] = []
+	for k in species.size():
+		var size: int = sizes[k] if not sizes.is_empty() else 1
+		var slime := sim.spawn_train_slime(species[k], size, floor_start + 900.0 + float(xs[k]))
+		sim.slimes.set_hop_timer(slime, 0.0)
+		ids.append(slime)
+	return ids
+
+
+## Steps once with every hop timer at 0 first, and returns which of `ids`
+## the nudge held (its hop timer kept at DIP_HOLD_SECONDS).
+func _held_after_step(sim: Simulation, ids: Array[int]) -> Array[bool]:
+	for slime_id in ids:
+		sim.slimes.set_hop_timer(slime_id, 0.0)
+	sim.step()
+	var held: Array[bool] = []
+	for slime_id in ids:
+		held.append(sim.slimes.hop_timer_of(slime_id) >= Fusion.DIP_HOLD_SECONDS)
+	return held
+
+
+func test_the_dip_wait_is_5_s() -> void:
+	assert_eq(Fusion.DIP_WAIT_TICKS, int(round(Fusion.DIP_WAIT_SECONDS * Simulation.TICK_RATE)))
+
+
+# @test-link [[rule_dip_may_nudge_fusion]]
+func test_a_slime_on_a_dip_floor_waits_for_a_partner_directly_behind() -> void:
+	var sim := Simulation.new(11)
+	var ids := _on_dip_floor(sim, [2, 2], [200.0, 100.0])
+	var floors := Fusion.dip_floors(sim.train.loop, sim.train.open_gates)
+	assert_eq(floors.size(), 1, "one dip")
+	for slime_id in ids:
+		var at := sim.train.distance_of(slime_id)
+		assert_true(floors[0].x < at and at < floors[0].y, "on the dip's floor")
+	assert_false(sim.slimes.touching(ids[0], ids[1]), "apart: gathering, not holding")
+	assert_eq(_held_after_step(sim, ids), [true, false] as Array[bool], "the front one waits")
+	sim.run(Fusion.DIP_WAIT_TICKS)
+	assert_eq(_held_after_step(sim, ids), [true, false] as Array[bool], "for as long as its partner comes")
+
+
+# @test-link [[rule_dip_may_nudge_fusion]]
+# @test-link [[rule_loop_travelable_with_no_input]]
+func test_a_partner_behind_a_slime_of_another_species_is_waited_for_5_s_at_most() -> void:
+	var sim := Simulation.new(11)
+	# A, B, A: the front A's partner can't pass the B.
+	var ids := _on_dip_floor(sim, [0, 1, 0], [300.0, 200.0, 100.0])
+	assert_eq(_held_after_step(sim, ids), [true, false, false] as Array[bool], "the front A waits a little")
+	sim.run(Fusion.DIP_WAIT_TICKS - 10)
+	assert_eq(_held_after_step(sim, ids), [true, false, false] as Array[bool], "still within its wait")
+	sim.run(10)
+	assert_eq(_held_after_step(sim, ids), [false, false, false] as Array[bool], "then it goes on: no stall")
+
+
+# @test-link [[rule_dip_may_nudge_fusion]]
+func test_nothing_waits_for_a_partner_out_of_reach_or_one_it_would_bump_with() -> void:
+	var sim := Simulation.new(11)
+	var far := _on_dip_floor(sim, [2, 2], [400.0, 400.0 - Fusion.DIP_GATHER - 10.0])
+	assert_eq(_held_after_step(sim, far), [false, false] as Array[bool], "more than DIP_GATHER behind")
+	var bumping := Simulation.new(11)
+	var pair := _on_dip_floor(bumping, [2, 2], [200.0, 80.0], [2, 2])
+	assert_eq(_held_after_step(bumping, pair), [false, false] as Array[bool], "2 + 2 would bump")

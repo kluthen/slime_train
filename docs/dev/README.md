@@ -1306,7 +1306,12 @@ interval on landing at the floor (13 of 20). The kept nudge is sim-side, in
 - **gathering:** a train slime on a dip floor doesn't hop while a train
   slime it may fuse with (same species, sizes up to 3) is less than
   `DIP_GATHER` (300 px, two base hops) behind it along the loop, so the one
-  behind catches up;
+  behind catches up. For the train slime **directly behind** it (no other
+  train slime between them) it waits as long as that holds. For a partner
+  with other slimes between them, it waits only until its own progress has
+  not advanced for `DIP_WAIT_SECONDS` (5 s; the train's stall mark,
+  `marked_at`, which moves on every 24 px of progress, so no new state and
+  nothing new in saves). Chunk 16f added the limit (below);
 - **holding:** two such slimes touching on the floor don't hop until they
   fuse or lose contact.
 
@@ -1314,6 +1319,34 @@ Both apply only on screen, where fusion can happen, and only to pairs that
 may fuse: pairs that would bump, or of different species, pass through. A
 held slime's hop timer is kept at `DIP_HOLD_SECONDS` (0.25 s), so it hops
 soon after it is let go. With it, all 20 seeds fuse, in 7.5 to 11.6 s.
+
+**A mixed queue on a dip (chunk 16f).** Since 16e the train reaches the
+dips as about 20 base slimes whose species alternate (A, B, C, A, ...), so
+a partner behind a slime on the floor usually has a slime of another
+species between them and can't catch up. Gathering used to wait for it
+with no limit and held the whole queue: 8 alternating slimes put on the
+Meadow dip crept a few px a second, 9 of 10 seeds still on the floor after
+120 s, 7 of 10 with train slimes stalled (D118); `gate2-open` seed 6 held 17 train
+slimes on section 3's bowl floor for 6 minutes (1 lap in 15 min). Now the
+partner directly behind is waited for as before, and one with slimes
+between them for `DIP_WAIT_SECONDS` at most. Measured on the Meadow dip
+(seeds 1 to 10 for the queue, 1 to 20 for the rest):
+
+| Case | Before 16f | After |
+|---|---|---|
+| two C slimes on the rim (the chunk 10 check) | 20 of 20 fuse, 454 to 679 ticks | the same runs, tick for tick |
+| A, C, C, B (neighbours of one species) | 15 of 20 fuse; the other 5 stay on the floor | the same 15 fuse, tick for tick; the other 5 leave the floor in 23 to 35 s |
+| A, B, C, A, B, C, A, B | 1 of 10 leaves the floor in 120 s; 7 with stalled slimes | all leave in 33 to 58 s, 0 to 3 fusions, none stalled |
+
+Waiting only for the slime directly behind (no limited wait) passes the
+queue faster (19 to 26 s) but leaves the `bump` fixture's 3 + 1 bump
+unmet: its size 1 sits ahead of the size 3 and waits for a size 2 behind
+that, which is what kept the 3 + 1 pair together for 3 s. With the 5 s wait
+the fixture's 3 + 1 pair bumps once, at tick 179, on seeds 1 to 8 (before:
+six times in 20 s, since the 1 never left). The 2 + 2 pair bumps within
+20 s on seeds 1 and 3 to 7 (seed 5 is the end-to-end test's), no longer on
+seeds 2 and 8, where it bumped only in the pile the held size 1 kept.
+`DIP_WAIT_SECONDS` is a new tuning value, proposed for `specs/tuning.md`.
 
 **State and saves.** The counts are state: `dump()["fusion"]` is
 `[[a, b, ticks]]` in id order. They are saved too, in the save's
@@ -1335,11 +1368,16 @@ remain, pushed apart and lifted, the smaller faster, at most one bump per
 3 s); off screen, half off screen and inside the margin nothing fuses, and
 going off screen drops the count; a fused train slime keeps its progress
 and hops on along the loop; identities merge; determinism; the counts in
-the dump and through a save; `dip_floors()` on a synthetic loop.
-`tests/e2e/test_fusion_e2e.gd` on the Meadow: from `bump` the size 3 and
+the dump and through a save; `dip_floors()` on a synthetic loop; the
+nudge on a synthetic dip lying on the flat floor (16f): a partner directly
+behind is waited for past 5 s, one behind a slime of another species for
+5 s and no more, and nothing waits for a partner out of reach or for a
+2 + 2. `tests/e2e/test_fusion_e2e.gd` on the Meadow: from `bump` the size 3 and
 size 2 meet and are both there after 10 s [DoD 6, bump]; two base slimes
 on the dip rim fuse within 20 s and the run is repeatable; the fused slime
-leaves the dip; 2 + 2 and 3 + 1 on the dip meet and stay apart in size.
+leaves the dip; 2 + 2 and 3 + 1 on the dip meet and stay apart in size;
+(16f) 8 alternating slimes leave the dip's floor within 75 s (seed 5: 43
+s), and in A, C, C, B the two C slimes fuse there within 20 s.
 
 **Choices.** The nudge is a small sim-side wait, not a level edit and not a
 physics change: the dip geometry is the level's, and the train's grip and
@@ -1466,7 +1504,8 @@ longer simulate.
   - at the start basin's lip, around (716 to 723, 370 to 381), on seed 4
     (seed 2 before the fix);
   - on the fusion dip's floor, around (3459 to 3592, 200 to 218), on
-    seeds 6 and 9, mixed species.
+    seeds 6 and 9, mixed species (the dip nudge held a mixed queue; limited
+    in chunk 16f, see "Fusion and bumping").
   - Not settled; the start crowd from chunk 6's known limit remains.
 
 **Choices and gaps.**
@@ -1960,7 +1999,7 @@ at 15 minutes. Then every size laps the whole loop: from `gate2-open` with
 its train slimes taken out, a size-1 A, a size-2 B and a size-3 C (so they
 don't fuse) each complete a lap, once with the camera left to itself (so
 partly off screen) and once with the camera held on the size-3 slime.
-The file takes about 4 minutes (in 16e's suite run: the sessions 86 s
+The file took about 4 minutes before 16f added the seed 6 session (in 16e's suite run: the sessions 86 s
 from `gate2-open` and 85 s from `gate1-open` in process, plus the 2-minute
 rerun, the child running alongside; the laps 25 s and 27 s, each size
 lapping in 21 600 to 23 400 ticks, about 6 minutes of play). Seed 2: every
@@ -1986,32 +2025,23 @@ Probes after 16e, 15 minutes with no input from each fixture (the probe
 stops at the first loss): seeds 1 to 8 and 16 from `gate1-open` and from
 `gate2-open`, 18 sessions, none lost a slime or went back. From
 `gate1-open` every slime made 3 laps. From `gate2-open` they made 2 or 3,
-except seed 6 (see "Known problems": a dip holding a mixed queue).
+except seed 6, where the dip nudge held a mixed queue in the bowl (fixed in
+chunk 16f, below).
+
+**The dip nudge and DoD 1 (chunk 16f).** The dip nudge waited with no
+limit for a partner that a slime of another species kept back, so a mixed
+queue stood on a dip's floor (see "Fusion and bumping", "A mixed queue on a
+dip"). Probes, 15 minutes with no input, seeds 1 to 8 and 16 from each
+fixture: before 16f, `gate2-open` seed 6 left 13 of its 17 train slimes at
+1 lap; after, every train slime made 2 or 3 laps from `gate2-open` and 3 or
+4 from `gate1-open` in all 18 sessions, none stalled or lost, nothing went back.
+The DoD 1 test now also runs `gate2-open` on seed 6 (without the repeat
+runs), so the file takes about 6 minutes.
 The level bench (`tools/bench_level.gd`) is unchanged within noise: 0.999,
 1.325 and 15.119 ms median per tick (`start`, `stress-still`,
 `stress-moving`).
 
 **Known problems still open.**
-- A dip can hold a mixed queue (DoD 1). The dip nudge (`Fusion`,
-  `rule_dip_may_nudge_fusion`) keeps a train slime on a dip's floor from
-  hopping while a slime it may fuse with is less than 300 px behind it. In
-  a queue of base slimes whose species alternate (the DoD 1 fixtures' 20
-  slimes are A, B, C in turn), a slime of another species sits between the
-  two, so the one behind can't catch up and the whole queue waits. Since
-  16e nothing fuses in the start basin, so the train reaches the dips as 20
-  base slimes and meets this more often:
-  - `gate2-open`, seed 6 (seed 7 with an earlier 16e layout): on section
-    3's bowl floor (13.6 to 14 screens), from about 8 min, 17 train slimes
-    crept about 100 px a minute for 6 minutes (hop timers held at
-    `DIP_HOLD_SECONDS`): nothing lost, but most made only 1 lap in 15 min;
-  - `gate2-open`, seed 4, with an earlier 16e layout (the ledge higher,
-    the split zone ending at 0.32): on the fusion dip's floor (3.09 screens, y
-    210) a B waited for a B that a C between them kept back; nothing moved
-    for 60 s and the B was lost as stalled at tick 18 815. The final
-    layout holds on that seed. Chunk 9's crowd check saw the same stalls on
-    that floor (seeds 6 and 9, mixed species).
-  - A fix is in the dip nudge (for example: don't wait for a slime that
-    another slime it can't fuse with keeps back), not in the level.
 - On screen, woken bowl slimes crowd: a rejoin probe lost 6 train slimes to
   stalls and left one free slime stuck at 14.57 screens, y 26; 40 size-1
   slimes in the bowl for 5 min lost 0, 1, 0 on seeds 1 to 3.
@@ -2049,6 +2079,11 @@ The level bench (`tools/bench_level.gd`) is unchanged within noise: 0.999,
   base slimes pass under it (a ledge a called base slime can reach is too
   low for a size 2 or 3 to pass under at its pace). The slides' tail is
   still a placeholder (O22).
+- The `bump` fixture (chunk 16f, "Fusion and bumping"): both bumps within
+  20 s on seeds 1 and 3 to 7, the README says seeds 1 to 8 (seeds 2 and 8
+  now show the 3 + 1 bump only). The end-to-end test's seed 5 shows both.
+- `Fusion.DIP_WAIT_SECONDS` (5 s, chunk 16f) is a new tuning value, proposed
+  for `specs/tuning.md`.
 
 **Running.**
 ```sh

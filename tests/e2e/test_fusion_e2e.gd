@@ -5,7 +5,10 @@ extends GutTest
 ## 3 + 1, and never fuse [DoD 6, bump; four slimes since chunk 16];
 ## two base slimes of one species put on the dip's rim fuse within a bounded
 ## time (the dip nudges fusion, level rule 5), and the run is repeatable; a
-## 2 + 2 and a 3 + 1 pair on the dip bump and stay apart in size.
+## 2 + 2 and a 3 + 1 pair on the dip bump and stay apart in size. In a mixed
+## queue (species alternating, as the train leaves the split zone) the dip
+## doesn't stall the train, and two neighbours of one species still fuse
+## there (chunk 16f).
 
 # @test-link [[rule_fusion_contact_time]]
 # @test-link [[rule_max_size_three]]
@@ -23,9 +26,24 @@ const RIM := [2.58, 2.68]
 ## fused in 7.5-11.6 s; the rest is margin.
 const FUSE_WITHIN := 20
 const BUMP_SECONDS := 10
-## How long the bump fixture is watched (seconds). Probes on seeds 1 to 8:
-## within 20 s, 2 + 2 bumped 1 to 3 times and 3 + 1 six times (seed 5: 1 and
-## 6), and nothing fused.
+## A mixed queue on the rim and the dip's floor, front first, about a
+## slime apart: the species alternate, as the train leaves the split zone,
+## so no two neighbours may fuse. Every slime of it (or what it fused into)
+## is past the floor within MIXED_CLEAR_WITHIN s. Probes on seeds 1 to 10
+## (chunk 16f): 33 to 58 s (seed 5: 43 s), 0 to 3 fusions, none stalled;
+## before 16f, 9 of the 10 were still on the floor after 120 s and 7 had
+## train slimes stalled.
+const MIXED_QUEUE := ["A", "B", "C", "A", "B", "C", "A", "B"]
+const MIXED_XS := [2.93, 2.87, 2.81, 2.75, 2.69, 2.63, 2.57, 2.51]
+const MIXED_CLEAR_WITHIN := 75
+## A mixed queue with two neighbours of species C: they fuse on the dip.
+const NEIGHBOURS_QUEUE := ["A", "C", "C", "B"]
+const NEIGHBOURS_XS := [2.80, 2.72, 2.64, 2.56]
+## How long the bump fixture is watched (seconds). Probes on seeds 1 to 8
+## since chunk 16f (the dip's limited wait): within 20 s, 3 + 1 bumped once
+## on every seed, 2 + 2 once or twice on seeds 1 and 3 to 7 (seed 5: once
+## each), and nothing fused. Before, 3 + 1 bumped six times: the size 1
+## never left the floor.
 const BUMP_FIXTURE_SECONDS := 20
 
 
@@ -54,6 +72,19 @@ func _spawn_on_dip(game: Node, sizes: Array, xs: Array) -> Array[int]:
 		var at := Vector2(float(xs[k]) * SCREEN, 100.0)
 		var distance: float = sim.level.loop.closest(at, sim.train.open_gates)["distance"]
 		ids.append(sim.spawn_train_slime(Species.from_letter("C"), sizes[k], distance))
+	return ids
+
+
+## Puts a queue of base train slimes of species `letters` on the loop where
+## it passes closest to the points `xs` (screens), front first. Returns their
+## ids.
+func _spawn_queue(game: Node, letters: Array, xs: Array) -> Array[int]:
+	var sim: Simulation = game.simulation
+	var ids: Array[int] = []
+	for k in letters.size():
+		var at := Vector2(float(xs[k]) * SCREEN, 100.0)
+		var distance: float = sim.level.loop.closest(at, sim.train.open_gates)["distance"]
+		ids.append(sim.spawn_train_slime(Species.from_letter(letters[k]), 1, distance))
 	return ids
 
 
@@ -192,3 +223,50 @@ func test_three_and_one_on_the_dip_bump() -> void:
 	gut.p("3 + 1: %s" % seen)
 	assert_true(seen["kept"], "both remain, sizes 3 and 1")
 	assert_gt(seen["touched"], 0, "they meet")
+
+
+# --- A mixed queue on the dip (chunk 16f) ----------------------------------------------
+
+# @test-link [[rule_dip_may_nudge_fusion]]
+# @test-link [[rule_loop_travelable_with_no_input]]
+func test_a_mixed_queue_passes_through_the_dip() -> void:
+	var game := _boot()
+	_aim_at_dip(game)
+	var sim: Simulation = game.simulation
+	var floors := Fusion.dip_floors(sim.train.loop, sim.train.open_gates)
+	assert_eq(floors.size(), 1, "the Meadow has one fusion dip")
+	if floors.is_empty():
+		return
+	var ids := _spawn_queue(game, MIXED_QUEUE, MIXED_XS)
+	var cleared := -1
+	for tick in MIXED_CLEAR_WITHIN * TICK_RATE:
+		game.test_mode.run_ticks(1)
+		var behind := false
+		for slime_id in ids:
+			if sim.slimes.has(slime_id) and sim.train.distance_of(slime_id) <= floors[0].y:
+				behind = true
+		if not behind:
+			cleared = tick + 1
+			break
+	var at := []
+	for slime_id in ids:
+		at.append(roundi(sim.train.distance_of(slime_id)) if sim.slimes.has(slime_id) else "fused")
+	gut.p("mixed queue: cleared the floor (to %.0f) after %d ticks; at %s" % [floors[0].y, cleared, at])
+	assert_gt(cleared, 0, "every slime of the queue is past the dip's floor within %d s" % MIXED_CLEAR_WITHIN)
+	assert_eq(sim.train.lost, [] as Array[Dictionary], "none stalled")
+
+
+# @test-link [[rule_dip_may_nudge_fusion]]
+# @test-link [[rule_fusion_contact_time]]
+func test_two_neighbours_of_one_species_in_a_mixed_queue_fuse_on_the_dip() -> void:
+	var game := _boot()
+	_aim_at_dip(game)
+	var ids := _spawn_queue(game, NEIGHBOURS_QUEUE, NEIGHBOURS_XS)
+	var ticks := _run_until_fused(game, ids[2], FUSE_WITHIN * TICK_RATE)
+	gut.p("neighbours' fusion after %d ticks" % ticks)
+	assert_between(ticks, 0, FUSE_WITHIN * TICK_RATE - 1, "the two C slimes fused within %d s" % FUSE_WITHIN)
+	var sim: Simulation = game.simulation
+	assert_eq(sim.slimes.size_of(ids[1]), 2)
+	assert_true(sim.train.tracks(ids[1]), "the fused slime stays on the train")
+	for slime_id in [ids[0], ids[3]]:
+		assert_eq(sim.slimes.size_of(slime_id), 1, "the others stay base slimes")

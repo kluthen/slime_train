@@ -28,7 +28,12 @@ extends GutTest
 ## Before chunk 16e the start basin jammed and a train slime was lost as
 ## stalled; tests/e2e/test_start_basin_e2e.gd covers the basin.
 ##
-## About 4 minutes in all (docs/dev/README.md, "Test level sections 2 and 3,
+## A third session, from `gate2-open` on STALL_SEED, checks the same without
+## the repeat runs: before chunk 16f, the fusion dip nudge held a mixed queue
+## on section 3's bowl floor there for 6 minutes and most train slimes made
+## only 1 lap (tests/e2e/test_fusion_e2e.gd covers the dip).
+##
+## About 6 minutes in all (docs/dev/README.md, "Test level sections 2 and 3,
 ## full population (chunk 16)").
 # @test-link [[rule_loop_travelable_with_no_input]]
 # @test-link [[rule_all_sizes_travel_loop_v1]]
@@ -41,6 +46,8 @@ extends GutTest
 const MAIN_SCENE := "res://src/main.tscn"
 ## Seed 2 lost a slime in the start basin from both fixtures before chunk 16e.
 const SEED := 2
+## The seed whose session a dip held before chunk 16f (see the file's doc).
+const STALL_SEED := 6
 const TICK_RATE := Simulation.TICK_RATE
 ## specs/tuning.md: a session is 15 minutes.
 const SESSION_TICKS := 15 * 60 * TICK_RATE
@@ -68,11 +75,11 @@ const PHASE_RANK := {
 }
 
 
-func _boot(fixture: String) -> Node:
+func _boot(fixture: String, run_seed := SEED) -> Node:
 	var game: Node = load(MAIN_SCENE).instantiate()
 	game.save_store = null
 	add_child_autofree(game)
-	assert_eq(game.enable_test_mode({"seed": SEED, "time_scale": 0, "fixture": fixture}), PackedStringArray())
+	assert_eq(game.enable_test_mode({"seed": run_seed, "time_scale": 0, "fixture": fixture}), PackedStringArray())
 	return game
 
 
@@ -210,21 +217,25 @@ func _watch(game: Node, ticks: int, child: Dictionary) -> Dictionary:
 			"hash": sim.state_hash(), "seconds": (Time.get_ticks_msec() - started) / 1000.0}
 
 
-## DoD 1 from `fixture` (see the file's doc).
-func _check_session(fixture: String) -> void:
-	var child := _start_child(fixture, SESSION_TICKS)
-	var game := _boot(fixture)
+## DoD 1 from `fixture` on `run_seed` (see the file's doc); with `repeat`,
+## also the same run again in this process and in a child process (SEED
+## only).
+func _check_session(fixture: String, run_seed := SEED, repeat := true) -> void:
+	var child := _start_child(fixture, SESSION_TICKS) if repeat else {}
+	var game := _boot(fixture, run_seed)
 	var sim: Simulation = game.simulation
 	assert_gt(_progress(sim).size(), 1, "the fixture has a train")
 	var run := _watch(game, SESSION_TICKS, child)
 	var laps := []
 	for slime_id in sim.train.tracked_ids():
 		laps.append(sim.train.laps_of(slime_id))
-	gut.p("%s: %d ticks in %.1f s real time, laps %s, lost %s" % [fixture, sim.tick, run["seconds"], laps, run["lost"]])
+	gut.p("%s seed %d: %d ticks in %.1f s real time, laps %s, lost %s" % [fixture, run_seed, sim.tick, run["seconds"], laps, run["lost"]])
 	assert_eq(sim.tick, SESSION_TICKS)
 	assert_eq(run["problems"], PackedStringArray(), "%s: progress never goes back, no base slime missing" % fixture)
 	assert_eq(run["lost"], PackedStringArray(), "%s: no slime lost" % fixture)
 	assert_gte(laps.min() if not laps.is_empty() else 0, MIN_LAPS, "every train slime travels the whole loop")
+	if not repeat:
+		return
 
 	var again := _boot(fixture)
 	again.test_mode.run_ticks(AGAIN_TICKS)
@@ -242,6 +253,12 @@ func test_a_session_from_gate2_open_keeps_the_train_going_and_loses_nothing() ->
 
 func test_a_session_from_gate1_open_keeps_the_train_going_and_loses_nothing() -> void:
 	_check_session("gate1-open")
+
+
+# @test-link [[rule_dip_may_nudge_fusion]]
+# @test-link [[rule_loop_travelable_with_no_input]]
+func test_a_session_through_the_bowl_is_not_held_by_the_dip_nudge() -> void:
+	_check_session("gate2-open", STALL_SEED, false)
 
 
 # --- Every size, a whole lap ------------------------------------------------------------
