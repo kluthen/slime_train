@@ -1,10 +1,11 @@
 class_name DebugCounts
 extends RefCounted
-## The debug overlay's "woken / available" counter (DebugOverlay), as pure
-## logic reading the simulation. Debug builds only: nothing outside
-## src/debug/ names it.
+## The debug overlay's counters (DebugOverlay), as pure logic reading the
+## simulation: "woken / available" (count()), the slime counts (count_slimes())
+## and the texts showing them. Debug builds only: nothing outside src/debug/
+## names it.
 ##
-## Counted in base slimes: a slime counts once per placed base slime it is
+## Woken / available. Counted in base slimes: a slime counts once per placed base slime it is
 ## made of (its members, SlimeIdentities), so fusing and splitting don't move
 ## the numbers. A slime with no placed origin (made by a test or a debug
 ## tool) counts its size, in section 1.
@@ -21,9 +22,26 @@ extends RefCounted
 ##   available: every base slime of an accessible section, sleepers included;
 ##   woken: those not asleep as sleepers (train, free, in a basket,
 ##          bedtime-asleep).
+##
+## The slime counts. Counted in slimes (bodies: a fused slime counts once,
+## whatever its size), every state (sleepers, piles, baskets included), each
+## in exactly one group, read from the off-screen simulation's own state
+## (Offscreen), not its margins:
+##   on screen:  its centre is in the view's visible rect (Fusion.view_rect(),
+##               the rect Offscreen parks around), parked or not (a parked
+##               one there is unparked by the next tick);
+##   simulated:  off the visible rect but fully simulated (not parked): within
+##               the view grown by NEAR_MARGIN, or between the margins and not
+##               parked yet, or Offscreen is off;
+##   off screen: off the visible rect and parked (SlimeBodies.is_parked):
+##               neither simulated nor touched, moved by Offscreen's proxies.
 
 ## The stable ID place of the start basin, part of section 1.
 const START_PLACE := "start"
+## The slime counts' groups (count_slimes()).
+const ON_SCREEN := "on_screen"
+const SIMULATED := "simulated"
+const OFF_SCREEN := "off_screen"
 
 
 ## The section stable ID `stable_id` belongs to: N for "sN.", 1 for "start."
@@ -82,3 +100,30 @@ static func count(sim: Simulation) -> Dictionary:
 			if not asleep:
 				woken += 1
 	return {"woken": woken, "available": available}
+
+
+## {"on_screen", "simulated", "off_screen"} for `sim`: its slimes in the three
+## groups of the slime counts (see the class doc).
+static func count_slimes(sim: Simulation) -> Dictionary:
+	var shown := Fusion.view_rect(sim.view)
+	var out := {ON_SCREEN: 0, SIMULATED: 0, OFF_SCREEN: 0}
+	var bodies := sim.slimes
+	for slime_id in bodies.ids():
+		if shown.has_point(bodies.centre_of(slime_id)):
+			out[ON_SCREEN] += 1
+		elif bodies.is_parked(slime_id):
+			out[OFF_SCREEN] += 1
+		else:
+			out[SIMULATED] += 1
+	return out
+
+
+## The bar's text for count_slimes()'s `counts`.
+static func slimes_text(counts: Dictionary) -> String:
+	return "Slimes %d on screen : %d simulated : %d off screen" % [
+			counts[ON_SCREEN], counts[SIMULATED], counts[OFF_SCREEN]]
+
+
+## The bar's text for `fps` frames per second, rounded to a whole number.
+static func fps_text(fps: float) -> String:
+	return "%d fps" % roundi(fps)

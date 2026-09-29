@@ -20,8 +20,15 @@ extends CanvasLayer
 ##   simulation's: the slime under it goes to the start of the loop as a lost
 ##   slime (DebugKill). One use, a tap on no slime, or a click on another
 ##   control disarms it;
-## - the "woken / available" counter (DebugCounts) and the last action's
-##   result.
+## - the frame rate ("60 fps", Engine.get_frames_per_second(), rounded);
+## - the "woken / available" counter (DebugCounts, in base slimes);
+## - the slime counts, "Slimes 12 on screen : 5 simulated : 63 off screen"
+##   (DebugCounts.count_slimes(), in slimes, every state): centre in the
+##   visible view; off it but fully simulated (Offscreen hasn't parked it:
+##   within its near margin, or between its margins and not parked yet);
+##   parked, moved by Offscreen's proxies. They and the fps refresh at most
+##   every STATS_MS (the counts loop over every slime);
+## - the last action's result.
 ##
 ## Input: the controls are Buttons (mouse_filter STOP) and consume their
 ## mouse clicks; the bar and the labels ignore the mouse, so the rest of the
@@ -36,6 +43,8 @@ const SPEEDS: Array[int] = [1, 2, 5, 10]
 const RESET_CONFIRM_MS := 2000
 ## How long the last action's result stays on screen, real milliseconds.
 const STATUS_MS := 4000
+## The fps and the slime counts refresh at most this often, real milliseconds.
+const STATS_MS := 250
 ## Above the game's HUD (layer 1).
 const LAYER := 50
 ## The bar's top-left corner, screen pixels, BAR_GAP under the parent zone
@@ -75,12 +84,16 @@ var speed_buttons := {}
 var reset_button: Button = null
 var labels_button: Button = null
 var kill_button: Button = null
+var fps_label: Label = null
 var counter_label: Label = null
+var slimes_label: Label = null
 var status_label: Label = null
 
 ## Until when (Time.get_ticks_msec()) a second click on Reset resets; -1: not asked.
 var _reset_until_ms := -1
 var _status_until_ms := -1
+## When (Time.get_ticks_msec()) the fps and the slime counts refresh next; -1: now.
+var _stats_due_ms := -1
 ## The presses swallowed whose release must be swallowed too ("touch:<index>", "mouse").
 var _swallowed := {}
 
@@ -121,7 +134,20 @@ func _process(_delta: float) -> void:
 		_place_bar(sim.view)
 		var counts := DebugCounts.count(sim)
 		counter_label.text = "Woken %d / available %d" % [counts["woken"], counts["available"]]
+		update_stats(sim, Engine.get_frames_per_second(), now)
 	status_label.text = status
+
+
+## Shows `fps` and `sim`'s slime counts when STATS_MS have passed since the
+## last refresh at real time `now_ms` (or on the first call). Returns whether
+## it refreshed.
+func update_stats(sim: Simulation, fps: float, now_ms: int) -> bool:
+	if _stats_due_ms >= 0 and now_ms < _stats_due_ms:
+		return false
+	_stats_due_ms = now_ms + STATS_MS
+	fps_label.text = DebugCounts.fps_text(fps)
+	slimes_label.text = DebugCounts.slimes_text(DebugCounts.count_slimes(sim))
+	return true
 
 
 ## The game root asks this first for every input event: true means the
@@ -267,8 +293,12 @@ func _build() -> void:
 	kill_button.toggle_mode = true
 	kill_button.toggled.connect(arm_kill)
 	bar.add_child(kill_button)
+	fps_label = _label()
+	bar.add_child(fps_label)
 	counter_label = _label()
 	bar.add_child(counter_label)
+	slimes_label = _label()
+	bar.add_child(slimes_label)
 	status_label = _label()
 	bar.add_child(status_label)
 

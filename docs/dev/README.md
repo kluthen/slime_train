@@ -45,7 +45,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `src/sim/` | The simulation core: pure logic, with no scene dependencies, so it can be unit tested |
 | `src/test_mode_guard.gd` | The one check that keeps test mode out of release builds |
 | `src/test_mode/` | Test mode: scripted input, time control, fixtures and saves to start from, the on-screen marker |
-| `src/debug/` | The debug overlay, debug builds only: speed, reset, slime labels, the kill tool, the woken/available counter (see "Debug overlay") |
+| `src/debug/` | The debug overlay, debug builds only: speed, reset, slime labels, the kill tool, the fps, the woken/available counter, the slime counts (see "Debug overlay") |
 | `src/save/` | The save files (`SaveStore`: one per level, never wiped), autosave timing (`Autosave`) and the real clocks sessions count on (`SessionClock`); the save format itself is `src/sim/save_data.gd` (see "Saves and fixtures") |
 | `src/session/` | The session's screen effects (`SessionScreen`: the dusk tint, keeping the screen on); the session logic itself is `src/sim/session.gd` (see "Sessions (chunk 17)") |
 | `src/frontier/` | Frontier set drawing (`FrontierView`: doors, arrows, the basket's outlines, the celebration); the logic itself is `src/sim/frontier_sets.gd` (see "Frontier sets (chunk 14)") |
@@ -2811,9 +2811,11 @@ labels on and 2x at frame 3 and arming Kill at frame 150: tick 299 at frame
 | **Reset** | Asks ("Reset? click again"). A second click within 2 s starts the level over and replaces its save |
 | **Labels** | Draws each slime's runtime id and state under it (`#12 train`) and its stable ID on a second line (`s1.sleeper.04 +2`: its first member and how many more) |
 | **Kill** | Arms the kill tool (red, "Kill: tap a slime"). The next tap sends the slime under it to the start of the loop, as a lost slime |
+| **60 fps** | The frame rate (`Engine.get_frames_per_second()`, rounded), refreshed at most every 250 ms |
 | **Woken n / available m** | The counter, in base slimes (see below) |
+| **Slimes a on screen : b simulated : c off screen** | The slime counts, in slimes, refreshed at most every 250 ms (see below) |
 
-The last action's result shows after the counter for 4 s ("Kill: #12 sent
+The last action's result shows after the slime counts for 4 s ("Kill: #12 sent
 to the start of the loop", "Reset: fresh level, save replaced") and Reset
 also prints it.
 
@@ -2857,6 +2859,27 @@ current segments with the open gates (`LoopData.current_segments`): a
 section's entrance is the previous section's return-route gate, so opening
 `s1.gate` makes section 2 accessible. The open gates are the train's
 (`Train.open_gates`, kept in step by the frontier sets).
+
+**The slime counts.** `DebugCounts.count_slimes()` puts every slime (a
+body: a fused slime counts once, whatever its size; every state, sleepers,
+piles and slimes in a basket included) in exactly one of three groups, read
+from the off-screen simulation's own state rather than recomputing its
+margins (see "Off-screen simulation" for the margins):
+
+- **on screen**: its centre is in the view's visible rect
+  (`Fusion.view_rect()`, the rect `Offscreen` parks around). A parked slime
+  whose centre is there (the view just moved) counts here; the next tick
+  unparks it;
+- **simulated**: off the visible rect but fully simulated, "computed as on
+  screen": within the view grown by `NEAR_MARGIN`, or between `NEAR_MARGIN`
+  and `PARK_MARGIN` and not parked yet, or everything when the off-screen
+  simulation is off (tests, a game a test adds);
+- **off screen**: off the visible rect and parked (`SlimeBodies.is_parked`):
+  neither simulated nor touched, moved by `Offscreen`'s proxies.
+
+The fps and the slime counts refresh at most every `STATS_MS` (250 real
+ms), as the counts loop over every slime; the woken/available counter
+refreshes every frame.
 
 **Kill.** The tap is intercepted before the simulation: the game root's
 `_unhandled_input` asks `DebugOverlay.intercept()` first, and while Kill is

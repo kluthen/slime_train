@@ -1,10 +1,12 @@
 extends GutTest
 ## The debug overlay's pure parts (src/debug/): the accessible-section rule
-## and the "woken / available" counter (DebugCounts), the sped-up session
-## clock (DebugClock), the kill tool's slime picking and its move to the start
-## of the loop (DebugKill), speed stepping giving the same ticks, and the
-## lint keeping src/debug/ out of release builds. The overlay itself, through
-## the game scene, is tests/e2e/test_debug_overlay_e2e.gd.
+## and the "woken / available" counter (DebugCounts), the slime counts (on
+## screen, simulated off screen, parked) and the fps text, the bar showing
+## them at most every STATS_MS, the sped-up session clock (DebugClock), the
+## kill tool's slime picking and its move to the start of the loop
+## (DebugKill), speed stepping giving the same ticks, and the lint keeping
+## src/debug/ out of release builds. The overlay itself, through the game
+## scene, is tests/e2e/test_debug_overlay_e2e.gd.
 
 const DEBUG_DIR := "res://src/debug/"
 const SRC_ROOT := "res://src/"
@@ -120,6 +122,87 @@ func test_counts_are_in_base_slimes() -> void:
 	sim.identities.assign(hidden, PackedStringArray(["s2.sleeper.09"]))
 	assert_eq(DebugCounts.count(sim), {"woken": 1 + 2 + 3, "available": 3 + 2 + 3},
 			"a fused slime counts its members, one without identity its size, s2 not reached")
+
+
+# --- The slime counts and the fps --------------------------------------------------
+
+## The level's simulation with its own slimes removed and five sleepers (they
+## stay put) placed around the view on (0, 0), zoom 1 (x -576 to 576): two
+## on screen, one within NEAR_MARGIN of the view, one between NEAR_MARGIN and
+## PARK_MARGIN, one far off. Off-screen simulation on, not stepped yet.
+func _placed_sim() -> Simulation:
+	var sim := _sim()
+	for slime_id in sim.slimes.ids():
+		sim.slimes.remove(slime_id)
+	var half := ScreenView.DEFAULT_SIZE.x * 0.5
+	var band := (Offscreen.NEAR_MARGIN + Offscreen.PARK_MARGIN) * 0.5
+	for at in [Vector2(0, 0), Vector2(400, 100), Vector2(half + 100.0, 0), Vector2(half + band, 0),
+			Vector2(3000, 0)]:
+		sim.slimes.create(Species.from_letter("A"), 1, at, SlimeBodies.SLEEPER)
+	sim.offscreen.enabled = true
+	sim.view.set_to(Vector2.ZERO, 1.0, ScreenView.DEFAULT_SIZE)
+	return sim
+
+
+func _slimes(on_screen: int, simulated: int, off_screen: int) -> Dictionary:
+	return {"on_screen": on_screen, "simulated": simulated, "off_screen": off_screen}
+
+
+func test_slime_counts_split_on_screen_simulated_and_parked() -> void:
+	var sim := _placed_sim()
+	assert_eq(DebugCounts.count_slimes(sim), _slimes(2, 3, 0), "nothing parked before a step")
+	sim.step()
+	assert_eq(DebugCounts.count_slimes(sim), _slimes(2, 2, 1),
+			"the near and the in-between one stay simulated, the far one parks")
+	sim.view.set_to(Vector2(3000, 0), 1.0, ScreenView.DEFAULT_SIZE)
+	assert_eq(DebugCounts.count_slimes(sim), _slimes(1, 4, 0),
+			"a parked slime whose centre is in the view counts on screen (the next step unparks it)")
+	sim.step()
+	assert_eq(DebugCounts.count_slimes(sim), _slimes(1, 0, 4), "the four far from the new view park")
+	sim.view.set_to(Vector2.ZERO, 1.0, ScreenView.DEFAULT_SIZE)
+	sim.step()
+	assert_eq(DebugCounts.count_slimes(sim), _slimes(2, 1, 2),
+			"back: the near one simulates again, the in-between one stays parked")
+
+
+func test_slime_counts_with_the_offscreen_simulation_off_never_count_parked() -> void:
+	var sim := _placed_sim()
+	sim.offscreen.enabled = false
+	sim.step()
+	assert_eq(DebugCounts.count_slimes(sim), _slimes(2, 3, 0))
+
+
+func test_slime_counts_count_bodies_not_base_slimes() -> void:
+	var sim := _placed_sim()
+	var fused := sim.slimes.create(Species.from_letter("B"), 3, Vector2(-200, 0), SlimeBodies.TRAIN)
+	sim.identities.assign(fused, PackedStringArray(["s1.sleeper.07", "s1.sleeper.08", "s1.sleeper.09"]))
+	assert_eq(DebugCounts.count_slimes(sim), _slimes(3, 3, 0), "a size-3 slime counts once")
+
+
+func test_the_stats_texts() -> void:
+	assert_eq(DebugCounts.slimes_text(_slimes(12, 5, 63)), "Slimes 12 on screen : 5 simulated : 63 off screen")
+	assert_eq(DebugCounts.fps_text(59.6), "60 fps", "a whole number")
+	assert_eq(DebugCounts.fps_text(0.0), "0 fps")
+
+
+func test_the_bar_shows_the_fps_and_the_slime_counts_at_most_every_stats_ms() -> void:
+	var host := Node.new()
+	add_child_autofree(host)
+	var overlay := DebugOverlay.new()
+	host.add_child(overlay)
+	assert_eq(overlay.fps_label.get_parent(), overlay.bar)
+	assert_eq(overlay.slimes_label.get_parent(), overlay.bar)
+	var sim := _placed_sim()
+	assert_true(overlay.update_stats(sim, 58.7, 1000))
+	assert_eq(overlay.fps_label.text, "59 fps")
+	assert_eq(overlay.slimes_label.text, "Slimes 2 on screen : 3 simulated : 0 off screen")
+	sim.step()
+	assert_false(overlay.update_stats(sim, 30.0, 1000 + DebugOverlay.STATS_MS - 1), "too soon")
+	assert_eq(overlay.fps_label.text, "59 fps")
+	assert_eq(overlay.slimes_label.text, "Slimes 2 on screen : 3 simulated : 0 off screen")
+	assert_true(overlay.update_stats(sim, 30.0, 1000 + DebugOverlay.STATS_MS))
+	assert_eq(overlay.fps_label.text, "30 fps")
+	assert_eq(overlay.slimes_label.text, "Slimes 2 on screen : 2 simulated : 1 off screen")
 
 
 # --- The sped-up clock ----------------------------------------------------------
