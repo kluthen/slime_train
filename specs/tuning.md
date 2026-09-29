@@ -44,8 +44,8 @@ value to try. When a value is tuned, update it here and log the result in
 ## Values the build chose
 
 The build picked these while making the chunks named. They are starting
-values, **to try**. The user approved the values of chunks 15 and 16 (D108;
-the rows added later and tagged proposed wait for D116, D118 and D119)
+values, **to try**. The user approved the values of chunks 15 and 16 (D108,
+and the rows added later with D116, D118 and D119 in D120)
 and chunk 23 (D99–D101); the values of chunks 10, 12, 13, 14 and 17 are still
 **(proposed; to try)**: the user hasn't confirmed them one by one. Pixels are
 world pixels at zoom 1 on a 1152 px wide view unless noted. The code names in
@@ -86,7 +86,7 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | On screen for fusion (`VIEW_MARGIN`) | a slime's centre at least 24 px inside the view's edge (a base slime's radius, so its whole body shows) | D70 |
 | Dip floor (where the loop nudges slimes together) | a rise of at least 100 px on both sides, and the floor within 30 px of the bottom | D20 |
 | Gathering window on a dip floor | 300 px behind | D20 |
-| Waiting for a partner on a dip floor (`Fusion.DIP_WAIT_SECONDS`; chunk 16f, proposed) | a train slime on a dip floor waits without limit only for a partner directly behind it (no other train slime between them); for a partner further back, at most 5 s | D20, D119 |
+| Waiting for a partner on a dip floor (`Fusion.DIP_WAIT_SECONDS`; chunk 16f) | a train slime on a dip floor waits without limit only for a partner directly behind it (no other train slime between them); for a partner further back, at most 5 s | D20, D119 |
 | Hop timer while gathering or holding | held at 0.25 s | D74 |
 
 ### Frontier sets, gates and completion (chunk 14)
@@ -111,7 +111,7 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | A free slime's route back is near (`ROUTE_NEAR`) | within 288 px; off screen it joins its branch's route back single file, a slime's width behind the one before it; out of any branch, it heads straight for the nearest loop point within that distance; with neither near, it stays put until the lost timer moves it (see §5.3 of the master spec) | D70 |
 | Left alone (`LEFT_ALONE_TICKS`) | 600 ticks (10 s) outside the view, the screen with no margin; the count stops on screen | D10 |
 | Lost (`LOST_TICKS`) | 3600 ticks (1 min) after left alone, so 70 s off screen in all | D10 |
-| A train slime stalls (`Train.LOST_STALL_SECONDS`, `LOST_STALL_ADVANCE`, `BOUNDS_MARGIN`, `BOUNDS_TOP_MARGIN`; chunk 6's placeholder, proposed) | its progress along the loop hasn't advanced 24 px in 60 s, on screen or off; or its centre is out of the level's bounds (the terrain and the loop, plus 64 px, plus 2000 px above) | D118 |
+| A train slime stalls (`Train.LOST_STALL_SECONDS`, `LOST_STALL_ADVANCE`, `BOUNDS_MARGIN`, `BOUNDS_TOP_MARGIN`; chunk 6's placeholder) | its progress along the loop hasn't advanced 24 px in 60 s, on screen or off; or its centre is out of the level's bounds (the terrain and the loop, plus 64 px, plus 2000 px above); it is then moved to the loop start (D121). To recheck on the first level, once real return routes exist | D118, D121 |
 | Dropping into a basket off screen (`ENTRY_REACH`, `SLOT_GAP`) | a parked train slime whose centre is within 64 px above an open trapdoor drops in, into the first clear slot of a grid its own width plus 4 px apart, bottom row first | D70 |
 | A slime is still (`REST_DRIFT`, `REST_TICKS`) | supported and within 1 px of its anchor for 30 ticks; the anchor is where the count started; kept for v1, revisited in chunk 22 | D96, D107 |
 | A pile rests | when every slime of a touching group of pile slimes (in a basket, or asleep at bedtime) is still at once; awake slimes out of a basket hop and never rest | D96 |
@@ -125,7 +125,7 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | Value | Start at | Source |
 |---|---|---|
 | `s2.frame.parade` | zoom 0.85, offset (0, -100) px | test level |
-| `s2.frame.cave` (added in chunk 16d, proposed) | centred at 11.25 screens, y -150; 1.3 screens by 500 px; zoom 0.7, offset (0, -140) px: on the rails from 10.6 to 11.9 the view spans y -767 to 159 | test level, D116 |
+| `s2.frame.cave` (added in chunk 16d) | centred at 11.25 screens, y -150; 1.3 screens by 500 px; zoom 0.7, offset (0, -140) px: on the rails from 10.6 to 11.9 the view spans y -767 to 159 | test level, D116 |
 | `s2.frame.gate` | zoom 0.9, offset (0, -40) px | test level |
 | `s3.frame.bowl` | zoom 0.5, offset (0, -200) px | test level |
 | `s3.frame.basket` | zoom 0.8, offset (0, 40) px | test level |

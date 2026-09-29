@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v10 (approved by the user, 2026-09-29, D108)
+Status: draft v11 (approved by the user, 2026-09-29, D108)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -85,24 +85,26 @@ technology, not business behaviour:
 
 ## Progress
 
-- **Done:** 0 to 15 and 17; 1 on the desktop and the reference phone (the
+- **Done:** 0 to 17; 1 on the desktop and the reference phone (the
   floor phone waits for its purchase). Chunks 14 and 17 raised O82 to O86
   (the session in the level's save, baskets at bedtime, the switch locked
   once the basket is full, the gate's lid, a state for slimes in a basket),
   settled in D104–D106.
   Chunk 15 built section 2 in greybox with the off-screen simulation.
-- **In progress:** 16, built (16a–16f): section 3 in greybox, the full
+  Chunk 16 (16a–16f; stewardship d487ae8): section 3 in greybox, the full
   population of 200, every fixture regenerated (with `gate2-open` added),
   the level-rule tests, the level bench, the terrain-contact fix and the
   cave's framing zone (16d), the whole-level DoD 1 test and the developer
   notes (16c-B), the start basin rebuilt so DoD 1 holds (16e), and the
-  dip nudge's limited wait so a mixed queue no longer stalls (16f). Now:
-  the stewardship (the intent tags and sync). Chunks 15 and 16 raised O87
-  (the rest rule's anchor), settled in D107; chunk 16 raised D116–D119
-  (proposed) and O95.
+  dip nudge's limited wait so a mixed queue no longer stalls (16f).
+  Chunks 15 and 16 raised O87 (the rest rule's anchor), settled in D107;
+  chunk 16 raised D116–D119, approved in D120, and O95, settled in D121
+  (item 23.13).
 - **Next:** 18. (5N is a contingency, run only if chunk 22 fails,
   D96.) Chunk 23 (small issues from play) is an open list, run after 22;
   its item 23.5 (baskets at bedtime) lands before 22.
+- **Closing step, last of all:** the coding-rule health review
+  (`CODING_RULE.md`'s health and clean-up list), after chunk 23 (D122).
 
 ## Overview
 
@@ -457,7 +459,8 @@ disturb the performance measurement; an issue can be pulled forward if it
 blocks testing. Each issue is small (S) and can land on its own. An issue
 tagged **(proposed)** still waits for the user's approval; 23.1 to 23.9 are
 decided (D99 to D101, D103, D105, D109 to D111, D113); 23.10 to 23.12
-come from the master spec's alignment with ux D4 and ux D5.
+come from the master spec's alignment with ux D4 and ux D5; 23.13 is
+decided (D121).
 
 **23.1 Call camera dead zone** (reported and decided 2026-09-29; D101;
 master spec 5.6).
@@ -616,6 +619,25 @@ bedtime begins.
   position stays put; only the zoom may settle); the same with bedtime
   beginning during the idle cue; at sunrise the idle camera follows a train
   slime again.
+
+**23.13 A stalled train slime: safety net** (decided 2026-09-29; D121,
+which settles O95; master spec 5.2). A change to chunk 6's stall check in
+`Train`, which today only logs. The same move to the start of the loop as
+23.3 (stuck) and the lost timer (D10): reuse it rather than add a third.
+- A train slime that is stalled (no 24 px of progress in 60 s, or its
+  centre out of the level's bounds; D118) is moved to the start of the
+  loop and rides the train again. Each case is logged with the reason
+  `stalled` or `out_of_bounds`, no longer once per slime; the 60 s count
+  starts again from the move. A slime asleep at bedtime is never counted
+  as stalled or moved.
+- **Done when:** a unit test that wedges a train slime so its progress
+  can't advance sees it moved to the start of the loop after 60 s, back on
+  the train and logged as `stalled`; one placed out of the level's bounds
+  is moved and logged as `out_of_bounds`; wedged again, it is moved and
+  logged again; from `wind-down`, no train slime asleep at bedtime is
+  moved or logged; the same seed gives the same hash; and the whole-level
+  DoD 1 test still fails on any logged stall (its meaning is unchanged:
+  no train slime stalls in 15 minutes with no input).
 
 ### 5N. Native simulation tick (contingency, only if chunk 22 fails)
 

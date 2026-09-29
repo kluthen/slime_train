@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v29
+Status: draft v30
 
 ## One-liner
 
@@ -236,7 +236,7 @@ survives the app being killed.
 | left alone | a free slime off screen for more than 10 s |
 | lost | a left-alone slime not back on the loop after 1 min; teleported to the loop start |
 | stuck | two slimes that can't fuse, found inside each other for about 2 s; a state of its own, not "lost", with the same effect: the smaller one goes to the loop start (D100) |
-| stalled | (proposed, D118) a train slime whose progress along the loop hasn't advanced for 60 s, or that left the level's bounds; logged, not "lost", and not moved (O95). The build says "lost as stalled" |
+| stalled | a train slime whose progress along the loop hasn't advanced for 60 s, or that left the level's bounds; not "lost", but with the same effect: moved to the loop start and logged (D118, D121). The build says "lost as stalled" |
 | free slime | an awake slime attracted away from the loop, driven by physics alone until it rejoins |
 | session | one timed play period (15 min for now) |
 | level | a whole world with its own loop, sections and save file; the first release ships one |

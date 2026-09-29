@@ -1178,9 +1178,9 @@ From ui_ux Q11, which the user deferred to v2.
   making "the first sleeper is close" measurable as a level rule (O94).
 
 ## D116 — The test level's start basin and cave framing zone as built (chunk 16) (2026-09-29)
-**Proposed, pending the user's approval** (the build's choices, recorded as
-with D95 and D108; the build follows them unless the user overrules them).
-Written into `levels/test/README.md` and `tuning.md`, tagged (proposed).
+**Approved by the user on 2026-09-29 (D120)**; first recorded as proposed
+(the build's choices, recorded as with D95 and D108). Written into
+`levels/test/README.md` and `tuning.md`.
 - **The start basin (1.1) is rebuilt (chunk 16e):** the loop's start sits at
   0.21 screens at the top of a ramp, with a pocket behind it where the first
   slime starts; the loop's first stretch runs on a raised terrace; the
@@ -1203,8 +1203,8 @@ Written into `levels/test/README.md` and `tuning.md`, tagged (proposed).
   about 8 s: 16d's terrain-contact fix changed how the pile settles.
 
 ## D117 — Where a return route meets the start: the test level's lesson (2026-09-29)
-**Proposed, pending the user's approval.** From the start basin jam (chunk
-16, D116). A constraint on O22's answer, not its answer: O22 stays open, and
+**Approved by the user on 2026-09-29 (D120)**; first recorded as proposed.
+From the start basin jam (chunk 16, D116). A constraint on O22's answer, not its answer: O22 stays open, and
 the test level's slides are still a placeholder. If approved, a candidate
 for a level rule in `level-design.md`.
 - **A return route delivers slimes into the start behind the loop's start,
@@ -1219,9 +1219,11 @@ for a level rule in `level-design.md`.
   test level's first sleeper does) or off the loop's path altogether.
 
 ## D118 — A train slime that stalls (2026-09-29)
-**Proposed, pending the user's approval.** Records the build's rule (chunk
-6's placeholder, `Train`, unchanged since); the spec had no rule for it:
-"lost" (D10) covers free slimes only. Raises O95.
+**Approved by the user on 2026-09-29 (D120)**; first recorded as proposed.
+Records the build's rule (chunk 6's placeholder, `Train`, unchanged since);
+the spec had no rule for it: "lost" (D10) covers free slimes only. Raises
+O95. **The "nothing happens to it in play" bullet is superseded by D121:**
+a stalled train slime is moved to the start of the loop.
 - **Stalled:** a train slime whose progress along the loop hasn't advanced
   24 px in 60 s, on screen or off (parked slimes included), or whose centre
   leaves the level's bounds (the terrain and the loop, plus 64 px, plus
@@ -1237,8 +1239,9 @@ for a level rule in `level-design.md`.
   "lost" keeps D10's meaning.
 
 ## D119 — A train slime on a dip floor waits at most 5 s for a partner further back (chunk 16f) (2026-09-29)
-**Proposed, pending the user's approval** (the build's choice, recorded as
-with D116). Refines the dip nudge's gathering (D20); written into
+**Approved by the user on 2026-09-29 (D120)**, the 5 s wait as built, not
+the alternative below; first recorded as proposed (the build's choice,
+recorded as with D116). Refines the dip nudge's gathering (D20); written into
 `tuning.md`, tagged (proposed).
 - **The rule as built:** a train slime on a dip floor waits without limit
   only for a partner directly behind it (no other train slime between
@@ -1264,3 +1267,45 @@ with D116). Refines the dip nudge's gathering (D20); written into
 - **The `bump` fixture as built now:** both bumps within 20 s on seeds 1
   and 3 to 7 (the end-to-end test runs seed 5); seeds 2 and 8 show the
   3 + 1 bump only.
+
+## D120 — Chunk 16's record approved: D116 to D119 (2026-09-29)
+The user approved chunk 16's pending items as written.
+- **D116,** the test level's start basin and cave framing zone as built,
+  and `stress-still` resting after about 11 s.
+- **D117,** where a return route meets the start: a constraint on O22's
+  answer. O22 itself stays open for the first level's design.
+- **D118,** the stalled train slime (the term, the measure, and DoD 1
+  counting it as a failure). Its "nothing happens in play" part is replaced
+  by D121, which closes O95.
+- **D119,** the dip nudge's 5 s wait for a partner further back, as built.
+  The alternative (wait only for the partner directly behind) is not taken,
+  so the `bump` fixture keeps asserting both bumps.
+- The spec no longer tags these (proposed): the master spec (5.2, the
+  vocabulary, Definition of done 1, Known gaps 2), `slimes.md`, `concept.md`,
+  `tuning.md` and `levels/test/README.md`.
+
+## D121 — A stalled train slime is moved to the start of the loop (2026-09-29)
+Resolves O95. Approved by the user (spec-writer's suggested default).
+Replaces D118's "nothing happens to it in play".
+- **The safety net:** a stalled train slime (D118: no 24 px of progress
+  in 60 s, or its centre out of the level's bounds) is moved to the start
+  of the loop and rides the train again, as a lost (D10) or stuck (D100)
+  slime is. It stays "stalled" in the log, not "lost".
+- **Each case is logged,** with the reason `stalled` or `out_of_bounds`, as
+  stuck cases are; the 60 s count starts again from the move, so a slime
+  that stalls again is moved and logged again.
+- **A slime asleep at bedtime is never counted as stalled or moved,** as
+  with stuck (D100).
+- **DoD 1 keeps its meaning:** the safety net is for play, not a pass. The
+  whole-level DoD 1 test still fails on any stalled train slime in a
+  15-minute session with no input.
+- **Why:** P1.G4 ("never get stuck"): a train slime wedged for good would
+  otherwise stay where it is.
+- **Carried forward, not open:** whether 24 px in 60 s is still the right
+  measure once the real level's return routes exist is a tuning value to
+  recheck on the first level (`tuning.md`, master spec Known gaps 7).
+- Built as chunk 23's item 23.13, next to 23.3 (the stuck safety net).
+
+## D122 — The coding-rule health review runs last (2026-09-29)
+The user's call on `CODING_RULE.md`'s health and clean-up list: it runs as
+the build plan's closing step, after chunk 23, not now.

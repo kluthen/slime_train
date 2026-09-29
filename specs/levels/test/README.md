@@ -1,6 +1,6 @@
 # Test level
 
-Status: draft v9
+Status: draft v10
 
 A compact level that puts nearly every v1 gameplay item in one place (D76).
 It is the testing ground while the game is built, and the level the
@@ -52,7 +52,7 @@ automated end-to-end tests drive on the Linux build (see "Testability" in
   (built at 0.27), on a small ledge just above the loop (rules 17, 18). On
   the very first play, the wordless hint pulses next to it after about 10 s
   without a call (D65).
-- **As built (chunk 16e; proposed, D116).** Rebuilt so that DoD 1 holds
+- **As built (chunk 16e; D116).** Rebuilt so that DoD 1 holds
   over the whole level (x in screens, y in px, up is negative):
   - **The loop's start** is at 0.21, y 476, at the top of a ramp. From
     there the loop's route rises over the ramp (to 0.25, y 416) and eases
@@ -215,7 +215,7 @@ positions (x in screens, y in px, up is negative):
 - **Framing zones:** `s2.frame.parade` (centred at 9.5, 1 screen wide) and
   `s2.frame.gate` (centred at 12.6, 0.8 screens wide). Chunk 16d added
   `s2.frame.cave` (centred at 11.25 screens, y -150, 1.3 screens by 500 px:
-  10.6 to 11.9; proposed, D116): on the rails there, the view shows the loop
+  10.6 to 11.9; D116): on the rails there, the view shows the loop
   and the cave pocket's 14 sleepers at once (rule 9). It stays clear of
   `s2.frame.gate`. Their zooms are in `../../tuning.md`.
 - Sleepers are numbered left to right: `s2.sleeper.01` to `.40`.
@@ -362,7 +362,7 @@ px before slide 3's entrance (chunk 16).
 | `s1.frame.high-step` | 3.5–4.5 | the loop and the ledge | framing beside the loop |
 | `s1.frame.tree` | 4.5–5.5 | the loop and the tree's lower platform | zoom out and shift up; the exit delay |
 | `s2.frame.parade` | 9–10 | the parade, slightly wider | being ignored while the idle camera or screensaver mode follows a slime, then resuming (D80) |
-| `s2.frame.cave` | 10.6–11.9 (added in chunk 16d; proposed, D116) | the loop and the cave pocket's sleepers, zoomed out and shifted up | a branch's hint kept in view (rule 9) |
+| `s2.frame.cave` | 10.6–11.9 (added in chunk 16d; D116) | the loop and the cave pocket's sleepers, zoomed out and shifted up | a branch's hint kept in view (rule 9) |
 | `s2.frame.gate` | 12.2–13 | gate 2, the slide entrance and the basket pit | reward waiting for view |
 | `s3.frame.bowl` | 13.5–15.5 | the whole bowl | a strong zoom-out; stress |
 | `s3.frame.basket` | 15.3–16.5 | switch 3 and the basket pit | a big still pile |
@@ -477,7 +477,7 @@ Named save states that tests load through test mode (tech-direction).
 | `gate2-open` | gates 1 and 2 open as after baskets 1 and 2 fired (slides 1 and 2 shut), the same 20 train slimes spread along the whole outgoing loop, the camera at section 3's start. Added in chunk 16 | starting from S3; the whole loop with no input (DoD 1) |
 | `s2-basket-offscreen` | camera at switch 2, basket 2 at 14, slimes heading into it (built, chunk 15: gate 1 open, the first slime about to reach switch 2) | filling off screen, then the reward on approach; gate 2 opens, and the celebration still waits for basket 3 |
 | `s2-cave-return` | 3 free slimes starting down the cave's route back, camera away (built, chunk 15: on shelf A, the camera on the start basin) | projection, respawn, left alone and rejoining |
-| `bump` | two size-2, one size-3 and one size-1 slime of species C on the fusion dip's floor (1.3), so both bumps can happen. Built (chunk 16): sizes 2, 2, 3 and 1 left to right, made of the eight C sleepers nearest the dip; nothing fuses. Since chunk 16f (D119, proposed) both bumps happen within 20 s on seeds 1 and 3 to 7; seeds 2 and 8 show the 3 + 1 bump only | 2 + 2 and 3 + 1 bumping; the end-to-end test runs seed 5 and asserts both bumps |
+| `bump` | two size-2, one size-3 and one size-1 slime of species C on the fusion dip's floor (1.3), so both bumps can happen. Built (chunk 16): sizes 2, 2, 3 and 1 left to right, made of the eight C sleepers nearest the dip; nothing fuses. Since chunk 16f (D119) both bumps happen within 20 s on seeds 1 and 3 to 7; seeds 2 and 8 show the 3 + 1 bump only | 2 + 2 and 3 + 1 bumping; the end-to-end test runs seed 5 and asserts both bumps |
 | `stress-still` | 200 woken base slimes (none left a sleeper), 60 in basket 3 and the rest piled in the bowl. Built (chunk 16): gates 1 and 2 open; the 60 in basket 3 are full and waiting to be in view; the 140 in the bowl are **asleep at bedtime** (a session at bedtime), because outside a basket only a bedtime pile rests (see below); the pile was settled until it rests, and rests about 670 ticks (about 11 s) after loading (since chunk 16d, which changed the terrain contact; about 8 s before) | the worst still case on one screen (O14, O57) |
 | `stress-moving` | 200 train slimes spread through the bowl (built, chunk 16: size 1, lowest spots first, inside the bowl's view) | the worst moving case; beyond what normal play produces, so a measurement, not a target (D96) |
 | `lost` | a free slime placed off screen, outside any area's route back (built, chunk 15: a D on the parade's first ledge beyond closed gate 1, the camera on the basin) | left alone at 10 s, then lost 1 min later (70 s off screen) and teleported to the start |

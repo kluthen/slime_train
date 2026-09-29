@@ -8,9 +8,9 @@ check v1 is in `../../levels/test/README.md`.
 
 The defaults for the interaction details raised by the first UX review, and
 the points the build raised while building, were approved by the user on
-2026-09-29. Added since and still tagged (proposed), pending the user's
-approval: the stalled train slime (5.2, Definition of done 1) and where a
-return route meets the start (Known gaps 2).
+2026-09-29, as were the points chunk 16 added (the stalled train slime and
+its safety net, 5.2 and Definition of done 1; where a return route meets
+the start, Known gaps 2). Nothing here is tagged (proposed).
 
 ## 1. Concept and objective
 
@@ -144,7 +144,7 @@ One term per concept, used everywhere in the code and documents.
 | return route | the way a section sends the flow from its unopened frontier gate back to the start |
 | left alone | a free slime off screen for more than 10 s |
 | lost | a left-alone slime not back on the loop after 1 min |
-| stalled | (proposed) a train slime that has made no progress along the loop for 1 min, or left the level |
+| stalled | a train slime that has made no progress along the loop for 1 min, or left the level; moved to the start of the loop |
 | framing zone | an area of the level that sets the camera's zoom and position |
 | session | one timed play period (15 min) |
 | bedtime | the end of a session: slimes fall asleep until sunrise |
@@ -220,10 +220,13 @@ One term per concept, used everywhere in the code and documents.
   with the same effect: the smaller one (only ever a train or free slime) is
   moved to the start of the loop and rides the train again, and each case
   is logged. It is a safety net until the cause is found and fixed.
-- **Stalled (proposed):** a train slime whose progress along the loop
-  hasn't advanced 24 px in 60 s, on screen or off, or whose centre leaves
-  the level's bounds, is stalled. It is logged once. Nothing happens to it
-  in play: it isn't lost and isn't moved (see Known gaps 7).
+- **Stalled:** a train slime whose progress along the loop hasn't
+  advanced 24 px in 60 s, on screen or off, or whose centre leaves the
+  level's bounds, is stalled. It isn't "lost", but has the same effect:
+  it is moved to the start of the loop and rides the train again, and each
+  case is logged; the 60 s count starts again from the move. A slime asleep
+  at bedtime is never counted as stalled. It is a safety net for play, not
+  something that happens in normal play (Definition of done 1).
 
 **Waking**
 
@@ -744,8 +747,9 @@ later) passes the level-rules check.
 **World and slimes**
 
 1. With no input at all, from a fresh save, the train keeps travelling the
-   whole current loop for a full session, and no slime ever becomes lost
-   (proposed: nor does any train slime stall, 5.2).
+   whole current loop for a full session, and no slime ever becomes lost,
+   nor does any train slime stall (5.2): the safety net moving a stalled
+   slime doesn't count as a pass.
 2. A sleeper wakes only when touched, on screen, by a free slime; a train
    slime touching it doesn't wake it.
 3. A tap on open ground makes every awake slime within the call radius turn
@@ -880,8 +884,7 @@ Still undecided.
    in `levels/01/`, once the test level has been built and checked.
 2. **How each section's return route works** (a slide, wind, a conveyor…).
    Decided with the first level's design. The test level uses underground
-   slides as placeholders. Whatever it is made of (proposed, from the test
-   level): a return route delivers slimes into the start behind the loop's
+   slides as placeholders. Whatever it is made of (from the test level): a return route delivers slimes into the start behind the loop's
    start, travelling the loop's way, never along the loop's first stretch
    against the flow; and nothing a base slime must be called up to
    overhangs the loop where larger slimes pass (a ledge a called size 1
@@ -912,7 +915,8 @@ Still undecided.
    The build moves one of them back to the start of the loop as a
    safety net (5.2, "stuck"); the cause is still to be found and prevented.
    Not urgent.
-7. **Whether a stalled train slime needs a safety net in play** (5.2). As
-   built, it is only logged, so a train slime wedged for good would stay
-   where it is; lost and stuck slimes are moved to the start of the loop.
-   Moving a stalled one there too is a candidate, not decided.
+7. **Whether the stalled measure still fits the real level** (5.2). A
+   stalled train slime is moved to the start of the loop, as lost and
+   stuck slimes are. Whether 24 px of progress in 60 s is the right
+   measure once the real level's return routes exist is to recheck with
+   the first level's design.
