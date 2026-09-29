@@ -8,7 +8,9 @@ extends SceneTree
 ## written.
 ##
 ## Run from the project root, for all of a level's fixtures or the ones named:
-##   godot --headless --path . -s res://tools/make_fixture.gd -- [--level=<id>] [--list] [name ...]
+##   tools/level.sh fixture [--level=<id>] [--list] [name ...]
+## (tools/level.sh imports the project first; the raw command is
+##   godot --headless --no-header --path . -s res://tools/make_fixture.gd -- [...])
 ##
 ##   --level=<id>   the level (LevelCatalog; default "test")
 ##   --list         print the level's fixtures, one per line
@@ -50,8 +52,7 @@ extends SceneTree
 # @spec-link [[req_test_level_and_test_mode]]
 # @spec-link [[req_persistence_and_saves]]
 
-const USAGE := "usage: godot --headless --path . -s res://tools/make_fixture.gd -- [--level=<id>] [--list] " \
-		+ "[name ...]"
+const USAGE := "usage: tools/level.sh fixture [--level=<id>] [--list] [name ...]"
 ## The generic fixtures of a level other than the test level.
 const LevelFixtures := preload("res://tools/make_fixture/level_fixtures.gd")
 const S := LevelData.SCREEN
@@ -600,6 +601,12 @@ func _stress_still() -> Simulation:
 	sim.frontier.tap_switch(sim, SWITCH_3)
 	sim.object_states[SWITCH_3]["trapdoor_shut"] = false
 	sim.object_states[BASKET_3]["weight"] = pile.size()
+	# Full already: since chunk 23D the sets stand still at bedtime (no phase
+	# changes), so a basket still `filling` when bedtime starts would stay so,
+	# its trapdoor open. Full at this tick, as the first step turned it before
+	# 23D; that step's doors still shut the trapdoor (chunk LD3).
+	sim.object_states[BASKET_3]["phase"] = FrontierSets.FULL
+	sim.object_states[BASKET_3]["since"] = sim.tick
 	var rest := population.slice(0, population.size() - IN_BASKET_3)
 	if not _into_bowl(sim, rest, SlimeBodies.FREE):
 		return null

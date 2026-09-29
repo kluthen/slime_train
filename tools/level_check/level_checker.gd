@@ -21,7 +21,10 @@ extends RefCounted
 ##               and what to fix)};
 ##   "manual"    what remains for a person, even on a PASS when part of the
 ##               rule isn't checkable by code ("" when nothing does);
-##   "notes"     what the check found or skipped (Array of String).
+##   "notes"     what the check found or skipped (Array of String);
+##   "warnings"  what may be wrong but a static estimate can't settle, in
+##               the findings' shape; they don't change the status (rule
+##               12's: a section that may not progress, LevelProgress).
 ## format() turns results into text, to_json_data() into JSON-ready data.
 ##
 ## Behaviour. Rules 1, 2 and 7 also run the simulation core (Simulation, no
@@ -116,7 +119,7 @@ func check_load() -> Dictionary:
 func check(rule: int, fast := false) -> Dictionary:
 	if not TITLES.has(rule) or rule == 0:
 		push_error("LevelChecker: there is no rule %d (the rules are 1 to 22)" % rule)
-		return {"rule": rule, "title": "", "status": FAIL, "manual": "", "notes": [],
+		return {"rule": rule, "title": "", "status": FAIL, "manual": "", "notes": [], "warnings": [],
 				"findings": [finding("", NAN, "there is no rule %d (the rules are 1 to 22)" % rule)]}
 	if data == null:
 		return not_applicable(rule, "the level hasn't been built")
@@ -134,7 +137,7 @@ func check(rule: int, fast := false) -> Dictionary:
 		9: return LevelRulesExploration.hints_visible(self)
 		10: return LevelRulesExploration.no_tilt_needed(self)
 		11: return LevelRulesSections.species_per_section(self)
-		12: return LevelRulesObjects.switch_plus_basket(self)
+		12: return _with_progress(LevelRulesObjects.switch_plus_basket(self))
 		13: return LevelRulesSections.return_route_per_section(self)
 		14: return LevelRulesSections.return_route_exploration(self)
 		15: return LevelRulesObjects.inert_once_open(self)
@@ -145,6 +148,16 @@ func check(rule: int, fast := false) -> Dictionary:
 		20: return LevelRulesPlacement.released_level(self)
 		21: return LevelRulesObjects.below_parent_zone(self)
 	return LevelRulesStart.the_start(self)
+
+
+## Rule 12's `checked` result with LevelProgress's warnings: a section
+## whose basket the static estimate can't fill (chunk LD3).
+# @spec-link [[rule_gate_opens_via_switch_basket_set]]
+func _with_progress(checked: Dictionary) -> Dictionary:
+	checked["warnings"] = LevelProgress.warnings(self)
+	checked["notes"].append("a section progresses when its basket's quota can be met by the base slimes a called "
+			+ "slime can wake by then (LevelProgress, a static estimate): see the level report's progress section")
+	return checked
 
 
 ## Every rule of `rules` (all when empty), each once, in ascending order.
@@ -169,7 +182,7 @@ static func result(rule: int, findings: Array, manual := "", notes := [], status
 	if status.is_empty():
 		status = FAIL if not findings.is_empty() else PASS
 	return {"rule": rule, "title": TITLES.get(rule, ""), "status": status, "findings": findings,
-			"manual": manual, "notes": notes}
+			"manual": manual, "notes": notes, "warnings": []}
 
 
 ## Rule `rule` doesn't apply to this level, because `why`.
@@ -193,6 +206,14 @@ static func counts(results: Array) -> Dictionary:
 	return out
 
 
+## How many warnings `results` hold, all rules together.
+static func warning_count(results: Array) -> int:
+	var total := 0
+	for one in results:
+		total += one.get("warnings", []).size()
+	return total
+
+
 ## One finding as text: "<id> (x <screens>): <text>".
 static func finding_text(one: Dictionary) -> String:
 	var where := ""
@@ -204,8 +225,8 @@ static func finding_text(one: Dictionary) -> String:
 
 
 ## The results as text, one line per result ("rule 7   FAIL    <title>")
-## and, indented under it, its findings ("- "), what is left for a person
-## ("manual: ") and its notes ("note: ").
+## and, indented under it, its findings ("- "), its warnings ("warn: "),
+## what is left for a person ("manual: ") and its notes ("note: ").
 static func format(results: Array) -> String:
 	var lines := PackedStringArray()
 	var indent := " ".repeat(9)
@@ -214,6 +235,8 @@ static func format(results: Array) -> String:
 		lines.append("%-8s %-7s %s" % [label, one["status"], one["title"]])
 		for each in one["findings"]:
 			lines.append(indent + "- " + finding_text(each))
+		for each in one.get("warnings", []):
+			lines.append(indent + "warn: " + finding_text(each))
 		if not str(one["manual"]).is_empty():
 			lines.append(indent + "manual: " + one["manual"])
 		for note in one["notes"]:
@@ -221,12 +244,13 @@ static func format(results: Array) -> String:
 	return "\n".join(lines)
 
 
-## The results as JSON-ready data: a finding's x is null when it has none.
+## The results as JSON-ready data: a finding's (or warning's) x is null
+## when it has none.
 static func to_json_data(results: Array) -> Array:
 	var out := []
 	for one in results:
 		var copy: Dictionary = one.duplicate(true)
-		for each in copy["findings"]:
+		for each in copy["findings"] + copy.get("warnings", []):
 			if is_nan(each["x"]):
 				each["x"] = null
 		out.append(copy)

@@ -46,12 +46,19 @@ loop's path, outside the split zone, is either:
   tree (`s1.branch.tree`: a slope a size 1 hops up, to a platform high
   above the loop);
 - or **inside the split zone's reach**, where only base slimes pass (the
-  first sleeper's ledge, in the start basin).
+  first sleeper's ledge, in the start basin);
+- or **off the loop's path**: a hollow hanging over a dip, 110 px above
+  its rim and too high to hop up to from the slope below, which a called
+  base slime reaches by hopping across from the rim (the skeleton's
+  hollows, the test level's `DipHollow`). The report's reach takes off
+  from the loop's point least below the sleeper within a hop's reach
+  sideways, so it shows these as a size 1's.
 
 ## Worked example: a lookout
 
-On `zz-tutorial`, a ledge over the flat ground before frontier set 1, 100 px
-up, with two sleepers, its branch box and route back. The fast check:
+On `zz-tutorial` (as first scaffolded, before chunk LD3 put a dip there),
+a ledge over the flat ground before frontier set 1, 100 px up, with two
+sleepers, its branch box and route back. The fast check:
 
 ```
 rule 22  FAIL    Slimes come home behind the loop's start; no called ledge overhangs the loop
@@ -64,14 +71,16 @@ checker passes, and the level report lists it, with its reach:
 
 ```
 s1.branch.lookout: x 2.99 to 3.24, y -350 to -210 px; 2 sleepers; route back s1.route-back.lookout 0.29 screens, 5.0 s for a size-1 slime off screen: within left alone (10 s; lost 60 s later)
-row 1.6: rise 167 px (from the loop under it): reachable by a called size 2 hop from the loop
-row 1.7: rise 163 px (from the loop under it): reachable by a called size 2 hop from the loop
+row 1.6: rise 167 px: reachable by a called size 2 hop from the loop
+row 1.7: rise 163 px: reachable by a called size 2 hop from the loop
 ```
 
 (The two sleepers are 81 px apart, so each is its own row.)
 
 167 px is within a size 2's 168 by a hair: the report's reach is a static
-estimate, so play it to be sure.
+estimate, so play it to be sure. A place for size 2 needs a pair of one
+species awake by then: the report's progress section says whether the
+train has one ([10](10-the-level-report.md)).
 
 Look at it from the loop:
 

@@ -49,7 +49,9 @@ Below, section 2 is the current last section and section 3 the new one.
    `outlet` `point`, the celebration fires once every basket has). No gate.
 6. **Sleepers** `s3.sleeper.01` onward, numbered left to right, with the
    species section 3 adds (rule 11: section 3 adds E) and any earlier ones
-   ([06](06-population.md)).
+   ([06](06-population.md)), enough of them in a called slime's reach for
+   the new basket's quota: the level report's progress line for section 3
+   must say "progresses" ([10](10-the-level-report.md)).
 7. **Framing zones**, optional: only where the view needs to be wider
    (rule 19), for example to show a basket and its gate together. The
    checker can't tell where one is needed; it's judged by eye in test mode.
@@ -57,9 +59,9 @@ Below, section 2 is the current last section and section 3 the new one.
 ## Then
 
 ```sh
-godot --headless --path . -s res://tools/check_level.gd -- --level=zz-tutorial --fast
-godot --headless --path . -s res://tools/check_level.gd -- --level=zz-tutorial
-godot --headless --path . -s res://tools/make_fixture.gd -- --level=zz-tutorial
+tools/level.sh check --level=zz-tutorial --fast
+tools/level.sh check --level=zz-tutorial
+tools/level.sh fixture --level=zz-tutorial
 tools/test.sh -gdisable_colors -gselect=test_level_zz-tutorial
 ```
 

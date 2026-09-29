@@ -10,12 +10,18 @@ extends RefCounted
 ##                  camera at the start of the section the loop grows into,
 ##                  the first point of its outgoing loop segment.
 ## The test level keeps its own, hand-made table (tools/make_fixture.gd).
+## stale() says whether any level's fixture save is older than the level
+## (chunk LD3): the level's own test and test_fixtures_e2e use it.
 # @spec-link [[req_test_level_and_test_mode]]
 
 ## The fresh fixture's description (the scaffolder, tools/new_level.gd,
 ## uses this one too).
 const FRESH_DESCRIPTION := "The level as new: no save, the first slime woken at its marker and every " \
 		+ "sleeper asleep at its own; the first-play hint is due."
+## A sleeper kept asleep in a fixture's save this far from its place in the
+## level has moved since the fixture was made, px (saves round centres to
+## hundredths).
+const MOVED := 1.0
 
 
 ## The level's fixtures, in order: {"fixtures": name -> {"description",
@@ -54,6 +60,54 @@ static func build(data: LevelData, terrain: TerrainSegments, fixture: Dictionary
 	if not problems.is_empty():
 		return {"sim": null, "error": "; ".join(problems)}
 	return {"sim": sim, "error": ""}
+
+
+## Why fixture save `save` (SaveData's format, as a fixture holds it) is
+## older than the level `data` (chunk LD3), or [] when it is current. A
+## save written before the level changed still loads (SaveData.problems
+## only checks its shape and the level's ID and version), but without what
+## the level gained since: so it is stale when a slime of the level (the
+## first slime, a sleeper) is in none of its slimes, when one of its slimes
+## holds a stable ID the level doesn't have, when a slime it keeps asleep
+## sleeps elsewhere or is of another species than the level's sleeper, or
+## when a switch, basket or gate of the level has no state in it. Positions
+## are compared within MOVED px.
+# @spec-link [[req_test_level_and_test_mode]]
+static func stale(save: Dictionary, data: LevelData) -> PackedStringArray:
+	var out := PackedStringArray()
+	var level_slimes := {}
+	if not data.first_slime.is_empty():
+		level_slimes[data.first_slime["id"]] = data.first_slime
+	for id in data.sleepers:
+		level_slimes[id] = data.sleepers[id]
+	var held := {}
+	for slime in save.get("slimes", []):
+		for id in slime.get("members", []):
+			held[id] = true
+			if not level_slimes.has(id):
+				out.append("its slime %s holds %s, which the level doesn't have" % [slime.get("id", "?"), id])
+		if slime.get("state") == "sleeper" and data.sleepers.has(slime.get("id", "")):
+			var sleeper: Dictionary = data.sleepers[slime["id"]]
+			var centre := Vector2(slime["centre"][0], slime["centre"][1])
+			if centre.distance_to(sleeper["position"]) > MOVED:
+				out.append("%s sleeps at %s in it, at %s in the level" % [slime["id"], centre.round(),
+						(sleeper["position"] as Vector2).round()])
+			if slime.get("species") != sleeper["species"]:
+				out.append("%s is species %s in it, %s in the level" % [slime["id"], slime.get("species"),
+						sleeper["species"]])
+	var missing := level_slimes.keys().filter(func(id): return not held.has(id))
+	missing.sort()
+	for id in missing:
+		out.append("the level's %s isn't in it" % id)
+	var objects: Dictionary = save.get("objects", {})
+	var gates: Dictionary = save.get("gates", {})
+	for id in data.switches.keys() + data.baskets.keys():
+		if not objects.has(id):
+			out.append("the level's %s has no state in it" % id)
+	for id in data.gates:
+		if not gates.has(id):
+			out.append("the level's %s has no state in it" % id)
+	return out
 
 
 ## The first outgoing segment of a section after `section` in the loop in

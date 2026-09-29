@@ -25,7 +25,8 @@ static func at_most_200(c: LevelChecker) -> Dictionary:
 				"the level holds %d base slimes (the first slime and %d sleepers): at most %d, take sleepers out"
 				% [count, c.data.sleepers.size(), MAX_BASE_SLIMES]))
 	return LevelChecker.result(16, findings, "where many slimes pile up on one screen they should stay mostly "
-			+ "still (a basket being filled): measure it with tools/bench_level.gd", ["%d base slimes" % count])
+			+ "still (a basket being filled): measure it with tools/level.sh bench --level=%s" % c.data.level_id,
+			["%d base slimes" % count])
 
 
 ## Rule 17: every sleeper is more than OFF_LOOP_MIN_GAP from every loop

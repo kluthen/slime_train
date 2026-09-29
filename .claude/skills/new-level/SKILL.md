@@ -45,15 +45,16 @@ split zone, sleeper. Run every command from the project root.
      adding them later.
 
 2. **Scaffold:**
-   `godot --headless --path . -s res://tools/new_level.gd -- --id=<id> --sections=<n>`
+   `tools/level.sh new --id=<id> --sections=<n>`
    Exit 0 written, 1 refused (already exists), 2 bad arguments, 3 a write
-   failed. If it prints `Parse Error: Identifier "..." not declared`, run
-   `godot --headless --import` once and retry (a class added since the last
-   import).
+   failed. `tools/level.sh` imports the project first, so a class added by a
+   pull is known (run bare, a tool can stop with `Parse Error: Identifier
+   "..." not declared` until `godot --headless --import`).
 
 3. **Explain what exists now**, briefly: `levels/<id>/level.tscn` (the
-   skeleton: the start basin, and per section two bumps with sleepers, a
-   frontier set, the return route home), `levels/<id>/fixtures/fresh.fixture.json`,
+   skeleton: the start basin, and per section a dip in the loop with a
+   hollow on each rim holding two sleepers, a frontier set, the return
+   route home), `levels/<id>/fixtures/fresh.fixture.json`,
    `tests/e2e/levels/test_level_<id>.gd` (the test run in step 4 imports
    first and adds its `.uid`; all of these get committed, unless the level
    is a `zz-` throwaway). And how the game finds it (ground rules above).
@@ -62,38 +63,42 @@ split zone, sleeper. Run every command from the project root.
 
 4. **Prove it works**, and show the key lines of each:
    - the fixtures to start at each section:
-     `godot --headless --path . -s res://tools/make_fixture.gd -- --level=<id>`
+     `tools/level.sh fixture --level=<id>`
      (exit 0; rewrites `fresh` and writes one `gate<k>-open` per gate, that
      is sections minus 1, since the last basket fires the celebration: with
      2 sections, `gate1-open`. Each is a sidecar `<name>.fixture.json` plus
      a save `<name>.json`. With 1 section there is only `fresh`);
    - the level's test: `tools/test.sh -gdisable_colors -gselect=test_level_<id>`
-     (expect `4/4 passed.`);
-   - the checker: `godot --headless --path . -s res://tools/check_level.gd -- --level=<id>`
+     (expect `6/6 passed.`, about 15 s: one test plays section 1 to its
+     basket full with scripted calls, one checks no fixture is older than
+     the level);
+   - the checker: `tools/level.sh check --level=<id>`
      (exit 0 no FAIL, 1 a FAIL, 2 can't run; on the fresh skeleton expect
-     `20 PASS, 0 FAIL, 1 MANUAL, 1 N/A`: rule 19 MANUAL with no framing
-     zone, rule 5 N/A with no dip);
-   - the level report: `godot --headless --path . -s res://tools/level_report.gd -- --level=<id>`
-     (exit 0; expect rules 16 and 11 PASS, and under `== reach ==` row 1.1,
-     the first sleeper, reachable by a size 1 and every other row by a
-     size 3 only. Its lap times are worked out from lengths and paces, so
-     they differ a little from the checker's measured laps).
+     `21 PASS, 0 FAIL, 1 MANUAL, 0 N/A, 0 warnings`: rule 19 MANUAL with no
+     framing zone);
+   - the level report: `tools/level.sh report --level=<id>`
+     (exit 0; its header names the first slime's species (A); expect rules
+     16 and 11 PASS, every row under `== reach ==` reachable by a called
+     size 1 hop, and every section "progresses" under `== progress ==`.
+     Its lap times are worked out from lengths and paces, so they differ a
+     little from the checker's measured laps).
 
-5. **Tell the truth about the skeleton.** It passes the checker but is not
-   yet a playable level: the report's reach lines show every sleeper but
-   the first (row 1.1) needs a called size-3 hop, and section 1 starts with
-   the first slime (species A: the scaffolder always uses A; the level
-   report doesn't show it) and the first sleeper (B), which can't fuse, so
-   basket 1's quota can't be met yet. The first design pass is to give section 1 sleepers a base
-   slime can reach (`docs/level-design/05-branches-and-routes-back.md`,
-   "Reach, and rule 22").
+5. **Tell the truth about the skeleton.** It passes the checker and each
+   section can be played to its basket (the report's progress section; the
+   level's test plays section 1), but it is a placeholder, not a design:
+   one dip and four sleepers per section, no exploration branch, no
+   framing zone. When the user reshapes it, keep the progress lines at
+   "progresses" and the level's test green: a sleeper moved out of a
+   called base slime's hop (`docs/level-design/05-branches-and-routes-back.md`,
+   "Reach, and rule 22") can leave a basket unfillable.
 
 6. **Point to the next steps:**
    - play it: `godot --path . -- --test-mode --level=<id> --seed=1`
      (`--fixture=gate1-open` starts at section 2 once step 4 wrote it;
      `--at=<stable id>` puts the camera on a thing);
-   - edit it in the editor: `godot --path . -e res://levels/<id>/level.tscn`,
-     then `git checkout project.godot` (the editor drops a default line);
+   - edit it in the editor: `godot --path . -e res://levels/<id>/level.tscn`
+     (then `git diff project.godot`: don't commit an editor change there by
+     accident);
    - the tutorial, `docs/level-design/README.md`, pages 02 to 11;
    - the `level-content` skill (sections, objects, decoration) and the
      `level-review` skill (the rules).

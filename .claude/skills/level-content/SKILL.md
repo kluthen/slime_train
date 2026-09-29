@@ -55,7 +55,7 @@ Pick with the user:
 
 Before editing, run the fast check once so you know which findings were
 already there:
-`godot --headless --path . -s res://tools/check_level.gd -- --level=<id> --fast`
+`tools/level.sh check --level=<id> --fast`
 
 ## Flow A: add a section
 
@@ -90,7 +90,7 @@ quotas).
 
 After the checks, look at it where the child will: `godot --path . -- --test-mode --level=<id> --seed=1 --at=<its stable id>`
 (add `--fixture=gate<k>-open` for a later section), and read the level
-report's reach, branch and frontier-set lines for it.
+report's reach, branch, frontier-set and progress lines for it.
 
 ## Flow C: add a decoration
 
@@ -100,16 +100,21 @@ is the one the checker enforces on it (`--rule=9`).
 
 ## Checks, every flow
 
-1. `godot --headless --path . -s res://tools/check_level.gd -- --level=<id> --fast`
+1. `tools/level.sh check --level=<id> --fast`
    while iterating; then the full checker (no `--fast`) once it's clean.
    Exit 0 no FAIL, 1 a FAIL. Fix every new FAIL; the finding says what and
-   where (`09-check-the-rules.md`).
-2. `godot --headless --path . -s res://tools/make_fixture.gd -- --level=<id>`
-   to rewrite the fixtures (a stale fixture silently misses new sleepers).
-   Hand-made fixtures have to be redone by hand (`08-fixtures-and-testing.md`).
-3. `tools/test.sh -gdisable_colors -gselect=test_level_<id>`.
-4. `godot --headless --path . -s res://tools/level_report.gd -- --level=<id>`
-   when population, reach, quotas or routes back changed.
+   where (`09-check-the-rules.md`). A new `warn:` under rule 12 means a
+   section may no longer fill its basket: say so and play it.
+2. `tools/level.sh fixture --level=<id>`
+   to rewrite the fixtures (a fixture saved before the change misses what
+   the level gained; the level's test fails on it, "fixture X is older than
+   the level"). Hand-made fixtures have to be redone by hand
+   (`08-fixtures-and-testing.md`).
+3. `tools/test.sh -gdisable_colors -gselect=test_level_<id>` (it also plays
+   section 1 to its basket full).
+4. `tools/level.sh report --level=<id>`
+   when population, reach, quotas or routes back changed: every section
+   should still "progress".
 
 ## Report to the user
 

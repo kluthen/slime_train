@@ -5,12 +5,13 @@ loop is, who lives where, whether the baskets can fill, what a call
 reaches. It judges nothing but rules 11 and 16.
 
 ```sh
-godot --headless --path . -s res://tools/level_report.gd -- --level=zz-tutorial
-godot --headless --path . -s res://tools/level_report.gd -- --level=zz-tutorial --json
+tools/level.sh report --level=zz-tutorial
+tools/level.sh report --level=zz-tutorial --json
 ```
 
 Exit code 0; 2 on a bad argument or a level that doesn't load. With
-`--json`, keep the last line (Godot's banner comes first).
+`--json`, stdout is the JSON alone (`tools/level.sh` starts Godot without
+its banner); the header line and the sections below are its keys.
 
 ## What it says, section by section
 
@@ -18,7 +19,7 @@ The report on `zz-tutorial` at the end of this tutorial (3 sections, the
 lookout added), shortened:
 
 ```
-level_report: level zz-tutorial (version 1), 3 sections, 16 base slimes
+level_report: level zz-tutorial (version 1), 3 sections, 16 base slimes, first slime A
 pace: a size-1 slime hops 66.7 px/s off screen (Offscreen.pace), slides 360 px/s (Train.SLIDE_SPEED)
 == loop ==
 loop at section 1 (gates open: none): 9.18 screens, outgoing 4.54 + return s1.slide 4.64; size-1 lap 93 s
@@ -60,26 +61,44 @@ s1.frame.lookout: x 2.87 to 3.37, zoom 0.85, offset (0, -60)
   by then (every sleeper counted, reachable or not).
 - **Framing zones:** span, zoom, offset.
 
+The last two sections on the freshly scaffolded skeleton (2 sections):
+
 ```
-== reach (a static estimate from the level's shape, to each row's lowest sleeper: play it to be sure) ==
-a called hop rises at most (FreeSlimes.max_rise): size 1 133 px, size 2 168 px, size 3 208 px
-row 1.1: rise 117 px (from the loop under it): reachable by a called size 1 hop from the loop
-row 1.2: rise 186 px (from the loop under it): reachable by a called size 3 hop from the loop
-row 1.6: rise 167 px (from the loop under it): reachable by a called size 2 hop from the loop
+== reach (a static estimate from the level's shape, to each row's easiest sleeper: play it to be sure) ==
+a called hop rises at most (FreeSlimes.max_rise): size 1 133 px, size 2 168 px, size 3 208 px; it takes off from the loop's point least below the sleeper within a hop's reach sideways (150 px for size 1)
+row 1.1: rise 110 px: reachable by a called size 1 hop from the loop
+row 1.2: rise 110 px: reachable by a called size 1 hop from the loop
+...
+== progress (a static estimate: the base slimes a called slime can wake by each basket; play it to be sure) ==
+section 1: basket s1.basket, quota 4; awake by then about 6 base slimes (A 2, B 2, C 2), largest size 2: progresses
+section 2: basket s2.basket, quota 4; awake by then about 10 base slimes (A 3, B 2, C 2, D 3), largest size 3: progresses
 ```
 
-- **Reach:** for each row, how high it is over the loop, against what a
-  single called hop of each size rises. It doesn't model climbing in
-  several hops (a slope, steps): a row reported "beyond" may still be
-  reachable by a climb, and one reported reachable may be blocked by the
-  ledge itself (a slime under a floating plate hits its underside). Play it.
+- **Reach:** for each row, how high its easiest sleeper is over the loop,
+  against what a single called hop of each size rises. The called slime
+  takes off from the loop's point least below the sleeper within a hop's
+  reach sideways (150 px for a base slime, more for bigger ones), so a
+  hollow over a dip is reached from the dip's rim, not from the slope under
+  it. It doesn't model obstacles or climbing in several hops (a slope,
+  steps): a row reported "beyond" may still be reachable by a climb, and
+  one reported reachable may be blocked by the ledge itself (a slime under
+  a floating plate hits its underside). Play it.
+- **Progress:** per basket, the base slimes a called slime can wake by
+  then, and whether they fill its quota. It starts from the first slime,
+  wakes every sleeper of the sections so far that a called slime of a size
+  the train can make reaches, lets same-species slimes fuse up to size 3
+  (a pair of A reaches what a lone A can't), and repeats until nothing
+  more wakes. "MAY NOT PROGRESS" lists the sleepers out of reach; the
+  checker warns about it under rule 12 ([09](09-check-the-rules.md)). The
+  level's own test plays section 1 for real ([08](08-fixtures-and-testing.md)).
 
 ## Using it
 
 - Section 1 must start with sleepers the first slime can wake at size 1:
-  look for rows "reachable by a called size 1 hop" near the start. The
-  skeleton's bump rows (1.2 to 1.5 above) need a size 3, which section 1
-  can't make at first: redesign them first.
+  look for rows "reachable by a called size 1 hop" near the start, and for
+  "progresses" on section 1's line. A row that needs a size 2 or 3 is
+  fine once the train can make one: the progress line says whether it
+  can by then.
 - A quota close to "available by then" means the player must wake nearly
   everyone: leave room.
 - A route back near 10 s makes slimes "left alone" often; near 70 s they

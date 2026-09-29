@@ -60,14 +60,15 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `tests/e2e/levels/` | Each level's generated test script, `test_level_<id>.gd` (written by `tools/new_level.gd`; not for the test level) |
 | `tests/gut_post_run.gd` | The GUT hook that makes a broken suite fail (see below) |
 | `tools/test.sh` | The one entry point for the test suite |
+| `tools/level.sh` | Runs a level-design tool (`check`, `report`, `new`, `fixture`, `bench`): imports first, no Godot banner (see [level-tooling.md](level-tooling.md)) |
 | `tools/greybox_test_level.gd` | Generates the test level's greybox scene (see "Levels and components") |
 | `tools/bench_slimes.gd` | Times the slime tick (see "Slimes") |
 | `tools/bench_offscreen.gd` | Times the off-screen fallbacks (see "Off-screen simulation (chunk 15)") |
-| `tools/bench_level.gd` | Times the whole test level with its 200 slimes (see "Off-screen simulation (chunk 15)") |
+| `tools/bench_level.gd` | Times a whole level: the test level with its 200 slimes (see "Off-screen simulation (chunk 15)"), or any level with `--level` (chunk LD3) |
 | `tools/make_fixture.gd` | Writes a level's fixtures (see "Saves and fixtures") |
 | `tools/check_level.gd`, `tools/level_check/` | The level-rules checker, rules 1 to 22, on any level (see [level-tooling.md](level-tooling.md)) |
 | `tools/new_level.gd` | The new-level scaffolder (see [level-tooling.md](level-tooling.md)) |
-| `tools/level_report.gd` | A level's population, frontier sets, framing zones and reach, for designers (see [level-tooling.md](level-tooling.md)) |
+| `tools/level_report.gd` | A level's population, frontier sets, framing zones, reach and progress, for designers (see [level-tooling.md](level-tooling.md)) |
 | `tools/level_builder/` | Helpers that write a level scene from the components by script (the test level's generator and the scaffolder use them) |
 | `docs/dev/img/` | Screenshots used by these notes (`docs/.gdignore` keeps Godot from importing anything under `docs/`) |
 | `docs/level-design/` | The tutorial for building a level, one task per page (see "Level-design tutorial and skills (chunk LD2)") |
@@ -3017,7 +3018,8 @@ To see it: `godot --headless --path . --quit-after 300` writes
 A fixture is a named starting point for test mode (`"fixture": "bump"`),
 in the level's `levels/<id>/fixtures/` (the test level's are below): a sidecar `<name>.fixture.json`,
 `{"description", "save" (true when there is a save), "camera" (optional
-[x, y]: the camera starts on its rails nearest that level point)}`, and the
+[x, y]: the camera starts on its rails nearest that level point; or,
+since chunk LD3, a stable ID of the level: nearest that thing)}`, and the
 save `<name>.json` in the hand-made form above.
 
 | Fixture | State |
@@ -3119,6 +3121,58 @@ Build plan chunk LD, part 2: docs and skills only, no code.
   --import`; `--json` output follows Godot's banner (keep `tail -n 1`);
   opening the editor drops `window/handheld/orientation=0` from
   `project.godot`; a fixture's save goes stale when the level changes.
+  Chunk LD3 (below) fixes all four.
+
+## Level-design toolkit: the tutorial's gaps (chunk LD3)
+
+Build plan chunk LD, part 3: the gaps LD2 found by running every command.
+Details in [level-tooling.md](level-tooling.md).
+
+- **The skeleton can be finished by play.** The first skeleton's sleepers
+  sat on plates 174 to 186 px over the loop, out of a called base slime's
+  reach (about 133 px), and section 1 opened with A and B, which can't
+  fuse: basket 1 (quota 4) couldn't be filled, yet the checker passed it.
+  Each section now has a dip in the loop with a hollow on each rim (the
+  test level's `DipHollow`), two sleepers in each, reached from the rim;
+  sections are 3.7 screens (were 3.5). The checker: 21 PASS, rule 19
+  MANUAL (rule 5 now finds the dips).
+- **The check that would have caught it:** `LevelProgress`
+  (`tools/level_check/level_progress.gd`), a static estimate: the sleepers
+  a called slime reaches from the loop within a hop (sideways and up, by
+  size), the sizes same-species slimes can fuse to, and each basket's quota
+  against what can be awake by then. It is a **warning** under rule 12
+  (`warn:` lines; `warnings` in the JSON; the status stays), and the level
+  report's `== progress ==` section. The scaffolded level's own test now
+  **plays section 1 to its basket full** with scripted calls. On the test
+  level it warns for every section: section 1 may not progress (only A, B
+  and C are within a base slime's hop, and three species can't fuse;
+  probes agree, see level-tooling.md), and sections 2 and 3 follow from
+  it.
+- **`tools/level.sh <tool>`** (`check`, `report`, `new`, `fixture`,
+  `bench`): imports first (the stale class cache), starts Godot with
+  `--no-header` (`--json` is pure JSON on stdout). The docs, the skills and
+  `rules_table.py` (no more `tail -n 1`) use it.
+- **`project.godot`** no longer holds `window/handheld/orientation=0`: it
+  is Godot's default (landscape, D78) and nothing sets it otherwise (the
+  Android presets take it from the project), so the editor has nothing to
+  drop.
+- **Stale fixtures are detected**, from the saves themselves
+  (`LevelFixtures.stale`): a slime of the level missing from a save, one
+  the level no longer has, a sleeper moved or of another species, an
+  object with no state. The level's generated test and
+  `test_fixtures_e2e.gd` fail with "fixture X is older than the level:
+  rerun tools/level.sh fixture --level=<id> X". No format change; every
+  committed fixture passes as it is.
+- **`tools/level.sh bench --level=<id>`** (`bench_level.gd`, via
+  `LevelCatalog`): the level as new and each fixture with a save
+  (`--fixture=` to pick); the test level's cases are unchanged.
+- **Small:** the level report's header names the first slime's species;
+  a fixture sidecar's `camera` may be a stable ID (`Level.point_of`, shared
+  with test mode's `"at"`).
+
+Tests: `tests/e2e/test_level_progress.gd` (new), `test_new_level_e2e.gd`,
+`test_level_tools_e2e.gd`, `test_fixtures_e2e.gd`; the template
+`tools/new_level/test_level.gd.template` (six tests now).
 
 ## Android export (debug)
 

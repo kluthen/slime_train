@@ -8,8 +8,8 @@ skill runs most of it for you.
 - [ ] `levels/<id>/level.tscn`, `levels/<id>/fixtures/` and
       `tests/e2e/levels/test_level_<id>.gd` (with its `.uid`) are all there,
       and nothing else: no script inside `levels/<id>/` (D6).
-- [ ] `project.godot` is unchanged (`git status`; the editor drops a line
-      from it, [02](02-edit-in-the-editor.md)).
+- [ ] `project.godot` is unchanged (`git status`: nothing you didn't mean,
+      [02](02-edit-in-the-editor.md)).
 - [ ] No throwaway `levels/zz-*` level or its test is left over.
 - [ ] The root's `level_id` is the folder's name; `level_version` is 1
       until release.
@@ -17,8 +17,10 @@ skill runs most of it for you.
 ## The rules
 
 - [ ] The full checker has no FAIL (exit 0):
-      `godot --headless --path . -s res://tools/check_level.gd -- --level=<id>`
-      ([09](09-check-the-rules.md)).
+      `tools/level.sh check --level=<id>`
+      ([09](09-check-the-rules.md)), and no warning left unplayed: a rule
+      12 warning (a section that may not progress) is settled by playing
+      that section.
 - [ ] Every `manual:` line and every MANUAL rule looked at in test mode,
       with `--at=<stable id>` on the thing it's about: hints that read as
       something to explore (rule 9), ground with no sleeper leading back
@@ -32,16 +34,17 @@ skill runs most of it for you.
 ## The numbers
 
 - [ ] The level report ([10](10-the-level-report.md)): at most 200 base
-      slimes; each quota well under "available by then"; section 1 has
-      sleepers a size 1 reaches near the start; routes back well under
-      "lost".
+      slimes; each quota well under "available by then"; every section
+      "progresses" in the progress section; section 1 has sleepers a size 1
+      reaches near the start; routes back well under "lost".
 
 ## The tests and the fixtures
 
 - [ ] Fixtures rewritten after the last change:
-      `godot --headless --path . -s res://tools/make_fixture.gd -- --level=<id>`,
+      `tools/level.sh fixture --level=<id>`,
       and any hand-made fixture redone ([08](08-fixtures-and-testing.md)).
-- [ ] The level's test passes:
+- [ ] The level's test passes (section 1 played to its basket full, no
+      fixture older than the level):
       `tools/test.sh -gdisable_colors -gselect=test_level_<id>`.
 - [ ] The whole suite still passes: `tools/test.sh`.
 

@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 """Merge the level-rules checker's JSON with the rules as written today.
 
-Reads the checker's JSON (tools/check_level.gd ... --json; the last line of
-its output, the Godot banner above it dropped) from a file or stdin, reads the
-rules from specs/level-design.md (never from a copy: the rules change), and
-prints, for every rule of the spec, its text as written, the checker's short
-title and status, its findings (with a command to look at each and one to
-re-check the rule), the checker's "by eye" item and its notes.
+Reads the checker's JSON (tools/level.sh check ... --json: stdout is the JSON
+alone, tools/level.sh starts Godot without its banner) from a file or stdin,
+reads the rules from specs/level-design.md (never from a copy: the rules
+change), and prints, for every rule of the spec, its text as written, the
+checker's short title and status, its findings (with a command to look at each
+and one to re-check the rule), its warnings (what may be wrong but a static
+estimate can't settle: they don't change the status), the checker's "by eye"
+item and its notes.
 
 A rule of the spec missing from the run is "NOT IN THIS RUN" (a --rule
 filter, or a rule newer than the checker: check it by hand); a rule the
 checker reports that the spec no longer has is flagged too.
 
 Usage, from the project root:
-  godot --headless --path . -s res://tools/check_level.gd -- --level=<id> --json 2>/dev/null \
-    | tail -n 1 | python3 .claude/skills/level-review/scripts/rules_table.py -
+  tools/level.sh check --level=<id> --json 2>/dev/null \
+    | python3 .claude/skills/level-review/scripts/rules_table.py -
   python3 .claude/skills/level-review/scripts/rules_table.py check.json [--spec specs/level-design.md]
 
 Exit code: 0 no FAIL, 1 the level loads with errors or a rule FAILs (as the
@@ -72,11 +74,11 @@ def main(argv):
             source = arg
     try:
         text = sys.stdin.read() if source == "-" else open(source, encoding="utf-8").read()
-        lines = [line for line in text.splitlines() if line.strip().startswith("{")]
-        check = json.loads(lines[-1])
-    except (OSError, ValueError, IndexError) as error:
-        print("rules_table: no checker JSON in %s (%s). Run check_level.gd without --json to see "
-              "why (exit 2: a bad level ID, or a level that doesn't load)." % (source, error),
+        check = json.loads(text)
+    except (OSError, ValueError) as error:
+        print("rules_table: no checker JSON in %s (%s). Make it with tools/level.sh check --level=<id> "
+              "--json (its stdout is the JSON alone); run it without --json to see why it can't run "
+              "(exit 2: a bad level ID, or a level that doesn't load)." % (source, error),
               file=sys.stderr)
         return 2
     try:
@@ -96,9 +98,9 @@ def main(argv):
           "FAST run: behaviour runs skipped, rules 1, 2 and 7 not fully checked: run it again without --fast"
           if fast else "full run (behaviour runs included)"))
     print("Spec: %s, %s (%d rules)" % (spec, status_line or "no status line", len(rules)))
-    print("Checker: %s (a MANUAL status: nothing checkable by code; by-eye items, "
+    print("Checker: %s, %d warnings (a MANUAL status: nothing checkable by code; by-eye items, "
           "under any status: %d)" % (", ".join("%d %s" % (counts.get(k, 0), k)
-          for k in ("PASS", "FAIL", "MANUAL", "N/A")), by_eye))
+          for k in ("PASS", "FAIL", "MANUAL", "N/A")), check.get("warnings", 0), by_eye))
     print("load: %s %s" % (load.get("status", "?"), load.get("title", "")))
     for finding in load.get("findings", []):
         print("  FINDING %s" % finding.get("text", ""))
@@ -117,19 +119,20 @@ def main(argv):
             continue
         print("\nrule %d [%s] %s" % (number, result["status"], result.get("title", "")))
         print("  spec: %s" % rule_text)
-        for finding in result.get("findings", []):
+        for label, finding in [("FINDING", one) for one in result.get("findings", [])] \
+                + [("WARNING", one) for one in result.get("warnings", [])]:
             where = finding.get("id", "")
             x = finding.get("x")
             has_x = isinstance(x, (int, float)) and x == x
             place = where + (" (x %.2f screens)" % x if has_x else "")
-            print("  FINDING %s: %s" % (place or "level", finding.get("text", "")))
+            print("  %s %s: %s" % (label, place or "level", finding.get("text", "")))
             if where:
                 print("    look: godot --path . -- --test-mode --level=%s --seed=1 --at=%s" % (level, where))
             elif has_x:
                 print("    look: godot --path . -- --test-mode --level=%s --seed=1 --at=%d,0 "
                       "(x in px; set y to the height to look at)" % (level, round(x * SCREEN)))
-        if result.get("findings"):
-            print("    re-check: godot --headless --path . -s res://tools/check_level.gd -- --level=%s%s --rule=%d"
+        if result.get("findings") or result.get("warnings"):
+            print("    re-check: tools/level.sh check --level=%s%s --rule=%d"
                   % (level, "" if number in BEHAVIOUR_RULES else " --fast", number))
         if result.get("manual"):
             print("  by eye: %s" % result["manual"])

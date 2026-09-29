@@ -147,6 +147,20 @@ func all_rules() -> Array[Rule]:
 	return out
 
 
+## Where a camera aimed at the component with stable ID `id` looks, in
+## level coordinates: its position, or for a route (a loop segment, a route
+## back, placed by its curve, not its node) its first point. Null when the
+## level has no such component. Test mode's "at" and a fixture's "camera"
+## name things this way.
+func point_of(id: String) -> Variant:
+	var thing := find(id)
+	if thing == null:
+		return null
+	if thing is Path2D and thing.curve != null and thing.curve.point_count > 0:
+		return transform_of(thing) * thing.curve.get_point_position(0)
+	return position_of(thing)
+
+
 ## Where `node` is, in level coordinates (this node's local space).
 func position_of(node: Node) -> Vector2:
 	return transform_of(node).origin

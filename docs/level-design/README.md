@@ -23,10 +23,14 @@ order for a new level, or jump to the page for the task at hand.
 
 - Run every command from the project's root folder (the one holding
   `project.godot`). Godot 4.7 is on the PATH as `godot`.
-- **After pulling new code, import once:** `godot --headless --import`
-  (or run `tools/test.sh`, which does it). Without it, a tool that uses a
-  newly added class stops with `Parse Error: Identifier "LevelBuilder" not
-  declared in the current scope` (or another class name).
+- **Run the tools through `tools/level.sh`** (`tools/level.sh check`,
+  `report`, `new`, `fixture`, `bench`, then the tool's arguments). It
+  imports the project first, so a class added by a pull is known (a tool
+  started without that import can stop with `Parse Error: Identifier
+  "LevelBuilder" not declared in the current scope`; `godot --headless
+  --import` fixes it too, and `tools/test.sh` imports as well), and it
+  starts Godot without its banner, so a tool's `--json` is the only thing
+  on stdout.
 - The pages use a throwaway level, `zz-tutorial`, so every command can be
   copied as is. Use your own level's ID instead (the real first level is
   `01`). A level whose ID starts with `zz-` is a throwaway by convention:
