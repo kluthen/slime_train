@@ -7,6 +7,11 @@
 - `docs/research/`: verbatim research reports with their sources.
 - `docs/*.atom.md`: ATD declared intent, maintained by documentalist.
 
+## Level design
+
+Tutorial for building a level: `docs/level-design/` (start with its README).
+Project skills: `new-level`, `level-content`, `level-review` (`.claude/skills/`).
+
 ## Declared intent
 
 This project records its declared intent with ATD: atoms in `docs/*.atom.md`,

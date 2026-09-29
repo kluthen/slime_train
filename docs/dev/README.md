@@ -70,6 +70,8 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `tools/level_report.gd` | A level's population, frontier sets, framing zones and reach, for designers (see [level-tooling.md](level-tooling.md)) |
 | `tools/level_builder/` | Helpers that write a level scene from the components by script (the test level's generator and the scaffolder use them) |
 | `docs/dev/img/` | Screenshots used by these notes (`docs/.gdignore` keeps Godot from importing anything under `docs/`) |
+| `docs/level-design/` | The tutorial for building a level, one task per page (see "Level-design tutorial and skills (chunk LD2)") |
+| `.claude/skills/` | Project skills for Claude: `new-level`, `level-content`, `level-review` (same section) |
 | `spikes/` | Throwaway prototypes. Nothing else depends on them |
 | `export_presets.cfg` | The Android export presets (see "Android export (debug)"); `build/` (gitignored) receives the APKs |
 | `addons/gut/` | The GUT test framework, vendored |
@@ -2900,6 +2902,31 @@ Tests: `tests/unit/test_level_catalog.gd`, `test_decoration.gd`,
 `test_level_checker.gd`, `test_new_level_e2e.gd`, `test_level_tools_e2e.gd`.
 The e2e tests that need a second level create a throwaway one
 (`levels/zz-*`) and remove it, crashed runs' leftovers included.
+
+## Level-design tutorial and skills (chunk LD2)
+
+Build plan chunk LD, part 2: docs and skills only, no code.
+
+- **The tutorial:** [`docs/level-design/`](../level-design/README.md), one
+  task per page for a level designer: concepts, scaffolding, editing in the
+  editor (and editing `level.tscn` as text), adding a section, the
+  components and the rules each must meet, exploration branches and routes
+  back, population, decoration, fixtures and test mode, reading the
+  checker, the level report, and a done checklist. Every command in it was
+  run on a throwaway level (`zz-tutorial`, removed); its two screenshots
+  are in `docs/level-design/img/`.
+- **The project skills** (`.claude/skills/`, tracked): `new-level`
+  (scaffold, run the level's test, the checker and the report),
+  `level-content` (add a section, place or configure an existing
+  component, add a decoration, then check), `level-review` (every rule of
+  `specs/level-design.md` with the checker's result, FAILs to fix, MANUAL
+  items as a checklist). `level-review/scripts/rules_table.py` reads the
+  rules from the spec at run time and merges the checker's `--json`.
+- **Gotchas found while writing it** (in the pages): after a pull that adds
+  classes, the headless tools fail to parse until `godot --headless
+  --import`; `--json` output follows Godot's banner (keep `tail -n 1`);
+  opening the editor drops `window/handheld/orientation=0` from
+  `project.godot`; a fixture's save goes stale when the level changes.
 
 ## Android export (debug)
 
