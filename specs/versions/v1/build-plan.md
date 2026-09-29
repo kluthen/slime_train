@@ -126,7 +126,7 @@ technology, not business behaviour:
 | 20 | Android build and platform integration | L | 18 | [DoD 25, 26, 27]; emulator |
 | 21 | End-to-end suite | M | 19 | [DoD 31] |
 | 22 | Performance pass on phones | M | 20 | [DoD 30] |
-| 23 | Small issues (open list, proposed) | S per issue | 22 | each issue's own done-when |
+| 23 | Small issues (open list) | S per issue | 22 | each issue's own done-when |
 
 Chunks 1 and 2 can run in parallel with 3. Chunk 5N is not in the
 sequence: it runs only if chunk 22's measurement fails (D96). Chunks 9, 10
@@ -414,29 +414,30 @@ parallel with the camera and objects work.
   repeated.** If the floor phone still can't hold it, the floor rises (D71).
   The 200 cap stays.
 
-### 23. Small issues (open list; proposed)
+### 23. Small issues (open list)
 
 Small issues the user finds while playing the build. The list stays open:
 new reports are added here as they come, each with the spec change it
 needs and its own done-when. It runs **after chunk 22**, so it doesn't
 disturb the performance measurement; an issue can be pulled forward if it
-blocks testing. Everything here is **(proposed)**, pending the user's
-approval. Each issue is small (S) and can land on its own.
+blocks testing. Each issue is small (S) and can land on its own. An issue
+tagged **(proposed)** still waits for the user's approval; 23.1 to 23.3 are
+decided (D99 to D101).
 
-**23.1 Call camera dead zone** (reported 2026-09-29; O88; master spec
-5.6).
+**23.1 Call camera dead zone** (reported and decided 2026-09-29; D101;
+master spec 5.6).
 - A call whose point is already inside a box centred on the screen, 20% of
   its width by 20% of its height, happens as usual (the slimes answer, the
-  ripple shows) but doesn't move the camera. Outside the box, the call drag
-  is unchanged.
+  ripple shows) but doesn't move the camera; during a drag it stops the
+  drag where it is. Outside the box, the call drag is unchanged.
 - **Done when:** a scripted tap inside the box calls the slimes in range
   and leaves the camera where it was until the answering window ends; a tap
   just outside it drags the camera as before; the box holds at each framing
-  zone's zoom (it is measured on the screen); [DoD 3] and [DoD 18] still
-  pass.
+  zone's zoom (it is measured on the screen); a tap inside the box during
+  a drag stops the drag; [DoD 3] and [DoD 18] still pass.
 
-**23.2 Edge buttons as whole-height strips** (reported 2026-09-29; O89,
-which settles O81; master spec 5.5).
+**23.2 Edge buttons as whole-height strips** (reported and decided
+2026-09-29; D99, which settles O81; master spec 5.5).
 - A tap within 10% of the screen's width from the left or right edge, over
   the whole height below the parent zone, is an edge-button press: step and
   hold as now (O70), right forward and left backward (D90). The strip takes
@@ -450,13 +451,14 @@ which settles O81; master spec 5.5).
   strip tap in screensaver mode doesn't start a session; at bedtime a strip
   tap moves nothing; [DoD 18] and [DoD 20] still pass.
 
-**23.3 Slimes stuck inside each other: safety net** (reported 2026-09-29;
-O90; master spec 5.2; the real fix is O91).
+**23.3 Slimes stuck inside each other: safety net** (reported and decided
+2026-09-29; D100; master spec 5.2; the real fix is O91).
 - Every 0.5 s, pairs of simulated slimes that can't fuse whose centres are
   closer than a quarter of the smaller one's radius are counted; after 4
   checks in a row (about 2 s), the smaller one (a train or free slime; on a
   tie the higher id) is moved to the start of the loop, back on the train,
-  and logged with the reason "stuck". Sleepers, slimes in a basket and
+  and logged with the reason "stuck". Stuck is its own state, not lost
+  (D100). Sleepers, slimes in a basket and
   bedtime-asleep slimes are never moved; if neither can be moved, the pair
   is only logged.
 - **Done when:** a unit test that places two slimes of different species
@@ -526,7 +528,6 @@ overrules them.
 | 17 Session | O68 (reopening the app), O69 (which taps start a session) |
 | 18 Parent gate | O72 (deleting the running save), O73 (forgotten code), O76 (wrong-code wait), O77 (language) |
 | 20 Android | O74 (pinning timing), O75 (back gesture without pinning) |
-| 23 Small issues | O88 (call camera dead zone), O89 (edge strips), O90 (stuck slimes); raised after D95, proposed by the user's own reports |
 
 ## Before starting
 

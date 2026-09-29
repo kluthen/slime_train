@@ -948,3 +948,60 @@ Resolves O78, with the default it proposed.
   model.
 - Why: anyone who can read the app's files (a backup, a debugging tool)
   mustn't learn the code, and with it the parent buttons.
+
+## D99 — Edge buttons are whole-height strips (2026-09-29)
+Resolves O89 and O81. The user's report from playing the build (chunk 23).
+- An **edge button** is a strip over the screen's whole height, within
+  **10% of the screen's width** from the left or right edge. A tap anywhere
+  in it is an edge-button press: it moves the camera along the rail (right
+  forward, left backward, D90; a step per press, a steady pace while held).
+- The strip **takes the whole tap**: no call is issued, and no object under
+  it is operated.
+- The **parent zone wins where they overlap**: the top band stays the first
+  tap zone, so the strips run from below it to the bottom edge.
+- A strip tap still gets its ripple. While the edge buttons are hidden
+  (bedtime), a tap there is an ordinary tap. In screensaver mode a strip tap
+  moves the camera and doesn't start a session.
+- How the strips are drawn (the arrows, any marking) stays with `ui_ux/`.
+- Consequence: a sleeper or object near an edge has to be brought inward
+  with the camera before it can be tapped.
+- Why: the placeholder button (96 × 192 px, only the arrow) was too hard to
+  hit; the user tapped the screen edge and got a call instead.
+
+## D100 — Stuck slimes: a state with the same effect as lost (2026-09-29)
+Resolves O90. The user's report from playing the build (chunk 23). The
+cause stays open (O91).
+- In the user's words: "it's a new state but has the same effect as lost".
+  **Stuck** is its own state, distinct from lost: it isn't "lost" in the
+  sense of D10, so it doesn't count against "no slime is ever lost" or "a
+  free slime kept on screen is never lost". Its effect is the same as lost:
+  the slime goes to the start of the loop and rides the train again. Every
+  one is logged with the reason "stuck".
+- **Detection:** every 30 ticks (0.5 s), the simulation looks for pairs of
+  simulated slimes whose centres are closer than **a quarter of the smaller
+  one's radius**. A pair found so on **4 checks in a row** (about 2 s) is
+  stuck. A same-species pair that is about to fuse (sizes adding up to 3 or
+  less) is never counted.
+- **Which one moves:** the smaller one, on a tie the one with the higher id,
+  and only a train or free slime. Sleepers, slimes in a basket and
+  bedtime-asleep slimes are never moved; if neither slime of the pair can
+  be moved, the pair is only logged.
+- It is a safety net until the cause is found and prevented (O91).
+- Why: slimes of different species sometimes end up inside one another,
+  their centres identical. It isn't fusion (only the same species fuse), and
+  they stay stuck.
+
+## D101 — A call near the middle of the screen doesn't move the camera (2026-09-29)
+Resolves O88. The user's report from playing the build (chunk 23). Refines
+D45.
+- If the call point is already inside a box **centred on the screen, 20% of
+  its width by 20% of its height**, the call happens as usual (the slimes
+  answer, the ripple shows) but the camera doesn't move. Outside the box,
+  the call drag works as before (D45).
+- The box is measured **on the screen**, so it doesn't change with the zoom.
+- A new call inside the box during a drag **stops the drag where it is**.
+- The camera goes back to the rails when the answering window ends, as
+  after any call.
+- A tap on a sleeper is a call like any other.
+- Why: the camera moving right onto a call point that was already in view
+  was troublesome.

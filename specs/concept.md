@@ -37,11 +37,11 @@ The slimes stand in for LocoRoco.
   signposts show the directions, and by default the camera follows the main
   stream. A call drags the camera toward the call point at a slow, steady
   pace. That is how the child looks off the loop: there is no joystick
-  (D45). (proposed, O88) A call whose point is already near the middle of
-  the screen (a central box 20% of its width by 20% of its height) leaves
-  the camera where it is. (proposed, O89) The edge buttons are strips over
-  the screen's whole height, 10% of its width from each edge; the parent
-  zone at the top wins where they overlap. Plain signposts at forks show which way the loop goes, and larger
+  (D45). A call whose point is already near the middle of the screen (a
+  central box 20% of its width by 20% of its height) leaves the camera
+  where it is (D101). The edge buttons are strips over the screen's
+  whole height, 10% of its width from each edge; the parent zone at the top
+  wins where they overlap (D99). Plain signposts at forks show which way the loop goes, and larger
   signposts let the child pick which branch the camera follows (D47).
 - **Simple, curved, high-contrast, low detail.** Theming (desert, forest,
   rivers…) may come later as palette and decoration changes only.
@@ -223,6 +223,7 @@ survives the app being killed.
 | weight | a slime's size seen as load; what presence objects respond to |
 | left alone | a free slime off screen for more than 10 s |
 | lost | a left-alone slime not back on the loop after 1 min; teleported to the loop start |
+| stuck | two slimes that can't fuse, found inside each other for about 2 s; a state of its own, not "lost", with the same effect: the smaller one goes to the loop start (D100) |
 | free slime | an awake slime attracted away from the loop, driven by physics alone until it rejoins |
 | session | one timed play period (15 min for now) |
 | level | a whole world with its own loop, sections and save file; the first release ships one |
@@ -230,7 +231,7 @@ survives the app being killed.
 | large signpost | a signpost that also lets the child pick which branch the camera follows |
 | filter | a fork that sends slimes down a branch by species or by size (D88); usually has a signpost next to it |
 | screensaver mode | the world running with no session, after sunrise and before the first tap |
-| edge button | the left or right control that moves the camera along the loop; (proposed, O89) a strip over the screen's whole height, 10% of its width from the edge, that never calls |
+| edge button | the left or right control that moves the camera along the loop: a strip over the screen's whole height, 10% of its width from the edge, that never calls (D99) |
 | framing zone | an area of the level that sets the camera's zoom and position when the camera reaches it |
 | sunrise | the end of bedtime: slimes wake up and screensaver mode begins |
 | species | a kind of slime; only the same species fuse (replaces the precursor's "type") |

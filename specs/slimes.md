@@ -37,18 +37,20 @@ and it may roll downhill. Phase names were adopted in D75.
   to the start of the loop.
 - Fusion and waking happen only on screen.
 
-## Stuck slimes (proposed, O90; temporary)
+## Stuck slimes (D100)
 
 - Slimes of different species have been seen stuck inside one another
   (the user's report, 2026-09-29). It isn't fusion: only the same species
   fuse.
-- Until the cause is fixed (O91), the simulation checks every 0.5 s for two
+- Until the cause is fixed (O91), a safety net: the simulation checks every 0.5 s for two
   simulated slimes that can't fuse whose centres are closer than a quarter
   of the smaller one's radius. Found so 4 times in a row (about 2 s), the
   smaller one is moved to the start of the loop and rides the train again
   (on a tie, the one with the higher id). Only a train or free slime is
   moved, never a sleeper, a slime in a basket or a bedtime-asleep one.
-- It is logged as its own reason ("stuck"), not as "lost" (D10).
+- **Stuck** is its own state, distinct from lost (D10): it doesn't count as
+  a lost slime, but it has the same effect, and every case is logged with
+  the reason "stuck".
 
 ## Movement (D21, D74)
 

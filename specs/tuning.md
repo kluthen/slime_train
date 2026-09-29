@@ -122,16 +122,15 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 
 ### Small issues from play (chunk 23)
 
-All **(proposed)**: the user's reports of 2026-09-29, with the details this
-spec proposes.
+The user's reports of 2026-09-29, all decided (D99, D100, D101).
 
 | Value | Start at | Source |
 |---|---|---|
-| Call camera dead zone | a box centred on the screen, 20% of its width by 20% of its height; a call point inside it doesn't move the camera | O88 |
-| Edge-button strips | 10% of the screen's width from the left and right edges, the whole height below the parent zone's top band | O89 |
-| Stuck-slime check | every 30 ticks (0.5 s) | O90 |
-| Stuck: overlapping | centres closer than a quarter of the smaller slime's radius | O90 |
-| Stuck: how long | 4 checks in a row (about 2 s) | O90 |
+| Call camera dead zone | a box centred on the screen, 20% of its width by 20% of its height, measured on the screen; a call point inside it doesn't move the camera, and stops a drag where it is | D101 |
+| Edge-button strips | 10% of the screen's width from the left and right edges, the whole height below the parent zone's top band | D99 |
+| Stuck-slime check | every 30 ticks (0.5 s) | D100 |
+| Stuck: overlapping | centres closer than a quarter of the smaller slime's radius | D100 |
+| Stuck: how long | 4 checks in a row (about 2 s) | D100 |
 
 ### Session, wind-down, bedtime and sunrise (chunk 17)
 
@@ -159,8 +158,8 @@ monotonic clock doesn't survive a restart (accepted in master spec §5.7).
 These stand in until `ui_ux/` designs them.
 
 - **Edge buttons:** built as 96 × 192 screen px rectangles at mid-height
-  on each side; (proposed, O89) to become whole-height strips 10% of the
-  screen's width (chunk 23). How they are drawn stays with `ui_ux/`.
+  on each side; to become whole-height strips 10% of the screen's width
+  (D99, chunk 23). How they are drawn stays with `ui_ux/`.
 - **Top band** (the parent zone): 64 screen px.
 - **An object's hit box:** its drawn box grown by 24 px.
 - **Dusk colour** (`DUSK_COLOUR`): the tint at full dusk, RGB (0.55, 0.52,
