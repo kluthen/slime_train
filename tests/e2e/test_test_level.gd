@@ -3,7 +3,9 @@ extends GutTest
 ## headless, and a test finds the loop, the routes back and every stable ID of
 ## section 1 (Meadow), section 2 (Caves, chunk 15) and section 3 (Big bowl,
 ## chunk 16), and checks the level rules its layout must meet
-## (specs/levels/test/README.md, specs/level-design.md).
+## (specs/levels/test/README.md, specs/level-design.md). The level rules
+## are checked by the level-rules checker (LevelChecker, chunk LD1); this
+## file holds what the test level's design fixes.
 ##
 ## Distances are in level pixels; 1 screen is LevelData.SCREEN px.
 
@@ -12,18 +14,17 @@ extends GutTest
 
 const LEVEL_SCENE := "res://levels/test/level.tscn"
 const SCREEN := LevelData.SCREEN
-## A sleeper this close to the loop's route would sit on the loop: two
-## size-1 slime radii.
-const OFF_LOOP_MIN_GAP := 2.0 * PlaceholderArt.SLIME_RADIUS
-## A route back ends on the loop when its last point is this close to it.
-const ON_LOOP_MAX_GAP := 32.0
+## The first slime starts on the loop: this close to it, px.
+const ON_LOOP_MAX_GAP := LevelChecker.ON_LOOP_MAX_GAP
 
 var level: Level
+var checker: LevelChecker
 
 
 func before_all() -> void:
 	level = load(LEVEL_SCENE).instantiate()
 	add_child(level)
+	checker = LevelChecker.new(level)
 
 
 func after_all() -> void:
@@ -77,15 +78,6 @@ func _sleepers_of(section: String) -> Array:
 	return _of_type(Sleeper).filter(func(sleeper): return sleeper.stable_id.begins_with(section + "."))
 
 
-## The gates open once the loop reaches `section` (1, 2, ...): the gates of
-## the sections before it.
-func _gates_before(section: int) -> Array:
-	var gates := []
-	for n in range(1, section):
-		gates.append("s%d.gate" % n)
-	return gates
-
-
 func _of_type(type: Variant) -> Array:
 	var found := []
 	for id in level.ids():
@@ -124,8 +116,9 @@ func test_every_stable_id_of_sections_1_to_3_is_found() -> void:
 
 
 func test_ids_are_well_formed() -> void:
-	for id in level.ids():
-		assert_true(StableId.is_valid(id), id)
+	# The checker's rule 20: every thing's stable ID well-formed and unique,
+	# each section's sleepers numbered from .01 without gaps, left to right.
+	assert_eq(checker.check(20)["findings"], [])
 
 
 # --- Population --------------------------------------------------------------
@@ -178,7 +171,8 @@ func test_the_level_has_200_base_slimes() -> void:
 	# README population table, the level: A 37, B 36, C 38, D 39, E 50.
 	var slimes := _of_type(Sleeper)
 	slimes.append(level.find("start.first-slime"))
-	assert_eq(slimes.size(), 200)
+	assert_eq(checker.base_slimes(), 200)
+	assert_eq(checker.check(16)["findings"], [], "at most 200")
 	assert_eq(_species_counts(slimes), {"A": 37, "B": 36, "C": 38, "D": 39, "E": 50})
 	assert_eq(level.data.sleepers.size(), 199, "the first slime and 199 sleepers")
 
@@ -193,19 +187,14 @@ func test_sleepers_are_numbered_left_to_right() -> void:
 
 # @test-link [[rule_sleepers_never_on_loop]]
 func test_no_sleeper_sits_on_the_loop() -> void:
-	for sleeper in _of_type(Sleeper):
-		var gap: float = level.data.loop.gap(level.position_of(sleeper))
-		assert_gt(gap, OFF_LOOP_MIN_GAP, sleeper.stable_id)
+	# More than two size-1 slime radii from every loop segment.
+	assert_eq(checker.check(17)["findings"], [])
 
 
 # @test-link [[rule_first_sleeper_near_first_awake_slime]]
 func test_the_first_sleeper_is_near_the_first_slime() -> void:
-	var first_slime_at: Vector2 = level.position_of(level.find("start.first-slime"))
-	var first_sleeper_at: Vector2 = level.position_of(level.find("s1.sleeper.01"))
-	assert_lte(first_slime_at.distance_to(first_sleeper_at), SCREEN / 3.0)
-	for sleeper in _of_type(Sleeper):
-		assert_gte(first_slime_at.distance_to(level.position_of(sleeper)),
-				first_slime_at.distance_to(first_sleeper_at), "no sleeper is nearer than the first one")
+	assert_eq(checker.nearest_sleeper(), "s1.sleeper.01", "no sleeper is nearer than the first one")
+	assert_eq(checker.check(18)["findings"], [], "within a third of a screen")
 
 
 # --- The loop ----------------------------------------------------------------
@@ -261,9 +250,9 @@ func test_the_frontier_is_at_gate_1() -> void:
 
 # @test-link [[rule_start_carries_split_zone]]
 func test_the_split_zone_sits_at_the_start_of_the_loop() -> void:
-	var split_zone: SplitZone = level.find("start.split-zone")
 	var start: Vector2 = level.data.loop.position_at(0.0)
-	assert_true(split_zone.contains(start - level.position_of(split_zone)), "the loop starts inside the split zone")
+	assert_eq(checker.check(4)["findings"], [], "the loop starts inside a split zone")
+	assert_true((level.data.split_zones["start.split-zone"] as Rect2).has_point(start), "start.split-zone")
 	assert_lt(start.x, SCREEN, "in the start basin")
 
 
@@ -316,17 +305,10 @@ func test_the_switch_basket_and_sleepers_are_tap_targets() -> void:
 
 # @test-link [[rule_exploration_branch_has_route_back]]
 func test_every_exploration_branch_has_a_route_back() -> void:
-	var branches := _of_type(ExplorationBranch)
-	assert_eq(branches.size(), 6)
-	for branch in branches:
-		var served := 0
-		for route_back in _of_type(RouteBack):
-			if route_back.serves == branch.stable_id:
-				served += 1
-				var points: PackedVector2Array = level.data.route_backs[route_back.stable_id]["points"]
-				assert_true(branch.contains(points[0] - level.position_of(branch)),
-						"%s starts in %s" % [route_back.stable_id, branch.stable_id])
-		assert_gt(served, 0, branch.stable_id)
+	assert_eq(_of_type(ExplorationBranch).size(), 6)
+	# The checker's rule 8: one route back per branch, starting in it and
+	# ending on the loop.
+	assert_eq(checker.check(8)["findings"], [])
 
 
 # @test-link [[rule_no_dead_ends]]
@@ -334,22 +316,20 @@ func test_every_exploration_branch_has_a_route_back() -> void:
 func test_every_route_back_ends_on_the_loop() -> void:
 	assert_eq(level.data.route_backs.size(), 6)
 	for id in level.data.route_backs:
+		# On the loop in use once the loop reaches the route's section, on an
+		# outgoing route: its own section's.
+		assert_eq(checker.landing_problem(id), "", id)
 		var points: PackedVector2Array = level.data.route_backs[id]["points"]
-		# The loop in use once the loop reaches the route's section.
-		var section := str(id).get_slice(".", 0)
-		var gates := _gates_before(section.trim_prefix("s").to_int())
-		var closest: Dictionary = level.data.loop.closest(points[points.size() - 1], gates)
-		assert_lt(closest["gap"], ON_LOOP_MAX_GAP, id)
-		assert_eq(closest["segment"], section + ".loop", "%s lands on the loop in use" % id)
+		var section := LevelChecker.section_of(id)
+		var closest: Dictionary = level.data.loop.closest(points[points.size() - 1], checker.gates_before(section))
+		assert_eq(closest["segment"], "s%d.loop" % section, "%s lands on the loop in use" % id)
 
 
 # @test-link [[rule_gravity_leads_back_to_loop]]
 func test_routes_back_only_go_down() -> void:
-	# Gravity leads back: a route back never climbs (y grows downward).
-	for id in level.data.route_backs:
-		var points: PackedVector2Array = level.data.route_backs[id]["points"]
-		for i in range(1, points.size()):
-			assert_gte(points[i].y, points[i - 1].y - 0.5, "%s point %d" % [id, i])
+	# Gravity leads back: a route back never climbs (y grows downward, 0.5
+	# px of slack): the checker's rule 7 without its behaviour runs.
+	assert_eq(checker.check(7, true)["findings"], [])
 
 
 # --- Frontier set 1, framing zones, rules ------------------------------------

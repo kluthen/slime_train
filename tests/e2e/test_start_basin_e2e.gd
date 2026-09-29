@@ -26,16 +26,9 @@ extends GutTest
 # @test-link [[req_test_level_and_test_mode]]
 
 const MAIN_SCENE := "res://src/main.tscn"
+const LEVEL_SCENE := "res://levels/test/level.tscn"
 const SEED := 2
 const TICK_RATE := Simulation.TICK_RATE
-## The loop's first stretch, px along it from its start: the basin and the
-## way up out of it.
-const FIRST_STRETCH := 1.5 * LevelData.SCREEN
-## Around the loop's start, the slide joins it: px.
-const JOIN := 80.0
-## The closest a return route may run to the loop's first stretch outside
-## the join: two size-1 slime radii, px.
-const CLEARANCE := 2.0 * PlaceholderArt.SLIME_RADIUS
 ## Where the train slimes wait on the loop's first stretch, px along it, one
 ## species each (so none fuses), and the slime coming home: px before the
 ## end of the loop (about 1.7 s of slide), species E.
@@ -75,37 +68,17 @@ func _boot() -> Node:
 	return game
 
 
-## The shortest distance from `point` to the loop between `from` and `to`
-## px along it (sampled every 4 px).
-static func _gap_to_loop(train: Train, point: Vector2, from: float, to: float) -> float:
-	var best := INF
-	var d := from
-	while d <= to:
-		best = minf(best, point.distance_to(train.position_at(d)))
-		d += 4.0
-	return best
-
-
+# @test-link [[rule_return_route_joins_start_behind_train]]
 func test_the_slides_come_home_behind_the_loop_start_not_along_its_first_stretch() -> void:
-	var game := _boot()
-	var loop: LoopData = game.level.data.loop
-	var start := loop.position_at(0.0)
-	for gates in [[], ["s1.gate"], ["s1.gate", "s2.gate"]]:
-		var train := Train.new(loop, gates)
-		var slide_from := train.outgoing_length()
-		var near := INF
-		var where := Vector2.ZERO
-		var d := slide_from
-		while d < train.length():
-			var at := train.position_at(d)
-			if at.distance_to(start) > JOIN:
-				var gap := _gap_to_loop(train, at, 0.0, FIRST_STRETCH)
-				if gap < near:
-					near = gap
-					where = at
-			d += 8.0
-		assert_gte(near, CLEARANCE, "gates %s: the slide runs %.0f px from the loop's first stretch at %s"
-				% [gates, near, where.round()])
+	# Level rule 22's first part, by the level-rules checker (LevelChecker):
+	# in every gate state, no point of the slide farther than 80 px from the
+	# loop's start runs within two size-1 slime radii of the loop's first 1.5
+	# screens (the basin and the way up out of it).
+	var level: Level = load(LEVEL_SCENE).instantiate()
+	add_child_autofree(level)
+	var checker := LevelChecker.new(level)
+	assert_eq(Array(checker.sections()), [1, 2, 3], "three gate states")
+	assert_eq(LevelRulesStart.behind_the_train(checker), [])
 
 
 func test_a_slime_coming_home_does_not_shove_the_train_back() -> void:

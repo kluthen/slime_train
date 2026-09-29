@@ -1,18 +1,31 @@
 extends SceneTree
-## Writes the test level's fixtures, levels/test/fixtures/: for each, a
-## sidecar <name>.fixture.json (description, whether it has a save, where the
-## camera starts) and, when it has one, a save <name>.json in SaveData's
-## format, cut down to what a person reads and edits (SaveData.readable).
-## Test mode loads them by name ("fixture": "bump"; see TestMode).
+## Writes a level's fixtures, in its fixtures' folder (LevelCatalog,
+## levels/<id>/fixtures/): for each, a sidecar <name>.fixture.json
+## (description, whether it has a save, where the camera starts) and, when
+## it has one, a save <name>.json in SaveData's format, cut down to what a
+## person reads and edits (SaveData.readable). Test mode loads them by name
+## ("fixture": "bump"; see TestMode). Every save is loaded back before it is
+## written.
 ##
-## Run from the project root, for all of them or the ones named:
-##   godot --headless -s res://tools/make_fixture.gd
-##   godot --headless -s res://tools/make_fixture.gd -- bump
+## Run from the project root, for all of a level's fixtures or the ones named:
+##   godot --headless --path . -s res://tools/make_fixture.gd -- [--level=<id>] [--list] [name ...]
 ##
-## A fixture is built here, from the level scene, by a function below: add
-## one to FIXTURES and write its builder. The level's stable IDs (the
-## sleepers') are looked up in the scene, never typed in. Levels change: when
-## the test level moves things, run this again.
+##   --level=<id>   the level (LevelCatalog; default "test")
+##   --list         print the level's fixtures, one per line
+##                  ("<name>: <description>"), and write nothing
+##   name ...       only these fixtures (default: all of them)
+##
+## Exit code: 0 done, 1 on a problem (an unknown argument, level or fixture,
+## named with what exists; a fixture that can't be built or written).
+##
+## The test level has its own table, FIXTURES below, each built by a
+## function of this file. Any other level gets the generic fixtures of
+## tools/make_fixture/level_fixtures.gd: fresh, and gate<k>-open for each of
+## its gates.
+##
+## The test level's fixtures. Add one to FIXTURES and write its builder. The
+## level's stable IDs (the sleepers') are looked up in the scene, never typed
+## in. Levels change: when the test level moves things, run this again.
 ##
 ## The frontier set fixtures (s1-basket-5of6, s1-optout) put the slimes made
 ## of the ledge sleepers above switch 1 in basket 1 (state "in_basket") and
@@ -30,14 +43,17 @@ extends SceneTree
 ##
 ## Chunk 16: bump is four C slimes (sizes 2, 2, 3, 1) so both bumps can
 ## happen; gate1-open and gate2-open open the gates as after their baskets
-## fired and spread 20 awake train slimes along the grown loop; the stress
-## fixtures fill section 3's bowl with the whole population (200 base
-## slimes, no sleeper left), found by scanning the terrain for room
-## (_bowl_spots).
+## fired (LevelStates.open_gates) and spread 20 awake train slimes along the
+## grown loop; the stress fixtures fill section 3's bowl with the whole
+## population (200 base slimes, no sleeper left), found by scanning the
+## terrain for room (_bowl_spots).
 # @spec-link [[req_test_level_and_test_mode]]
 # @spec-link [[req_persistence_and_saves]]
 
-const LEVEL_SCENE := "res://levels/test/level.tscn"
+const USAGE := "usage: godot --headless --path . -s res://tools/make_fixture.gd -- [--level=<id>] [--list] " \
+		+ "[name ...]"
+## The generic fixtures of a level other than the test level.
+const LevelFixtures := preload("res://tools/make_fixture/level_fixtures.gd")
 const S := LevelData.SCREEN
 ## The fusion dip's floor: its lowest point is at x 3.0 screens, y 240; a
 ## slime's centre rests above it.
@@ -46,7 +62,6 @@ const DIP_FLOOR := Vector2(3.0 * S, 216.0)
 ## over it; the ledge sleepers above switch 1 (x from 6.2 to 6.8 screens)
 ## make the slimes in the basket.
 const SWITCH_1 := "s1.switch"
-const BASKET_1 := "s1.basket"
 const PIT_FLOOR := 100.0
 const BASKET_CAMERA := Vector2(6.9 * S, -50.0)
 const LEDGES_FROM := 6.2 * S
@@ -57,9 +72,7 @@ const BEFORE_SWITCH := 6.3 * S
 ## 2 (basket 2 is 1.5 screens further, out of view), the sleepers around the
 ## switch and in the cave (x from 10.7 to 12.3 screens) that make the slimes
 ## in basket 2, and where the train slimes heading into it start.
-const GATE_1 := "s1.gate"
 const SWITCH_2 := "s2.switch"
-const BASKET_2 := "s2.basket"
 const PIT_2_FLOOR := 150.0
 const SWITCH_2_CAMERA := Vector2(10.97 * S, -150.0)
 const SET_2_FROM := 10.7 * S
@@ -86,7 +99,6 @@ const BUMP_XS := [2.95, 3.0, 3.05, 3.1]
 ## and section 1's first sleepers, in stable ID order), spread along the
 ## outgoing loop from just past the split zone to GATE_END_ROOM px before
 ## its end.
-const GATE_2 := "s2.gate"
 const GATE_AWAKE := 20
 const GATE_START_ROOM := 60.0
 const GATE_END_ROOM := 400.0
@@ -201,25 +213,41 @@ const FIXTURES := {
 			"camera": [BOWL_CAMERA.x, BOWL_CAMERA.y], "build": "_stress_moving"},
 }
 
+var _level_id := LevelCatalog.DEFAULT_ID
+var _list := false
+var _names := PackedStringArray()
 var _level: Level
 var _terrain: TerrainSegments
+## The level's fixtures, in order: name -> {"description", "camera" ([x, y]
+## or null), "save" (bool)}; for a level other than the test level, also
+## "gates" (LevelFixtures.table).
+var _fixtures := {}
 
 
+## Reads the arguments, loads the level, then lists or writes its fixtures
+## and quits: 0 done, 1 on a problem.
 func _initialize() -> void:
-	_level = load(LEVEL_SCENE).instantiate()
-	var errors := _level.build()
-	if not errors.is_empty():
-		_fail("the level doesn't build: %s" % "; ".join(errors))
+	var error := _parse()
+	if error.is_empty():
+		error = _load_level()
+	if error.is_empty():
+		error = _make_table()
+	for name in _names:
+		if error.is_empty() and not _fixtures.has(name):
+			error = "level %s has no fixture '%s' (its fixtures: %s)" % [_level_id, name, ", ".join(_fixtures.keys())]
+	if error.is_empty() and not _list:
+		var made := DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(LevelCatalog.fixtures_dir(_level_id)))
+		if made != OK:
+			error = "can't make %s (error %d)" % [LevelCatalog.fixtures_dir(_level_id), made]
+	if not error.is_empty():
+		_fail(error)
 		return
-	_terrain = SlimeWorld.terrain_from(_level)
-	var names := PackedStringArray(OS.get_cmdline_user_args())
-	if names.is_empty():
-		names = PackedStringArray(FIXTURES.keys())
+	var names := _names if not _names.is_empty() else PackedStringArray(_fixtures.keys())
 	for name in names:
-		if not FIXTURES.has(name):
-			_fail("no fixture '%s' (known: %s)" % [name, ", ".join(FIXTURES.keys())])
-			return
-		var error := _write(name, FIXTURES[name])
+		if _list:
+			print("%s: %s" % [name, _fixtures[name]["description"]])
+			continue
+		error = _write(name, _fixtures[name])
 		if error != "":
 			_fail(error)
 			return
@@ -228,35 +256,91 @@ func _initialize() -> void:
 	quit(0)
 
 
+## Reads the arguments into the settings. Returns "" or the problem.
+func _parse() -> String:
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--level="):
+			_level_id = arg.trim_prefix("--level=")
+		elif arg == "--list":
+			_list = true
+		elif arg.begins_with("-"):
+			return "unknown argument '%s'\n%s" % [arg, USAGE]
+		else:
+			_names.append(arg)
+	return ""
+
+
+## Loads and builds the level, and bakes its terrain. Returns "" or the
+## problem.
+func _load_level() -> String:
+	var problem := LevelCatalog.problem(_level_id)
+	if not problem.is_empty():
+		return problem
+	var scene = load(LevelCatalog.scene_path(_level_id)).instantiate()
+	if not scene is Level:
+		scene.free()
+		return "%s: its root isn't a Level (src/components/level.gd)" % LevelCatalog.scene_path(_level_id)
+	_level = scene
+	var errors := _level.build()
+	if not errors.is_empty():
+		return "level %s doesn't build: %s" % [_level_id, "; ".join(errors)]
+	_terrain = SlimeWorld.terrain_from(_level)
+	return ""
+
+
+## The level's fixtures: the test level's table (FIXTURES), or the generic
+## ones (LevelFixtures). Returns "" or the problem.
+func _make_table() -> String:
+	if _level_id != LevelCatalog.DEFAULT_ID:
+		var table := LevelFixtures.table(_level.data)
+		_fixtures = table["fixtures"]
+		return "level %s: %s" % [_level_id, table["error"]] if table["error"] != "" else ""
+	for name in FIXTURES:
+		var fixture: Dictionary = FIXTURES[name]
+		_fixtures[name] = {"description": fixture["description"], "camera": fixture["camera"],
+				"save": fixture["build"] != ""}
+	return ""
+
+
+## Writes fixture `name`: its save (built, cut down, loaded back) when it
+## has one, then its sidecar. Returns "" or the problem.
 func _write(name: String, fixture: Dictionary) -> String:
-	var sidecar := {"description": fixture["description"], "save": fixture["build"] != ""}
+	var sidecar := {"description": fixture["description"], "save": fixture["save"]}
 	if fixture["camera"] != null:
 		sidecar["camera"] = fixture["camera"]
-	if fixture["build"] != "":
-		var sim: Simulation = call(fixture["build"])
+	if fixture["save"]:
+		var built := _build(name, fixture)
+		var sim: Simulation = built["sim"]
 		if sim == null:
-			return "fixture '%s' could not be built" % name
+			return "fixture '%s' could not be built%s" % [name, ": " + built["error"] if built["error"] != "" else ""]
 		var save := SaveData.readable(sim.to_save())
 		var check := Simulation.from_save(save, _level.data, _terrain, 1)
 		if check == null:
 			return "fixture '%s' doesn't load back: %s" % [name, "; ".join(SaveData.problems(save, _level.data))]
-		var error := SaveStore.write_file(TestMode.fixture_path(name), save)
+		var error := SaveStore.write_file(TestMode.fixture_path(name, _level_id), save)
 		if error != "":
 			return error
-	var file := FileAccess.open(TestMode.sidecar_path(name), FileAccess.WRITE)
+	var path := TestMode.sidecar_path(name, _level_id)
+	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
-		return "can't write %s" % TestMode.sidecar_path(name)
+		return "can't write %s" % path
 	file.store_string(JSON.stringify(sidecar, "\t", false) + "\n")
 	file.close()
 	return ""
 
 
+## Fixture `name`'s simulation, {"sim" (null when it can't be built),
+## "error"}: the test level's from its builder (FIXTURES "build"), another
+## level's from LevelFixtures.
+func _build(name: String, fixture: Dictionary) -> Dictionary:
+	if _level_id != LevelCatalog.DEFAULT_ID:
+		return LevelFixtures.build(_level.data, _terrain, fixture)
+	return {"sim": call(FIXTURES[name]["build"]), "error": ""}
+
+
 ## The level as new: the first slime woken at its marker, the sleepers asleep.
 func _fresh_level() -> Simulation:
-	var sim := Simulation.new(1)
-	sim.slimes.terrain = _terrain
-	sim.load_level(_level.data)
-	return sim
+	return LevelStates.fresh_simulation(_level.data, _terrain, 1)
 
 
 ## bump: four slimes of species C on the dip's floor, sizes BUMP_SIZES at
@@ -382,7 +466,8 @@ func _fill_basket(sim: Simulation, switch_id: String, pieces: Array, span: Vecto
 # @spec-link [[req_switch_basket_gate_set]]
 func _basket_offscreen() -> Simulation:
 	var sim := _fresh_level()
-	_open_gate_1(sim)
+	if not _open_gates_before(sim, 2):
+		return null
 	var pieces := [["A", 3], ["B", 3], ["C", 3], ["D", 3], ["D", 2]]
 	# Side by side: a size-3 slime's width apart, with a little room.
 	var pitch := 2.0 * (SlimeBodies.ring_radius_for(3) + SlimeBodies.EDGE) + 2.0
@@ -398,7 +483,8 @@ func _basket_offscreen() -> Simulation:
 # @spec-link [[rule_left_alone_and_lost]]
 func _cave_return() -> Simulation:
 	var sim := _fresh_level()
-	_open_gate_1(sim)
+	if not _open_gates_before(sim, 2):
+		return null
 	var letters := ["A", "B", "C"]
 	for k in letters.size():
 		var letter: String = letters[k]
@@ -439,7 +525,8 @@ func _lost() -> Simulation:
 # @spec-link [[req_switch_basket_gate_set]]
 func _gate1_open() -> Simulation:
 	var sim := _fresh_level()
-	_open_gate_1(sim)
+	if not _open_gates_before(sim, 2):
+		return null
 	return sim if _wake_along_loop(sim) else null
 
 
@@ -447,7 +534,8 @@ func _gate1_open() -> Simulation:
 # @spec-link [[req_switch_basket_gate_set]]
 func _gate2_open() -> Simulation:
 	var sim := _fresh_level()
-	_open_gate_2(sim)
+	if not _open_gates_before(sim, 3):
+		return null
 	return sim if _wake_along_loop(sim) else null
 
 
@@ -489,7 +577,8 @@ func _wake_along_loop(sim: Simulation) -> bool:
 # @spec-link [[req_switch_basket_gate_set]]
 func _stress_still() -> Simulation:
 	var sim := _fresh_level()
-	_open_gate_2(sim)
+	if not _open_gates_before(sim, 3):
+		return null
 	var population := _whole_population(sim)
 	var box: Rect2 = _level.data.baskets[BASKET_3]["box"]
 	var reach := SlimeBodies.ring_radius_for(1) + SlimeBodies.EDGE
@@ -565,7 +654,8 @@ func _settle(sim: Simulation) -> int:
 # @spec-link [[rule_max_200_slimes_per_level]]
 func _stress_moving() -> Simulation:
 	var sim := _fresh_level()
-	_open_gate_2(sim)
+	if not _open_gates_before(sim, 3):
+		return null
 	if not _into_bowl(sim, _whole_population(sim), SlimeBodies.TRAIN):
 		return null
 	return sim
@@ -645,30 +735,17 @@ func _bowl_spots() -> Array:
 	return spots
 
 
-## Gate 1 open as after basket 1 fired: the basket fired and empty, switch 1
-## flipped with its trapdoor shut, the gate open with slide 1's entrance
-## shut, the loop grown into section 2.
-func _open_gate_1(sim: Simulation) -> void:
-	sim.object_states[SWITCH_1]["flipped"] = true
-	sim.object_states[SWITCH_1]["trapdoor_shut"] = true
-	sim.object_states[BASKET_1]["phase"] = FrontierSets.FIRED
-	sim.object_states[BASKET_1]["since"] = 0
-	sim.gate_states[GATE_1]["open"] = true
-	sim.gate_states[GATE_1]["entrance_closed"] = true
-	sim.train.set_open_gates([GATE_1])
-
-
-## Gates 1 and 2 open as after baskets 1 and 2 fired: set 1 as in
-## _open_gate_1, set 2 the same way, the loop grown into section 3.
-func _open_gate_2(sim: Simulation) -> void:
-	_open_gate_1(sim)
-	sim.object_states[SWITCH_2]["flipped"] = true
-	sim.object_states[SWITCH_2]["trapdoor_shut"] = true
-	sim.object_states[BASKET_2]["phase"] = FrontierSets.FIRED
-	sim.object_states[BASKET_2]["since"] = 0
-	sim.gate_states[GATE_2]["open"] = true
-	sim.gate_states[GATE_2]["entrance_closed"] = true
-	sim.train.set_open_gates([GATE_1, GATE_2])
+## The gates open as the loop first reaches `section`, as after their
+## baskets fired (LevelStates.open_gates): each basket fired and empty, its
+## switch flipped with its trapdoor shut, the gate open with its slide's
+## entrance shut, the loop grown into `section` (gate 1: section 2; gates 1
+## and 2: section 3). False (and an error) when a gate can't be opened.
+func _open_gates_before(sim: Simulation, section: int) -> bool:
+	var gates := LevelStates.gates_before(_level.data, section)
+	var problems := LevelStates.open_gates(sim, _level.data, gates)
+	if not problems.is_empty():
+		push_error("make_fixture: %s" % "; ".join(problems))
+	return problems.is_empty()
 
 
 ## The distance along the loop in use where it leaves the start's split zone.
@@ -766,6 +843,7 @@ func _sleeper_ids(prefix: String) -> Array:
 	return out
 
 
+## Prints `message` as an error, frees the level and quits with code 1.
 func _fail(message: String) -> void:
 	printerr("make_fixture: ", message)
 	if _level != null:

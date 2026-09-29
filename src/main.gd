@@ -10,8 +10,15 @@ extends Node2D
 ## export can leave src/test_mode/ out.
 ##
 ## In a debug build it loads the test level (levels/test/), adds a Camera2D
-## and hands the level's plain data to the simulation. The test level is named by path too: it never ships (D91).
-## A release build has no level yet (the real first level comes later).
+## and hands the level's plain data to the simulation. The test level is
+## named by path too (LevelCatalog: res://levels/<id>/level.tscn), never by a
+## class: it never ships (D91). A release build has no level yet (the real
+## first level comes later).
+##
+## Choosing a level (chunk LD1) is for test mode only, so debug builds only:
+## a run's "level" (--level=<id>) replaces the loaded level before anything
+## reads it, and the game started with --test-mode --level=<id> loads that
+## level from the start. The player never chooses a level (v1 ships one).
 ##
 ## The level's collision terrain is baked once into TerrainSegments and
 ## shared by every simulation started on it; a SlimeRenderer draws the
@@ -44,7 +51,6 @@ extends Node2D
 ## is named by path only, like the test level.
 # @spec-link [[req_test_level_and_test_mode]]
 
-const TEST_LEVEL_SCENE := "res://levels/test/level.tscn"
 const TEST_MODE_SCRIPT := "res://src/test_mode/test_mode.gd"
 const TEST_MODE_REFUSED := "Test mode is not available in this build (release builds never run it)."
 ## The most ticks one frame runs at normal speed (8 ticks: a 133 ms hitch).
@@ -109,8 +115,11 @@ func _ready() -> void:
 	print("Slime Train booted (Godot %s)." % Engine.get_version_info().string)
 	if save_store == null and get_tree().current_scene == self:
 		save_store = SaveStore.new()
+	var user_args := OS.get_cmdline_user_args()
 	if test_mode_guard.allows():
-		_load_level(TEST_LEVEL_SCENE)
+		var level_errors := _load_level(_first_level_id(user_args))
+		for error in level_errors:
+			printerr(error)
 	slime_renderer = SlimeRenderer.new()
 	slime_renderer.name = "Slimes"
 	slime_renderer.draw_mode = SlimeRenderer.default_mode()
@@ -133,7 +142,6 @@ func _ready() -> void:
 	if get_tree().current_scene == self:
 		add_debug_overlay()
 	_use_simulation(_new_simulation(Rng.random_seed()))
-	var user_args := OS.get_cmdline_user_args()
 	if TestModeGuard.requested(user_args):
 		var errors := start_test_mode_from_args(user_args)
 		for error in errors:
@@ -274,10 +282,12 @@ func save_now() -> String:
 
 
 ## Turns test mode on with a run configuration (see src/test_mode/test_mode.gd)
-## and starts a simulation from its seed: fresh, or from the fixture's or the
-## "load" file's save (a save's own seed wins), the camera where the fixture
-## puts it. Returns the errors; empty means test mode is on. Refused in a
-## release build.
+## and starts a simulation from its seed on the run's level (loaded first
+## when it isn't the loaded one): fresh, or from the fixture's or the "load"
+## file's save (a save's own seed wins), the camera where "at" or else the
+## fixture puts it. Returns the errors; empty means test mode is on, and on
+## an error the running game is left as it was. Refused in a release build.
+# @spec-link [[req_test_level_and_test_mode]]
 func enable_test_mode(config: Dictionary) -> PackedStringArray:
 	if not test_mode_guard.allows():
 		return PackedStringArray([TEST_MODE_REFUSED])
@@ -286,16 +296,26 @@ func enable_test_mode(config: Dictionary) -> PackedStringArray:
 		return candidate.errors
 	if candidate.autosave and save_store == null:
 		return PackedStringArray(["'autosave' needs a save store, and this game has none"])
+	var run_level := level
+	if level == null or level.level_id != candidate.level_id:
+		var opened := _open_level(candidate.level_id)
+		if not opened["errors"].is_empty():
+			return opened["errors"]
+		run_level = opened["level"]
+	var start := _run_start(candidate, run_level)
+	if not start["errors"].is_empty():
+		if run_level != level:
+			run_level.free()
+		return start["errors"]
+	if run_level != level:
+		_use_level(run_level)
 	var fresh: Simulation
 	if candidate.save_data.is_empty():
 		fresh = _new_simulation(candidate.seed_value)
 	else:
-		var problems := SaveData.problems(candidate.save_data, level.data if level != null else null)
-		if not problems.is_empty():
-			return problems
 		fresh = Simulation.from_save(candidate.save_data, level.data, _terrain, candidate.seed_value)
-	if candidate.camera != null and level != null and level.data.loop != null:
-		fresh.camera.start(level.data.loop, fresh.train.open_gates if fresh.train != null else [], candidate.camera)
+	if start["camera"] != null and level.data.loop != null:
+		fresh.camera.start(level.data.loop, fresh.train.open_gates if fresh.train != null else [], start["camera"])
 	if candidate.sessions:
 		fresh.session.open(fresh)
 	if test_mode != null:
@@ -336,17 +356,104 @@ func start_test_mode_from_args(user_args: PackedStringArray) -> PackedStringArra
 	return PackedStringArray()
 
 
-## Adds the level scene at `path` and the Camera2D that shows the
-## simulation's camera.
+## What a test-mode run starts from on `run_level` (not yet the loaded level
+## when the run switches levels): its save checked against the level, and
+## where the camera starts ("at" over the fixture's camera; a stable ID is
+## found in the level). Returns {"errors", "camera" (a level point or null)}.
+# @spec-link [[req_test_level_and_test_mode]]
+func _run_start(candidate: RefCounted, run_level: Level) -> Dictionary:
+	if not candidate.save_data.is_empty():
+		var problems := SaveData.problems(candidate.save_data, run_level.data)
+		if not problems.is_empty():
+			return {"errors": problems, "camera": null}
+	var at: Variant = candidate.at
+	if at is String:
+		var thing := run_level.find(at)
+		if thing == null:
+			return {"errors": PackedStringArray(["'at': no '%s' in level '%s'" % [at, run_level.level_id]]),
+					"camera": null}
+		at = run_level.position_of(thing)
+		# A route (a loop segment, a route back) is placed by its curve, not
+		# its node: its start.
+		if thing is Path2D and thing.curve != null and thing.curve.point_count > 0:
+			at = run_level.transform_of(thing) * thing.curve.get_point_position(0)
+	return {"errors": PackedStringArray(), "camera": at if at != null else candidate.camera}
+
+
+## The level the game loads at start: the test level, or in a debug build
+## started with --test-mode, the run's "level" when it is one (a bad one is
+## reported when test mode starts), so that the game doesn't load the test
+## level only to replace it.
+# @spec-link [[req_test_level_and_test_mode]]
+func _first_level_id(user_args: PackedStringArray) -> String:
+	if not TestModeGuard.requested(user_args):
+		return LevelCatalog.DEFAULT_ID
+	var parsed: Dictionary = load(TEST_MODE_SCRIPT).config_from_args(user_args)
+	var id: Variant = parsed["config"].get("level", LevelCatalog.DEFAULT_ID)
+	if typeof(id) == TYPE_STRING and LevelCatalog.exists(id):
+		return id
+	return LevelCatalog.DEFAULT_ID
+
+
+## Loads level `id` (LevelCatalog) in place of the loaded one. Returns the
+## errors; on an error the loaded level stays.
 # @spec-link [[req_loop_and_world]]
-func _load_level(path: String) -> void:
-	level = load(path).instantiate()
+func _load_level(id: String) -> PackedStringArray:
+	var opened := _open_level(id)
+	if opened["errors"].is_empty():
+		_use_level(opened["level"])
+	return opened["errors"]
+
+
+## Opens level `id`'s scene without adding it: instantiated and built
+## (Level.build doesn't need the tree), so that it can be checked before it
+## replaces anything. A level with problems (Level.load_errors) is refused,
+## as is a scene that isn't a Level or whose level_id isn't `id`. Returns
+## {"level" (null on an error), "errors"}.
+# @spec-link [[req_test_level_and_test_mode]]
+func _open_level(id: String) -> Dictionary:
+	var problem := LevelCatalog.problem(id)
+	if problem != "":
+		return {"level": null, "errors": PackedStringArray([problem])}
+	var path := LevelCatalog.scene_path(id)
+	var scene := load(path) as PackedScene
+	var node: Node = scene.instantiate() if scene != null else null
+	if not (node is Level):
+		if node != null:
+			node.free()
+		return {"level": null, "errors": PackedStringArray(["level %s: %s is not a level scene (its root must be a Level)"
+				% [id, path]])}
+	var errors := PackedStringArray()
+	for error in node.build():
+		errors.append("level %s: %s" % [id, error])
+	if node.level_id != id:
+		errors.append("level %s: its level_id is '%s' (it must be its folder's name)" % [id, node.level_id])
+	if not errors.is_empty():
+		node.free()
+		return {"level": null, "errors": errors}
+	return {"level": node, "errors": errors}
+
+
+## Makes `opened` (from _open_level) the loaded level: frees the old one,
+## adds it under everything the game draws, bakes its collision terrain, and
+## adds the Camera2D that shows the simulation's camera if there is none
+## yet. The caller then starts a simulation on it.
+# @spec-link [[req_test_level_and_test_mode]]
+func _use_level(opened: Level) -> void:
+	if level != null:
+		# Freed now: nothing but the game holds a level node (the simulation
+		# and the views hold its plain data).
+		remove_child(level)
+		level.free()
+	level = opened
 	add_child(level)
+	move_child(level, 0)
 	_terrain = SlimeWorld.terrain_from(level)
-	camera = Camera2D.new()
-	camera.name = "Camera"
-	add_child(camera)
-	camera.make_current()
+	if camera == null:
+		camera = Camera2D.new()
+		camera.name = "Camera"
+		add_child(camera)
+		camera.make_current()
 
 
 ## Normal play: starts from the level's save if there is a usable one (else

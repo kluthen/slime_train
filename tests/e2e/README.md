@@ -96,3 +96,23 @@ pattern; `scripts/` holds the JSON run files. How to write one:
   and the higher id goes to the start of the loop, logged in the state
   dump; from `wind-down`, over 70 s of bedtime, no bedtime-asleep slime is
   counted as stalled or moved. About 12 s.
+- `test_level_selection_e2e.gd` (chunk LD1) checks choosing a level in
+  test mode (`"level"`, `--level`) on a throwaway level it writes under
+  `levels/zz-selection-*` and removes: it loads, its fixtures resolve in
+  its folder, an unknown or broken level is refused and the game kept,
+  `"at"` puts the camera on the rails nearest a stable ID or a point, and
+  the normal debug game still loads the test level.
+- `test_level_checker.gd` (chunk LD1) checks the level-rules checker
+  (`tools/level_check/`): each rule it can check fails on a synthetic
+  level that breaks it, the test level passes (but for its known rule-22
+  break, pending), and the command line's output and exit codes.
+- `test_new_level_e2e.gd` (chunk LD1) scaffolds throwaway levels with
+  `tools/new_level.gd` (1, 2 and 4 sections), checks they load, pass the
+  checker and their generated test, appear in test mode, and that the
+  scaffolder refuses to overwrite; then removes them. About 40 s.
+- `test_level_tools_e2e.gd` (chunk LD1) checks `tools/make_fixture.gd
+  --level` on a throwaway level (fresh and gate fixtures that load) and
+  `tools/level_report.gd` on the test level.
+- `levels/test_level_<id>.gd`: each level's own test, written by the
+  scaffolder (the level loads, passes the checker, runs 2 minutes with no
+  input losing nothing, and its fixtures load).

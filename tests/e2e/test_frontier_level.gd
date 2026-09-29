@@ -7,7 +7,8 @@ extends GutTest
 ## onward route; each gate on the next section's route, its lid over its
 ## slide's entrance; each section has its own return route [rule 13];
 ## opening the gates leaves every exploration branch reachable from the loop
-## [rule 14].
+## [rule 14]. The rules' checks are the level-rules checker's (LevelChecker,
+## chunk LD1); this file holds what the test level's design fixes.
 
 # @test-link [[rule_signpost_at_every_fork]]
 # @test-link [[rule_return_route_per_section]]
@@ -16,22 +17,19 @@ extends GutTest
 # @test-link [[req_switch_basket_gate_set]]
 
 const LEVEL_SCENE := "res://levels/test/level.tscn"
-## A signpost stands at its fork: this close to its switch, px.
-const AT_FORK := 200.0
 ## A point is on the loop when this close to it, px.
 const ON_LOOP := 40.0
-## A route back ends on the loop when its last point is this close to it
-## (as test_test_level.gd).
-const ON_LOOP_MAX_GAP := 32.0
 
 var level: Level
 var data: LevelData
+var checker: LevelChecker
 
 
 func before_all() -> void:
 	level = load(LEVEL_SCENE).instantiate()
 	add_child(level)
 	data = level.data
+	checker = LevelChecker.new(level)
 
 
 func after_all() -> void:
@@ -44,15 +42,12 @@ func _every_gate() -> Array:
 
 ## The section number of stable ID `id` ("s2.switch" -> 2).
 func _section_of(id: String) -> int:
-	return id.get_slice(".", 0).trim_prefix("s").to_int()
+	return LevelChecker.section_of(id)
 
 
 ## The gates open while section `section` is the frontier: those before it.
 func _gates_before(section: int) -> Array:
-	var gates := []
-	for n in range(1, section):
-		gates.append("s%d.gate" % n)
-	return gates
+	return checker.gates_before(section)
 
 
 # @test-link [[rule_gate_opens_via_switch_basket_set]]
@@ -71,19 +66,14 @@ func test_there_is_a_frontier_set_per_section_with_its_rule() -> void:
 			"then": {"object": "s1.gate", "action": "open"}},
 			{"when": {"object": "s2.basket", "event": "full"},
 			"then": {"object": "s2.gate", "action": "open"}}])
+	assert_eq(checker.check(12)["findings"], [], "the checker's rule 12")
 
 
 func test_a_signpost_stands_at_every_fork() -> void:
-	var by_switch := {}
-	for id in data.signposts:
-		by_switch[data.signposts[id]["switch"]] = id
-	for id in data.switches:
-		assert_true(by_switch.has(id), "%s has a signpost" % id)
-		if by_switch.has(id):
-			var at: Vector2 = data.signposts[by_switch[id]]["position"]
-			var fork: Vector2 = (data.switches[id]["box"] as Rect2).get_center()
-			assert_lt(at.distance_to(fork), AT_FORK, "%s stands at the fork" % by_switch[id])
-	assert_eq(by_switch.size(), data.signposts.size(), "one per switch, no more")
+	# The checker's rule 6: one signpost per switch, naming it, within 200 px
+	# of its box's centre, no more.
+	assert_eq(checker.check(6)["findings"], [])
+	assert_eq(data.signposts.size(), data.switches.size(), "one per switch, no more")
 
 
 func test_signposts_are_not_interactive() -> void:
@@ -92,15 +82,11 @@ func test_signposts_are_not_interactive() -> void:
 
 
 func test_the_trapdoor_lies_on_the_loop_over_its_basket() -> void:
-	for id in data.switches:
-		var trapdoor: Rect2 = data.switches[id]["trapdoor"]
-		var basket: Rect2 = data.baskets[data.switches[id]["basket"]]["box"]
-		assert_true(trapdoor.has_area(), "%s has a trapdoor" % id)
-		var top := Vector2(trapdoor.get_center().x, trapdoor.position.y)
-		var gates := _gates_before(_section_of(id))
-		assert_lt(data.loop.closest(top, gates)["gap"], ON_LOOP, "the loop runs over %s (its gate closed)" % id)
-		assert_true(trapdoor.grow(1.0).intersects(basket), "it opens onto the basket")
-		assert_gt(basket.end.y, trapdoor.end.y, "the basket is below: slimes drop in, no tilt")
+	# The checker's rule 10: each switch's trapdoor on the loop (its gate
+	# closed), opening onto its basket, the basket below: slimes drop in, no
+	# tilt.
+	assert_eq(data.switches.size(), 3)
+	assert_eq(checker.check(10)["findings"], [])
 
 
 func test_the_outlet_is_on_the_onward_route() -> void:
@@ -152,14 +138,13 @@ func test_each_section_has_its_own_return_route() -> void:
 	for segment in data.loop.current_segments(_every_gate()):
 		grown.append(segment["id"])
 	assert_eq(grown, PackedStringArray(["s1.loop", "s2.loop", "s3.loop", "s3.slide"]), "gate 2 open too")
+	# The checker's rule 13: one return route per section, naming its gate
+	# (none for the last), closing the loop in every gate state.
+	assert_eq(checker.check(13)["findings"], [])
 
 
 func test_opening_the_gate_leaves_every_branch_reachable() -> void:
-	for id in data.route_backs:
-		var points: PackedVector2Array = data.route_backs[id]["points"]
-		var end := points[points.size() - 1]
-		assert_lt(data.loop.closest(end, _every_gate())["gap"], ON_LOOP_MAX_GAP,
-				"%s still ends on the loop once the gates are open" % id)
-		var landing := data.loop.closest(end, _gates_before(_section_of(id)))
-		assert_eq(data.loop.segment(landing["segment"])["kind"], LoopData.OUTGOING,
-				"%s doesn't hang off a slide" % id)
+	# The checker's rule 14: every route back still ends on the loop in every
+	# gate state from its section on, and doesn't hang off a slide.
+	assert_eq(data.route_backs.size(), 6)
+	assert_eq(checker.check(14)["findings"], [])

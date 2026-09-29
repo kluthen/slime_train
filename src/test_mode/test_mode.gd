@@ -14,8 +14,10 @@ extends RefCounted
 ##   {
 ##     "seed": 20260928,           # required: the master seed
 ##     "time_scale": 1.0,          # optional, 0 to 64; 0 holds the frame clock
-##     "fixture": "bump",          # optional: a test level fixture (below)
+##     "level": "test",            # optional: the level, by ID (below)
+##     "fixture": "bump",          # optional: a fixture of the level (below)
 ##     "load": "user://x.json",    # optional: a save file to start from
+##     "at": "s1.gate",            # optional: where the camera starts (below)
 ##     "autosave": false,          # optional: autosave while testing (off)
 ##     "block_real_input": true,   # optional; ignore the real mouse and touch
 ##     "screen_size": [1152, 648], # optional: the screen the taps are on
@@ -40,31 +42,41 @@ extends RefCounted
 ## simulation's view instead of the window's size, which headless runs report
 ## wrong.
 ##
+## "level" is the level the run plays, by ID (LevelCatalog: the scene
+## res://levels/<id>/level.tscn), the test level by default. An unknown ID is
+## an error naming the missing scene and listing the levels. Choosing a level
+## is for tests and tools only: the player never chooses one (v1 ships one).
+##
 ## "fixture" and "load" start the run from a save (SaveData's format) instead
 ## of a fresh level; not both. The game checks the save against the level
 ## (SaveData.problems). A hand-made save without a seed plays on the run's.
 ##
-## Fixtures (levels/test/fixtures/). A fixture is a sidecar,
-## <name>.fixture.json, and, when it has one, a save, <name>.json:
+## Fixtures (levels/<level>/fixtures/, the run's level's). A fixture is a
+## sidecar, <name>.fixture.json, and, when it has one, a save, <name>.json:
 ##
 ##   {"description": "...", "save": true, "camera": [x, y]}
 ##
 ## "save" false: the level starts fresh (the "fresh" fixture). "camera", when
 ## given, is a level point: the camera starts on its rails nearest it.
+##
+## "at" starts the camera somewhere else, and wins over the fixture's
+## "camera": a stable ID of the level (the camera starts on its rails nearest
+## that thing) or [x, y] (a level point, as "camera"). Test mode can't see the
+## level, so it keeps "at" as given and the game finds the stable ID (an ID
+## that isn't in the level is an error there).
 ## tools/make_fixture.gd writes the fixtures (docs/dev/README.md, "Saves and
 ## fixtures").
 ##
 ## Autosave is off in test mode, so a run never writes the player's saves;
 ## "autosave": true turns it on, and the game's save_now() saves on demand.
 
-const FIXTURES_DIR := "res://levels/test/fixtures/"
 ## A fixture's save.
 const FIXTURE_EXTENSION := ".json"
 ## A fixture's sidecar: what it is, whether it has a save, the camera.
 const SIDECAR_EXTENSION := ".fixture.json"
 const MAX_TIME_SCALE := 64.0
-const CONFIG_KEYS := ["seed", "time_scale", "fixture", "load", "autosave", "block_real_input", "screen_size",
-		"steps", "sessions", "clock"]
+const CONFIG_KEYS := ["seed", "time_scale", "level", "fixture", "load", "at", "autosave", "block_real_input",
+		"screen_size", "steps", "sessions", "clock"]
 const OVERLAY_SCRIPT := preload("res://src/test_mode/test_mode_overlay.gd")
 
 ## What is wrong with the configuration. Empty when it is valid.
@@ -76,12 +88,19 @@ var time_scale := 1.0
 ## When true (the default), real mouse and touch input is ignored, so a stray
 ## click can't change a scripted run.
 var block_real_input := true
+## The level the run plays, by ID (see the class doc).
+# @spec-link [[req_test_level_and_test_mode]]
+var level_id := LevelCatalog.DEFAULT_ID
 var fixture_name := ""
 ## The save to start from (a fixture's or the "load" file's), or {} for a
 ## fresh level.
 var save_data := {}
 ## Where the fixture puts the camera (a level point), or null.
 var camera: Variant = null
+## Where the run puts the camera, over the fixture's: a stable ID of the
+## level (a String, for the game to find), a level point (a Vector2), or null.
+# @spec-link [[req_test_level_and_test_mode]]
+var at: Variant = null
 ## Whether the game autosaves in this run (off unless the run asks).
 var autosave := false
 ## The screen the taps are on, viewport pixels (see the class doc).
@@ -137,18 +156,16 @@ static func from_config(config: Dictionary) -> TestMode:
 		tm.errors.append("'autosave' must be true or false")
 	else:
 		tm.autosave = autosave
+	var level_ok := tm._read_level(config.get("level", LevelCatalog.DEFAULT_ID))
+	tm._read_at(config.get("at"))
 	tm.fixture_name = str(config.get("fixture", ""))
 	var load_path := str(config.get("load", ""))
 	if not tm.fixture_name.is_empty() and not load_path.is_empty():
 		tm.errors.append("'fixture' and 'load' both start from a save: give one, not both")
 	elif not tm.fixture_name.is_empty():
-		var fixture := load_fixture(tm.fixture_name)
-		if not fixture["ok"]:
-			var where := " (%s)" % fixture["path"] if not fixture["path"].is_empty() else ""
-			tm.errors.append("fixture '%s'%s: %s" % [tm.fixture_name, where, fixture["error"]])
-		else:
-			tm.save_data = fixture["save"]
-			tm.camera = fixture["camera"]
+		# An unknown level has no fixtures: its own error says so.
+		if level_ok:
+			tm._read_fixture()
 	elif not load_path.is_empty():
 		var loaded := SaveStore.read_file(load_path)
 		if loaded["status"] == SaveStore.OK:
@@ -171,6 +188,54 @@ static func from_config(config: Dictionary) -> TestMode:
 		tm.clock = TestClock.for_run(tm.save_data.get("session"), start if start != null else 0, setting,
 				tm.input_script.skips)
 	return tm
+
+
+## Takes the run's "level" (see the class doc). Returns whether it is a
+## level that exists.
+# @spec-link [[req_test_level_and_test_mode]]
+func _read_level(value: Variant) -> bool:
+	if typeof(value) != TYPE_STRING:
+		errors.append("'level' must be a level ID (a string, like \"%s\")" % LevelCatalog.DEFAULT_ID)
+		return false
+	var problem := LevelCatalog.problem(value)
+	if problem != "":
+		errors.append("'level': %s" % problem)
+		return false
+	level_id = value
+	return true
+
+
+## Takes the run's "at" (see the class doc): a stable ID, or [x, y] (or a
+## Vector2).
+# @spec-link [[req_test_level_and_test_mode]]
+func _read_at(value: Variant) -> void:
+	if value == null:
+		return
+	if typeof(value) == TYPE_STRING and StableId.is_valid(value):
+		at = value
+		return
+	if typeof(value) in [TYPE_VECTOR2, TYPE_VECTOR2I]:
+		at = Vector2(value)
+		return
+	if typeof(value) == TYPE_ARRAY and value.size() == 2 and typeof(value[0]) in [TYPE_INT, TYPE_FLOAT] \
+			and typeof(value[1]) in [TYPE_INT, TYPE_FLOAT]:
+		at = Vector2(value[0], value[1])
+		return
+	errors.append("'at' must be a stable ID of the level (like \"s1.gate\") or [x, y] in level pixels, got %s"
+			% JSON.stringify(value))
+
+
+## Loads the run's fixture from its level's fixtures (see the class doc).
+# @spec-link [[req_test_level_and_test_mode]]
+func _read_fixture() -> void:
+	var fixture := load_fixture(fixture_name, level_id)
+	if not fixture["ok"]:
+		var of_level := " of level '%s'" % level_id if level_id != LevelCatalog.DEFAULT_ID else ""
+		var where := " (%s)" % fixture["path"] if not fixture["path"].is_empty() else ""
+		errors.append("fixture '%s'%s%s: %s" % [fixture_name, of_level, where, fixture["error"]])
+		return
+	save_data = fixture["save"]
+	camera = fixture["camera"]
 
 
 static func _clock_setting_ok(setting: Variant) -> bool:
@@ -240,26 +305,34 @@ func detach() -> void:
 	game = null
 
 
-## Where the fixture `name`'s save lives, under the test level.
-static func fixture_path(name: String) -> String:
-	return FIXTURES_DIR + name + FIXTURE_EXTENSION
+## Where the fixture `name`'s save lives, under level `level_id` (the test
+## level by default).
+# @spec-link [[req_test_level_and_test_mode]]
+static func fixture_path(name: String, level_id := LevelCatalog.DEFAULT_ID) -> String:
+	return LevelCatalog.fixtures_dir(level_id) + name + FIXTURE_EXTENSION
 
 
-## Where the fixture `name`'s sidecar lives.
-static func sidecar_path(name: String) -> String:
-	return FIXTURES_DIR + name + SIDECAR_EXTENSION
+## Where the fixture `name`'s sidecar lives, under level `level_id`.
+static func sidecar_path(name: String, level_id := LevelCatalog.DEFAULT_ID) -> String:
+	return LevelCatalog.fixtures_dir(level_id) + name + SIDECAR_EXTENSION
 
 
-## Loads the fixture `name` (see the class doc). Returns {"ok", "path" (its
-## save's), "error", "save" ({} for none: a fresh level), "camera" (a
-## Vector2 or null), "description"}.
-static func load_fixture(name: String) -> Dictionary:
+## Loads the fixture `name` of level `level_id` (the test level by default;
+## see the class doc). Returns {"ok", "path" (its save's), "error", "save"
+## ({} for none: a fresh level), "camera" (a Vector2 or null),
+## "description"}.
+# @spec-link [[req_test_level_and_test_mode]]
+static func load_fixture(name: String, level_id := LevelCatalog.DEFAULT_ID) -> Dictionary:
 	var result := {"ok": false, "path": "", "error": "", "save": {}, "camera": null, "description": ""}
 	if RegEx.create_from_string("^[a-z0-9]+(-[a-z0-9]+)*$").search(name) == null:
 		result["error"] = "invalid fixture name '%s' (expected lowercase letters, digits and hyphens)" % name
 		return result
-	result["path"] = fixture_path(name)
-	var sidecar_file := sidecar_path(name)
+	var level_problem := LevelCatalog.problem(level_id)
+	if level_problem != "":
+		result["error"] = level_problem
+		return result
+	result["path"] = fixture_path(name, level_id)
+	var sidecar_file := sidecar_path(name, level_id)
 	if not FileAccess.file_exists(sidecar_file):
 		result["error"] = "no such fixture: %s is missing" % sidecar_file
 		return result
@@ -308,8 +381,11 @@ static func load_config_file(path: String) -> Dictionary:
 ##   --test-script=PATH       a JSON run configuration (see above)
 ##   --seed=N                 the seed (overrides the file's)
 ##   --time-scale=X           the time scale (overrides the file's)
-##   --fixture=NAME           a fixture (overrides the file's)
+##   --level=ID               the level (overrides the file's)
+##   --fixture=NAME           a fixture of the level (overrides the file's)
 ##   --load=PATH              start from the save at PATH
+##   --at=ID or --at=X,Y      where the camera starts: a stable ID of the
+##                            level, or a level point (overrides the file's)
 ##   --run-ticks=N            run N ticks at once, print the state hash, quit
 ##   --print-state            with --run-ticks, also print the state as JSON
 ##   --save=PATH              with --run-ticks, then save to PATH
@@ -342,6 +418,17 @@ static func config_from_args(user_args: PackedStringArray) -> Dictionary:
 					errors.append("--time-scale expects a number, got '%s'" % value)
 			"--fixture":
 				overrides["fixture"] = value
+			"--level":
+				if value.is_empty():
+					errors.append("--level expects a level ID")
+				else:
+					overrides["level"] = value
+			"--at":
+				var where: Variant = _at_from_arg(value)
+				if where == null:
+					errors.append("--at expects a stable ID or x,y (level pixels), got '%s'" % value)
+				else:
+					overrides["at"] = where
 			"--run-ticks":
 				if value.is_valid_int() and value.to_int() >= 0:
 					result["run_ticks"] = value.to_int()
@@ -362,3 +449,18 @@ static func config_from_args(user_args: PackedStringArray) -> Dictionary:
 	if result["save_path"] != "" and result["run_ticks"] < 0:
 		errors.append("--save saves after --run-ticks=N: give both")
 	return result
+
+
+## --at's value as the run's "at": "x,y" -> [x, y] (two numbers), else the
+## stable ID as given (from_config checks it). Null when empty or not two
+## numbers around a comma.
+# @spec-link [[req_test_level_and_test_mode]]
+static func _at_from_arg(value: String) -> Variant:
+	if value.is_empty():
+		return null
+	if "," not in value:
+		return value
+	var parts := value.split(",")
+	if parts.size() != 2 or not parts[0].strip_edges().is_valid_float() or not parts[1].strip_edges().is_valid_float():
+		return null
+	return [parts[0].strip_edges().to_float(), parts[1].strip_edges().to_float()]

@@ -1,7 +1,7 @@
 extends GutTest
 ## TestMode configuration: the run settings (seed, time scale, fixture or
-## save to load, autosave, input script), the command-line flags, and loading
-## the test level's fixtures.
+## save to load, autosave, input script, the level and where the camera
+## starts), the command-line flags, and loading the levels' fixtures.
 
 # @test-link [[req_test_level_and_test_mode]]
 
@@ -170,3 +170,69 @@ func test_command_line_errors() -> void:
 	assert_true(_has_error(TestMode.config_from_args(PackedStringArray(["--seed=x"]))["errors"], "--seed"))
 	assert_true(_has_error(TestMode.config_from_args(PackedStringArray(["--run-ticks=-3"]))["errors"], "--run-ticks"))
 	assert_true(_has_error(TestMode.config_from_args(PackedStringArray(["--frobnicate"]))["errors"], "--frobnicate"))
+
+
+# Choosing the level (chunk LD1): "level", "at", --level and --at.
+
+func test_the_level_defaults_to_the_test_level() -> void:
+	var tm := TestMode.from_config({"seed": 1})
+	assert_eq(tm.errors, PackedStringArray())
+	assert_eq(tm.level_id, LevelCatalog.DEFAULT_ID)
+	assert_eq(TestMode.from_config({"seed": 1, "level": "test"}).level_id, "test")
+
+
+func test_an_unknown_level_is_reported() -> void:
+	var tm := TestMode.from_config({"seed": 1, "level": "no-such-level"})
+	assert_true(_has_error(tm.errors, "res://levels/no-such-level/level.tscn"), str(tm.errors))
+	assert_true(_has_error(tm.errors, "levels: test"), "the error lists the levels")
+	assert_true(_has_error(TestMode.from_config({"seed": 1, "level": "Bad Id"}).errors, "invalid level id"))
+	assert_true(_has_error(TestMode.from_config({"seed": 1, "level": 3}).errors, "'level'"))
+
+
+func test_an_unknown_level_skips_its_fixture() -> void:
+	var tm := TestMode.from_config({"seed": 1, "level": "no-such-level", "fixture": "fresh"})
+	assert_eq(tm.errors.size(), 1, "one error, the level's: %s" % tm.errors)
+
+
+func test_fixtures_resolve_under_the_level() -> void:
+	assert_eq(TestMode.fixture_path("fresh", "01"), "res://levels/01/fixtures/fresh.json")
+	assert_eq(TestMode.sidecar_path("bump", "my-level"), "res://levels/my-level/fixtures/bump.fixture.json")
+	assert_eq(TestMode.sidecar_path("bump"), "res://levels/test/fixtures/bump.fixture.json", "the test level by default")
+	assert_true(TestMode.load_fixture("fresh", "test")["ok"])
+
+
+func test_a_fixture_of_an_unknown_level_is_reported() -> void:
+	var result := TestMode.load_fixture("fresh", "no-such-level")
+	assert_false(result["ok"])
+	assert_string_contains(result["error"], "res://levels/no-such-level/level.tscn")
+
+
+func test_at_is_a_stable_id_or_a_level_point() -> void:
+	var by_id := TestMode.from_config({"seed": 1, "at": "s1.gate"})
+	assert_eq(by_id.errors, PackedStringArray())
+	assert_eq(by_id.at, "s1.gate", "kept as given: the game finds it in the level")
+	var by_point := TestMode.from_config({"seed": 1, "at": [100, -20.5]})
+	assert_eq(by_point.errors, PackedStringArray())
+	assert_eq(by_point.at, Vector2(100, -20.5))
+	assert_null(TestMode.from_config({"seed": 1}).at, "no 'at': the fixture's camera, or the level's start")
+
+
+func test_at_type_errors() -> void:
+	for bad in [5, "", "Not An Id", [1], [1, "x"], [1, 2, 3], {"x": 1}]:
+		assert_true(_has_error(TestMode.from_config({"seed": 1, "at": bad}).errors, "'at'"), str(bad))
+
+
+func test_command_line_level_and_at() -> void:
+	var parsed := TestMode.config_from_args(PackedStringArray([
+		"--test-mode", "--seed=1", "--level=test", "--at=s1.gate",
+	]))
+	assert_eq(parsed["errors"], PackedStringArray())
+	assert_eq(parsed["config"]["level"], "test")
+	assert_eq(parsed["config"]["at"], "s1.gate")
+	var point := TestMode.config_from_args(PackedStringArray(["--seed=1", "--at=100,-20.5"]))
+	assert_eq(point["errors"], PackedStringArray())
+	assert_eq(point["config"]["at"], [100.0, -20.5])
+	assert_eq(TestMode.from_config(point["config"]).at, Vector2(100, -20.5))
+	assert_true(_has_error(TestMode.config_from_args(PackedStringArray(["--level="]))["errors"], "--level"))
+	assert_true(_has_error(TestMode.config_from_args(PackedStringArray(["--at="]))["errors"], "--at"))
+	assert_true(_has_error(TestMode.config_from_args(PackedStringArray(["--at=1,2,3"]))["errors"], "--at"))

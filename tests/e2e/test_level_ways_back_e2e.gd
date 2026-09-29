@@ -6,27 +6,23 @@ extends GutTest
 ## an exploration branch. test_test_level.gd checks the routes back as
 ## data (they start in their branch, only go down, end on the loop).
 ##
-## For each section, the level as the loop first reaches it (`fresh`,
-## `gate1-open`, `gate2-open`), with every other slime taken out so nothing
-## but the terrain is in the way: the sleeper's slime is made free, heading
-## back, and simulated (the core runs with every slime simulated: off-screen
-## projection off, so the terrain decides) until it rejoins the train, at
-## most the time a free slime off screen takes to be left alone and then
-## lost (70 s). Sleepers sit in rows (ledges, shelves, the rim, bumps); a
-## row's middle is between its ends, so the two ends of every row are tried.
+## For each section, the level as the loop first reaches it
+## (LevelChecker.start_state: fresh, with the gates before it open as after
+## their baskets fired), with every other slime taken out so nothing but the
+## terrain is in the way: the sleeper's slime is made free, heading back, and
+## simulated (the core runs with every slime simulated: off-screen projection
+## off, so the terrain decides) until it rejoins the train, at most the time
+## a free slime off screen takes to be left alone and then lost (70 s).
+## Sleepers sit in rows (ledges, shelves, the rim, bumps); a row's middle is
+## between its ends, so the two ends of every row are tried. The rows, the
+## start states and the runs are the level-rules checker's (LevelChecker,
+## chunk LD1; its rule 7 does the same).
 
 # @test-link [[rule_gravity_leads_back_to_loop]]
 # @test-link [[rule_exploration_branch_has_route_back]]
 
 const LEVEL_SCENE := "res://levels/test/level.tscn"
 const SEED := 909
-## Section -> the fixture where the loop has just reached it ("" is the
-## fresh level).
-const START_OF := {1: "", 2: "gate1-open", 3: "gate2-open"}
-## Two sleepers this close (centre to centre, px) are on the same row: the
-## tree's platform spaces them 69 px, the hills' bumps hold one per half, 92
-## px apart.
-const ROW_LINK := 80.0
 ## The longest a slime may take to get back: left alone, then lost (D10).
 const DEADLINE := Offscreen.LEFT_ALONE_TICKS + Offscreen.LOST_TICKS
 ## Known breaks of rule 7 in the built level, reported rather than hidden:
@@ -39,98 +35,32 @@ const DEADLINE := Offscreen.LEFT_ALONE_TICKS + Offscreen.LOST_TICKS
 const KNOWN_STUCK := {}
 
 var level: Level
-var terrain: TerrainSegments
+var checker: LevelChecker
 
 
 func before_all() -> void:
 	level = load(LEVEL_SCENE).instantiate()
 	add_child(level)
-	terrain = SlimeWorld.terrain_from(level)
+	checker = LevelChecker.new(level)
 
 
 func after_all() -> void:
 	level.free()
 
 
-## The sleepers of section `section` in rows: groups linked by gaps under
-## ROW_LINK, each sorted left to right, as stable IDs.
-func _rows(section: int) -> Array:
-	var ids := level.data.sleepers.keys().filter(func(id): return id.begins_with("s%d." % section))
-	ids.sort()
-	var row_of := {}
-	var rows := []
-	for id in ids:
-		if row_of.has(id):
-			continue
-		var row := [id]
-		row_of[id] = row
-		var k := 0
-		while k < row.size():
-			var at: Vector2 = level.data.sleepers[row[k]]["position"]
-			for other in ids:
-				if not row_of.has(other) and at.distance_to(level.data.sleepers[other]["position"]) < ROW_LINK:
-					row_of[other] = row
-					row.append(other)
-			k += 1
-		row.sort_custom(func(a, b): return level.data.sleepers[a]["position"].x < level.data.sleepers[b]["position"].x)
-		rows.append(row)
-	return rows
-
-
-## The sleepers tried in section `section`: both ends of every row.
-func _row_ends(section: int) -> Array:
-	var ends := []
-	for row in _rows(section):
-		ends.append(row[0])
-		if row.size() > 1:
-			ends.append(row[row.size() - 1])
-	return ends
-
-
-## A simulation of the level as the loop first reaches `section`.
-func _start(section: int) -> Simulation:
-	var fixture: String = START_OF[section]
-	if fixture.is_empty():
-		var sim := Simulation.new(SEED)
-		sim.slimes.terrain = terrain
-		sim.load_level(level.data)
-		return sim
-	var loaded := TestMode.load_fixture(fixture)
-	assert_true(loaded["ok"], loaded["error"])
-	return Simulation.from_save(loaded["save"], level.data, terrain, SEED)
-
-
-## Wakes sleeper `stable_id` alone (every other slime taken out) as a free
-## slime heading back, and runs until it rejoins the train or DEADLINE.
-## Returns the ticks it took, or -1 with the slime still free.
-func _way_back_ticks(section: int, stable_id: String) -> int:
-	var sim := _start(section)
-	var me := -1
-	for slime_id in sim.slimes.ids():
-		if sim.identities.stable_id_of(slime_id) == stable_id:
-			me = slime_id
-		else:
-			sim.slimes.remove(slime_id)
-	assert_gt(me, -1, "%s is asleep in the level" % stable_id)
-	if me < 0:
-		return -1
-	sim.slimes.set_state(me, SlimeBodies.FREE)
-	sim.free_slimes.restore_record(me, {"phase": FreeSlimes.HEADING_BACK, "since": sim.tick,
-			"point": sim.slimes.centre_of(me), "route": ""})
-	for tick in DEADLINE:
-		sim.step()
-		if sim.slimes.state_of(me) == SlimeBodies.TRAIN:
-			return tick + 1
-	return -1
+## The stable IDs of section `section`'s sleepers.
+func _sleepers_of(section: int) -> Array:
+	return level.data.sleepers.keys().filter(func(id): return id.begins_with("s%d." % section))
 
 
 ## Rules 7 and 8 from both ends of every row of section `section`'s sleepers.
 func _check_section(section: int) -> void:
 	var slowest := 0
 	var stuck := []
-	var tried := _row_ends(section)
+	var tried := checker.row_ends(section)
 	for stable_id in tried:
-		var ticks := _way_back_ticks(section, stable_id)
+		assert_has(_sleepers_of(section), stable_id, "%s is asleep in the level" % stable_id)
+		var ticks := checker.way_back_ticks(section, stable_id, SEED, DEADLINE)
 		slowest = maxi(slowest, ticks)
 		if ticks < 0:
 			stuck.append(stable_id)
@@ -153,15 +83,16 @@ func _check_section(section: int) -> void:
 
 
 func test_every_sleeper_is_in_a_row_and_the_rows_are_on_one_ledge() -> void:
-	for section in START_OF:
+	assert_eq(Array(checker.sections()), [1, 2, 3])
+	for section in checker.sections():
 		var count := 0
-		for row in _rows(section):
+		for row in checker.sleeper_rows(section):
 			count += row.size()
 			var first: Vector2 = level.data.sleepers[row[0]]["position"]
 			var last: Vector2 = level.data.sleepers[row[row.size() - 1]]["position"]
 			assert_lt(absf(last.y - first.y), 60.0, "%s to %s: one ledge" % [row[0], row[row.size() - 1]])
-		assert_eq(count, level.data.sleepers.keys().filter(func(id): return id.begins_with("s%d." % section)).size())
-	assert_eq(_rows(3).size(), 9, "section 3: 2 ramp ledges, 6 shelves and the rim")
+		assert_eq(count, _sleepers_of(section).size())
+	assert_eq(checker.sleeper_rows(3).size(), 9, "section 3: 2 ramp ledges, 6 shelves and the rim")
 
 
 func test_section_1_every_sleepers_spot_leads_back_to_the_loop() -> void:

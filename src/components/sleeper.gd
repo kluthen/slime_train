@@ -15,7 +15,7 @@ extends Node2D
 		stable_id = value
 		queue_redraw()
 ## Its species (placeholder letters; the real species come with the art).
-@export_enum("A", "B", "C", "D", "E") var species := "A":
+@export_enum("A", "B", "C", "D", "E", "F") var species := "A":
 	set(value):
 		species = value
 		queue_redraw()

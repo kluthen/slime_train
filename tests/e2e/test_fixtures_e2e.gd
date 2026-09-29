@@ -194,7 +194,7 @@ func test_stress_moving_has_200_train_slimes_in_the_bowl() -> void:
 
 func test_every_fixture_loads() -> void:
 	var names := PackedStringArray()
-	for file in DirAccess.get_files_at(TestMode.FIXTURES_DIR):
+	for file in DirAccess.get_files_at(LevelCatalog.fixtures_dir(LevelCatalog.DEFAULT_ID)):
 		if file.ends_with(TestMode.SIDECAR_EXTENSION):
 			names.append(file.trim_suffix(TestMode.SIDECAR_EXTENSION))
 	assert_true("fresh" in names)

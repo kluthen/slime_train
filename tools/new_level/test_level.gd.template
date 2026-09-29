@@ -1,0 +1,107 @@
+extends GutTest
+## Level {{LEVEL_ID}}'s own test, written once by the new-level scaffolder
+## (tools/new_level.gd) and yours from then on: extend it as the level grows.
+##
+## What it checks now:
+## - the level loads by its ID with no load errors;
+## - the level-rules checker (tools/level_check/) finds no FAIL, behaviour
+##   runs included (the report is printed either way);
+## - the game in test mode plays it for 2 simulated minutes with no input
+##   and loses no slime (none lost as stalled, none lost off screen), and the
+##   base-slime count stays the same;
+## - every fixture in levels/{{LEVEL_ID}}/fixtures/ loads through test mode.
+##
+## Run it:  tools/test.sh -gdisable_colors -gselect=test_level_{{LEVEL_ID}}
+##
+## Ideas for more tests, as tests/e2e/ does for the test level: a sleeper
+## a called slime must reach, a basket that fills in view, a fixture per
+## tricky spot (tools/make_fixture.gd) and what must happen from it.
+
+# @test-link [[req_level_design_rules]]
+# @test-link [[req_test_level_and_test_mode]]
+
+const LEVEL_ID := "{{LEVEL_ID}}"
+const MAIN_SCENE := "res://src/main.tscn"
+const SEED := 1
+## How long the no-input run plays: 2 simulated minutes.
+const NO_INPUT_TICKS := 2 * 60 * Simulation.TICK_RATE
+
+
+func test_the_level_loads_with_no_errors() -> void:
+	assert_eq(LevelCatalog.problem(LEVEL_ID), "", "the level is found by its ID")
+	var level := _level()
+	assert_eq(level.level_id, LEVEL_ID)
+	assert_gt(level.level_version, 0)
+	assert_eq(level.load_errors, PackedStringArray())
+
+
+func test_the_rules_checker_finds_no_fail() -> void:
+	var checker := LevelChecker.new(_level())
+	var results := [checker.check_load()]
+	results.append_array(checker.check_all())
+	var report := LevelChecker.format(results)
+	gut.p(report)
+	var failed := results.filter(func(result): return result["status"] == LevelChecker.FAIL)
+	assert_eq(failed.size(), 0, "the checker's FAILs:\n" + LevelChecker.format(failed))
+
+
+func test_two_minutes_with_no_input_lose_no_slime() -> void:
+	var game := _boot({})
+	var sim: Simulation = game.simulation
+	var base_slimes := _base_slimes(sim)
+	if game.test_mode == null:
+		return
+	game.test_mode.run_ticks(NO_INPUT_TICKS)
+	assert_eq(sim.tick, NO_INPUT_TICKS)
+	assert_eq(sim.train.stalled, [] as Array[Dictionary], "no train slime stalled")
+	assert_eq(sim.stuck_slimes.stuck, [] as Array[Dictionary], "no slimes stuck in each other")
+	assert_eq(sim.offscreen.lost, [] as Array[Dictionary], "no slime lost off screen")
+	assert_eq(_base_slimes(sim), base_slimes, "every base slime is still there")
+
+
+func test_every_fixture_loads() -> void:
+	var names := _fixture_names()
+	assert_has(names, "fresh", "the level as new")
+	for fixture in names:
+		var game := _boot({"fixture": fixture})
+		assert_eq(game.level.level_id, LEVEL_ID, fixture)
+		if game.test_mode != null:
+			game.test_mode.run_ticks(60)
+
+
+# --- Helpers ----------------------------------------------------------------------
+
+## The level's scene, added to the test (it builds and bakes its terrain).
+func _level() -> Level:
+	var level: Level = load(LevelCatalog.scene_path(LEVEL_ID)).instantiate()
+	add_child_autofree(level)
+	return level
+
+
+## The game (the main scene) in test mode on the level, time held (only
+## run_ticks() moves it), with `config` over the defaults.
+func _boot(config: Dictionary) -> Node:
+	var game: Node = load(MAIN_SCENE).instantiate()
+	add_child_autofree(game)
+	var run := {"seed": SEED, "time_scale": 0, "level": LEVEL_ID}
+	run.merge(config, true)
+	assert_eq(game.enable_test_mode(run), PackedStringArray(), "test mode: %s" % [run])
+	return game
+
+
+## The base slimes in `sim`: every slime's size added up.
+static func _base_slimes(sim: Simulation) -> int:
+	var count := 0
+	for slime_id in sim.slimes.ids():
+		count += sim.slimes.size_of(slime_id)
+	return count
+
+
+## The level's fixtures, by name (their sidecars, <name>.fixture.json).
+static func _fixture_names() -> PackedStringArray:
+	var names := PackedStringArray()
+	for file in DirAccess.get_files_at(LevelCatalog.fixtures_dir(LEVEL_ID)):
+		if file.ends_with(TestMode.SIDECAR_EXTENSION):
+			names.append(file.trim_suffix(TestMode.SIDECAR_EXTENSION))
+	names.sort()
+	return names

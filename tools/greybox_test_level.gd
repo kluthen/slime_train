@@ -1,6 +1,7 @@
 extends SceneTree
 ## Generates the greybox of the test level, levels/test/level.tscn, from the
-## layout tables below, using only the level components (src/components/).
+## layout tables below, using only the level components (src/components/),
+## placed with the builder helpers (LevelBuilder, tools/level_builder/).
 ## The layout follows specs/levels/test/README.md; x is in screens (1 screen
 ## = LevelData.SCREEN px), y in level pixels (y grows downward, the hilltops
 ## are near y = 0).
@@ -17,10 +18,11 @@ extends SceneTree
 # @spec-link [[rule_hints_visible_from_loop]]
 
 const OUT := "res://levels/test/level.tscn"
-const COMPONENTS := "res://src/components/%s.tscn"
-const S := LevelData.SCREEN
+## The builder's static helpers (at, ride_over, on_ledge, outlet_at).
+const B := preload("res://tools/level_builder/level_builder.gd")
+const S := LevelBuilder.S
 ## A size-1 slime's centre sits this far above the ground it rolls on.
-const RIDE := 24.0
+const RIDE := LevelBuilder.RIDE
 
 # --- Terrain (closed outlines, x in screens, y in px) ------------------------
 
@@ -290,12 +292,9 @@ const S2_SLEEPERS := [
 
 
 func _init() -> void:
-	var level := _build()
-	var packed := PackedScene.new()
-	var error := packed.pack(level)
-	if error == OK:
-		error = ResourceSaver.save(packed, OUT)
-	level.free()
+	var builder := _build()
+	var error := builder.save(OUT)
+	builder.level.free()
 	if error != OK:
 		printerr("greybox_test_level: failed (error %d)" % error)
 		quit(1)
@@ -304,90 +303,70 @@ func _init() -> void:
 	quit(0)
 
 
-func _build() -> Level:
-	var level := Level.new()
-	level.name = "TestLevel"
-	level.level_id = "test"
-	level.level_version = 1
+func _build() -> LevelBuilder:
+	var b := LevelBuilder.new("test", 1, "TestLevel")
+	var level := b.level
 
-	var terrain := _group(level, level, "Terrain")
+	var terrain := b.group(level, "Terrain")
 	var surface_rest: Array = SURFACE.duplicate()
 	surface_rest.append_array(CRUST_REST)
-	_terrain(level, terrain, "Crust", surface_rest)
-	_terrain(level, terrain, "Bedrock", BEDROCK)
+	b.terrain(terrain, "Crust", surface_rest)
+	b.terrain(terrain, "Bedrock", BEDROCK)
 	for piece in PIECES:
-		_terrain(level, terrain, piece, PIECES[piece])
-	_terrain(level, terrain, "S2Crust", S2_CRUST)
+		b.terrain(terrain, piece, PIECES[piece])
+	b.terrain(terrain, "S2Crust", S2_CRUST)
 	for piece in S2_PIECES:
-		_terrain(level, terrain, piece, S2_PIECES[piece])
+		b.terrain(terrain, piece, S2_PIECES[piece])
 	var s3_crust: Array = S3_SURFACE.duplicate()
 	s3_crust.append_array(S3_CRUST_REST)
-	_terrain(level, terrain, "S3Crust", s3_crust)
+	b.terrain(terrain, "S3Crust", s3_crust)
 	for ledge in S3_RAMP_LEDGES + S3_SHELVES + [S3_RIM]:
-		_terrain(level, terrain, ledge[0], [
+		b.terrain(terrain, ledge[0], [
 			[ledge[1], ledge[3]], [ledge[2], ledge[4]],
 			[ledge[2], ledge[4] + S3_LEDGE_THICKNESS], [ledge[1], ledge[3] + S3_LEDGE_THICKNESS],
 		])
 	for i in HILL_BUMPS.size():
 		var x: float = HILL_BUMPS[i][0]
 		var tilt: float = BUMP_TILT * HILL_BUMPS[i][1]
-		_terrain(level, terrain, "HillBump%d" % (i + 1), [
+		b.terrain(terrain, "HillBump%d" % (i + 1), [
 			[x - BUMP_HALF_WIDTH, BUMP_TOP - tilt], [x + BUMP_HALF_WIDTH, BUMP_TOP + tilt],
 			[x + BUMP_HALF_WIDTH, BUMP_TOP + tilt + 25], [x - BUMP_HALF_WIDTH, BUMP_TOP - tilt + 25],
 		])
-	var trunk := _terrain(level, terrain, "TreeTrunk", TRUNK)
+	# A Terrain with no collision (it predates the Decoration component).
+	var trunk := b.terrain(terrain, "TreeTrunk", TRUNK)
 	trunk.has_collision = false
 	trunk.fill_color = Color(0.18, 0.18, 0.2)
 	trunk.outline_width = 0.0
 	trunk.z_index = -1
 
-	var loop: Loop = _add(level, level, "loop", "Loop")
-	loop.stable_id = "start.loop"
+	var loop := b.loop()
 	var outgoing: Array = LOOP_START.duplicate()
-	for point in SURFACE.slice(1):
-		outgoing.append([point[0], point[1] - RIDE])
+	outgoing.append_array(B.ride_over(SURFACE.slice(1)))
 	outgoing.append_array(LOOP_END)
-	var s1_loop: LoopSegment = _add(level, loop, "loop_segment", "S1Loop")
-	_set_route(s1_loop, "s1.loop", outgoing)
-	var s1_slide: LoopSegment = _add(level, loop, "loop_segment", "S1Slide")
-	_set_route(s1_slide, "s1.slide", SLIDE)
-	s1_slide.kind = LoopData.RETURN
-	s1_slide.gate_id = "s1.gate"
-	var s2_loop: LoopSegment = _add(level, loop, "loop_segment", "S2Loop")
-	_set_route(s2_loop, "s2.loop", S2_LOOP, 2)
-	var s2_slide: LoopSegment = _add(level, loop, "loop_segment", "S2Slide")
+	b.segment(loop, "s1.loop", outgoing, 1, LoopData.OUTGOING, "")
+	b.segment(loop, "s1.slide", SLIDE, 1, LoopData.RETURN, "s1.gate")
+	b.segment(loop, "s2.loop", S2_LOOP, 2, LoopData.OUTGOING, "")
 	var s2_return: Array = S2_SLIDE.duplicate()
 	s2_return.append_array(SLIDE.slice(5))
-	_set_route(s2_slide, "s2.slide", s2_return, 2)
-	s2_slide.kind = LoopData.RETURN
-	s2_slide.gate_id = "s2.gate"
-	var s3_loop: LoopSegment = _add(level, loop, "loop_segment", "S3Loop")
+	b.segment(loop, "s2.slide", s2_return, 2, LoopData.RETURN, "s2.gate")
 	var s3_outgoing: Array = [S2_LOOP[-1]]
-	for point in S3_SURFACE.slice(1):
-		s3_outgoing.append([point[0], point[1] - RIDE])
+	s3_outgoing.append_array(B.ride_over(S3_SURFACE.slice(1)))
 	s3_outgoing.append_array(S3_LOOP_END)
-	_set_route(s3_loop, "s3.loop", s3_outgoing, 3)
-	var s3_slide: LoopSegment = _add(level, loop, "loop_segment", "S3Slide")
+	b.segment(loop, "s3.loop", s3_outgoing, 3, LoopData.OUTGOING, "")
 	var s3_return: Array = S3_SLIDE.duplicate()
 	s3_return.append_array(S2_SLIDE.slice(4))
 	s3_return.append_array(SLIDE.slice(5))
-	_set_route(s3_slide, "s3.slide", s3_return, 3)
-	s3_slide.kind = LoopData.RETURN
+	b.segment(loop, "s3.slide", s3_return, 3, LoopData.RETURN, "")
 
-	var start := _group(level, level, "Start")
-	var split_zone: SplitZone = _add(level, start, "split_zone", "SplitZone")
-	split_zone.stable_id = "start.split-zone"
+	var start := b.group(level, "Start")
 	# The pocket, the ramp's top and the terrace up to past the first
 	# sleeper's ledge (x 0.03 to 0.54): only base slimes pass under the
 	# ledge, low enough for a called base slime to hop onto (rules 2, 18).
-	split_zone.position = _at(0.285, 465)
-	split_zone.size = Vector2(0.51 * S, 190)
-	var first_slime: FirstSlime = _add(level, start, "first_slime", "FirstSlime")
-	first_slime.species = "A"
-	first_slime.position = _at(0.19, 476)
+	b.split_zone(start, "start.split-zone", B.at(0.285, 465), Vector2(0.51 * S, 190))
+	b.first_slime(start, "A", B.at(0.19, 476))
 
-	var section := _group(level, level, "Section1")
-	var sleepers := _group(level, section, "Sleepers")
+	var section := b.group(level, "Section1")
+	var sleepers := b.group(section, "Sleepers")
 	var placed: Array = SLEEPERS_BEFORE_HILLS.duplicate()
 	var n := 0
 	for bump in HILL_BUMPS:
@@ -397,102 +376,52 @@ func _build() -> Level:
 			placed.append([x, top - RIDE, HILL_SPECIES[n % 3]])
 			n += 1
 	placed.append_array(SLEEPERS_AFTER_HILLS)
-	for i in placed.size():
-		var sleeper: Sleeper = _add(level, sleepers, "sleeper", "Sleeper%02d" % (i + 1))
-		sleeper.stable_id = "s1.sleeper.%02d" % (i + 1)
-		sleeper.species = placed[i][2]
-		sleeper.position = _at(placed[i][0], placed[i][1])
+	b.sleeper_row(sleepers, "s1", placed)
 
-	var high_step := _group(level, section, "HighStep")
-	_branch(level, high_step, "high-step", Rect2(3.68 * S, -560, 0.82 * S, 390))
-	_route_back(level, high_step, "high-step", ROUTE_BACK_HIGH_STEP)
-	_frame(level, high_step, "high-step", _at(4.0, -250), Vector2(S, 600), 0.85, Vector2(0, -120))
+	var high_step := b.group(section, "HighStep")
+	b.branch(high_step, "s1", "high-step", Rect2(3.68 * S, -560, 0.82 * S, 390))
+	b.route_back(high_step, "s1", "high-step", ROUTE_BACK_HIGH_STEP)
+	b.frame(high_step, "s1", "high-step", B.at(4.0, -250), Vector2(S, 600), 0.85, Vector2(0, -120))
 
-	var tree := _group(level, section, "Tree")
-	_branch(level, tree, "tree", Rect2(4.6 * S, -900, 1.3 * S, 790))
-	_route_back(level, tree, "tree", ROUTE_BACK_TREE)
-	_frame(level, tree, "tree", _at(5.0, -300), Vector2(S, 700), 0.7, Vector2(0, -250))
+	var tree := b.group(section, "Tree")
+	b.branch(tree, "s1", "tree", Rect2(4.6 * S, -900, 1.3 * S, 790))
+	b.route_back(tree, "s1", "tree", ROUTE_BACK_TREE)
+	b.frame(tree, "s1", "tree", B.at(5.0, -300), Vector2(S, 700), 0.7, Vector2(0, -250))
 
-	var frontier := _group(level, section, "FrontierSet")
-	var signpost: Signpost = _add(level, frontier, "signpost", "Signpost")
-	signpost.stable_id = "s1.signpost"
-	signpost.switch_id = "s1.switch"
-	signpost.position = _at(6.4, -100)
-	var switch: Switch = _add(level, frontier, "switch", "Switch")
-	switch.stable_id = "s1.switch"
-	switch.basket_id = "s1.basket"
-	switch.position = _at(6.47, -124)
-	switch.size = Vector2(80, 80)
-	switch.trapdoor = _box_from(switch.position, TRAPDOOR)
-	var basket: Basket = _add(level, frontier, "basket", "Basket")
-	basket.stable_id = "s1.basket"
-	basket.quota = 6
-	basket.on_full_object = "s1.gate"
-	basket.on_full_action = "open"
-	# The pit under the trapdoor, from its rim down to its floor.
-	basket.position = _at(6.895, 0)
-	basket.size = Vector2(0.81 * S, 200)
-	var gate: Gate = _add(level, frontier, "gate", "Gate")
-	gate.stable_id = "s1.gate"
-	gate.position = _at(7.8, -180)
-	gate.size = Vector2(40, 160)
-	gate.entrance_lid = _box_from(gate.position, ENTRANCE_LID)
-	_build_section_2(level)
-	_build_section_3(level)
-	return level
+	var frontier := b.group(section, "FrontierSet")
+	# Basket 1 is the pit under the trapdoor, from its rim down to its floor.
+	b.frontier_set(frontier, "s1", B.at(6.4, -100), B.at(6.47, -124), TRAPDOOR,
+			B.at(6.895, 0), Vector2(0.81 * S, 200), 6, B.at(7.8, -180), ENTRANCE_LID)
+	_build_section_2(b)
+	_build_section_3(b)
+	return b
 
 
 ## Section 2, "Caves" (chunk 15; README "Section 2"): its sleepers, the cave
 ## branch with its route back and framing zone (chunk 16d), the other
 ## framing zones and frontier set 2, whose basket is 1.5 screens from its
 ## switch.
-func _build_section_2(level: Level) -> void:
-	var section := _group(level, level, "Section2")
-	var sleepers := _group(level, section, "Sleepers")
-	var placed: Array = S2_SLEEPERS.duplicate()
-	placed.sort_custom(func(a, b): return a[0] < b[0])
-	for i in placed.size():
-		var sleeper: Sleeper = _add(level, sleepers, "sleeper", "Sleeper%02d" % (i + 1))
-		sleeper.stable_id = "s2.sleeper.%02d" % (i + 1)
-		sleeper.species = placed[i][2]
-		sleeper.position = _at(placed[i][0], placed[i][1])
+func _build_section_2(b: LevelBuilder) -> void:
+	var section := b.group(b.level, "Section2")
+	var sleepers := b.group(section, "Sleepers")
+	b.sleeper_row(sleepers, "s2", S2_SLEEPERS)
 
-	var parade := _group(level, section, "Parade")
-	_frame(level, parade, "parade", _at(9.5, -150), Vector2(S, 500), 0.85, Vector2(0, -100), "s2")
+	var parade := b.group(section, "Parade")
+	b.frame(parade, "s2", "parade", B.at(9.5, -150), Vector2(S, 500), 0.85, Vector2(0, -100))
 
-	var cave := _group(level, section, "Cave")
-	_branch(level, cave, "cave", Rect2(10.94 * S, -820, 1.01 * S, 540), "s2")
-	_route_back(level, cave, "cave", ROUTE_BACK_CAVE, "s2")
+	var cave := b.group(section, "Cave")
+	b.branch(cave, "s2", "cave", Rect2(10.94 * S, -820, 1.01 * S, 540))
+	b.route_back(cave, "s2", "cave", ROUTE_BACK_CAVE)
 	# Rule 9 (chunk 16d): along the cave's entrance stretch of the loop, the
 	# view zooms out and shifts up until the pocket's sleepers (y -724) are
 	# in it with the loop: settled, it spans y -767 to 159.
-	_frame(level, cave, "cave", _at(11.25, -150), Vector2(1.3 * S, 500), 0.7, Vector2(0, -140), "s2")
+	b.frame(cave, "s2", "cave", B.at(11.25, -150), Vector2(1.3 * S, 500), 0.7, Vector2(0, -140))
 
-	var frontier := _group(level, section, "FrontierSet")
-	var signpost: Signpost = _add(level, frontier, "signpost", "Signpost")
-	signpost.stable_id = "s2.signpost"
-	signpost.switch_id = "s2.switch"
-	signpost.position = _at(10.9, -20)
-	var switch: Switch = _add(level, frontier, "switch", "Switch")
-	switch.stable_id = "s2.switch"
-	switch.basket_id = "s2.basket"
-	switch.position = _at(10.97, -44)
-	switch.size = Vector2(80, 80)
-	switch.trapdoor = _box_from(switch.position, TRAPDOOR_2)
-	var basket: Basket = _add(level, frontier, "basket", "Basket")
-	basket.stable_id = "s2.basket"
-	basket.quota = 15
-	basket.on_full_object = "s2.gate"
-	basket.on_full_action = "open"
-	# The pit under the trapdoor, from its rim down to its floor.
-	basket.position = _at(12.375, 65)
-	basket.size = Vector2(0.35 * S, 170)
-	var gate: Gate = _add(level, frontier, "gate", "Gate")
-	gate.stable_id = "s2.gate"
-	gate.position = _at(12.8, -100)
-	gate.size = Vector2(40, 160)
-	gate.entrance_lid = _box_from(gate.position, ENTRANCE_LID_2)
-	_frame(level, frontier, "gate", _at(12.6, -100), Vector2(0.8 * S, 600), 0.9, Vector2(0, -40), "s2")
+	var frontier := b.group(section, "FrontierSet")
+	# Basket 2 is the pit under the trapdoor, from its rim down to its floor.
+	b.frontier_set(frontier, "s2", B.at(10.9, -20), B.at(10.97, -44), TRAPDOOR_2,
+			B.at(12.375, 65), Vector2(0.35 * S, 170), 15, B.at(12.8, -100), ENTRANCE_LID_2)
+	b.frame(frontier, "s2", "gate", B.at(12.6, -100), Vector2(0.8 * S, 600), 0.9, Vector2(0, -40))
 
 
 ## Section 3, "Big bowl" (chunk 16; README "Section 3"): its 130 sleepers on
@@ -501,147 +430,45 @@ func _build_section_2(level: Level) -> void:
 ## routes back; the framing zones; and frontier set 3, whose basket's target
 ## is the level-complete celebration (no gate, no rule: the celebration
 ## plays once every basket has fired).
-func _build_section_3(level: Level) -> void:
-	var section := _group(level, level, "Section3")
-	var sleepers := _group(level, section, "Sleepers")
+func _build_section_3(b: LevelBuilder) -> void:
+	var section := b.group(b.level, "Section3")
+	var sleepers := b.group(section, "Sleepers")
 	var placed: Array = []
 	for ledge in S3_RAMP_LEDGES:
 		for i in S3_SLEEPERS_PER_RAMP_LEDGE:
-			placed.append(_on_ledge(ledge, ledge[1] + 0.02 + S3_SLEEPER_STEP * i, "E"))
+			placed.append(B.on_ledge(ledge, ledge[1] + 0.02 + S3_SLEEPER_STEP * i, "E"))
 	var n := 0
 	for shelf in S3_SHELVES:
 		for i in S3_SLEEPERS_PER_SHELF:
-			placed.append(_on_ledge(shelf, shelf[1] + 0.02 + S3_SLEEPER_STEP * i,
+			placed.append(B.on_ledge(shelf, shelf[1] + 0.02 + S3_SLEEPER_STEP * i,
 					S3_SPECIES_CYCLE[n % S3_SPECIES_CYCLE.size()]))
 			n += 1
 	for i in S3_SLEEPERS_ON_RIM:
-		placed.append(_on_ledge(S3_RIM, S3_RIM[1] + 0.02 + S3_RIM_STEP * i,
+		placed.append(B.on_ledge(S3_RIM, S3_RIM[1] + 0.02 + S3_RIM_STEP * i,
 				S3_SPECIES_CYCLE[i % S3_SPECIES_CYCLE.size()]))
-	# Left to right; the tiers share some x, so top to bottom on a tie.
-	placed.sort_custom(func(a, b):
-		var ax := roundi(a[0] * 100000.0)
-		var bx := roundi(b[0] * 100000.0)
-		return ax < bx or (ax == bx and a[1] < b[1]))
-	for i in placed.size():
-		var sleeper: Sleeper = _add(level, sleepers, "sleeper", "Sleeper%02d" % (i + 1))
-		sleeper.stable_id = "s3.sleeper.%02d" % (i + 1)
-		sleeper.species = placed[i][2]
-		sleeper.position = _at(placed[i][0], placed[i][1])
+	b.sleeper_row(sleepers, "s3", placed)
 
-	var bowl := _group(level, section, "Bowl")
-	_frame(level, bowl, "bowl", _at(14.375, -150), Vector2(1.85 * S, 500), 0.5, Vector2(0, -200), "s3")
-	var left := _group(level, bowl, "LeftShelves")
-	_branch(level, left, "left-shelves", Rect2(13.41 * S, -520, 0.83 * S, 440), "s3")
-	_route_back(level, left, "left-shelves", ROUTE_BACK_LEFT_SHELVES, "s3")
-	var right := _group(level, bowl, "RightShelves")
-	_branch(level, right, "right-shelves", Rect2(14.26 * S, -520, 0.77 * S, 440), "s3")
-	_route_back(level, right, "right-shelves", ROUTE_BACK_RIGHT_SHELVES, "s3")
+	var bowl := b.group(section, "Bowl")
+	b.frame(bowl, "s3", "bowl", B.at(14.375, -150), Vector2(1.85 * S, 500), 0.5, Vector2(0, -200))
+	var left := b.group(bowl, "LeftShelves")
+	b.branch(left, "s3", "left-shelves", Rect2(13.41 * S, -520, 0.83 * S, 440))
+	b.route_back(left, "s3", "left-shelves", ROUTE_BACK_LEFT_SHELVES)
+	var right := b.group(bowl, "RightShelves")
+	b.branch(right, "s3", "right-shelves", Rect2(14.26 * S, -520, 0.77 * S, 440))
+	b.route_back(right, "s3", "right-shelves", ROUTE_BACK_RIGHT_SHELVES)
 
-	var rim := _group(level, section, "Rim")
-	_branch(level, rim, "rim", Rect2(15.04 * S, -400, 1.18 * S, 115), "s3")
-	_route_back(level, rim, "rim", ROUTE_BACK_RIM, "s3")
+	var rim := b.group(section, "Rim")
+	b.branch(rim, "s3", "rim", Rect2(15.04 * S, -400, 1.18 * S, 115))
+	b.route_back(rim, "s3", "rim", ROUTE_BACK_RIM)
 
-	var frontier := _group(level, section, "FrontierSet")
-	var signpost: Signpost = _add(level, frontier, "signpost", "Signpost")
-	signpost.stable_id = "s3.signpost"
-	signpost.switch_id = "s3.switch"
-	signpost.position = _at(15.62, -120)
-	var switch: Switch = _add(level, frontier, "switch", "Switch")
-	switch.stable_id = "s3.switch"
-	switch.basket_id = "s3.basket"
-	switch.position = _at(15.67, -144)
-	switch.size = Vector2(80, 80)
-	switch.trapdoor = _box_from(switch.position, TRAPDOOR_3)
-	var basket: Basket = _add(level, frontier, "basket", "Basket")
-	basket.stable_id = "s3.basket"
-	basket.quota = 60
-	# No target object: the celebration (D77) is the level's, once every
-	# basket has fired.
-	basket.on_full_object = ""
-	# The pit under the trapdoor, from its rim down to its floor.
-	basket.position = _at(16.01, -10)
-	basket.size = Vector2(0.58 * S, 220)
+	var frontier := b.group(section, "FrontierSet")
+	# No gate and no target object: the celebration (D77) is the level's,
+	# once every basket has fired. Basket 3 is the pit under the trapdoor,
+	# from its rim down to its floor.
+	var set_3 := b.frontier_set(frontier, "s3", B.at(15.62, -120), B.at(15.67, -144), TRAPDOOR_3,
+			B.at(16.01, -10), Vector2(0.58 * S, 220), 60)
 	# It releases onto the loop 200 px before slide 3's entrance (with no
 	# gate, "onward_route" has no slide entrance to find).
-	basket.outlet = "point"
-	basket.outlet_point = _at(S3_LOOP_END[0][0], S3_LOOP_END[0][1]) - Vector2(basket.outlet_before, 0) \
-			- basket.position
-	_frame(level, frontier, "basket", _at(15.875, -150), Vector2(1.15 * S, 400), 0.8, Vector2(0, 40), "s3")
-
-
-## A sleeper's place [x, y, species] on ledge `ledge` ([name, x0, x1, top
-## at x0, top at x1]) at `x` (screens): resting on its top.
-func _on_ledge(ledge: Array, x: float, species: String) -> Array:
-	var top: float = lerpf(ledge[3], ledge[4], (x - ledge[1]) / (ledge[2] - ledge[1]))
-	return [x, top - RIDE, species]
-
-
-## A level box [x0, y0, x1, y1] (x in screens) relative to `origin`.
-func _box_from(origin: Vector2, box: Array) -> Rect2:
-	var from := _at(box[0], box[1])
-	return Rect2(from - origin, _at(box[2], box[3]) - from)
-
-
-func _at(x_screens: float, y: float) -> Vector2:
-	return Vector2(x_screens * S, y)
-
-
-func _group(level: Level, parent: Node, node_name: String) -> Node2D:
-	var node := Node2D.new()
-	node.name = node_name
-	parent.add_child(node)
-	node.owner = level
-	return node
-
-
-func _add(level: Level, parent: Node, component: String, node_name: String) -> Node:
-	var node: Node = load(COMPONENTS % component).instantiate()
-	node.name = node_name
-	parent.add_child(node)
-	node.owner = level
-	return node
-
-
-func _curve(points: Array) -> Curve2D:
-	var curve := Curve2D.new()
-	for point in points:
-		curve.add_point(_at(point[0], point[1]))
-	return curve
-
-
-func _terrain(level: Level, parent: Node, node_name: String, outline: Array) -> Terrain:
-	var piece: Terrain = _add(level, parent, "terrain", node_name)
-	var closed := outline.duplicate()
-	closed.append(outline[0])
-	piece.curve = _curve(closed)
-	return piece
-
-
-func _set_route(segment: LoopSegment, id: String, points: Array, section := 1) -> void:
-	segment.stable_id = id
-	segment.section = section
-	segment.curve = _curve(points)
-
-
-func _branch(level: Level, parent: Node, name_part: String, box: Rect2, place := "s1") -> void:
-	var branch: ExplorationBranch = _add(level, parent, "exploration_branch", "Branch")
-	branch.stable_id = "%s.branch.%s" % [place, name_part]
-	branch.position = box.get_center()
-	branch.size = box.size
-
-
-func _route_back(level: Level, parent: Node, name_part: String, points: Array, place := "s1") -> void:
-	var route_back: RouteBack = _add(level, parent, "route_back", "RouteBack")
-	route_back.stable_id = "%s.route-back.%s" % [place, name_part]
-	route_back.serves = "%s.branch.%s" % [place, name_part]
-	route_back.curve = _curve(points)
-
-
-func _frame(level: Level, parent: Node, name_part: String, at: Vector2, size: Vector2,
-		zoom: float, offset: Vector2, place := "s1") -> void:
-	var frame: FramingZone = _add(level, parent, "framing_zone", "Frame")
-	frame.stable_id = "%s.frame.%s" % [place, name_part]
-	frame.position = at
-	frame.size = size
-	frame.zoom = zoom
-	frame.offset = offset
+	B.outlet_at(set_3.basket, B.at(S3_LOOP_END[0][0], S3_LOOP_END[0][1])
+			- Vector2(set_3.basket.outlet_before, 0))
+	b.frame(frontier, "s3", "basket", B.at(15.875, -150), Vector2(1.15 * S, 400), 0.8, Vector2(0, 40))

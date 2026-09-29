@@ -9,13 +9,16 @@ extends RefCounted
 ## A size-1 slime's radius in level pixels. A placeholder until the slime body
 ## (chunk 5) settles it.
 const SLIME_RADIUS := 24.0
-## Placeholder species colours (specs/levels/test/README.md, "Conventions").
+## Placeholder species colours (specs/levels/test/README.md, "Conventions";
+## F, which the test level doesn't place, as Species' placeholder).
 const SPECIES_COLORS := {
 	"A": Color(0.9, 0.25, 0.25),
 	"B": Color(0.3, 0.5, 0.95),
 	"C": Color(0.95, 0.85, 0.25),
 	"D": Color(0.3, 0.8, 0.35),
 	"E": Color(0.65, 0.35, 0.85),
+	# F isn't in the test level; pink, as Species' placeholder.
+	"F": Color(0.98, 0.7, 0.84),
 }
 const LABEL_SIZE := 14
 const LABEL_COLOR := Color(1, 1, 1, 0.8)

@@ -52,18 +52,23 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `src/taps/` | Tap feedback drawing (`TapFeedback`: the ripples and the slimes' eye dots); the tap logic itself is in `src/sim/` (see "Taps and the call") |
 | `src/slimes/` | Slime drawing (`SlimeRenderer` and its shaders), the terrain hand-off to the simulation (`SlimeWorld`) and the slime demo scene |
 | `src/components/` | Reusable level components, configured in the editor (see "Levels and components") |
-| `levels/<id>/` | One folder per level, with its scenes. `levels/test/level.tscn` is the test level |
-| `levels/test/fixtures/` | The test level's fixtures: saves test mode starts from by name (see "Saves and fixtures") |
+| `levels/<id>/` | One folder per level: `level.tscn` and `fixtures/`, found by ID (`src/level_catalog.gd`, see [level-tooling.md](level-tooling.md)). `levels/test/level.tscn` is the test level |
+| `levels/<id>/fixtures/` | A level's fixtures: saves test mode starts from by name (see "Saves and fixtures") |
 | `tests/unit/` | Unit tests, mostly on `src/sim/` |
 | `tests/e2e/` | End-to-end tests: boot the game scene headless and drive it through test mode |
 | `tests/e2e/scripts/` | Test-mode run files (JSON) used by the end-to-end tests |
+| `tests/e2e/levels/` | Each level's generated test script, `test_level_<id>.gd` (written by `tools/new_level.gd`; not for the test level) |
 | `tests/gut_post_run.gd` | The GUT hook that makes a broken suite fail (see below) |
 | `tools/test.sh` | The one entry point for the test suite |
 | `tools/greybox_test_level.gd` | Generates the test level's greybox scene (see "Levels and components") |
 | `tools/bench_slimes.gd` | Times the slime tick (see "Slimes") |
 | `tools/bench_offscreen.gd` | Times the off-screen fallbacks (see "Off-screen simulation (chunk 15)") |
 | `tools/bench_level.gd` | Times the whole test level with its 200 slimes (see "Off-screen simulation (chunk 15)") |
-| `tools/make_fixture.gd` | Writes the test level's fixtures (see "Saves and fixtures") |
+| `tools/make_fixture.gd` | Writes a level's fixtures (see "Saves and fixtures") |
+| `tools/check_level.gd`, `tools/level_check/` | The level-rules checker, rules 1 to 22, on any level (see [level-tooling.md](level-tooling.md)) |
+| `tools/new_level.gd` | The new-level scaffolder (see [level-tooling.md](level-tooling.md)) |
+| `tools/level_report.gd` | A level's population, frontier sets, framing zones and reach, for designers (see [level-tooling.md](level-tooling.md)) |
+| `tools/level_builder/` | Helpers that write a level scene from the components by script (the test level's generator and the scaffolder use them) |
 | `docs/dev/img/` | Screenshots used by these notes (`docs/.gdignore` keeps Godot from importing anything under `docs/`) |
 | `spikes/` | Throwaway prototypes. Nothing else depends on them |
 | `export_presets.cfg` | The Android export presets (see "Android export (debug)"); `build/` (gitignored) receives the APKs |
@@ -159,6 +164,7 @@ A run is one dictionary, in GDScript or in a JSON file:
 {
 	"seed": 20260928,
 	"time_scale": 1.0,
+	"level": "test",
 	"fixture": "fresh",
 	"block_real_input": true,
 	"steps": [
@@ -176,9 +182,18 @@ A run is one dictionary, in GDScript or in a JSON file:
 - `time_scale` (0 to 64, default 1): simulated seconds per real second for
   the frame clock. `0` holds the clock, so only `run_ticks()` advances the
   simulation; end-to-end tests use that.
-- `fixture`: a fixture name from `specs/levels/test/README.md`: the run
-  starts from `levels/test/fixtures/<name>.json` (see "Saves and
-  fixtures"). An unknown name is an error naming the missing sidecar.
+- `level` (default `"test"`, chunk LD1): the level the run plays, by ID:
+  `levels/<id>/level.tscn` (`LevelCatalog`, see
+  [level-tooling.md](level-tooling.md)). When it isn't the loaded level,
+  the game loads it first; an unknown ID or a level with load errors is an
+  error naming what is missing, and the running game is left as it was.
+- `fixture`: a fixture name (for the test level, from
+  `specs/levels/test/README.md`): the run starts from
+  `levels/<level>/fixtures/<name>.json` (see "Saves and fixtures"). An
+  unknown name is an error naming the missing sidecar.
+- `at` (chunk LD1): where the camera starts, on its rails nearest a stable
+  ID of the level (a loop segment or a route back: its first point) or a
+  level point `[x, y]`. It wins over the fixture's camera.
 - `load`: a save file (`user://...` or a file path) to start from instead;
   not both `fixture` and `load`. A save's own seed wins over `seed`; a
   hand-made save without one plays on `seed`.
@@ -223,7 +238,8 @@ godot --headless -- --test-mode --test-script=res://tests/e2e/scripts/backbone.j
 ```
 
 Flags: `--test-script=PATH` (res:// or a file path), `--seed=N`,
-`--time-scale=X`, `--fixture=NAME` (these override the file),
+`--time-scale=X`, `--fixture=NAME`, `--level=ID`, `--at=ID` or
+`--at=X,Y` (these override the file),
 `--load=PATH` (start from a save), `--run-ticks=N` (run N ticks at once,
 print the hash, quit), `--print-state` (also print the state as JSON) and
 `--save=PATH` (with `--run-ticks`: then save to PATH, for kill-and-reload
@@ -370,12 +386,13 @@ no state a save would need.
 | `ExplorationBranch` | `Area2D` | `stable_id`, `size` | The box a free slime in the branch can be in |
 | `SplitZone` | `Area2D` | `stable_id`, `size` | At the start of the loop (rule 4). `SplitZones` in the simulation splits every slime inside it (see "Train") |
 | `FirstSlime` | `Node2D` | `stable_id` (`start.first-slime`), `species` | Where the first awake slime starts: the game wakes it there in a fresh game (see "Train") |
-| `Sleeper` | `Node2D` | `stable_id`, `species` (A to E) | Always size 1 |
+| `Sleeper` | `Node2D` | `stable_id`, `species` (A to F; F since chunk LD1, for v1's six species) | Always size 1 |
 | `Switch` | `Area2D` | `stable_id`, `size`, `basket_id`, `trapdoor` (a box relative to the switch) | Tappable. Its trapdoor is solid while the flow goes onward, open while flipped (see "Frontier sets (chunk 14)") |
 | `Basket` | `Area2D` | `stable_id`, `size`, `quota` (weight), `on_full_object`, `on_full_action`, `outlet` (`onward_route` or `point`), `outlet_before` (px), `outlet_point` | Holds its rule (below). Its box is where caught slimes rest |
 | `Gate` | `Node2D` | `stable_id`, `size`, `entrance_lid` (a box relative to the gate) | Accepts the action `open`. Its box is solid while closed; its lid shuts the old slide entrance once open |
 | `Signpost` | `Node2D` | `stable_id`, `switch_id` | Not interactive: the game draws its arrow the way its switch sends the flow |
 | `FramingZone` | `Area2D` | `stable_id`, `size`, `zoom`, `offset` | `zoom` as `Camera2D.zoom`: below 1 shows more (0.7 is a zoom-out); `offset` in px, negative y is up |
+| `Decoration` | `Path2D` | `curve` (a closed outline), `fill_color`, `in_front` | Scenery that is neither terrain nor an object (chunk LD1, O96's proposed default, D123): it never collides, has no ID and is never a tap target (a tap on it is a call), and draws behind the level unless `in_front`. The checker fails one in front that covers an object or a hint (rule 9). No ID |
 
 `size` is a box centred on the node's position. The `Area2D`s make their
 rectangle collision shape at load; the `Path2D`s draw their curve. Nodes a
@@ -534,7 +551,8 @@ of every size (split or whole) is past it within 10 s (6 to 7 s; before,
 a size 2 or 3 never was).
 
 The scene is generated by `tools/greybox_test_level.gd` from tables of
-points (x in screens, y in px):
+points (x in screens, y in px), written since chunk LD1 on the builder
+helpers of `tools/level_builder/` (the same output):
 
 ```sh
 godot --headless -s res://tools/greybox_test_level.gd
@@ -2803,7 +2821,7 @@ To see it: `godot --headless --path . --quit-after 300` writes
 ### Fixtures
 
 A fixture is a named starting point for test mode (`"fixture": "bump"`),
-in `levels/test/fixtures/`: a sidecar `<name>.fixture.json`,
+in the level's `levels/<id>/fixtures/` (the test level's are below): a sidecar `<name>.fixture.json`,
 `{"description", "save" (true when there is a save), "camera" (optional
 [x, y]: the camera starts on its rails nearest that level point)}`, and the
 save `<name>.json` in the hand-made form above.
@@ -2832,7 +2850,9 @@ and `stress-moving` came with the whole level (chunk 16); `gate1-open` and
 tool that sets up a simulation on the test level and saves it; the tool
 looks the stable IDs up in the level scene and checks the save loads back.
 To add one, add an entry to `FIXTURES` and its builder. Fixtures follow
-the level: when it changes, run the tool again.
+the level: when it changes, run the tool again. Since chunk LD1 it takes
+`--level=<id>` (another level gets the generic `fresh` and `gate<k>-open`)
+and `--list` (see [level-tooling.md](level-tooling.md)).
 
 `stress-still` is the slow one (about a minute): a fixture keeps only each
 slime's centre, so a loaded pile starts from round bodies and settles again,
@@ -2846,6 +2866,40 @@ corner fix it rested at 490 with 4 rounds and a 10 s bar; with the fix the
 reloads rest in 670 to 910 ticks (4 rounds gave 744 at best), so the rounds
 went to 6 and the bar to 12.5 s, under the 15 s the load test allows. `test_fixtures_e2e.gd` checks that
 the loaded pile rests.
+
+## Level-design toolkit (chunk LD1)
+
+Build plan chunk LD (D123), part 1: the tools. Technical: no ATD steps.
+The design note, every tool's usage and the choices made are in
+[level-tooling.md](level-tooling.md); the tutorial for level designers and
+the project skills built on these tools come in part 2
+(`docs/level-design/`, `.claude/skills/`).
+
+- **Levels by ID:** `LevelCatalog` (`src/level_catalog.gd`) finds
+  `levels/<id>/level.tscn` and `levels/<id>/fixtures/` by convention. Test
+  mode takes `"level"` / `--level=<id>` and `"at"` / `--at=` (see "Test
+  mode"); a normal debug run still loads the test level, and the player
+  never chooses a level.
+- **The level-rules checker:** `tools/check_level.gd -- --level=<id>`,
+  rules 1 to 22, PASS / FAIL / MANUAL / N/A, on the library
+  `tools/level_check/`. The level-rule tests of the test level call it. It
+  finds one break of rule 22 on the test level (`Dip2Hollow`, section 2),
+  reported in [level-tooling.md](level-tooling.md), not fixed here.
+- **The scaffolder:** `tools/new_level.gd -- --id=<id> [--sections=N]`
+  writes a skeleton level that passes the checker, its `fresh` fixture and
+  its test script `tests/e2e/levels/test_level_<id>.gd`.
+- **Helpers:** fixtures for any level (`tools/make_fixture.gd --
+  --level=<id>`), a level report (`tools/level_report.gd`), the level
+  builder (`tools/level_builder/`, which the test level's generator now
+  uses) and the `Decoration` component (O96's proposed default).
+- **Species F** is now accepted by the `Sleeper` and `FirstSlime`
+  components (v1's level has 6 species; the test level places A to E).
+
+Tests: `tests/unit/test_level_catalog.gd`, `test_decoration.gd`,
+`test_level_builder.gd`, `test_test_mode.gd`; `tests/e2e/test_level_selection_e2e.gd`,
+`test_level_checker.gd`, `test_new_level_e2e.gd`, `test_level_tools_e2e.gd`.
+The e2e tests that need a second level create a throwaway one
+(`levels/zz-*`) and remove it, crashed runs' leftovers included.
 
 ## Android export (debug)
 
