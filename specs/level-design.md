@@ -1,6 +1,6 @@
 # Level design requirements
 
-Status: draft v10
+Status: draft v11
 
 Rules every level must follow, whoever builds it. These rules make up the
 checklist for every level's design (see `levels/`). Levels are
@@ -37,6 +37,10 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
 11. The **first section has 3 native species**, and each later section adds one
     (D22).
 12. A frontier gate opens through the **switch-plus-basket set** (D14, D35).
+    *(Proposed, D127):* each section's basket can be filled by play from
+    the slimes that can be woken by then, starting from a fresh game. The
+    level-rules checker estimates it and only warns (it can't see climbs
+    or lips); a played test is the proof.
 13. **Each section needs its own return route to the start** from its unopened
     frontier gate. It is part of the loop and has its own camera rail (D79).
     How that route works is O22; where it meets the start is rule 22.
@@ -72,6 +76,14 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
 20. **A released level isn't meant to change.** Any update must be minor and
     ship with a save migration. Keep the stable IDs of slimes, objects and
     gates (D72).
+    *Numbering after release (proposed, D127):* before release, each
+    section's sleepers are numbered `.01` to N, left to right, with no
+    gaps. A released level keeps a list of its released stable IDs (for
+    example `levels/<id>/released_ids`): every released ID must still
+    exist; new sleepers take numbers above the highest released one in
+    their section; the order and gap checks apply only to unreleased IDs;
+    removing a released ID needs a `level_version` bump and a save
+    migration.
 
 ## Controls
 

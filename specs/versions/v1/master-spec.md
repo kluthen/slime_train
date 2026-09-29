@@ -624,7 +624,9 @@ Every level, the test level included, follows these rules.
 9. Hints that there is something to explore are visible from the loop.
 10. Tilt is only for exploration or fun, never needed to make progress.
 11. The first section has 3 native species; each later section adds one.
-12. A frontier gate opens through the switch-plus-basket set.
+12. A frontier gate opens through the switch-plus-basket set. Each
+    section's basket can be filled by play from the slimes that can be
+    woken by then, starting from a fresh game (proposed).
 13. Each section has its own return route to the start from its unopened
     frontier gate. It is part of the loop and has its own camera rail.
 14. A return route may carry exploration opportunities, but opening a later
@@ -638,7 +640,10 @@ Every level, the test level included, follows these rules.
 18. The first sleeper is close to the first awake slime.
 19. Wherever a wider view is needed, a framing zone sets the zoom and position.
 20. A released level isn't meant to change; any update is minor, ships with a
-    save migration, and keeps stable IDs.
+    save migration, and keeps stable IDs. A released level keeps the list
+    of its released stable IDs: each must still exist, new sleepers are
+    numbered above the highest released one in their section, and
+    removing one needs a level version bump and a migration (proposed).
 21. At the rails' framing, every interactive object sits fully below the
     parent zone. The views checked are the settled views of the outgoing
     route's rails, framing zones included; the return routes' views aren't

@@ -1,8 +1,9 @@
 # Slime Train v1 — Build plan
 
-Status: draft v13 (approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v14 (approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
-test-level fix for rule 22 (b) before 18, D126)
+test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
+TL1 before 18, proposed, D127)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -102,22 +103,25 @@ technology, not business behaviour:
   Chunks 15 and 16 raised O87 (the rest rule's anchor), settled in D107;
   chunk 16 raised D116–D119, approved in D120, and O95, settled in D121
   (item 23.13).
-- **Built:** chunk 23 (small issues from play, an open list, before 18,
+- **Done:** chunk 23 (small issues from play, an open list, before 18,
   D123), sub-chunks **23A** safety nets (23.3, 23.13), **23B** taps and
   strips (23.2, 23.6b, 23.8), **23C** camera (23.1, 23.4, 23.10, 23.12)
   and **23D** bedtime baskets and the celebration's mark (23.5, 23.11).
   Their own values and choices, and three additive save-format changes,
   are recorded in D124, approved by the user (D125). **23E** objects and
-  taps (23.6, 23.7, 23.9) is built on its own branch; chunk 23 is done
-  once it merges. Its own readings are in D126 (proposed). New reports
-  added to the list are placed after 23E.
-- **Chunk LD** runs as **LD1** (the tools), done, and **LD2** (the
-  tutorial and the project skills), in progress. LD1's checker found a
-  rule 22 (b) break on the test level (D126, proposed).
-- **Next:** a small test-level fix for rule 22 (b): move the second dip's
-  hollow off the loop's path and regenerate the fixtures (see
-  `../../levels/test/README.md`). Then 18 onward. (5N is a contingency,
-  run only if chunk 22 fails, D96.)
+  taps (23.6, 23.7, 23.9) is merged. Its own readings are in D126
+  (proposed). New reports added to the list are placed after 23E.
+- **Chunk LD** done: **LD1** (the tools), **LD2** (the tutorial and the
+  project skills) and **LD3** (the tutorial's gaps: a playable skeleton,
+  the progress estimate under rule 12, `tools/level.sh`, stale fixtures,
+  the bench per level; D127). LD1's checker found a rule 22 (b) break on
+  the test level (D126), fixed by **R22** (done: the second dip's hollow
+  moved over the dip's far slope, D127).
+- **Next: TL1** (proposed, D127): the test level may not be finishable
+  from fresh (LD3's progress estimate warns on all three sections, and
+  probes back it); rework its sleeper placement so it is (see
+  `../../levels/test/README.md`, section 1). Then 18 onward. (5N is a
+  contingency, run only if chunk 22 fails, D96.)
 - **Closing step, last of all:** the coding-rule health review
   (`CODING_RULE.md`'s health and clean-up list), after every other chunk
   (D122, kept by D123).
@@ -152,12 +156,14 @@ technology, not business behaviour:
 | 22 | Performance pass on phones | M | 20, 23 | [DoD 30] |
 | 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
 | LD | Level-design toolkit (technical) | L | 16 | the checker agrees with the level-rule tests on the test level; a scaffolded level loads, passes its generated tests and appears in test mode |
+| TL1 | Test level finishable from fresh (proposed) | S | LD, R22 | the checker gives 0 warnings on the test level; a scripted play from `fresh` fills basket 1 |
 
 Chunks 1 and 2 can run in parallel with 3. Chunk 5N is not in the
 sequence: it runs only if chunk 22's measurement fails (D96). Chunks 9, 10
 and 11 are independent of each other. Chunk 17 can start as soon as 8 is done, in
 parallel with the camera and objects work. Chunk 23 runs first among the
 remaining chunks, before 18 (D123), and chunk LD runs in parallel with it.
+TL1 runs after both, before 18 (D127, proposed).
 
 ## Chunks
 
@@ -665,8 +671,8 @@ Asked for by the user (D123). Tooling for whoever designs a level: no
 Definition of done item and no business behaviour, so no ATD steps; it
 still goes test first. It runs in parallel with chunk 23 and builds on what
 chunk 16 left: the test level, its level-rule tests and the level bench.
-Split (D126) into **LD1**, the tools (done), and **LD2**, the tutorial
-and the skills.
+Split (D126) into **LD1**, the tools, and **LD2**, the tutorial and the
+skills, then **LD3**, the gaps LD2 found (D127). All three are done.
 
 - **Tools.**
   - **A level-rules checker, usable on any level.** For every rule in
@@ -699,6 +705,37 @@ and the skills.
   the checker fails too); the scaffolder creates a level that loads, passes
   its generated tests and appears in test mode; the tutorial and the
   skills exist and walk through creating a small level end to end.
+- **Later, before the first level is released (proposed, D127): rule 20's
+  released IDs.** A small checker change, not test-level work (the test
+  level is never released). A released level keeps a list of its
+  released stable IDs (for example `levels/<id>/released_ids`); the
+  checker then asks that every released ID still exists, that new
+  sleepers take numbers above the highest released one in their section,
+  and applies its order and gap checks to unreleased IDs only; removing a
+  released ID needs a `level_version` bump and a save migration.
+  **Done when:** a throwaway level with a released-ID list passes with a
+  sleeper added above the highest number, and fails with a released ID
+  removed without a version bump.
+
+### TL1. Test level finishable from fresh (S, proposed)
+
+Proposed in D127: LD3's progress estimate warns on all three sections of
+the test level, and probes back it. In section 1 only two sleepers are
+within a called base slime's reach, and A, B and C awake can't fuse, so 3
+base slimes stand against basket 1's quota of 6; sections 2 and 3 follow.
+Content work on `levels/test/level.tscn` (through its generator), no new
+behaviour, so no ATD steps; it still goes test first.
+
+- Rework the sleeper placement: ledges lowered or moved within a called
+  slime's reach, same-species pairs early in section 1. Keep the stable
+  IDs, preferring moves that keep the left-to-right order (fixtures and
+  tests name sleepers by ID).
+- Every level rule still passes, the population stays 200, and the
+  coverage matrix still holds.
+- **Done when:** the checker gives 0 FAIL and 0 warnings on the test
+  level; a scripted play from `fresh` fills basket 1, and from
+  `gate1-open` and `gate2-open` baskets 2 and 3; the fixtures are
+  regenerated and the whole suite passes (DoD 1 included).
 
 ### 5N. Native simulation tick (contingency, only if chunk 22 fails)
 

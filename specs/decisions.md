@@ -1502,3 +1502,91 @@ parts tagged (proposed).
 Chunk LD1 (the tools) is done; LD2 (the tutorial and the project skills)
 is in progress. Next, a small test-level fix for rule 22 (b), then chunk
 18.
+
+## D127 — Chunks R22 and LD3 as built; the test level may not be finishable from fresh; rule 20 and numbering; lexicon catch-up (2026-09-29)
+**Parts 2 (the fixture sidecar and rule 12's line), 3 and 4 are proposed
+and wait for the user's approval** (the user reviews them all on
+2026-09-30: simple defaults, no long option lists). Part 1 is D126's
+proposed fix, as built; part 5 names terms already in use. Written into
+`level-design.md` (rules 12 and 20), the master spec (5.11, rules 12 and
+20), `levels/test/README.md`, the build plan and `concept.md`'s
+Terminology table, with the proposed parts tagged (proposed).
+
+**1. Chunk R22 as built (D126's proposed fix).** `Terrain/Dip2Hollow`
+moved from the second dip's near rim (x 9.93 to 10.09, over the loop) to
+over its far slope, reached from the far rim: outline (10.26, -155),
+(10.28, -135), (10.42, -135), (10.42, -115), (10.26, -115), a lip at the
+back, open toward the far rim. `s2.sleeper.15` moved from (9.97, -174)
+to (10.3, -159), `s2.sleeper.16` from (10.05, -174) to (10.38, -159).
+Stable IDs unchanged and still numbered left to right. The level-rules
+checker passes rule 22 on the test level (22 PASS, 0 FAIL). A called base
+slime wakes `.16` from the far rim; `.15` only size-2 and size-3 callers
+wake, from about half the spots (see part 3). Fixtures regenerated.
+
+**2. Chunk LD3 as built (the toolkit's gaps).**
+- **The scaffolded skeleton is playable:** each section has a dip with a
+  hollow on each rim, two sleepers in each, reached from the rim; section
+  1 opens with same-species pairs. Its own test plays section 1 to its
+  basket full with scripted calls.
+- **The progress estimate:** a static check, under level rule 12, of
+  whether each section's basket quota is reachable from what a called
+  slime can wake by then (reach by size, fusion of same-species slimes up
+  to size 3). It gives **warnings**, not FAILs: it can't see climbs or
+  lips, so play is the proof. Also in the level report.
+- **`tools/level.sh`** wraps the tools (check, report, new, fixture,
+  bench); **stale fixtures** are found from the saves themselves; the
+  **bench** runs on any level.
+- **A fixture sidecar's `camera` may be a stable ID** as well as `[x, y]`
+  (the camera starts nearest that thing). Additive: every existing sidecar
+  still works. A change to the test fixtures' format only, not to player
+  saves (proposed).
+- **Rule 12 gains a line (proposed):** each section's basket can be filled
+  by play from the slimes that can be woken by then, starting from a fresh
+  game. A basket nobody can fill opens nothing, so this reads as part of
+  the rule; the checker only warns on it, as above.
+
+**3. Finding: the test level may not be finishable from fresh (proposed
+fix).** The progress estimate warns on all three sections of the test
+level, and probes back it. In section 1 only `s1.sleeper.01` (B) and
+`s1.sleeper.15` (C, from the fusion dip's rim) are within a called base
+slime's reach; with A, B and C awake nothing fuses, so 3 base slimes are
+available against basket 1's quota of 6. Hill, tree and frontier-ledge
+sleepers didn't wake with one to three base slimes called under them.
+Sections 2 and 3 warn as a consequence; also, since R22, `s2.sleeper.15`
+is 0.2 screens from its rim, beyond a base slime's sideways hop (150 px).
+The existing tests didn't see it: they start later sections from
+fixtures, and nothing plays basket 1 from fresh.
+- **Proposed default:** a small chunk, **TL1**, reworks the test level's
+  sleeper placement: ledges lowered or moved within a called slime's
+  reach, same-species pairs early in section 1, stable IDs kept. Done
+  when the checker gives 0 warnings and a scripted play from `fresh`
+  fills basket 1 (and baskets 2 and 3 from `gate1-open` and `gate2-open`).
+  Fixtures regenerated. It runs next, before chunk 18.
+- **A consequence to weigh:** keeping every stable ID while moving
+  sleepers may break the left-to-right numbering the checker asks for
+  (rule 20). The test level is never released, so renumbering is allowed
+  (part 4), but moves that keep the order are preferred: fixtures and
+  tests name sleepers by ID.
+
+**4. Rule 20 against the checker's numbering (proposed).** The checker
+asks each section's sleepers to be numbered `.01` to N, left to right,
+with no gaps. After release that conflicts with "keep the stable IDs": a
+sleeper added between two others can't take a number in order without
+renumbering. Default: a released level keeps a list of its released
+stable IDs (for example `levels/<id>/released_ids`). Every released ID
+must still exist; new sleepers take numbers above the highest released
+one in their section; the order and gap checks apply only to unreleased
+IDs; removing a released ID is allowed only with a `level_version` bump
+and a save migration. A small checker change, due before the first level
+is released; not test-level work (the test level is never released).
+
+**5. Lexicon.** `concept.md`'s Terminology table gains the terms used
+across the specs and the level-design docs without an entry: base slime,
+frontier set, quota, trapdoor, (a basket's) outlet, (a gate's) lid,
+loop's start, start basin (its pocket, ramp and terrace), outgoing route
+(the scene's outgoing segment), exploration branch, camera rail, stable
+ID, fixture, test mode, skeleton. Each matches the existing definitions;
+none changes behaviour.
+
+**6. The build order.** Chunk 23 is done (23E merged). Chunk LD is done
+(LD1, LD2, LD3). R22 is done. Next, TL1 (proposed), then chunk 18.

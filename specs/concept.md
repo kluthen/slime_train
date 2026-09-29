@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v32
+Status: draft v33
 
 ## One-liner
 
@@ -230,10 +230,18 @@ survives the app being killed.
 | sleeper | a slime that is asleep and not yet in the train |
 | train | whichever slimes are following the loop at the moment; no slots, no fixed order |
 | loop | the route the train currently follows, from the start to the frontier gate, with forks that always join again; grows when a gate opens |
+| loop's start | where the loop begins, inside the start's split zone; also "the start of the loop" or "the loop start"; lost, stuck and stalled slimes are put back there |
+| start basin | the area around the loop's start: a **pocket** behind the loop's start (where the first slime wakes and every return route comes home, behind the train), a **ramp** up to the loop's start, and a **terrace** carrying the loop's first stretch (D116, level rule 22) |
+| outgoing route | the part of a section's loop that runs away from the start toward its frontier gate; the return route brings the flow back. In a level's scene, the outgoing segment |
 | frontier gate | the first unopened gate, where the loop currently ends |
 | gate | a barrier at the end of the loop that opens onto a new area |
 | switch | redirects the flow at a fork in the loop; operated by tapping |
 | basket | collects slimes until their weight fills it, then fires its target (usually a gate) |
+| quota | the weight a basket needs before it fires |
+| outlet | where a basket releases its slimes, after firing or after an opt-out; its design is still open (O62) |
+| frontier set | the signpost, switch, basket and gate that end a section: flip the switch, fill the basket, the gate opens (D14). Inert once its gate is open (D86) |
+| trapdoor | the part of a frontier switch that covers its basket: solid while the switch sends the flow onward, open while it is flipped, dropping slimes into the basket |
+| lid | the part of a gate that shuts the old return route's entrance once the gate is open (D105) |
 | weight | a slime's size seen as load; what presence objects respond to |
 | left alone | a free slime off screen for more than 10 s |
 | lost | a left-alone slime not back on the loop after 1 min; teleported to the loop start |
@@ -249,16 +257,23 @@ survives the app being killed.
 | parent zone | the band along the top of the screen, 7 mm high, full width and unmarked; a tap there reveals the parent buttons and never calls (D57, D113). Also called "the top of the screen" or "the top band" |
 | edge button | the left or right control that moves the camera along the loop: a strip over the screen's whole height, 10% of its width from the edge, that never calls (D99) |
 | framing zone | an area of the level that sets the camera's zoom and position when the camera reaches it |
+| camera rail | the path the camera runs along, following the loop; every part of the loop, return routes included, has one (D33, D79) |
 | sunrise | the end of bedtime: slimes wake up and screensaver mode begins |
 | species | a kind of slime; only the same species fuse (replaces the precursor's "type") |
 | call | a tap that draws nearby awake slimes toward a point (D46) |
 | unsure | a free slime just after a call ends, lingering near the call point |
 | heading back | a free slime making for the loop |
 | size | the number of base slimes a slime is made of; equals its weight |
+| base slime | a slime of size 1, the unit that sizes, weights, quotas and the 200-slime cap count in; every sleeper is one |
 | section | the part of a level opened by one gate |
 | split zone | a place that splits slimes back into base slimes; the start of the loop has one (replaces "defusing spot") |
 | route back | the route an exploration branch provides back to the loop |
+| exploration branch | a place off the loop worth a call, such as the tree or the cave; it has its own route back and a hint visible from the loop (D18, D45, D51). Not a fork of the loop |
 | decoration | level art that isn't simulated: scenery such as plants and rocks, drawn as curves (D93), that isn't terrain or an object. How it behaves toward slimes, taps and hints is O96 |
 | return route | the part of the loop that takes the flow from a section's unopened frontier gate back to the start; has its own rail (D79; how it works is O22) |
 | parent gate | the 6-digit code an adult enters to leave, change settings, or end bedtime early |
 | bedtime | the end of a session: slimes fall asleep until sunrise (parent code or 10 min); not the same as a sleeper |
+| stable ID | the name a save uses to find a placed thing, `<place>.<kind>.<name>` (for example `s1.sleeper.01`); kept once a level is released (D72, level rule 20) |
+| test mode | a mode of the Linux and debug Android builds only, never the release: loads a fixture, speeds up or skips time, and injects taps and tilt from a script (D91) |
+| fixture | a named starting state for test mode, stored with its level (a save and a sidecar); test tooling, not a player's save |
+| skeleton | a level just made by the new-level scaffolder: minimal, playable and passing the level rules, for a designer to build on |
