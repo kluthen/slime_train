@@ -102,6 +102,9 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | Celebration (`CELEBRATION_SECONDS`) | 4.0 s (settled by ux D4) | D77, ux D4 |
 | Default outlet (`outlet_before`, a basket property) | on the onward route, 200 px along the loop before the start of the return route its gate retires (Known gap 3); a basket may name an `outlet_point` instead | O62 |
 | Test level, basket 1 quota | 6 (weight) | test level |
+| Quota pies (proposed) | above a quota of 10: one pie per 10 of weight, the last holding the rest; the row within the basket's width, each pie at least 6 mm across on the reference phone's screen at the basket's framing zoom | D128, item 24.2 |
+| A fired basket empties within (proposed) | its quota × 0.3 s plus 10 s of firing, none of its slimes falling back in | D128, item 24.3 |
+| Section 3 frame budget on the desktop (proposed) | a steady 60 fps at test mode's 1152 × 648 window; at most 8 ms per tick at p95 on the section 3 bench cases, `stress-moving` excepted | D128, item 24.1 |
 
 ### Off screen, resting piles and zoomed-out detail (chunk 15)
 

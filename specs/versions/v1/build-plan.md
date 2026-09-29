@@ -3,7 +3,8 @@
 Status: draft v14 (approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
-TL1 before 18, proposed, D127)
+TL1 before 18, proposed, D127; chunk 24, the user's second round of
+playtest issues, last before the health review, proposed, D128)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -122,9 +123,13 @@ technology, not business behaviour:
   probes back it); rework its sleeper placement so it is (see
   `../../levels/test/README.md`, section 1). Then 18 onward. (5N is a
   contingency, run only if chunk 22 fails, D96.)
+- **Chunk 24** (the user's second round of playtest issues, an open list;
+  proposed, D128): after chunk 22 (and 5N if it runs), the last chunk
+  before the closing step, as the user asked. The user's next play
+  reports go there.
 - **Closing step, last of all:** the coding-rule health review
-  (`CODING_RULE.md`'s health and clean-up list), after every other chunk
-  (D122, kept by D123).
+  (`CODING_RULE.md`'s health and clean-up list), after every other chunk,
+  chunk 24 included (D122, kept by D123 and D128).
 
 ## Overview
 
@@ -155,6 +160,7 @@ technology, not business behaviour:
 | 21 | End-to-end suite | M | 19 | [DoD 31] |
 | 22 | Performance pass on phones | M | 20, 23 | [DoD 30] |
 | 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
+| 24 | Playtest issues, round 2 (open list; proposed) | S per issue (24.1 may be M) | 22, and 5N if it runs | each issue's own done-when |
 | LD | Level-design toolkit (technical) | L | 16 | the checker agrees with the level-rule tests on the test level; a scaffolded level loads, passes its generated tests and appears in test mode |
 | TL1 | Test level finishable from fresh (proposed) | S | LD, R22 | the checker gives 0 warnings on the test level; a scripted play from `fresh` fills basket 1 |
 
@@ -163,7 +169,10 @@ sequence: it runs only if chunk 22's measurement fails (D96). Chunks 9, 10
 and 11 are independent of each other. Chunk 17 can start as soon as 8 is done, in
 parallel with the camera and objects work. Chunk 23 runs first among the
 remaining chunks, before 18 (D123), and chunk LD runs in parallel with it.
-TL1 runs after both, before 18 (D127, proposed).
+TL1 runs after both, before 18 (D127, proposed). Chunk 24 runs after 22
+(and 5N if it runs), the last chunk before the closing health review
+(D128, proposed; O97 asks whether 24.1 and 24.3 should run before 22
+instead).
 
 ## Chunks
 
@@ -664,6 +673,135 @@ which settles O95; master spec 5.2). A change to chunk 6's stall check in
   moved or logged; the same seed gives the same hash; and the whole-level
   DoD 1 test still fails on any logged stall (its meaning is unchanged:
   no train slime stalls in 15 minutes with no input).
+
+### 24. Playtest issues, round 2 (open list, proposed)
+
+**This list stays open: the user's next play reports are appended here**
+(24.4 onward), each with the spec change it needs and its own done-when,
+as chunk 23 did. The first three come from the user's own testing
+(2026-09-29): nothing major gameplay-wise, but a frame-rate drop in the
+last section, an unreadable basket display for a large quota, and a
+basket that keeps its slimes once it has fired. The chunk runs **after
+chunk 22 (and 5N if it runs), the last chunk before the closing health
+review**, as the user asked (D128; O97 asks whether 24.1 and 24.3 should
+run before chunk 22 instead). Each item is small (S) unless its
+investigation says otherwise, and can land on its own. All three items
+are **(proposed)** until the user approves D128. Items with business
+behaviour (24.2, 24.3) and the frame-rate target (24.1, like chunk 22)
+keep both ATD steps.
+
+**24.1 The frame rate drops in section 3** (reported 2026-09-29;
+proposed, D128; master spec 6 and 7, [DoD 30]). An investigation, then a
+fix. The user asked for hard data first, hence the debug overlay's fps
+and slime counts (built 2026-09-29).
+- **Measure first.** Two sources, recorded before and after the fix in
+  the project documentation (`docs/dev/`), at the same camera spots:
+  - the **debug overlay** in a windowed run (fps, and the slimes on
+    screen : simulated off screen : parked), through section 3 in normal
+    play: the bowl with the train and called slimes, and basket 3
+    filling, full and releasing;
+  - the **level bench** (`tools/level.sh bench --level=test`) on the
+    section 3 fixtures (`gate2-open`, `stress-moving`, `stress-still`) and
+    on a new fixture with basket 3 at 59 of 60, switch 3 flipped, not at
+    bedtime (shared with 24.3; its name is the implementer's), in ms per
+    tick (median and p95), with the drawing's share measured separately
+    where the bench can't see it (it runs headless).
+- **Leads, not conclusions.** The bench already reads about 15 ms per
+  tick for `stress-moving` (200 base slimes riding the train out of the
+  bowl) on the desktop, headless (`docs/dev/README.md`, 16c-B): nearly the
+  whole 16.7 ms frame at 60 ticks a second before anything is drawn.
+  Other candidates: contact pair checks as section 3 wakes up to 130 more
+  slimes, drawing at the bowl's zoom 0.5 (more slimes on screen), basket
+  3's pile not resting or not parked, slimes cycling in and out of basket
+  3 (see 24.3).
+- **Fix the cause found.** No behaviour change (same seed, same hash);
+  a fix that has to change behaviour says so and goes back to
+  spec-writer. If the cost is the GDScript tick itself with no fallback
+  left, that is chunk 5N's ground (D96): report it rather than start
+  native code here. If chunk 22 (or 5N) has already brought section 3 to
+  the target, 24.1 closes with the measurement alone.
+- **Target (proposed):** on the desktop (the Linux build at test mode's
+  1152 × 648 window), a steady 60 fps on the overlay through section 3
+  in normal play, and the section 3 bench cases at most 8 ms per tick at
+  p95 (half the frame, leaving the rest to drawing), `stress-moving`
+  excepted (a measurement, not a target, D96). The phones' targets stay
+  chunk 22's [DoD 30].
+- **Done when:** the before and after numbers (overlay readings and bench
+  table) are in `docs/dev/`; the section 3 bench cases hold the tick
+  budget above; a windowed run through section 3 reads a steady 60 fps;
+  the whole suite is green, and the same seed gives the same hash; [DoD
+  30] still holds if chunk 22 has run.
+
+**24.2 A quota above 10 shown as pies** (reported 2026-09-29; proposed,
+D128; master spec 5.4 and [DoD 9]; the look is ux-writer's, ux D4 Q10).
+Basket 3's 60 outlines run wider than the screen.
+- **A quota of 10 or less:** unchanged, one slime outline per unit of
+  weight.
+- **A quota above 10:** one **quota pie** per 10 of weight, the last
+  holding the rest (15: a pie of 10 and a pie of 5; 60: six pies of 10).
+  Each pie has one slice per unit of weight. Slices fill in order, the
+  first pie first, in the colour of the slime caught (as the outlines
+  do, ux D4); a size-3 slime fills three slices, across two pies when it
+  has to. A full pie stays full while the basket fills.
+- **The other states as ux D4 has them for the outlines:** the reward
+  pulses every pie; while the basket releases, slices empty one by one
+  with the slimes; inert, the pies are gone. (The build today keeps every
+  outline filled once the basket has fired; this item brings outlines
+  and pies in line with ux D4.)
+- **Readable:** the whole row fits within the basket's width, and each
+  pie is at least 6 mm across on the reference phone's screen at the
+  basket's framing zoom (proposed). Placeholder art until ux-writer draws
+  them.
+- **The quota itself:** basket 3's 60 stays on the test level. It is the
+  test level's stress case (`stress-still`, chunk 22's largest realistic
+  pile, [DoD 30]), and the test level is never released. How large a
+  real level's quota may be for a child is O98 (proposed: at most 30 of
+  weight per basket on the first level, three pies).
+- **Done when:** a unit test of the display's layout: a quota of 6 gives
+  6 outlines, 15 gives pies of 10 and 5, 60 gives 6 pies; at weight 23 of
+  60, two full pies and 3 slices of the third; a size-3 slime arriving at
+  weight 8 fills the first pie and one slice of the second; at
+  `s3.frame.basket`'s zoom, basket 3's pies fit within its width and
+  each measures at least 6 mm on the reference phone's screen size; the
+  reward, release and inert states as above; basket 1 still shows 6
+  outlines; [DoD 9] still passes.
+
+**24.3 A fired basket lets its slimes go** (reported 2026-09-29; a bug
+against the spec, with proposed details, D128; master spec 5.2 "in a
+basket" and 5.4; D86, D91, D105).
+- **What the spec already says, unchanged:** once full, a basket plays
+  its reward (waiting until it is in view), fires (its gate opens; basket
+  3, with no gate, fires the celebration, D77), then **releases its
+  slimes**: one every 0.3 s, lowest id first, at its outlet when the
+  outlet is clear (`tuning.md`). Each rides the train again with its size
+  and species, under the usual rules (fusion, the split zone). The switch
+  and basket are then inert for good and the gate stays open (D86). At
+  bedtime the releases pause and resume at sunrise (D105, item 23.5).
+  Released slimes are train slimes: available again, never lost or
+  stuck. Built in chunk 14; the end-to-end test only covers basket 1
+  with 3 slimes.
+- **Reproduce first:** a test that fails today, from the fixture 24.1
+  adds (basket 3 at 59 of 60, not at bedtime) and from
+  `s2-basket-offscreen` (basket 2).
+- **A lead to check first** (unverified, read from the scene, not run):
+  basket 3's outlet is a point over switch 3's trapdoor, and a trapdoor
+  shuts after firing only once no awake slime is within reach of it; a
+  released slime that lands on an open trapdoor falls back into the
+  basket, which releases it again, so the basket may never empty. Basket
+  2's pit, under its gate, may do the same.
+- **Proposed (D128):** a fired basket always empties: no released slime
+  falls back into it (its trapdoor is shut, or its outlet is off the
+  trapdoor, before the next release), and it is empty within its quota
+  × 0.3 s plus 10 s of firing, however busy the outlet. The 0.3 s pace
+  stays. Where the outlet is stays O62, the basket's own design; only
+  the test level's outlets move if the fix needs it.
+- **Done when:** from the new fixture with the camera on basket 3, the
+  basket fills, fires (the celebration) and is empty within 28 s, every
+  released slime a train slime with its size and species, none back in
+  the basket; from `s2-basket-offscreen`, basket 2 fires and is empty
+  within 14.5 s; from `bedtime` with a releasing basket nothing leaves
+  until sunrise (item 23.5's tests still pass); the same seed gives the
+  same hash; [DoD 1] and [DoD 9] still pass.
 
 ### LD. Level-design toolkit (L, technical)
 

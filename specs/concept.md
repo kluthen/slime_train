@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v33
+Status: draft v34
 
 ## One-liner
 
@@ -239,6 +239,10 @@ survives the app being killed.
 | basket | collects slimes until their weight fills it, then fires its target (usually a gate) |
 | quota | the weight a basket needs before it fires |
 | outlet | where a basket releases its slimes, after firing or after an opt-out; its design is still open (O62) |
+| release | a basket letting its slimes go, one at a time at its outlet, back onto the train: after firing, and after an opt-out; paused at bedtime (D91, D105) |
+| quota outlines | how a basket shows its quota: one empty slime outline per unit of weight, filling in the colour of each slime caught (ux D4). Not "the slime counter" |
+| quota pie | *(proposed, D128)* how a basket with a quota above 10 shows it: one pie per 10 of weight, the last holding the rest, a slice filling per unit of weight |
+| debug overlay | developer tools over the game, in debug builds only: speed, reset, slime labels, the kill tool, the fps and the **slime counts** (on screen : simulated off screen : parked) |
 | frontier set | the signpost, switch, basket and gate that end a section: flip the switch, fill the basket, the gate opens (D14). Inert once its gate is open (D86) |
 | trapdoor | the part of a frontier switch that covers its basket: solid while the switch sends the flow onward, open while it is flipped, dropping slimes into the basket |
 | lid | the part of a gate that shuts the old return route's entrance once the gate is open (D105) |

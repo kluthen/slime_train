@@ -1,6 +1,6 @@
 # Interactive objects
 
-Status: draft v11
+Status: draft v12
 
 **Versions (D50, D54):** v1 has only the frontier-gate set (switch, basket,
 gate) and the split zone at the start of the loop. Every other object comes in
@@ -47,6 +47,10 @@ Collects slimes and shows the ones it still needs as empty slime outlines.
 Activation: presence (weight). When full, it fires its target (usually a gate)
 and then releases its slimes. Properties: the weight it needs, and its target.
 Its outlines fill by weight, so a fused slime fills several at once.
+*(Proposed, D128:)* above a quota of 10 it shows **quota pies** instead:
+one pie per 10 of weight, the last holding the rest, a slice per unit of
+weight; readable at the basket's framing zoom (`tuning.md`). A fired
+basket always empties: no released slime falls back into it.
 - **Off screen (D70):** it can still reach its quota. Filling it earns a
   **reward animation**, then it fires. (D91: the reward and the firing
   wait until the basket is in view)

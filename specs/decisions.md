@@ -1590,3 +1590,94 @@ none changes behaviour.
 
 **6. The build order.** Chunk 23 is done (23E merged). Chunk LD is done
 (LD1, LD2, LD3). R22 is done. Next, TL1 (proposed), then chunk 18.
+
+## D128 — Chunk 24: the user's second round of playtest issues (2026-09-29)
+**Proposed; waits for the user's approval** (the user reviews on
+2026-09-30; asked for pragmatic defaults, "it's a kid game"). The user
+reported, from their own testing: nothing major gameplay-wise; the frame
+rate drops a lot in the last section (hence the debug overlay's fps and
+slime counts, built the same day: the user wants hard data); basket 3's
+quota needs so many slimes that its display is unreadable ("another
+display when more than ten slimes are requested, some pie per 10 slimes
+for example"); and a basket, once its gate has opened, doesn't let its
+slimes leave and rejoin the loop. The user asked for a new chunk after
+all the others, where their next reports will go. Written into the build
+plan (chunk 24), the master spec (5.4, proposed lines), `tuning.md`,
+`interactive-objects.md`, `concept.md`'s Terminology table and the open
+questions (O97, O98, a note on O62).
+
+**1. Chunk 24, an open list, last before the health review.** It runs
+after chunk 22 (and 5N if it runs) and before the coding-rule health
+review, which stays the very last step (D122). Its items are numbered
+24.1, 24.2… like chunk 23's; the user's next play reports are appended
+there. *A tension, raised as O97:* chunk 23 was moved before chunk 22 so
+the performance pass would measure the finished behaviour (D123); 24.1
+(section 3's frame rate) is close to chunk 22's own work, and 24.3 (a
+basket that never empties) changes the endgame chunk 22 measures. The
+default keeps the user's order; 24.1 closes with a measurement alone if
+chunk 22 has already fixed the cause.
+
+**2. 24.1, the frame rate in section 3: measure, then fix.** The debug
+overlay (fps; slimes on screen, simulated off screen, parked) and the
+level bench on section 3's fixtures, plus a new one with basket 3 at 59
+of 60 not at bedtime, before and after, recorded in `docs/dev/`. Leads,
+not conclusions: the bench already reads about 15 ms per tick for
+`stress-moving` on the desktop; pair checks as section 3 wakes; drawing
+at the bowl's zoom 0.5; basket 3's pile not resting or parked; slimes
+cycling through basket 3 (item 3 below). No behaviour change; a cost that
+is the GDScript tick itself is chunk 5N's ground (D96). **Target
+(proposed):** a steady 60 fps on the desktop (test mode's 1152 × 648
+window) through section 3 in normal play, and at most 8 ms per tick at
+p95 on the section 3 bench cases, `stress-moving` excepted (a
+measurement, D96). The phones' targets stay [DoD 30], chunk 22's.
+
+**3. 24.2, a quota above 10 shown as quota pies.** Up to 10, one outline
+per unit of weight as now. Above 10, one pie per 10 of weight, the last
+holding the rest; one slice per unit, filling in order in the caught
+slime's colour, a size-3 slime filling three slices (across two pies if
+it has to); a full pie stays full while the basket fills. The reward,
+the release and the inert state follow ux D4 Q10 for outlines and pies
+alike (pulse; slices empty one by one as the slimes leave; gone once
+inert). Readable: the row fits within the basket's width, each pie at
+least 6 mm across on the reference phone's screen at the basket's
+framing zoom. The look is ux-writer's to draw (flagged for ux D4 Q10);
+placeholder art until then. *Why a pie per 10:* the user's own
+suggestion, and it keeps a count a child can see fill without reading a
+number. *Not taken:* one outline per unit in several rows (60 still
+fills the screen), a number (the child sees no text, master spec 5.8).
+**The first suggestion's "keep showing complete" after firing** would
+contradict ux D4 Q10 (outlines empty with the release, gone once inert),
+so ux D4 is kept; the build today keeps every outline filled once fired,
+and 24.2 aligns it.
+- **Basket 3's quota of 60 stays** on the test level: it is the stress
+  case chunk 22 measures (`stress-still`, the largest realistic pile,
+  [DoD 30]), and the test level is never released. For real levels, O98
+  (proposed default: at most 30 of weight per basket on the first level,
+  set in its design session and checked at the children's playtest,
+  [DoD 32]).
+
+**4. 24.3, a fired basket lets its slimes go: a bug against the
+spec.** The spec already says it (master spec 5.2 and 5.4, D91): after
+firing, a basket releases its slimes one every 0.3 s at its outlet, and
+they ride the train again with their size and species; the switch and
+basket are inert for good, the gate stays open (D86); at bedtime the
+releases pause until sunrise (D105). It is built (chunk 14) and tested
+only with basket 1's three slimes. So nothing new is decided about
+*whether* a basket releases. **Proposed additions:** a fired basket
+always empties: no released slime falls back into it, and it is empty
+within its quota × 0.3 s plus 10 s of firing, however busy the outlet.
+*A lead, unverified:* basket 3's outlet is over switch 3's trapdoor,
+which shuts only once no awake slime is near it, so a released slime can
+fall back into the basket and be released again, forever. **Kept, not
+changed:** the release pace stays 0.3 s (`tuning.md`; a 0.5 s pace was
+suggested, but nothing in the report asks for a slower one); released
+slimes appear at the outlet, which stays O62 (the basket's own design;
+the test level's outlets may move if the fix needs it); bedtime pauses
+the release (D105, already built in 23D). Released slimes are train
+slimes, available again, never lost or stuck.
+
+**5. Lexicon.** The user's "slime counter" on a basket is its **quota
+outlines** (or **quota pies** above 10); the debug overlay's own counts
+are the **slime counts**. The user's "last frontier gate" is basket 3,
+which has no gate: it fires the celebration (D77). The Terminology table
+gains quota outlines, quota pie, release and debug overlay.

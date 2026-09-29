@@ -14,7 +14,9 @@ the start, now level rule 22 in 5.11), and the details chunk 23's build
 chose (23A–23D). The readings chunk 23E took where the spec was silent
 (a sleeper's tap margin, where a hit area's floor sits, overlapping hit
 areas, which views level rule 21 checks) are tagged (proposed) until the
-user approves them.
+user approves them, as are the basket's quota pies and its always
+emptying once fired, from the user's second round of playtest reports
+(5.4, D128).
 
 ## 1. Concept and objective
 
@@ -335,7 +337,13 @@ where a basket's centre is nearer, since a basket never answers a tap
   fill by weight (a size-3 slime fills three). When full, it plays a **reward
   animation**, fires its target (the gate), then releases its slimes. It can
   fill off screen. The reward and the firing wait until the basket
-  is in view.
+  is in view. *(Proposed, D128:)* a quota above 10 shows as **quota pies**
+  instead of outlines: one pie per 10 of weight, the last holding the
+  rest, each filling a slice per unit of weight, all of them within the
+  basket's width and each at least 6 mm across on the screen at the
+  basket's framing zoom. A fired basket always empties: none of the
+  slimes it releases falls back into it, and it is empty within its quota
+  × 0.3 s plus 10 s of firing.
 - **Opting out.** Flipping the switch back before the basket is full stops the
   filling. The slimes inside go back to the loop and the
   basket empties. Once the basket is **full**, the switch no longer answers
