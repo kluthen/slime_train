@@ -2,7 +2,8 @@ extends Node2D
 ## The game root (the main scene). It owns the simulation and drives it at a
 ## fixed step: every frame, FixedStep turns the frame time into whole ticks
 ## and each tick runs one Simulation.step(), so the game runs the same at any
-## frame rate. Real touches go to the simulation as input events.
+## frame rate. Real touches go to the simulation as input events, after the
+## parent layer (ParentGate, src/parent/) and the debug overlay take theirs.
 ##
 ## Test mode (see TestModeGuard) is reached only through enable_test_mode()
 ## or the "--test-mode" command-line flag, and only in a debug build. This
@@ -96,6 +97,16 @@ var save_store: SaveStore = null
 ## in test mode only when the run asks.
 # @spec-link [[req_persistence_and_saves]]
 var autosave := Autosave.new()
+## The app's parent store (the parent code), or null: no parent layer at
+## all. Like save_store, the main scene gets the default (user://parent.json)
+## in _ready; a game a test adds gets the store the test gives it, or none.
+# @spec-link [[req_parent_gate_and_access]]
+var parent_store: ParentStore = null
+## The parent layer (parent buttons and surfaces), or null without a store.
+var parent_gate: ParentGate = null
+## Closes the app: the parent's leave (ParentGate.act). The tree's quit unless
+## a test put its own first.
+var quit_app := Callable()
 ## The debug overlay, or null (a release build, or a game a test adds).
 ## Loosely typed: src/debug/ is named by path only.
 var debug_overlay: Node = null
@@ -113,8 +124,9 @@ func _ready() -> void:
 		get_tree().change_scene_to_file.call_deferred(SPIKE_SOFT_SLIMES_SCENE)
 		return
 	print("Slime Train booted (Godot %s)." % Engine.get_version_info().string)
-	if save_store == null and get_tree().current_scene == self:
-		save_store = SaveStore.new()
+	if get_tree().current_scene == self:
+		save_store = save_store if save_store != null else SaveStore.new()
+		parent_store = parent_store if parent_store != null else ParentStore.new()
 	var user_args := OS.get_cmdline_user_args()
 	if test_mode_guard.allows():
 		var level_errors := _load_level(_first_level_id(user_args))
@@ -139,6 +151,11 @@ func _ready() -> void:
 	session_screen = SessionScreen.new()
 	session_screen.name = "SessionScreen"
 	add_child(session_screen)
+	if parent_store != null:
+		parent_gate = ParentGate.new(parent_store, self)
+		add_child(parent_gate)
+	if not quit_app.is_valid():
+		quit_app = func() -> void: get_tree().quit()
 	if get_tree().current_scene == self:
 		add_debug_overlay()
 	_use_simulation(_new_simulation(Rng.random_seed()))
@@ -190,9 +207,14 @@ func _exit_tree() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Test mode's block keeps real input off the parent layer as off the world;
+	# the debug overlay still gets it.
+	var blocked: bool = test_mode != null and test_mode.block_real_input
+	if parent_gate != null and not blocked and parent_gate.intercept(event):
+		return
 	if debug_overlay != null and debug_overlay.intercept(event):
 		return
-	if test_mode != null and test_mode.block_real_input:
+	if blocked:
 		return
 	if event is InputEventScreenTouch:
 		if event.pressed:
@@ -212,7 +234,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## Runs one simulation tick, first giving it the view, the clocks (test
 ## mode's, else the real ones) and the input test mode scripted for that
-## tick. When bedtime begins the game saves (if it autosaves).
+## tick. When bedtime begins the game saves (if it autosaves). Then the
+## parent layer's timers count the step (in normal play and test mode alike).
 # @spec-link [[req_session_lifecycle]]
 func step_simulation() -> void:
 	sync_view()
@@ -230,6 +253,8 @@ func step_simulation() -> void:
 			if error != "":
 				printerr("Bedtime save: ", error)
 	sync_view()
+	if parent_gate != null:
+		parent_gate.advance()
 
 
 ## Makes the simulation's view show what its camera shows (taps are
@@ -285,8 +310,9 @@ func save_now() -> String:
 ## and starts a simulation from its seed on the run's level (loaded first
 ## when it isn't the loaded one): fresh, or from the fixture's or the "load"
 ## file's save (a save's own seed wins), the camera where "at" or else the
-## fixture puts it. Returns the errors; empty means test mode is on, and on
-## an error the running game is left as it was. Refused in a release build.
+## fixture puts it. A run that blocks real input closes any open parent
+## surface. Returns the errors; empty means test mode is on, and on an error
+## the running game is left as it was. Refused in a release build.
 # @spec-link [[req_test_level_and_test_mode]]
 func enable_test_mode(config: Dictionary) -> PackedStringArray:
 	if not test_mode_guard.allows():
@@ -325,6 +351,11 @@ func enable_test_mode(config: Dictionary) -> PackedStringArray:
 	_clock.reset()
 	autosave.enabled = candidate.autosave
 	autosave.start(_now())
+	# Real input blocked, no one could answer a parent surface (first launch's
+	# setup, proposed): it closes. Setup saved no code, so the next launch
+	# shows it again.
+	if parent_gate != null and test_mode.block_real_input:
+		parent_gate.close()
 	test_mode.attach(self)
 	return PackedStringArray()
 
@@ -492,15 +523,60 @@ func add_debug_overlay() -> void:
 ## Starts the level over as on a first launch: a fresh simulation (a new
 ## random seed; test mode's run seed in test mode), sessions open in normal
 ## play (in test mode when the run has them), the frame clock and autosave
-## counting from now. Writes no save (the debug overlay's reset saves after
-## it). Returns the new simulation.
-func restart_fresh() -> Simulation:
+## counting from now. With `keep_session` the running session goes on in the
+## fresh simulation instead (Simulation.carry_session: phase, timer, clocks),
+## for the parent's delete. Writes no save (the debug overlay's reset and
+## delete_level_save() save after it). Returns the new simulation.
+func restart_fresh(keep_session := false) -> Simulation:
+	var old := simulation
 	_use_simulation(_new_simulation(test_mode.seed_value if test_mode != null else Rng.random_seed()))
 	_clock.reset()
-	if test_mode == null or test_mode.sessions:
+	if keep_session:
+		# Test mode's clocks are a function of the tick: they go on from the
+		# old tick, not from the fresh one (the real clocks simply go on).
+		if test_mode != null:
+			test_mode.carry_clock(old.tick, simulation.tick)
+		simulation.carry_session(old)
+	elif test_mode == null or test_mode.sessions:
 		simulation.session.open(simulation)
 	autosave.start(_now())
 	return simulation
+
+
+## The parent's delete of the running level's save (settings, D43, D104; DoD
+## 29): the store deletes it, then the level reloads fresh at once (the hint
+## due again, the celebration able to play again, all progress gone) while
+## the running session goes on untouched, so it ends when it would have; the
+## fresh save is written at once, so a kill right after resumes the same
+## session. Without a store (tests) it only reloads. Returns "" or why not:
+## a save the store can't delete leaves the game as it was; a fresh save the
+## store refuses is reported after the reload (the old file is gone anyway).
+# @spec-link [[req_persistence_and_saves]]
+# @spec-link [[req_session_lifecycle]]
+func delete_level_save() -> String:
+	if save_store != null and level != null:
+		var error := save_store.delete(level.data.level_id)
+		if error != "":
+			return error
+	restart_fresh(true)
+	if save_store == null or level == null:
+		return ""
+	return save_now()
+
+
+## The parent's wake early (D57): queued for the next simulation step, where
+## bedtime ends in sunrise and screensaver mode (Simulation.wake_early; it
+## does nothing outside bedtime).
+# @spec-link [[req_session_lifecycle]]
+func wake_early() -> void:
+	simulation.push_input(Simulation.wake_early())
+
+
+## The wall clock the session reads, Unix ms: test mode's clock at the
+## current tick, else session_clock (the parent's wrong-code wait counts on it).
+func now_wall_ms() -> int:
+	var reading: Dictionary = test_mode.clock_at(simulation.tick) if test_mode != null else session_clock.now()
+	return reading["wall_ms"]
 
 
 ## Wall-clock seconds, for autosave.
@@ -535,4 +611,6 @@ func _use_simulation(fresh: Simulation) -> void:
 		edge_buttons.simulation = fresh
 	if session_screen != null:
 		session_screen.simulation = fresh
+	if parent_gate != null:
+		parent_gate.simulation = fresh
 	sync_view()

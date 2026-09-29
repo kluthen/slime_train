@@ -7,7 +7,7 @@ extends RefCounted
 ##
 ##   screensaver mode --a tap that reaches the world--> session (15 min)
 ##   session --last minute--> wind-down --15 min reached--> bedtime
-##   bedtime --10 min (or wake early, chunk 18)--> sunrise → screensaver mode
+##   bedtime --10 min (or the parent's wake early, chunk 18)--> sunrise → screensaver mode
 ##
 ## `phase` is SCREENSAVER, SESSION, WIND_DOWN or BEDTIME; sunrise is the step
 ## from bedtime back to screensaver mode (sunrise()), not a phase that lasts.
@@ -196,9 +196,26 @@ func jump(sim: Simulation, to_ms: int) -> void:
 	_reopened = reopened_before
 
 
-## Sunrise (after the cooldown, or wake early from chunk 18): the slimes
-## wake, the edge buttons show, and screensaver mode begins. `cue`: whether
-## the light comes back gently (dusk()) or is simply day.
+## How long until the running timer's next limit, ms, for the parent (shown
+## behind the code only, D114): in a session or its wind-down, until bedtime;
+## at bedtime, until sunrise. -1 in screensaver mode, which has no timer. It
+## reads `elapsed_ms` as the last step counted it, the session clock the
+## phases follow, and is never below 0 (a restored timer past its limit
+## before the next step catches up). A pure query.
+# @spec-link [[rule_time_left_shown_only_behind_code]]
+func time_left_ms() -> int:
+	match phase:
+		SESSION, WIND_DOWN:
+			return maxi(0, BEDTIME_MS - elapsed_ms)
+		BEDTIME:
+			return maxi(0, SUNRISE_MS - elapsed_ms)
+	return -1
+
+
+## Sunrise (after the cooldown, or the parent's wake early, chunk 18: see
+## Simulation.wake_early()): the slimes wake, the edge buttons show, and
+## screensaver mode begins. `cue`: whether the light comes back gently
+## (dusk()) or is simply day.
 func sunrise(sim: Simulation, cue := true) -> void:
 	_wake(sim)
 	phase = SCREENSAVER
@@ -254,6 +271,25 @@ func restore(sim: Simulation, data: Dictionary) -> void:
 	sim.hint.bedtime = phase == BEDTIME
 	if phase == BEDTIME:
 		sim.camera.release(sim.camera.hold_finger)
+
+
+## Takes over a session in `sim`, a fresh simulation of the same level: the
+## parent deleted the level save and the session goes on untouched (D104;
+## Simulation.carry_session() gives `data`, dump()'s shape in `sim`'s ticks,
+## and `was_enabled`, whether the game had sessions). As restore(), plus what
+## the fresh world needs: at bedtime its awake slimes fall asleep where they
+## are (the game root saves the fresh level itself, so no save is asked), and
+## screensaver mode and the hop rate follow the phase at once.
+# @spec-link [[req_session_lifecycle]]
+func take_over(sim: Simulation, data: Dictionary, was_enabled: bool) -> void:
+	restore(sim, data)
+	enabled = was_enabled
+	if phase == BEDTIME:
+		_bedtime(sim)
+		save_due = false
+	if enabled or is_timed():
+		sim.screensaver = phase == SCREENSAVER
+	sim.slimes.hop_rate = hop_rate(sim.tick)
 
 
 ## Counts the clocks' progress up to `now` (see the class doc).

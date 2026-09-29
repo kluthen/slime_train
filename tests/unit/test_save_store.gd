@@ -8,7 +8,12 @@ extends GutTest
 ##   over it for the rest of the session;
 ## - a write that fails keeps the old file (the new text goes to a side file
 ##   first and only then takes the old file's place);
-## - no code under src/ can delete a file (the lint below).
+## - the parent's explicit delete (SaveStore.delete, chunk 18, D43/D104) is
+##   the one way a save goes: it removes the level's file and its side file,
+##   other levels' saves and other files stay, and the level can be saved
+##   fresh after it (proposed: even if it was blocked);
+## - no other code under src/ can delete a file, and only the game root's
+##   delete_level_save() calls the store's delete (the lints below).
 
 # @test-link [[req_persistence_and_saves]]
 # @test-link [[rule_saves_never_wiped]]
@@ -148,11 +153,77 @@ func test_static_file_access_for_explicit_paths() -> void:
 	assert_eq(int(result["save"]["sim"]["tick"]), 7)
 
 
+# --- The parent's delete (chunk 18) --------------------------------------------
+
+func test_delete_removes_the_level_save_and_its_side_file_only() -> void:
+	var store := SaveStore.new(DIR)
+	assert_eq(store.write(_save()), "")
+	var other := _save()
+	other["level"]["id"] = "other"
+	assert_eq(store.write(other), "")
+	var side := store.path_for(LEVEL) + SaveStore.SIDE_SUFFIX
+	var leftover := FileAccess.open(side, FileAccess.WRITE)
+	leftover.store_string("half a write")
+	leftover.close()
+	var bystander := FileAccess.open(DIR + "parent.json", FileAccess.WRITE)
+	bystander.store_string("{}")
+	bystander.close()
+	assert_eq(store.delete(LEVEL), "")
+	assert_false(FileAccess.file_exists(store.path_for(LEVEL)), "the save is gone")
+	assert_false(FileAccess.file_exists(side), "its side file too")
+	assert_eq(store.read(LEVEL)["status"], SaveStore.FRESH, "the level starts fresh")
+	assert_eq(store.read("other")["status"], SaveStore.OK, "another level's save stays")
+	assert_true(FileAccess.file_exists(DIR + "parent.json"), "other files stay")
+
+
+func test_deleting_a_missing_save_is_not_an_error() -> void:
+	var store := SaveStore.new(DIR)
+	assert_eq(store.delete(LEVEL), "", "no directory yet")
+	DirAccess.make_dir_recursive_absolute(DIR)
+	assert_eq(store.delete(LEVEL), "", "no file")
+
+
+func test_after_a_delete_the_fresh_save_can_be_written() -> void:
+	var store := SaveStore.new(DIR)
+	assert_eq(store.write(_save()), "")
+	assert_eq(store.delete(LEVEL), "")
+	assert_eq(store.write(_save(3)), "")
+	assert_eq(int(store.read(LEVEL)["save"]["sim"]["tick"]), 3)
+
+
+func test_deleting_a_blocked_save_unblocks_the_level() -> void:
+	# (proposed) The block keeps an unreadable or other-version file from
+	# being written over. Once the parent deleted that file, there is nothing
+	# left to protect: the fresh level saves again.
+	var store := SaveStore.new(DIR)
+	DirAccess.make_dir_recursive_absolute(DIR)
+	var file := FileAccess.open(store.path_for(LEVEL), FileAccess.WRITE)
+	file.store_string("not json")
+	file.close()
+	assert_eq(store.read(LEVEL)["status"], SaveStore.UNREADABLE)
+	assert_false(store.can_write(LEVEL))
+	assert_eq(store.delete(LEVEL), "")
+	assert_true(store.can_write(LEVEL))
+	assert_eq(store.write(_save()), "")
+	assert_eq(store.read(LEVEL)["status"], SaveStore.OK)
+
+
+func test_a_delete_that_fails_says_why_and_keeps_the_block() -> void:
+	var store := SaveStore.new(DIR)
+	# The save's place is taken by a directory with something in it: it
+	# can't be removed.
+	DirAccess.make_dir_recursive_absolute(store.path_for(LEVEL).path_join("inside"))
+	store.block(LEVEL, "unreadable")
+	assert_ne(store.delete(LEVEL), "")
+	assert_true(DirAccess.dir_exists_absolute(store.path_for(LEVEL)), "left as it was")
+	assert_false(store.can_write(LEVEL), "still blocked")
+
+
 # --- Lint -----------------------------------------------------------------------
 
-## rule_saves_never_wiped: the game's code has no way to delete a file.
-## Deleting a save (settings, a second confirmation) comes with chunk 18 and
-## will get its own reviewed exception here.
+## rule_saves_never_wiped: the game's code has no way to delete a file, but
+## for the parent's explicit delete (SaveStore.delete, the one reviewed
+## exception, chunk 18).
 func test_no_game_code_can_delete_a_file() -> void:
 	var offenders := PackedStringArray()
 	var pattern := RegEx.create_from_string("remove_absolute|move_to_trash|\\.remove\\(|\\brename(_absolute)?\\(")
@@ -167,9 +238,32 @@ func test_no_game_code_can_delete_a_file() -> void:
 	assert_eq(offenders, PackedStringArray())
 
 
-## The one allowed rename: SaveStore swapping a fully written side file in.
+## The allowed file moves: SaveStore swapping a fully written side file in,
+## removing a level's files in SaveStore.delete (the parent's delete), and
+## ParentStore swapping its fully written side file in (the app-wide parent
+## code file, never a level save).
 func _allowed(path: String, line: String) -> bool:
-	return path == "res://src/save/save_store.gd" and "rename_absolute(" in line
+	if path == "res://src/save/parent_store.gd":
+		return "rename_absolute(" in line
+	return path == "res://src/save/save_store.gd" and ("rename_absolute(" in line or "remove_absolute(" in line)
+
+
+## rule_saves_never_wiped: no update, migration or load-failure path deletes
+## a save. The only caller of the store's delete is the game root's
+## delete_level_save(), the parent's action.
+func test_only_the_parents_delete_calls_the_store_delete() -> void:
+	var callers := PackedStringArray()
+	var call := RegEx.create_from_string("\\bdelete\\(")
+	for path in _scripts("res://src/"):
+		var lines := FileAccess.get_file_as_string(path).split("\n")
+		var function := ""
+		for n in lines.size():
+			var line := lines[n].strip_edges()
+			if line.begins_with("func "):
+				function = line
+			if not line.begins_with("#") and call.search(line) != null and not line.begins_with("func delete("):
+				callers.append("%s: %s" % [path, function])
+	assert_eq(callers, PackedStringArray(["res://src/main.gd: func delete_level_save() -> String:"]))
 
 
 func _scripts(dir: String) -> PackedStringArray:

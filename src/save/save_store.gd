@@ -5,7 +5,9 @@ extends RefCounted
 ## format (SaveData.to_text).
 ##
 ## A missing file means a fresh start (status FRESH). The store never
-## deletes a save and never replaces one with nothing (rule_saves_never_wiped):
+## deletes a save, except on the parent's explicit delete (delete(), chunk 18,
+## D43/D104), and never replaces one with nothing (rule_saves_never_wiped);
+## no update, migration or load-failure path may call delete(). So:
 ## - a save with no slimes, or one that doesn't read back as JSON (a NaN,
 ##   say), is refused and the old file stays as it was;
 ## - a file that can't be read (not JSON, not a save) is left untouched, and
@@ -62,6 +64,27 @@ func can_write(level_id: String) -> bool:
 ## `reason`: every write() to it is refused.
 func block(level_id: String, reason: String) -> void:
 	_blocked[level_id] = reason
+
+
+## The parent's delete of level `level_id`'s save (settings, D43): removes
+## its file and its side file, the only files a level save has. Only the
+## game root's delete_level_save() calls it (rule_saves_never_wiped). A save
+## that isn't there is no error. Once the files are gone the level is no
+## longer blocked (proposed): the block only kept an unreadable or
+## other-version file from being written over, and the parent chose to drop
+## it, so the fresh level saves again. Returns "" or why a file stays (the
+## block then stays too).
+## Chunk 19's backup copy must be removed here too.
+func delete(level_id: String) -> String:
+	var path := path_for(level_id)
+	for file in [path + SIDE_SUFFIX, path]:
+		if not FileAccess.file_exists(file) and not DirAccess.dir_exists_absolute(file):
+			continue
+		var removed := DirAccess.remove_absolute(file)
+		if removed != Error.OK:
+			return "SaveStore: can't delete %s (%s)" % [file, error_string(removed)]
+	_blocked.erase(level_id)
+	return ""
 
 
 ## Writes `save` as its level's file. Returns "" on success, else why nothing

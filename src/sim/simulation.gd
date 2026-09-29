@@ -5,9 +5,9 @@ extends RefCounted
 ## frame time into ticks with FixedStep and calls step() once per tick, so
 ## the result depends on elapsed time and input only, never on frame rate.
 ##
-## Input (touches and tilt, real or injected by test mode) is queued with
-## push_input() and consumed at the start of the next step(). An event pushed
-## while `tick` is T is stamped with T.
+## Input (touches and tilt, real or injected by test mode, and the parent's
+## wake early) is queued with push_input() and consumed at the start of the
+## next step(). An event pushed while `tick` is T is stamped with T.
 ##
 ## For now the state is the tick counter, the master Rng, the level played
 ## (its ID and version), the slimes' soft bodies (SlimeBodies), the train
@@ -56,8 +56,8 @@ extends RefCounted
 ## part of a save. `object_states` and `gate_states` hold the interactive
 ## objects' and gates' state by stable ID (chunk 14; empty until then).
 ##
-## Tick order: queued input (taps dispatched, calls answered, tilt read); the
-## session advances (clocks, phases, bedtime and sunrise); the slimes far
+## Tick order: queued input (taps dispatched, calls answered, tilt read, wake
+## early); the session advances (clocks, phases, bedtime and sunrise); the slimes far
 ## from the view park and move at their off-screen pace, the near ones
 ## simulate again (Offscreen); the train steers (aims the coming hops, carries the slimes on a slide); the free
 ## slimes steer; the slime bodies (free slimes fall the way the tilt says;
@@ -83,6 +83,8 @@ const INPUT_LOG_SIZE := 64
 const INPUT_TOUCH_DOWN := "touch_down"
 const INPUT_TOUCH_UP := "touch_up"
 const INPUT_TILT := "tilt"
+## The parent's wake early (chunk 18, see wake_early()).
+const INPUT_WAKE_EARLY := "wake_early"
 
 ## How long a tap's ripple lasts, ticks (0.6 s).
 const RIPPLE_TICKS := 36
@@ -216,10 +218,22 @@ static func tilt(degrees: float, flat := false) -> Dictionary:
 	return {"kind": INPUT_TILT, "degrees": degrees, "flat": flat}
 
 
-## Queues an input event (from touch_down, touch_up or tilt) for the next step.
+## The parent's wake early (D57, pressed behind the code): an input like a
+## touch, so it lands on a fixed step and a run stays repeatable. On the next
+## step, at bedtime, sunrise comes at once (with its cue) and screensaver
+## mode follows. Outside bedtime it does nothing: the button only shows at
+## bedtime, but a press may race the natural sunrise, and it must then not
+## end the screensaver mode or a new session that follows.
+# @spec-link [[req_session_lifecycle]]
+static func wake_early() -> Dictionary:
+	return {"kind": INPUT_WAKE_EARLY}
+
+
+## Queues an input event (from touch_down, touch_up, tilt or wake_early) for
+## the next step.
 func push_input(event: Dictionary) -> void:
 	var kind: String = event.get("kind", "")
-	if kind not in [INPUT_TOUCH_DOWN, INPUT_TOUCH_UP, INPUT_TILT]:
+	if kind not in [INPUT_TOUCH_DOWN, INPUT_TOUCH_UP, INPUT_TILT, INPUT_WAKE_EARLY]:
 		push_error("Simulation: unknown input kind '%s'" % kind)
 		return
 	_pending_input.append(event.duplicate())
@@ -313,6 +327,26 @@ func step() -> void:
 	_tidy()
 	tick += 1
 	hint.update(tick)
+
+
+## Carries `old`'s session into this simulation, a fresh one of the same
+## level (the parent deleted the level save, D104): its phase, timer and
+## clocks, whether the game has sessions, and the tilt (the session's
+## neutral), so bedtime and sunrise come when they would have. Ticks become
+## this simulation's: the clock's tick and a sunrise cue move with the tick
+## count, and a cue that began before this simulation's tick 0 is dropped,
+## the light simply day (proposed; it lasts Session.SUNRISE_SECONDS at most).
+# @spec-link [[req_session_lifecycle]]
+func carry_session(old: Simulation) -> void:
+	var data := old.session.dump()
+	var shift := tick - old.tick
+	if not data["clock"].is_empty():
+		data["clock"]["tick"] = int(data["clock"]["tick"]) + shift
+	if data["sunrise_tick"] >= 0:
+		var moved := int(data["sunrise_tick"]) + shift
+		data["sunrise_tick"] = moved if moved >= 0 else -1
+	phone_tilt.restore(old.phone_tilt.dump())
+	session.take_over(self, data, old.session.enabled)
 
 
 ## Runs `ticks` steps at once.
@@ -427,6 +461,9 @@ func _apply_input(event: Dictionary) -> void:
 				active_finger = -1
 		INPUT_TILT:
 			phone_tilt.read(event["degrees"], event.get("flat", false))
+		INPUT_WAKE_EARLY:
+			if session.phase == Session.BEDTIME:
+				session.sunrise(self)
 	var logged := event.duplicate()
 	logged["tick"] = tick
 	input_log.append(logged)

@@ -6,7 +6,11 @@ extends CanvasLayer
 ## never loads anything from src/debug/ and a game a test adds has none
 ## unless the test asks (main.add_debug_overlay()).
 ##
-## A bar of controls along the top of the screen, under the parent band:
+## A bar of controls along the top of the screen, under the parent band, and
+## under the parent buttons while they show; hidden while a parent surface
+## that covers the world is open (the game's parent_gate: menu_bottom(),
+## covers_world()). The overlay reads the parent layer; the parent layer
+## knows nothing of it:
 ## - speed 1x, 2x, 5x, 10x: the game root multiplies its frame clock by
 ##   `speed`, so each frame runs that many more ticks, the very same ticks
 ##   (test mode's time_scale does the same). The session's clocks run at the
@@ -35,8 +39,11 @@ extends CanvasLayer
 ## screen plays as usual. The game root also asks intercept() first in its
 ## _unhandled_input: it swallows a touch on a control (phones deliver the
 ## touch itself besides the emulated click) and, while Kill is armed, the
-## next press anywhere (and its release). So the kill tap never reaches the
-## simulation as a tap: no ripple, no call, no session start.
+## next press below the parent zone (and its release). So the kill tap never
+## reaches the simulation as a tap: no ripple, no call, no session start. The
+## parent layer's intercept runs before it, and a parent-zone press is never
+## the kill tool's, so the overlay never takes a tap from the parent zone or
+## a parent surface.
 
 const SPEEDS: Array[int] = [1, 2, 5, 10]
 ## The second click on Reset must come within this, real milliseconds.
@@ -166,7 +173,7 @@ func intercept(event: InputEvent) -> bool:
 	if over_controls(event.position):
 		_swallowed[key] = true
 		return true
-	if kill_armed:
+	if kill_armed and not _in_parent_zone(event.position):
 		_swallowed[key] = true
 		kill_at(event.position)
 		return true
@@ -261,9 +268,22 @@ func _buttons() -> Array[Button]:
 	return out
 
 
-## Puts the bar BAR_GAP under the parent zone of `view`'s screen.
+## Whether screen point `at` is in the parent zone of the game's screen.
+func _in_parent_zone(at: Vector2) -> bool:
+	var sim: Simulation = game.get("simulation") if game != null else null
+	return sim != null and at.y < TapDispatcher.parent_zone_height(sim.view)
+
+
+## Puts the bar BAR_GAP under the parent zone of `view`'s screen, or under
+## the parent buttons while they show (the game's parent layer, when it has
+## one), and hides it while a parent surface covers the world.
 func _place_bar(view: ScreenView) -> void:
-	bar.position = Vector2(BAR_X, TapDispatcher.parent_zone_height(view) + BAR_GAP)
+	var top := TapDispatcher.parent_zone_height(view)
+	var gate: Node = game.get("parent_gate") if game != null else null
+	bar.visible = gate == null or not gate.covers_world()
+	if gate != null:
+		top = maxf(top, gate.menu_bottom())
+	bar.position = Vector2(BAR_X, top + BAR_GAP)
 
 
 func _build() -> void:

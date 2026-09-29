@@ -226,8 +226,9 @@ func test_an_armed_kill_on_no_slime_just_disarms() -> void:
 	var game := _game(null, {"block_real_input": false})
 	var overlay: Node = game.debug_overlay
 	overlay.arm_kill(true)
-	_touch(game, Vector2(-5000, -5000), true)
-	_touch(game, Vector2(-5000, -5000), false)
+	# Far from every slime, and below the parent zone (never the kill tool's).
+	_touch(game, Vector2(-5000, 5000), true)
+	_touch(game, Vector2(-5000, 5000), false)
 	assert_false(overlay.kill_armed)
 	assert_eq(overlay.status, "Kill: no slime there")
 	game.test_mode.run_ticks(1)

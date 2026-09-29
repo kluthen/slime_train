@@ -256,6 +256,17 @@ func clock_at(tick: int) -> Dictionary:
 	return clock.reading_at(tick)
 
 
+## The game swapped in a fresh simulation that keeps the running session (the
+## parent's delete, main.restart_fresh(true)): the clocks go on from where the
+## old simulation, at `old_tick`, left them, now counted from the fresh
+## simulation's `fresh_tick` (TestClock.carried). A plain restart (the debug
+## overlay's Reset) doesn't call it: its fresh session starts on the clocks
+## as they read at the fresh tick.
+# @spec-link [[req_session_lifecycle]]
+func carry_clock(old_tick: int, fresh_tick: int) -> void:
+	clock = clock.carried(old_tick, fresh_tick)
+
+
 ## `value` as a screen size ([w, h] or a Vector2, both above 0), or null.
 static func _screen_size(value: Variant) -> Variant:
 	if typeof(value) == TYPE_VECTOR2 or typeof(value) == TYPE_VECTOR2I:

@@ -19,6 +19,9 @@ extends RefCounted
 ##     run starts (both clocks, as for a skip), and "restarted": true, the
 ##     app was killed or the phone restarted meanwhile: a new epoch, the
 ##     monotonic clock from 0.
+## When the parent deletes the level save, the fresh simulation starts again
+## at tick 0 but the session goes on: test mode swaps in carried(), which
+## goes on from the old reading.
 # @spec-link [[req_session_lifecycle]]
 
 const DEFAULT_WALL_MS := 1_800_000_000_000
@@ -33,6 +36,9 @@ var epoch := EPOCH
 var start_tick := 0
 ## tick -> milliseconds skipped before it.
 var skips := {}
+## Ticks the run ran before the simulation's tick 0: the old simulations'
+## ticks when fresh ones kept the session (carried()); 0 otherwise.
+var tick_offset := 0
 
 
 ## A clock for a run starting on `run_start_tick`, from a save's "session"
@@ -57,6 +63,33 @@ static func for_run(session: Variant, run_start_tick: int, setting: Dictionary, 
 	return out
 
 
+## This clock carried on to a fresh simulation that keeps the running session
+## (the parent's delete of the level save, main.restart_fresh(true)): it reads
+## at `fresh_tick` what this one reads at `old_tick`, the reading the old
+## simulation's next step would have taken, and runs on from there on the
+## run's own tick count (so the floored ms don't drift), as if the simulation
+## never restarted. Each skip counts once: the ones up to `old_tick` are
+## folded into the base and dropped; the later ones count when the fresh tick
+## reaches them (the script's ticks are the simulation's, as for its taps)
+## (proposed).
+# @spec-link [[req_session_lifecycle]]
+func carried(old_tick: int, fresh_tick: int) -> TestClock:
+	var out := TestClock.new()
+	out.base_wall_ms = base_wall_ms
+	out.base_mono_ms = base_mono_ms
+	out.base_tick = base_tick
+	out.epoch = epoch
+	out.start_tick = fresh_tick
+	out.tick_offset = tick_offset + old_tick - fresh_tick
+	for at in skips:
+		if at > old_tick:
+			out.skips[at] = skips[at]
+		elif at >= start_tick:
+			out.base_wall_ms += skips[at]
+			out.base_mono_ms += skips[at]
+	return out
+
+
 ## The default reading at tick 0 (a fresh run's clocks), for fixtures.
 static func default_reading() -> Dictionary:
 	return Session.reading(DEFAULT_WALL_MS, DEFAULT_MONO_MS, EPOCH)
@@ -69,7 +102,7 @@ static func ms_at(tick: int) -> int:
 
 ## The clocks before `tick`'s step (a Session.reading()).
 func reading_at(tick: int) -> Dictionary:
-	var ran := ms_at(tick) - ms_at(base_tick)
+	var ran := ms_at(tick + tick_offset) - ms_at(base_tick)
 	var skipped := 0
 	for at in skips:
 		if at >= start_tick and at <= tick:

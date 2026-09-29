@@ -46,7 +46,8 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `src/test_mode_guard.gd` | The one check that keeps test mode out of release builds |
 | `src/test_mode/` | Test mode: scripted input, time control, fixtures and saves to start from, the on-screen marker |
 | `src/debug/` | The debug overlay, debug builds only: speed, reset, slime labels, the kill tool, the fps, the woken/available counter, the slime counts (see "Debug overlay") |
-| `src/save/` | The save files (`SaveStore`: one per level, never wiped), autosave timing (`Autosave`) and the real clocks sessions count on (`SessionClock`); the save format itself is `src/sim/save_data.gd` (see "Saves and fixtures") |
+| `src/save/` | The save files (`SaveStore`: one per level, never wiped), autosave timing (`Autosave`), the real clocks sessions count on (`SessionClock`) and the app's parent code (`ParentStore`, see "Parent gate and settings (chunk 18)"); the save format itself is `src/sim/save_data.gd` (see "Saves and fixtures") |
+| `src/parent/` | The parent layer: the parent buttons, the code prompt, settings and setup (`ParentGate` and its surfaces), their strings (`ParentText`) and sizes (`ParentLayout`) (see "Parent gate and settings (chunk 18)") |
 | `src/session/` | The session's screen effects (`SessionScreen`: the dusk tint, keeping the screen on); the session logic itself is `src/sim/session.gd` (see "Sessions (chunk 17)") |
 | `src/frontier/` | Frontier set drawing (`FrontierView`: doors, arrows, the basket's outlines, the celebration); the logic itself is `src/sim/frontier_sets.gd` (see "Frontier sets (chunk 14)") |
 | `src/taps/` | Tap feedback drawing (`TapFeedback`: the ripples and the slimes' eye dots); the tap logic itself is in `src/sim/` (see "Taps and the call") |
@@ -122,7 +123,11 @@ in viewport pixels. **Rule for later chunks:** game logic (tap dispatch, the
 call, edge buttons, tilt) reads input only from these events, never from
 Godot's `InputEvent` directly; `src/main.gd` is the one place that
 translates. Otherwise scripted input would bypass it. Touches are turned
-into taps inside the simulation (see "Taps and the call").
+into taps inside the simulation (see "Taps and the call"). The parent layer
+and the debug overlay, UI outside the simulation, see Godot's events first
+and take their own presses; the parent's wake early reaches the simulation
+as an input event too, `Simulation.wake_early()` (see "Parent gate and
+settings (chunk 18)").
 
 ### Randomness
 
@@ -212,7 +217,9 @@ A run is one dictionary, in GDScript or in a JSON file:
 - `autosave` (default false): autosave during the run. Off, a run never
   writes a save; `game.save_now()` saves on demand either way (to the
   game's `save_store`, which a test sets before adding the game).
-- `block_real_input` (default true): ignore the real mouse and touches.
+- `block_real_input` (default true): ignore the real mouse and touches
+  (the parent layer's too; turning it on closes any open parent surface,
+  such as first launch's setup).
 - `screen_size` (`[width, height]`, default `[1152, 648]`): the screen size
   the simulation's view uses to dispatch taps (a headless window reports a
   wrong one). The game reads it in `sync_view()`; outside test mode it uses
@@ -1023,7 +1030,7 @@ The view is in the dump.
 
 | Order | Zone | Where | Does |
 |---|---|---|---|
-| 1 | `parent_zone` | a band `PARENT_ZONE_MM` (7 mm) high along the top, measured on the screen: `parent_zone_height(view)` screen px (about 67 on the reference phone) | nothing yet (parent buttons, chunk 18); never calls |
+| 1 | `parent_zone` | a band `PARENT_ZONE_MM` (7 mm) high along the top, measured on the screen: `parent_zone_height(view)` screen px (about 67 on the reference phone) | only ripples; never calls. The parent layer sees the press first and reveals the parent buttons (see "Parent gate and settings (chunk 18)") |
 | 2 | `edge_button` | a strip `EDGE_STRIP_SHARE` (10%) of the screen's width against each side, from the parent zone to the bottom (`edge_button_rect(side, view)`) | moves the camera along its rails (`Camera.press`, see "Camera"); never calls, operates no object under it |
 | 3 | `object` | the hit area (`hit_area(kind, box, view)`) of a tap target that answers a tap now: an object's drawing plus 5 mm a side, at least 20 × 20 mm, on the screen (chunk 23E below); a sleeper's body plus 24 screen px | a **switch** whose basket is filling flips (chunk 14); a **sleeper** calls, centred on it |
 | 4 | `open_ground` | anywhere else | calls, centred on the tap |
@@ -2722,9 +2729,9 @@ screensaver --world tap--> session --14:00--> wind_down --15:00--> bedtime --25:
 One timer, `elapsed_ms`, counts real milliseconds since the session
 started: `WIND_DOWN_MS` (840 000), `BEDTIME_MS` (900 000), `SUNRISE_MS`
 (1 500 000: bedtime plus the 10-minute cooldown). Sunrise is the transition
-`sunrise(sim, cue)` back to screensaver mode (chunk 18's wake early will call
-it too). `advance()` runs once a tick, after the input and before the
-slimes move; its checks are sequential, so a long gap goes through every
+`sunrise(sim, cue)` back to screensaver mode (the parent's wake early calls
+it too, chunk 18). `advance()` runs once a tick, after the input and
+before the slimes move; its checks are sequential, so a long gap goes through every
 phase it passed, each with its effects. A sunrise more than
 `SUNRISE_CUE_LATE_MS` (1 s) late shows no cue (`sunrise_tick` = -1): a
 cooldown that ran out while the app was closed lands in screensaver mode
@@ -2813,7 +2820,10 @@ clocks, `"restarted": true` gives a new epoch and a monotonic clock from 0.
 So a scripted session reaches bedtime with `{"tick": 150, "do": "skip",
 "seconds": 900}`, and a kill-and-reopen is a save then a run with `"load"`
 and `"clock": {"away": 60, "restarted": true}`. `Session.jump(sim, ms)`
-sets the timer directly (tools and tests).
+sets the timer directly (tools and tests). When the parent deletes the level
+save in test mode, the fresh simulation restarts at tick 0 but the clock
+carries on from the old reading (`TestClock.carried()`, via
+`test_mode.carry_clock()`; see "Parent gate and settings (chunk 18)").
 
 **Fixtures.** `wind-down` (14:50), `bedtime` (15:00) and `sunrise` (9:55
 into the cooldown), made by `tools/make_fixture.gd` from the fresh level:
@@ -2837,7 +2847,10 @@ a session started on the default test clock and jumped with
   saved, buttons hidden, a tap only ripples), the `bedtime` fixture, DoD 22
   (from `sunrise`: sunrise 5 s in, screensaver mode, everyone awake, the
   next tap starts a session), repeatable in process and in a child process.
-- Wake early (DoD 22's parent part) is chunk 18's.
+- Wake early (DoD 22's parent part), the time left and carrying a session
+  through a save's delete: `tests/unit/test_session_parent.gd` and
+  `tests/e2e/test_delete_save_e2e.gd` (see "Parent gate and settings
+  (chunk 18)").
 
 **Choices.** One timer through all phases, rather than a timer per phase,
 keeps catching up one comparison per limit. The clock rule trusts the
@@ -2849,14 +2862,248 @@ Bedtime-asleep slimes fall and settle like any body, then rest as a pile
 wall until something disturbs it; bedtime and sunrise, as state changes,
 wake it), and off screen they are parked like every slime.
 
+## Parent gate and settings (chunk 18)
+
+`specs/concept.md` "Session and parental controls", D30, D55, D57, D83, D98,
+D104, D109, D113, D114 and ux D6 (`req_parent_gate_and_access`,
+`req_denial_and_stepup_behavior`, `req_actor_roles_and_permissions`,
+`rule_parent_code_not_stored_plaintext`,
+`rule_time_left_shown_only_behind_code`). The code is in `src/parent/` (the
+parent layer) and `src/save/parent_store.gd` (the parent code); the game root
+has a few hooks. The look is placeholder (plain Godot controls): the design
+tokens are ux-writer's, still to come.
+
+**The parent layer.** `ParentGate` (`src/parent/parent_gate.gd`) is one
+CanvasLayer (layer 60: above the debug overlay's 50, below test mode's 128)
+holding a state machine over the running game:
+
+| State | What shows | Leaves it |
+|---|---|---|
+| `HIDDEN` | nothing | a parent-zone press: `BUTTONS` |
+| `BUTTONS` | the parent buttons (wake early, leave, settings) | 5 s with no press (`HIDE_STEPS` 300); a press elsewhere; a press on a button: `PROMPT` for its action |
+| `PROMPT` | the code prompt (`ParentCodePrompt`) for `pending_action` | the right code runs the action (`act()`); 15 s idle (`IDLE_STEPS` 900); a press outside the panel |
+| `SETTINGS` | settings (`ParentSettings`) | the close button; 30 s idle |
+| `SETUP` | setup (`ParentSetup`), first launch only | Finish |
+
+Nothing it does pauses the simulation or the session timer. The game root
+wires it in three places: `intercept(event)` first in `_unhandled_input`
+(before the debug overlay), `advance()` once per simulation step at the end of
+`step_simulation()` (so normal play and test mode's `run_ticks` both drive
+it), and `parent_gate.simulation` set on every simulation swap
+(`_use_simulation`). Every timer counts simulation steps (60 a second), so a
+headless test fast-forwards it with ticks. The gate reads the simulation's
+view (the screen's millimetres) and session (the phase), and asks the game
+for `now_wall_ms()` and to run an action. Its controls all ignore the
+mouse: `intercept()` hit-tests its own rects on touches and real (not
+emulated) left clicks, and a press it takes is swallowed with its release.
+
+**Surfaces.** The prompt, settings and setup are `ParentSurface`s
+(`src/parent/parent_surface.gd`): the gate owns the input and the timing, a
+surface answers `opened()`, `covers(at)` (the press is the surface's; false
+means outside), `press(at)`, `step()` (once per simulation step while open)
+and `lay_out(view)` (on open and every frame), and calls `gate.close()` or
+`gate.open_state()` to move on. To add one: a `ParentSurface` subclass, a
+state in `ParentGate.State`, `add_surface(State.X, surface)` in the gate's
+`_build()`, and `open_state(State.X)` to enter it; `covers_world()` lists
+the states that hide the debug bar.
+
+**The parent zone.** A press in the parent zone
+(`TapDispatcher.parent_zone_height`, 7 mm) while `HIDDEN` reveals the parent
+buttons, only once a code is set, and still goes on to the simulation (its
+ripple; the parent zone never calls nor starts a session). With the buttons
+open, a parent-zone press off them restarts the 5 s and is forwarded too.
+**A tap outside closes and does its normal job:** a press outside the
+buttons or outside an open surface closes it and is not swallowed, so it
+calls, flips a switch or starts a session as usual (DoD 24); if it was in
+the parent zone, the buttons show again. The buttons sit in a row from the
+top-right corner (`ParentLayout.button_rect`, slot 0 settings, 1 leave, 2
+wake early); every slot keeps its place, and wake early shows only at
+bedtime, following the phase live. No button shows a time left.
+
+**The code prompt** (`parent_code_prompt.gd`): a panel two thirds of the
+screen's width on a scrim, centred below the parent zone (the parent zone
+and the scrim are outside it). On the right the pad (`ParentPad`: 0-9 and a
+delete key, an in-game pad, never the phone's keyboard); on the left the
+title, the six slots as dots (`ParentCodeSlots`, never the digits), the
+wait's message, and "Forgot the code?". The 6th digit submits: the right
+code runs the action and the parent's authority ends with it (the next
+action asks again); a wrong one shakes the slots (0.4 s, visual only),
+clears the entry and counts one try. The tries are the store's, one count
+for every button: the 5th wrong in a row starts a 30 s wait during which
+the pad refuses digits and the message counts down; the wait survives
+closing the prompt and a kill. "Forgot the code?" shows a stub note
+(nothing changes, no try counts) until chunk 20 brings the reset. A press
+on the panel restarts the 15 s. The wake-early prompt shows the time until
+sunrise, live, and closes once bedtime ends on its own.
+
+**Wake early and leave.** Wake early calls `game.wake_early()`, which
+pushes `Simulation.wake_early()` as a simulation input: on the next step, at
+bedtime, `session.sunrise()` runs (with its cue) and screensaver mode
+follows; outside bedtime it does nothing (a press can race the natural
+sunrise). Being an input, it lands on a fixed tick and a run stays
+repeatable. Leave calls `game.quit_app`, the tree's `quit()` unless a test
+put its own Callable first; stopping screen pinning before quitting is
+chunk 20's.
+
+**Settings** (`parent_settings.gd`) fill the screen, so every press is
+theirs. The header shows `Session.time_left_ms()` as m:ss
+(`ParentText.time_left`): until bedtime in a session or its wind-down,
+until sunrise at bedtime, "No session running" in screensaver mode. That
+and the wake-early prompt are the only places a time left shows. Settings
+close after 30 s with no press, the warning line counting the last 10 s; any
+press restarts the 30 s, which also cover the change-of-code and delete
+screens (at 0 everything closes back to the game). Three screens:
+- `MAIN`: "Change the code" and, under "Delete a level's save:", one
+  button per level listed (`levels()`: the running level only);
+- `CHANGE_CODE` (`ParentChangeCode`, also setup's code step): the new code
+  typed twice on the pad; a match goes to `store.set_code()` at once (the
+  old code stops working, the tries reset), a mismatch shakes, clears and
+  starts again from the first entry;
+- `DELETE` (`ParentDeleteSave`): the second confirmation (the code was the
+  first). Yes calls `game.delete_level_save()` (below) and shows MAIN with
+  "save deleted" or an error line; No goes back with nothing deleted.
+Closing settings ends the parent's authority.
+
+**Setup** (`parent_setup.gd`): a gate made on a store with no code opens it
+at once, before the world takes a tap. It fills the screen (no call, no
+session start, no reveal) and has no idle timeout. Four steps, "Step n of
+4": welcome, the code typed twice (`ParentChangeCode`; a match moves on by
+itself), a forgotten code, screen pinning (the text only: pinning is chunk
+20). Back on steps 2 to 4. The code is held in memory and saved
+(`set_code`) only by Finish, which closes setup for good. An interruption
+drops it and starts over from step 1: the app killed (nothing was saved,
+so the next launch shows setup again), `NOTIFICATION_APPLICATION_PAUSED`,
+and on desktop only `NOTIFICATION_APPLICATION_FOCUS_OUT`
+(`ParentSetup.interrupts()`).
+
+**Code storage.** `ParentStore` (`src/save/parent_store.gd`) is one file
+for the whole app, `user://parent.json`: not a level save, so deleting a
+level's save erases neither the code nor the tries. FORMAT 1:
+
+```
+{"format": 1,
+ "code": {"salt": "<hex>", "hash": "<hex>"} or null,
+ "wrong_tries": <int, in a row>,
+ "wait_until_ms": <int, wall clock Unix ms; 0 = no wait>}
+```
+
+The code is never written: only SHA-256 of a salt then the code's bytes,
+with a fresh 16-byte salt (`Crypto.generate_random_bytes`) at every
+`set_code`. A code is exactly 6 ASCII digits; anything else is refused
+loudly. A wrong try and the start of a wait are on disk at once; once a wait
+has ended the next try starts the count from 0; a right code or a new code
+resets it. The wait's times are the game's wall clock
+(`main.now_wall_ms()`: `session_clock` in normal play, so the debug
+overlay's speed runs it faster too; test mode's `TestClock` at the current
+tick), so it survives a kill. `wait_left_ms()` clamps a clock moved back: a
+wait never has more than 30 s left (its end moves and is saved). Writes go
+to `parent.json.new`, are read back, then renamed over the file. A file
+that can't be read (not JSON, another format, a bad field) is refused
+loudly, left untouched, and read as "no code", so setup runs again and its
+`set_code` writes over it: an open risk until chunk 19 hardens persistence
+(a damaged file means a new code, chosen by whoever holds the phone).
+
+**Strings.** Every parent-facing string goes through `ParentText`
+(`src/parent/parent_text.gd`), a table of key to `{"en", "fr"}` (the French
+says "vous"; the child sees no text). A plain table rather than Godot's
+`.po`/CSV translations: no import step, and it tests headless. Add every
+key in both languages (`test_parent_text.gd` checks it); placeholders are
+`{name}`, filled with `String.format()`. `language()` is "fr" on a French
+phone, else "en"; `ParentText.language_override` ("en", "fr", "" for the
+phone's) is the seam for tests and tools, set before the gate is built
+(the surfaces read the language when they are made).
+
+**Sizes.** Everything is in millimetres through `ScreenView.mm_to_px`, so
+targets have the same physical size on every phone: `ParentLayout` (the
+buttons 14 × 10 mm, 3 mm apart, 1 mm from the edges; text 2 mm; the prompt's
+panel), `ParentPad` (keys 10 mm, 2.5 mm apart), `ParentSettings` (targets
+10 mm high, 3 mm apart). Every target is at least 9 × 9 mm and 2 mm apart
+(D109; the e2e tests measure them). There is no token file yet: ux-writer's
+future `src/ui/tokens.gd` will replace these constants.
+
+**Deleting a level's save** (D43, D104, DoD 29). `SaveStore.delete(level_id)`
+is the only way a save goes: it removes the level's file and its side file
+(a missing file is no error), and lifts the level's write block, so a
+fresh level saves again even where an unreadable file had blocked it. It is
+called only from `main.delete_level_save()`; two lints in
+`tests/unit/test_save_store.gd` enforce `rule_saves_never_wiped` (no other
+`src/` code removes a file, and no other caller of the store's delete).
+Chunk 19's backup copy must be removed there too. `delete_level_save()`
+deletes, then `restart_fresh(true)`: a fresh simulation that keeps the
+running session (`Simulation.carry_session(old)`: phase, timer, clocks,
+the tilt's neutral, a sunrise cue moved to the new ticks or dropped if it
+began before tick 0; `Session.take_over()` puts the fresh world's awake
+slimes to sleep at bedtime and sets screensaver mode and the hop rate), so
+bedtime and sunrise come when they would have. Then the fresh save is
+written at once (a kill right after resumes the same session). In test
+mode `test_mode.carry_clock()` swaps in `TestClock.carried()` (see "Test
+mode's clocks and skipping time"). Without a save store it only reloads.
+
+**The debug overlay** sits under the parent buttons while they show
+(`ParentGate.menu_bottom()`), hides while a surface covers the world
+(`covers_world()`), and an armed Kill ignores parent-zone presses (see
+"Debug overlay").
+
+**Test isolation.** `game.parent_store` defaults to `ParentStore.new()`
+(`user://parent.json`) for the main scene only, like `save_store`; a game
+a test adds has none, and no store means no parent layer
+(`parent_gate` null), so every older test runs as before. The parent tests
+set `game.parent_store = ParentStore.new("user://test-.../parent.json")`
+before adding the game, seeded with a code (`set_code`) or empty for
+setup, and replace `game.quit_app`. In test mode, `block_real_input` keeps
+real input off the parent layer as off the world, and `enable_test_mode`
+with it on closes any open surface (first launch's setup; no code saved, so
+the next launch shows it again).
+
+**How to test.**
+
+```sh
+tools/test.sh -gselect=test_parent_          # store, text, buttons, prompt, settings, setup
+tools/test.sh -gselect=test_delete_save_e2e  # the delete and wake early through the game
+tools/test.sh -gselect=test_session_parent   # time left, wake early, carrying a session
+tools/test.sh -gselect=test_save_store       # SaveStore.delete and its lints
+```
+
+By hand on desktop: `godot --path . src/main.tscn`. The first launch shows
+setup; choose a code and finish. Then click the band along the top to
+reveal the parent buttons. To see setup again, delete `user://parent.json`:
+on Linux `~/.local/share/godot/app_userdata/Slime Train/parent.json`. On
+desktop, the window losing focus restarts setup.
+
+Tests: `tests/unit/test_parent_store.gd` (17), `test_parent_text.gd` (8),
+`test_session_parent.gd` (10), `test_save_store.gd` (the delete and its
+lints), `tests/e2e/test_parent_buttons_e2e.gd` (18),
+`test_parent_prompt_e2e.gd` (20), `test_parent_settings_e2e.gd` (19),
+`test_parent_setup_e2e.gd` (14), `test_delete_save_e2e.gd` (7).
+
+**Choices (proposed).**
+- The 6th digit submits (no OK key).
+- A parent-zone tap on an open prompt closes it and reveals the buttons.
+- The wake-early prompt closes when bedtime ends on its own.
+- Setup's code step advances by itself once both entries match.
+- Back on setup's steps 2 to 4 (back on the code step: the code is chosen
+  anew).
+- Setup has no idle timeout.
+- Losing the focus interrupts setup on desktop only (a phone's focus also
+  goes to its notification shade).
+- Deleting a level's save lifts its write block.
+- The phone tilt (the session's neutral) is carried into the fresh
+  simulation; a sunrise cue from before its tick 0 is dropped.
+- Settings list only the running level (v1 ships one).
+- A test-mode run that blocks real input closes setup.
+- A mismatch in the change of code starts again from the first entry; a
+  failed delete shows an error line.
+- Test mode's skips up to the delete are folded into the carried clock's
+  base; later ones count when the fresh tick reaches them.
+
 ## Debug overlay
 
 Developer tooling for playing the test level, not a build-plan chunk: a bar
 of controls under the parent band, in debug builds only. The code is all
 in `src/debug/`; the game root has a few hooks (`add_debug_overlay()`,
-`restart_fresh()`, the speed factor in `_process`, the first line of
-`_unhandled_input`). Tests: `tests/unit/test_debug_overlay.gd` and
-`tests/e2e/test_debug_overlay_e2e.gd`.
+`restart_fresh()`, the speed factor in `_process`, a line of
+`_unhandled_input` right after the parent layer's). Tests:
+`tests/unit/test_debug_overlay.gd` and `tests/e2e/test_debug_overlay_e2e.gd`.
 
 ![The debug overlay at 2x with labels on and Kill armed, seed 91 from the bump fixture](img/debug-overlay.png)
 
@@ -2943,8 +3190,10 @@ ms), as the counts loop over every slime; the woken/available counter
 refreshes every frame.
 
 **Kill.** The tap is intercepted before the simulation: the game root's
-`_unhandled_input` asks `DebugOverlay.intercept()` first, and while Kill is
-armed the next press anywhere (and its release) is the overlay's. So no
+`_unhandled_input` asks `DebugOverlay.intercept()` right after the parent
+layer, and while Kill is armed the next press below the parent zone (and
+its release) is the overlay's; a parent-zone press is never the kill
+tool's. So no
 tap, ripple, call or session start reaches the simulation, even with test
 mode's `block_real_input` on. `DebugKill.slime_at` picks the slime whose
 drawn body, grown by the tap zones' 24 px margin, holds the point (the
@@ -2963,11 +3212,13 @@ a touch on a control (on a phone the touch comes besides the emulated
 click). The bar, the counter and the labels ignore the mouse: the rest of
 the screen plays as usual. The bar sits 8 px under the parent zone
 (`TapDispatcher.parent_zone_height`, placed every frame from the
-simulation's view), so it never eats a parent-zone tap and
+simulation's view), or 8 px under the parent buttons while they show
+(`ParentGate.menu_bottom()`), and hides while a parent surface covers the
+world (`covers_world()`), so it never eats a parent-zone tap and
 the band keeps its meaning; a control over the world takes that spot's
 taps, which is fine for a debug tool. The overlay is a CanvasLayer (layer
-50) above the HUD; the labels are a world-space Node2D beside
-`TapFeedback`, and only read the simulation.
+50) above the HUD, below the parent layer (60); the labels are a
+world-space Node2D beside `TapFeedback`, and only read the simulation.
 
 **The release guard.** The game root adds the overlay only when
 `TestModeGuard` allows it (a debug build) and only when it is the running
@@ -3049,10 +3300,13 @@ another directory. The game (`src/main.gd`) reads it at start in normal
 play: a usable save is resumed, a missing file means a fresh start (the
 first slime woken).
 
-It never wipes a save (`rule_saves_never_wiped`):
+It never wipes a save (`rule_saves_never_wiped`), except on the parent's
+explicit delete (`SaveStore.delete`, chunk 18):
 
-- no code under `src/` can delete a file (a lint test in
-  `tests/unit/test_save_store.gd`; the one rename allowed is SaveStore's);
+- no other code under `src/` can delete a file, and only the game root's
+  `delete_level_save()` calls `SaveStore.delete` (lint tests in
+  `tests/unit/test_save_store.gd`; the renames allowed are SaveStore's and
+  ParentStore's side-file swaps);
 - a save with no slimes, or with a NaN, is refused and the old file kept;
 - a write goes to `<file>.new`, is read back, then renamed over the old
   file: a write that fails leaves the old file;
@@ -3060,6 +3314,14 @@ It never wipes a save (`rule_saves_never_wiped`):
   is: the game starts fresh, prints why, and writes nothing over it for the
   session (`SaveStore.block`). A backup copy and migration come with chunk
   19.
+
+The parent's delete (settings, a second confirmation) removes the level's
+file and its side file and lifts the block; the game then reloads the
+level fresh, keeps the running session and saves at once (D104; see
+"Parent gate and settings (chunk 18)"). No update, migration or
+load-failure path may call it; chunk 19's backup copy must be removed there
+too. The parent code is not a level save: it lives in `user://parent.json`
+(`ParentStore`) and a level's delete leaves it.
 
 `Autosave` (`src/save/autosave.gd`) saves every 15 s of wall time, and on
 `NOTIFICATION_APPLICATION_PAUSED` (Android and iOS leaving the
