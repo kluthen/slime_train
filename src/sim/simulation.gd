@@ -63,8 +63,10 @@ extends RefCounted
 ## and free slimes inherit); slimes in contact fuse or bump, and train slimes
 ## gather at dip bottoms (Fusion); the free slimes change phase or rejoin the
 ## train; the train follows (progress, lost slimes); the camera watches
-## (idle clock, cue, the slime it follows) and moves (Camera: rails, edge
-## buttons, call drag, framing zones, idle camera); spent ripples go.
+## (idle clock, cue, the slime it follows, no one at bedtime), is shown the
+## gates a basket fired open this tick, and moves (Camera: rails, edge
+## buttons, call drag, framing zones, idle camera, a gate's show); spent
+## ripples go.
 
 ## Simulation ticks per second. Tuning durations (3 s of contact to fuse, 10 s
 ## before left alone, and so on) are counted in ticks at this rate.
@@ -259,6 +261,7 @@ func spawn_train_slime(slime_species: int, slime_size: int, distance: float) -> 
 
 ## Advances the simulation by one tick.
 # @spec-link [[req_hopping_behavior]]
+# @spec-link [[req_camera_shows_gate_opening]]
 func step() -> void:
 	for event in _pending_input:
 		_apply_input(event)
@@ -285,7 +288,9 @@ func step() -> void:
 	free_slimes.follow(slimes, tick, level, gates)
 	if train != null:
 		train.follow(slimes, tick)
-	camera.watch(slimes, not fingers_down.is_empty(), screensaver)
+	camera.watch(slimes, not fingers_down.is_empty(), screensaver, session.phase == Session.BEDTIME)
+	for gate_id in frontier.gates_fired_open(self):
+		camera.show_gate(level.gates[gate_id]["box"], view, level.loop, gates, tick)
 	camera.step(level.loop if level != null else null, gates, TICK_SECONDS, tick)
 	_tidy()
 	tick += 1
@@ -440,7 +445,7 @@ func _tap(finger: int, at: Vector2) -> void:
 	if hit["call"]:
 		answered = free_slimes.answer_call(hit["call_point"], tick, slimes, radius)
 		hint.called()
-		camera.follow_call(hit["call_point"], tick)
+		camera.on_call(hit["call_point"], tick, view)
 	taps.append({"tick": tick, "finger": finger, "screen": at,
 			"world": world.snapped(Vector2(0.01, 0.01)), "zone": hit["zone"], "side": hit["side"],
 			"object": hit["object"], "kind": hit["kind"], "call": hit["call"],

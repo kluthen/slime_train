@@ -52,11 +52,11 @@ func _camera(near: Vector2) -> Camera:
 
 
 ## `ticks` ticks of the camera, the slimes ticking too; `touching` says a
-## finger is down all along.
-func _run(camera: Camera, ticks: int, touching := false, screensaver := false) -> void:
+## finger is down all along, `bedtime` that it is bedtime.
+func _run(camera: Camera, ticks: int, touching := false, screensaver := false, bedtime := false) -> void:
 	for i in ticks:
 		_bodies.tick(DT)
-		camera.watch(_bodies, touching, screensaver)
+		camera.watch(_bodies, touching, screensaver, bedtime)
 		camera.step(_loop, [], DT, _tick)
 		_tick += 1
 
@@ -290,13 +290,105 @@ func test_screensaver_mode_starts_on_the_idle_camera_straight_away() -> void:
 	assert_eq(camera.mode, Camera.FOLLOW)
 
 
-func test_screensaver_mode_inside_a_zone_ignores_it() -> void:
+func test_screensaver_mode_inside_a_wide_zone_keeps_its_zoom() -> void:
 	var camera := _camera(Vector2(2400, 0))
 	_train(Vector2(2400, -24))
 	assert_eq(camera.zoom, ZONE_ZOOM)
+	assert_lt(ZONE_ZOOM, Camera.IDLE_ZOOM, "the zone is wider than the idle zoom")
 	_run(camera, 1, false, true)
-	assert_eq(camera.zoom, Camera.IDLE_ZOOM, "one zoom; it doesn't stack with the zone's")
-	assert_eq(camera.frame_zone, "")
+	assert_eq(camera.mode, Camera.FOLLOW)
+	assert_eq(camera.zoom, ZONE_ZOOM, "it never zooms in (D103); nor does it stack with the zone's")
+	assert_eq(camera.frame_zone, "", "the zone is ignored while following")
+
+
+# --- The idle zoom never zooms in (item 23.4, D103) -----------------------------------------------
+
+func test_inside_a_wide_zone_the_cue_and_the_idle_camera_keep_its_zoom() -> void:
+	var camera := _camera(Vector2(2400, 0))
+	var slime := _train(Vector2(2450, -24))
+	assert_eq(camera.zoom, ZONE_ZOOM)
+	for i in _idle_ticks() + 2 * TICK_RATE:
+		_run(camera, 1)
+		assert_true(camera.zoom <= ZONE_ZOOM, "never above the zone's zoom")
+	assert_eq(camera.mode, Camera.FOLLOW)
+	assert_eq(camera.zoom, ZONE_ZOOM, "the idle camera keeps it")
+	_bodies.set_velocity(slime, Vector2(-250, 0))
+	for i in 4 * TICK_RATE:
+		_run(camera, 1)
+		assert_eq(camera.zoom, ZONE_ZOOM, "out of the zone too, while following")
+	assert_false(ZONE_BOX.has_point(camera.position), "the slime led it out of the zone")
+
+
+func test_in_a_zone_narrower_than_the_idle_zoom_the_cue_zooms_out_as_before() -> void:
+	var data := LevelData.new("t", 1)
+	data.add_framing_zone("t.frame.mild", ZONE_BOX, 0.95, Vector2.ZERO)
+	var camera := Camera.new()
+	camera.zones = data.framing_zones
+	camera.start(_loop, [], Vector2(2400, 0))
+	_train(Vector2(2450, -24))
+	assert_eq(camera.zoom, 0.95)
+	_run(camera, _idle_ticks() - _cue_ticks() / 2)
+	assert_lt(camera.zoom, 0.95, "the cue zooms out")
+	_run(camera, _cue_ticks())
+	assert_eq(camera.mode, Camera.FOLLOW)
+	assert_eq(camera.zoom, Camera.IDLE_ZOOM, "to the shared zoom")
+
+
+# --- At bedtime (item 23.12) ----------------------------------------------------------------------
+
+## Bedtime as the session makes it: every awake slime falls asleep where it is.
+func _bedtime() -> void:
+	for slime_id in _bodies.ids():
+		if _bodies.state_of(slime_id) in [SlimeBodies.TRAIN, SlimeBodies.FREE]:
+			_bodies.set_state(slime_id, SlimeBodies.BEDTIME_ASLEEP)
+
+
+func _sunrise() -> void:
+	for slime_id in _bodies.ids():
+		if _bodies.state_of(slime_id) == SlimeBodies.BEDTIME_ASLEEP:
+			_bodies.set_state(slime_id, SlimeBodies.TRAIN)
+
+
+func test_at_bedtime_the_idle_camera_follows_no_one_and_stays_put() -> void:
+	var camera := _camera(Vector2(1000, 0))
+	var slime := _train(Vector2(1400, -24))
+	_run(camera, _idle_ticks() + 10)
+	assert_eq(camera.mode, Camera.FOLLOW)
+	assert_gt(camera.position.distance_to(_bodies.centre_of(slime) + Camera.RAIL_OFFSET), 50.0,
+			"still gliding to its slime")
+	_bedtime()
+	# The slime drifts: a camera still following it would move.
+	_bodies.set_velocity(slime, Vector2(40, 0))
+	_run(camera, 1, false, false, true)
+	var still := camera.position
+	for i in 20 * TICK_RATE:
+		_run(camera, 1, false, false, true)
+		assert_eq(camera.position, still, "it travels nowhere")
+	assert_eq(camera.follow_id, -1, "it follows no one")
+	assert_eq(camera.zoom, Camera.IDLE_ZOOM, "at the idle zoom")
+	_bodies.set_velocity(slime, Vector2.ZERO)
+	_sunrise()
+	_run(camera, 1, false, true, false)
+	assert_eq(camera.mode, Camera.FOLLOW)
+	assert_eq(camera.follow_id, slime, "at sunrise it follows a train slime again")
+
+
+func test_bedtime_during_the_cue_starts_no_idle_camera() -> void:
+	var camera := _camera(Vector2(1000, 0))
+	var slime := _train(Vector2(1400, -24))
+	_run(camera, _idle_ticks() - _cue_ticks() / 2)
+	assert_lt(camera.zoom, 1.0, "the cue is on")
+	_bedtime()
+	var still := camera.position
+	for i in _cue_ticks() + 20 * TICK_RATE:
+		_run(camera, 1, false, false, true)
+		assert_eq(camera.position, still, "it travels nowhere")
+	assert_eq(camera.mode, Camera.RAILS, "no idle camera at bedtime")
+	assert_eq(camera.zoom, Camera.IDLE_ZOOM, "the zoom may settle at the idle zoom")
+	_sunrise()
+	_run(camera, 1, false, true, false)
+	assert_eq(camera.mode, Camera.FOLLOW)
+	assert_eq(camera.follow_id, slime, "at sunrise it follows a train slime again")
 
 
 func test_idle_and_screensaver_share_one_zoom_10_to_20_percent_wider() -> void:
@@ -405,9 +497,9 @@ func test_the_idle_camera_is_in_the_dump_and_restores() -> void:
 	# The bodies are shared: run each camera over the same slimes, one tick
 	# at a time, without moving them.
 	for i in 3 * TICK_RATE:
-		a.watch(_bodies, false, false)
+		a.watch(_bodies, false, false, false)
 		a.step(_loop, [], DT, tick + i)
-		b.watch(_bodies, false, false)
+		b.watch(_bodies, false, false, false)
 		b.step(_loop, [], DT, tick + i)
 	assert_eq(a.mode, Camera.FOLLOW)
 	assert_eq(StateHash.canonical_json(b.dump()), StateHash.canonical_json(a.dump()))

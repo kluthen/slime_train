@@ -85,6 +85,9 @@ var celebration_done := false
 var celebration_since := -1
 
 var _level: LevelData = null
+## Gate stable ID -> the tick a basket fired it open in this run
+## (gates_fired_open()). Transient: not saved, emptied by start().
+var _opened_on := {}
 ## Stable ID -> TerrainSegments, one solid box each.
 var _trapdoors := {}
 var _barriers := {}
@@ -131,6 +134,7 @@ static func onward_outlet(loop: LoopData, gate_id: String, before: float, near: 
 ## Called by Simulation.load_level and again once a save's states are in.
 func start(sim: Simulation) -> void:
 	_level = sim.level
+	_opened_on = {}
 	_trapdoors = {}
 	_barriers = {}
 	_lids = {}
@@ -230,6 +234,20 @@ func holding(sim: Simulation, id: String) -> bool:
 	return state["phase"] == FILLING and _flipped_for(sim, id)
 
 
+## The gates a basket fired open on this tick, sorted: the "basket fired"
+## event, read after step() (the camera shows a gate opening,
+## Simulation.step). Only a firing in this run counts: a gate saved open, or
+## a basket saved fired, opens nothing again after a load.
+# @spec-link [[req_switch_basket_gate_set]]
+# @spec-link [[req_camera_shows_gate_opening]]
+func gates_fired_open(sim: Simulation) -> PackedStringArray:
+	var out := PackedStringArray()
+	for id in _sorted(_opened_on):
+		if _opened_on[id] == sim.tick:
+			out.append(id)
+	return out
+
+
 ## The state as plain data, for Simulation.dump().
 func dump() -> Dictionary:
 	return {"celebration_done": celebration_done, "celebration_since": celebration_since}
@@ -325,6 +343,7 @@ func _fire(sim: Simulation, id: String) -> void:
 ## Opens gate `id` for good, and grows the train's loop (see the class doc).
 func _open_gate(sim: Simulation, id: String) -> void:
 	sim.gate_states[id]["open"] = true
+	_opened_on[id] = sim.tick
 	_disturb(sim, _level.gates[id]["box"])
 	var train := sim.train
 	if train == null or id in train.open_gates:
