@@ -45,7 +45,7 @@ value to try. When a value is tuned, update it here and log the result in
 
 The build picked these while making the chunks named. They are starting
 values, **to try**. The user approved the values of chunks 15 and 16 (D108;
-the rows added later and tagged proposed wait for D116 and D118)
+the rows added later and tagged proposed wait for D116, D118 and D119)
 and chunk 23 (D99–D101); the values of chunks 10, 12, 13, 14 and 17 are still
 **(proposed; to try)**: the user hasn't confirmed them one by one. Pixels are
 world pixels at zoom 1 on a 1152 px wide view unless noted. The code names in
@@ -86,6 +86,7 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | On screen for fusion (`VIEW_MARGIN`) | a slime's centre at least 24 px inside the view's edge (a base slime's radius, so its whole body shows) | D70 |
 | Dip floor (where the loop nudges slimes together) | a rise of at least 100 px on both sides, and the floor within 30 px of the bottom | D20 |
 | Gathering window on a dip floor | 300 px behind | D20 |
+| Waiting for a partner on a dip floor (`Fusion.DIP_WAIT_SECONDS`; chunk 16f, proposed) | a train slime on a dip floor waits without limit only for a partner directly behind it (no other train slime between them); for a partner further back, at most 5 s | D20, D119 |
 | Hop timer while gathering or holding | held at 0.25 s | D74 |
 
 ### Frontier sets, gates and completion (chunk 14)

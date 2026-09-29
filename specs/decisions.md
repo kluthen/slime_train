@@ -1235,3 +1235,32 @@ for a level rule in `level-design.md`.
   DoD 1 test fails on any entry in the train's lost log.
 - "Stalled" is the spec's term for it (the build says "lost as stalled");
   "lost" keeps D10's meaning.
+
+## D119 — A train slime on a dip floor waits at most 5 s for a partner further back (chunk 16f) (2026-09-29)
+**Proposed, pending the user's approval** (the build's choice, recorded as
+with D116). Refines the dip nudge's gathering (D20); written into
+`tuning.md`, tagged (proposed).
+- **The rule as built:** a train slime on a dip floor waits without limit
+  only for a partner directly behind it (no other train slime between
+  them). For a partner further back, with a train slime between them, it
+  waits at most `DIP_WAIT_SECONDS` = 5 s, then moves on.
+- **Why:** since the start basin's rebuild (D116) the train reaches the
+  dips as a queue whose species alternate, so a partner usually has a slime
+  of another species between them and can't catch up. Waiting for it
+  without limit held the whole queue on the floor and stalled train slimes
+  (D118): DoD 1 failed (`gate2-open` seed 6 held 17 train slimes in the
+  bowl for 6 minutes). With the limit, 8 alternating slimes on the Meadow
+  dip all leave the floor in 33 to 58 s, none stalled, and 18 fifteen-minute
+  sessions lose none.
+- **Why a 5 s wait and not none:** it is what keeps the `bump` fixture's
+  3 + 1 bump (the size 1 ahead of the size 3 waits for a size 2 behind it,
+  which holds the 3 + 1 pair together long enough to bump).
+- **The alternative, for the user:** wait only for the partner directly
+  behind, with no limited wait for one further back. The queue passes
+  faster (19 to 26 s instead of 33 to 58 s) and the rule is simpler, but
+  the `bump` fixture no longer shows the 3 + 1 bump, so its requirement
+  (both bumps) would drop to the 2 + 2 only, or the fixture would need a
+  new layout.
+- **The `bump` fixture as built now:** both bumps within 20 s on seeds 1
+  and 3 to 7 (the end-to-end test runs seed 5); seeds 2 and 8 show the
+  3 + 1 bump only.

@@ -91,15 +91,15 @@ technology, not business behaviour:
   once the basket is full, the gate's lid, a state for slimes in a basket),
   settled in D104–D106.
   Chunk 15 built section 2 in greybox with the off-screen simulation.
-- **In progress:** 16, built through 16e: section 3 in greybox, the full
+- **In progress:** 16, built (16a–16f): section 3 in greybox, the full
   population of 200, every fixture regenerated (with `gate2-open` added),
   the level-rule tests, the level bench, the terrain-contact fix and the
   cave's framing zone (16d), the whole-level DoD 1 test and the developer
-  notes (16c-B), and the start basin rebuilt so DoD 1 holds (16e). Now:
-  16f, the fusion dip gathering fix for DoD 1 (a dip holding a mixed
-  queue). Then the stewardship (the intent tags and sync). Chunks 15 and
-  16 raised O87 (the rest rule's anchor), settled in D107; chunk 16 raised
-  D116–D118 (proposed) and O95.
+  notes (16c-B), the start basin rebuilt so DoD 1 holds (16e), and the
+  dip nudge's limited wait so a mixed queue no longer stalls (16f). Now:
+  the stewardship (the intent tags and sync). Chunks 15 and 16 raised O87
+  (the rest rule's anchor), settled in D107; chunk 16 raised D116–D119
+  (proposed) and O95.
 - **Next:** 18. (5N is a contingency, run only if chunk 22 fails,
   D96.) Chunk 23 (small issues from play) is an open list, run after 22;
   its item 23.5 (baskets at bedtime) lands before 22.

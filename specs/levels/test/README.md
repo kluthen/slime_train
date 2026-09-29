@@ -1,6 +1,6 @@
 # Test level
 
-Status: draft v8
+Status: draft v9
 
 A compact level that puts nearly every v1 gameplay item in one place (D76).
 It is the testing ground while the game is built, and the level the
@@ -477,7 +477,7 @@ Named save states that tests load through test mode (tech-direction).
 | `gate2-open` | gates 1 and 2 open as after baskets 1 and 2 fired (slides 1 and 2 shut), the same 20 train slimes spread along the whole outgoing loop, the camera at section 3's start. Added in chunk 16 | starting from S3; the whole loop with no input (DoD 1) |
 | `s2-basket-offscreen` | camera at switch 2, basket 2 at 14, slimes heading into it (built, chunk 15: gate 1 open, the first slime about to reach switch 2) | filling off screen, then the reward on approach; gate 2 opens, and the celebration still waits for basket 3 |
 | `s2-cave-return` | 3 free slimes starting down the cave's route back, camera away (built, chunk 15: on shelf A, the camera on the start basin) | projection, respawn, left alone and rejoining |
-| `bump` | two size-2, one size-3 and one size-1 slime of species C on the fusion dip's floor (1.3), so both bumps can happen. Built (chunk 16): sizes 2, 2, 3 and 1 left to right, made of the eight C sleepers nearest the dip; both bumps happen on seeds 1 to 8 and nothing fuses | 2 + 2 and 3 + 1 bumping; the end-to-end test asserts both bumps |
+| `bump` | two size-2, one size-3 and one size-1 slime of species C on the fusion dip's floor (1.3), so both bumps can happen. Built (chunk 16): sizes 2, 2, 3 and 1 left to right, made of the eight C sleepers nearest the dip; nothing fuses. Since chunk 16f (D119, proposed) both bumps happen within 20 s on seeds 1 and 3 to 7; seeds 2 and 8 show the 3 + 1 bump only | 2 + 2 and 3 + 1 bumping; the end-to-end test runs seed 5 and asserts both bumps |
 | `stress-still` | 200 woken base slimes (none left a sleeper), 60 in basket 3 and the rest piled in the bowl. Built (chunk 16): gates 1 and 2 open; the 60 in basket 3 are full and waiting to be in view; the 140 in the bowl are **asleep at bedtime** (a session at bedtime), because outside a basket only a bedtime pile rests (see below); the pile was settled until it rests, and rests about 670 ticks (about 11 s) after loading (since chunk 16d, which changed the terrain contact; about 8 s before) | the worst still case on one screen (O14, O57) |
 | `stress-moving` | 200 train slimes spread through the bowl (built, chunk 16: size 1, lowest spots first, inside the bowl's view) | the worst moving case; beyond what normal play produces, so a measurement, not a target (D96) |
 | `lost` | a free slime placed off screen, outside any area's route back (built, chunk 15: a D on the parade's first ledge beyond closed gate 1, the camera on the basin) | left alone at 10 s, then lost 1 min later (70 s off screen) and teleported to the start |
