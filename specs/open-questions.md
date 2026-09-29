@@ -18,3 +18,6 @@ Each entry has a stable ID. Once resolved, an entry moves to `decisions.md`.
 |---|---|---|
 | O12 | Music: port the JS generator to Godot, whether it runs in-process, whether it reacts to the train (D42). | tech-direction |
 | O13 | Procedural world generation: scope unknown. | tech-direction |
+| O92 | (v2, D115) The first-play hint's form: the evidence (ui_ux Q11) says a pulsing mark doesn't teach a 3-year-old to tap, while an animated hand demonstrating the tap does a little, so the wording "a wordless pulsing mark" should allow a demonstrating hand. v1 keeps the pulsing mark. | concept |
+| O93 | (v2, D115) The personas say of P1.G3 that "there is no one to explain it", but at 3 a parent's one demonstration is what works best, and the parent is there when handing the phone over. May the personas and setup count on the parent showing the first tap? A line in setup asking the parent to show it is parked here too; v1's setup doesn't carry it (ux D7). | personas |
+| O94 | (v2, D115) Make level rule 18 ("the first sleeper is close to the first awake slime") measurable: within the view at the idle zoom when the camera centres on the first awake slime. | level-design |

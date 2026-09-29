@@ -32,9 +32,9 @@ condition used only to reset a forgotten code (§6).
 - **Revocation:** `parent` authority ends as soon as the action it was
   entered for is done. For **wake early** and **leave**, that is immediate.
   For **settings**, it lasts while the settings screen stays open, and ends
-  when the settings screen closes. Settings also closes by itself after a
-  short time with no input, so a phone handed back to the child is never left
-  in settings.
+  when the settings screen closes. Settings also closes by itself after 30 s
+  with no input (with a warning over the last 10 s), so a phone handed back
+  to the child is never left in settings.
 - There is no "remember me". Every new parent action asks for the code again.
 - **Changing the code** takes effect immediately. The old code stops working.
 - **Storing the code:** the code is stored only on the phone, and never in
@@ -52,7 +52,13 @@ condition used only to reset a forgotten code (§6).
 - **In-flight play during a parent action:** opening the parent buttons or
   the code prompt pauses nothing. The world keeps running, the session timer
   keeps counting (sessions are real time), and bedtime can arrive while the
-  prompt is open.
+  prompt is open. The parent buttons hide after 5 s with no press. A tap
+  outside the open buttons or code prompt closes it **and does its normal
+  job** (a call, an object, the camera, a session start), so a child's tap
+  on the world is never eaten.
+- **Time left:** the time left in the session, or until sunrise, is shown
+  only behind the code: in the settings header and on the wake-early
+  prompt. The parent buttons, which anyone can reveal, never show it.
 - **Deleting the running level's save** reloads that level fresh
   at once. The session or bedtime and their timers carry on untouched, so
   deleting a save never ends or restarts a session.
@@ -63,7 +69,7 @@ condition used only to reset a forgotten code (§6).
 |---|---|
 | **World** (the running level: slimes, objects, camera) | `call`, `operate-object` (tap a switch), `move-camera` (edge buttons), `tilt` |
 | **Session** | `start` (the first tap in screensaver mode; only a tap that reaches the world, on open ground or an object, not the parent zone or an edge button), `end` (bedtime), `wake-early` (end bedtime before the 10 min cooldown is over), `sunrise` (the cooldown running out) |
-| **Parent buttons** | `reveal` (tap at the top of the screen) |
+| **Parent buttons** | `reveal` (a tap on the parent zone, the band along the top of the screen) |
 | **App exit** | `leave` (stop screen pinning and leave the app; the app closes, so the next open is a launch), `pin` (ask Android for screen pinning) |
 | **Parent code** | `create` (first-launch setup), `change`, `reset` (after a forgotten code) |
 | **Level save** | `write` (autosave), `load`, `delete` |
@@ -153,11 +159,12 @@ edits a save directly.
 |---|---|---|
 | A tap during bedtime (`call`, `operate-object`, `tilt`) | **Visible but inert.** The ripple still shows; slimes stay asleep; nothing else happens. No text, no sound. | Every tap gets an answer, but bedtime must stay calm and nudge the child to put the phone down. |
 | `move-camera` during bedtime | The edge buttons are hidden during bedtime. | Nothing to explore while everyone sleeps. |
+| `operate-object` on an object that isn't answering (a basket, gate or signpost; a switch whose basket is full or whose gate is open) | **Not a denial:** the object doesn't take the tap, which is an ordinary call. | Only something that answers a tap takes it, so no tap goes unanswered. |
 | Any parent-only operation (`wake-early`, `leave`, `change`, `delete`) by `child` | **Visible but blocked:** the button is shown, and pressing it raises the code prompt. Without the correct code, nothing happens. | The parent has to find the buttons without instructions; the code is the only guard. |
 | A wrong code | The entry shakes and clears. Tries are unlimited, but 5 wrong tries in a row bring a 30 s wait. The prompt closes after about 15 s with no input. The count and the wait are stored on disk and survive the prompt closing and the app being killed; one count for every parent button, reset by a correct code or a code reset, starting again from 0 after a wait. "Forgot the code?" works during the wait. | A 3-year-old pressing digits must not lock the parent out for long, and closing the prompt or killing the app mustn't skip the wait. |
 | `wake-early` pressed outside bedtime | The button is shown only during bedtime. | There is nothing to wake. |
 | Home and back while the screen is pinned | Android ignores them. | Screen pinning. |
-| Pinning declined by the parent | The game still works; every parent button still asks for the code; setup explains the difference. The back gesture leaves the app as Android normally does, like home and recent apps, and setup says so. | Pinning is a courtesy, not a requirement. |
+| Pinning declined by the parent | The game still works; every parent button still asks for the code; setup explains the difference. The back gesture leaves the app as Android normally does, like home and recent apps, and setup says so, except from the edge strips, which are kept out of the back gesture (sticky immersive mode). | Pinning is a courtesy, not a requirement; a child's tap sliding off an edge strip shouldn't end the game. |
 | The child leaves the app anyway (pinning declined or escaped, or the power button) | Nothing is blocked in the app: the session keeps counting in real time, and reopening the app resumes where it was. It lands in the state the stored timers give: the session, bedtime, or screensaver mode if the cooldown ran out meanwhile. | Best effort by design; the timer can't be dodged by leaving. |
 
 No denial is logged, and nothing is ever locked for good. The only slowdown is

@@ -11,3 +11,8 @@ Scope is not worked out yet. Assigned so far (D50):
   frontier gate.
 - **Larger signposts** that let the player choose which branch the
   camera follows (D47). They are tapped, so they count as interactive.
+- **The first-play hint, revisited** (D115, from the UX review's Q11):
+  a demonstrating hand instead of a pulsing mark (O92), whether setup and
+  the personas may count on the parent showing the first tap, with a
+  line in setup asking for it (O93), and a
+  measurable "first sleeper close" rule (O94). v1 keeps the pulsing mark.

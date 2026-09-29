@@ -60,7 +60,7 @@ Full reference: `../../personas.md`. These personas come from real people.
 | P4.G1 A calm activity that ends on its own | 15 min sessions, a gentle bedtime, a 10 min cooldown | fully |
 | P4.G2 The child can't leave, change or buy anything | screen pinning plus the parent code; no purchases inside v1 | partially: best effort by design (see 5.9) |
 | P4.G3 Set it up once, easily | one-time setup at first launch | fully |
-| P4.G4 Take the phone back or give more time at will | parent buttons: wake early, leave, settings | fully |
+| P4.G4 Take the phone back or give more time at will | parent buttons: wake early, leave, settings; the time left, shown behind the code | fully |
 
 Persona tensions settled for v1:
 
@@ -86,12 +86,13 @@ would add to P1.G1 and P1.G2) comes in a later version.
 - Objects: the frontier-gate set (switch, basket, gate), the split zone at
   the start of the loop, and plain signposts at forks.
 - Controls: tap-to-call, tilt for free slimes, edge buttons moving the camera,
-  a tap at the top of the screen for parent access.
+  a tap on the parent zone (the top of the screen) for parent access.
 - Camera: rails along the loop, the call dragging the camera, the idle camera,
   automatic framing and framing zones.
 - Session and parents: screensaver mode, 15 min real-time sessions, bedtime,
   a 10 min cooldown, sunrise, the 6-digit parent code with setup and
-  recovery, screen pinning. Parent-facing text in English and French.
+  recovery, screen pinning, and the time left shown to the parent behind the
+  code. Parent-facing text in English and French.
 - Persistence: one save per level, autosave, deleting a level's save.
 - A test level (not shipped) plus a test mode for end-to-end tests.
 - Platform: Godot 4, Android; a Linux desktop build for development and tests.
@@ -171,7 +172,9 @@ One term per concept, used everywhere in the code and documents.
   opportunities on that route stay reachable another way, so they never
   become unreachable. Gates stay open for good.
 - **Completing the level:** when the last basket fires, nothing ends. The
-  loop is complete and the world stays open, with a one-time celebration.
+  loop is complete and the world stays open, with a one-time celebration
+  (input stays live, the camera stays where it is), after which a small
+  lasting mark at the start of the loop shows the level is complete.
   Moving on to another level waits for paid levels (a later version).
 - The **start of the loop** carries a split zone.
 
@@ -285,8 +288,14 @@ minute of a session every slime hops more slowly.
 ### 5.4 Interactive objects
 
 Every object is a reusable component configured in the Godot editor, and its
-state is saved. A tap on an object operates it; a tap anywhere else is a call.
-Hit areas are larger than the drawn object, for small fingers.
+state is saved. A tap on an object that answers taps operates it; a tap
+anywhere else is a call. **Only something that answers a tap takes it:** a
+tap on a basket, a gate, a signpost, or a switch that isn't answering (its
+basket full, or inert for good) is a call. **Hit areas** are the drawn
+object grown by 5 mm on every side, and never smaller than 20 × 20 mm, both
+measured on the screen at the current zoom: zooming out shrinks the drawing,
+never the hit area's floor. Where two hit areas overlap, the object whose
+centre is nearest the tap takes it.
 
 - **Switch.** Stands at the fork just before the frontier gate. By default it
   sends the flow back to the start (by the return route). Tapping it flips it
@@ -300,8 +309,8 @@ Hit areas are larger than the drawn object, for small fingers.
 - **Opting out.** Flipping the switch back before the basket is full stops the
   filling. The slimes inside go back to the loop and the
   basket empties. Once the basket is **full**, the switch no longer answers
-  taps, through the reward and after: there is no opting out of a full
-  basket.
+  taps (a tap on it is a call), through the reward and after: there is no
+  opting out of a full basket.
 - **Baskets at bedtime.** At bedtime a basket's releases pause and resume at
   sunrise. The slimes in it sleep in place: they stay in the basket, shown
   asleep, and sunrise doesn't move them out. A reward that is due or playing
@@ -328,14 +337,16 @@ Hit areas are larger than the drawn object, for small fingers.
 
 The screen has four tap zones, checked in this order:
 
-1. **The top of the screen:** reveals the parent buttons. Doesn't call.
+1. **The parent zone** (a band 7 mm high along the top of the screen, full
+   width, unmarked): reveals the parent buttons. Doesn't call.
 2. **The left and right edge buttons:** move the camera along the loop.
    Don't call. Each is a strip over the screen's whole height,
-   10% of the screen's width from its edge, below the top of the screen
+   10% of the screen's width from its edge, below the parent zone
    (which wins where they overlap). A tap anywhere in a strip is a press: it
    neither calls nor operates an object under it. While the edge buttons are
    hidden (bedtime), a tap there is an ordinary tap.
-3. **An interactive object:** operates it. Doesn't call.
+3. **An interactive object that answers a tap right now** (in v1, a switch
+   whose basket is filling): operates it. Doesn't call.
 4. **Anywhere else:** a call.
 
 - **Every tap gets a visible answer:** a ripple where the finger touched, and
@@ -352,7 +363,10 @@ The screen has four tap zones, checked in this order:
 - **The first touch wins:** while one finger is down, other touches are
   ignored. A touch that starts while another finger is down gets
   **nothing at all, not even a ripple**, and stays ignored until it lifts,
-  even if the first finger lifts before it.
+  even if the first finger lifts before it. One exception, to check in a
+  playtest: a touch on an edge strip held longer than about 5 s (a resting
+  thumb) keeps moving the camera but stops counting as the first touch, so
+  the next touch is handled as if no finger were down.
 - **Tilt:** the world stays fixed on the screen and gravity turns with the
   phone, up to ±45°, with a dead zone of about 10°. Neutral is how the phone
   was held when the session started, or when it resumed on
@@ -391,7 +405,12 @@ The screen has four tap zones, checked in this order:
   follows the fused slime; if it splits, one of the pieces. The cue, starting
   10 s before, is a slow zoom-out. Any touch takes back control and also does
   its normal job. Only touches count as input: tilting the phone neither holds
-  off the idle camera nor takes control back from it.
+  off the idle camera nor takes control back from it. At bedtime, when every
+  slime is asleep, the idle camera follows no one.
+- **Showing a gate open.** When a basket fires and its gate is off screen,
+  the camera glides to the gate (about 1.5 s) to show it opening, and stays
+  there under normal control. Input stays live: a touch takes control back
+  and does its normal job.
 - Screensaver mode and the idle camera share **one zoom**, about 10–20% wider
   than normal play. It doesn't stack with anything, and it **never zooms
   in**: where the camera is already wider (inside a wide framing zone), it
@@ -443,15 +462,25 @@ reopening the app → the state the stored timers give
 
 - The **parent code** has 6 digits. It is stored only on the phone, and
   **never in plain text**.
-- **First launch:** a one-time setup screen appears before anything else. The
-  parent types the code twice. The screen explains screen pinning, and says
-  plainly that on a phone with no screen lock, a forgotten code can only be
-  reset by clearing the app's data, which erases all progress.
-- **Parent access:** a tap at the top of the screen reveals the parent
+- **First launch:** a one-time setup appears before anything else, in four
+  steps: welcome, the code (typed twice), what happens if it's forgotten, and
+  screen pinning. It explains screen pinning, and says plainly that on a
+  phone with no screen lock, a forgotten code can only be reset by clearing
+  the app's data, which erases all progress. **The code is saved only when
+  setup finishes;** an interruption before that restarts setup from the
+  first step.
+- **Parent access:** a tap on the parent zone reveals the parent
   buttons: **wake early** (ends bedtime or the cooldown), **leave** (ends
   screen pinning and lets the parent leave the app), and **settings**
   (change the code, delete one level's save). Every button asks for the code
-  before doing anything.
+  before doing anything. The buttons hide after 5 s with no press; another
+  tap on the parent zone restarts the 5 s. A tap outside an open parent
+  surface (the buttons or the code prompt) closes it **and does its normal
+  job**: it calls, operates an object or moves the camera, and starts a
+  session if it reaches the world. Settings and setup fill the screen.
+- **Time left:** the time left in the session, or until sunrise during
+  bedtime, is shown to the parent only behind the code: in the settings
+  header and on the wake-early prompt, never on the parent buttons.
 - **Forgotten code:** "forgot the code?" on the code prompt hands off to the
   phone's own screen lock through Android's system prompt (PIN, pattern or
   fingerprint). If it succeeds, the parent sets a new code.
@@ -465,8 +494,9 @@ reopening the app → the state the stored timers give
     erases all progress. Nothing else happens.
 - **A wrong code:** the entry shakes and clears. Tries are unlimited, but 5
   wrong tries in a row bring a 30 s wait. The code prompt closes after about
-  15 s with no input, and the settings screen also closes by itself after a
-  short time with no input. The wrong-try count and the end of the
+  15 s with no input, and the settings screen closes by itself after **30 s**
+  with no input, with a warning over the last 10 s; any touch resets it, and
+  the same 30 s covers the screens opened from settings. The wrong-try count and the end of the
   wait are **stored on disk**, so they survive the prompt closing and the app
   being killed. There is one count for every parent button; it resets on a
   correct code or a code reset, and starts again from 0 after a wait.
@@ -478,7 +508,9 @@ reopening the app → the state the stored timers give
 - **Language:** the
   parent-facing text (setup, the code prompt, settings, the forgotten-code
   screens) follows the phone's language when v1 has it, and is in English
-  otherwise. v1 ships **English and French**. The child sees no text.
+  otherwise. v1 ships **English and French**; the French addresses the
+  parent as "vous". The child sees no text. Everything the parent taps is at
+  least 9 × 9 mm on the screen, with at least 2 mm between neighbours.
 - How the buttons and the code prompt look is interface design.
 - The full rules are in `access-model.md`.
 
@@ -500,7 +532,10 @@ reopening the app → the state the stored timers give
   button still asks for the code, and the setup screen explains the
   difference. The **back gesture then leaves the app**, as Android
   normally does, like home and recent apps; the session keeps counting and
-  reopening resumes where it was. Setup says so.
+  reopening resumes where it was. Setup says so. The one exception: the
+  game runs in sticky immersive mode (no system bars) and keeps **the whole
+  edge strips** out of the back gesture, so a tap sliding off a strip
+  doesn't leave the app.
 - This is **best effort**, a courtesy to parents and not a guarantee. There is
   no device-owner kiosk mode (it would need the phone wiped and provisioned),
   and a child who knows the phone's PIN can reset the parent code.
@@ -564,6 +599,8 @@ Every level, the test level included, follows these rules.
 19. Wherever a wider view is needed, a framing zone sets the zoom and position.
 20. A released level isn't meant to change; any update is minor, ships with a
     save migration, and keeps stable IDs.
+21. At the rails' framing, every interactive object sits fully below the
+    parent zone.
 
 ### 5.12 Levels and the test level
 
@@ -677,7 +714,9 @@ Starting values, to be tuned in prototypes and playtests.
 | Minimum zoom in framing zones | to find with the prototype |
 | Wrong-code wait | 30 s after 5 wrong tries in a row |
 | Code prompt closes by itself | about 15 s with no input |
-| Settings closes by itself | a short time with no input; to try |
+| Settings closes by itself | 30 s with no input, a warning over the last 10 s |
+| Parent buttons hide | after 5 s with no press |
+| Hit area of an interactive object | the drawing plus 5 mm a side, at least 20 × 20 mm on the screen |
 | Edge-button press | at least one fixed step; a steady pace while held (to try) |
 | Leaving a framing zone | holding the edge button about 1 s (to try) |
 | Camera drag toward a call | slow and steady; return behaviour to try |
@@ -727,10 +766,10 @@ later) passes the level-rules check.
     when it comes into view.
 11. Flipping the switch back before the basket is full stops the filling,
     releases the slimes inside back to the loop, and empties the basket.
-    Once the basket is full, tapping the switch does nothing.
+    Once the basket is full, a tap on the switch doesn't flip it; it calls.
 12. Opening all gates of the level never requires tilt.
-13. Once a gate is open, tapping its switch does nothing, and its basket
-    takes no more slimes.
+13. Once a gate is open, tapping its switch doesn't operate it (the tap is
+    a call), and its basket takes no more slimes.
 14. When the last basket fires, the celebration plays once, and the world
     keeps running with the loop complete; reloading doesn't replay it.
 
@@ -745,15 +784,18 @@ later) passes the level-rules check.
     world's first frame, screensaver mode included, and deleting the level's
     save brings the hint back.
 17. While one finger is down, a second touch does nothing. Not
-    even a ripple, and it stays ignored after the first finger lifts.
+    even a ripple, and it stays ignored after the first finger lifts. After
+    about 5 s, a touch resting on an edge strip no longer blocks others.
 18. The edge buttons move the camera along the loop; the child can never
     change the zoom; entering a framing zone reframes the camera smoothly.
     A press moves at least one fixed step, holding keeps the
     camera moving, and leaving a framing zone takes about 1 s of holding.
     A tap anywhere in an edge strip (the screen's whole height below the
-    top zone, 10% of its width from the edge) moves the camera and never
+    parent zone, 10% of its width from the edge) moves the camera and never
     calls. A call whose point is inside the central box (20% by 20% of the
-    screen) leaves the camera where it is.
+    screen) leaves the camera where it is. A tap within an object's hit area
+    (its drawing plus 5 mm, at least 20 × 20 mm on the screen at any zoom)
+    operates it when it answers taps, and calls otherwise.
 19. After 45 s with no input the idle camera follows a train slime, with the
     zoom-out cue starting 10 s earlier; any touch takes back control and does
     its normal job; tilt doesn't count as input; the idle zoom never zooms in
@@ -773,14 +815,23 @@ later) passes the level-rules check.
     the correct parent code on "wake early"; screensaver mode follows.
 23. On first launch the parent setup appears before anything else and
     requires the 6-digit code twice; it is never shown again. Its
-    text is in French on a French phone and in English otherwise.
+    text is in French on a French phone and in English otherwise. Setup
+    runs in four steps, and a setup interrupted before its last step keeps
+    no code and starts again from the first step.
 24. Every parent action (wake early, leave, change the code, delete a level's
     save) is refused without the correct code. The 30 s wait after
-    5 wrong tries survives closing the prompt and killing the app.
+    5 wrong tries survives closing the prompt and killing the app. The
+    parent buttons hide after 5 s; a tap outside the buttons or the code
+    prompt closes it and also does its normal job; settings close after
+    30 s with no input, warning over the last 10 s. The time left (session,
+    or until sunrise) shows in settings and on the wake-early prompt, and
+    nowhere the child can reach without the code.
 25. With screen pinning accepted, the home and back buttons don't take the
     child out of the app; "leave" with the correct code does.
     Pinning is asked right after setup on first launch and at every later
-    launch, not on coming back from the background.
+    launch, not on coming back from the background. With pinning declined,
+    a tap sliding off an edge strip doesn't trigger Android's back
+    gesture.
 26. "Forgot the code?" lets the parent set a new code after passing the
     phone's own screen lock. The new code is typed twice;
     cancelling Android's prompt changes nothing; with no screen lock, it

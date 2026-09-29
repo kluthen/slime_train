@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v27
+Status: draft v28
 
 ## One-liner
 
@@ -117,16 +117,20 @@ and any minor update ships with its migration (D72).
   Hold-and-drag isn't used for the call. Each called slime's call ends when it
   reaches the point, or after about 8 s if it can't. A new tap replaces the
   call (D73). The radius is a tuning value.
-  Taps on objects, on the edge buttons, or at the top of the screen (parent
-  access) don't call (D15, D33, D57).
+  Taps on objects that answer them, on the edge buttons, or on the parent
+  zone don't call (D15, D33, D57). A tap on an object that doesn't answer
+  taps, or isn't answering right now, is a call (D109). An object's hit area
+  is its drawing plus 5 mm a side, at least 20 × 20 mm on the screen at any
+  zoom (D109).
 - **Every tap gets a visible answer:** a ripple where the finger touched, and
   slimes in range turn toward it. On the very first play, a wordless pulsing
   mark near the first sleeper shows where to tap (D65).
 - **Tilt** is only for exploration or fun actions, never needed to make
   progress (D64).
 - **The first touch wins** (D66): while one finger is down, other touches are
-  ignored, and get nothing at all, not even a ripple (D102). Two calls at
-  once will be tried later.
+  ignored, and get nothing at all, not even a ripple (D102). A thumb resting
+  on an edge strip for more than about 5 s stops blocking other touches (D110,
+  to check in a playtest). Two calls at once will be tried later.
 - All the level rules are collected in `level-design.md`.
 - Every awake slime in range answers the call, train slimes included, and
   answering makes it free. This follows from D13: at the start the
@@ -197,9 +201,12 @@ survives the app being killed.
 - The session counts in **real time**. Time spent in the background or on a
   phone call is used up, and the parent can make up for it by waking the
   slimes early (D56).
-- **Parent access** (D57): a tap at the top of the screen reveals the parent
-  buttons (wake early, leave, settings). Every button asks for the code. A tap
-  there doesn't call (D91).
+- **Parent access** (D57): a tap on the **parent zone**, the band along the
+  top of the screen, reveals the parent buttons (wake early, leave,
+  settings). Every button asks for the code. A tap there doesn't call (D91).
+  The buttons hide after 5 s; a tap outside them closes them and still does
+  its normal job. The time left is shown to the parent only behind the code
+  (D113, D114).
 - Later (v4, D58): the parent can turn the code off entirely.
 
 ### Bedtime (D28)
@@ -236,6 +243,7 @@ survives the app being killed.
 | large signpost | a signpost that also lets the child pick which branch the camera follows |
 | filter | a fork that sends slimes down a branch by species or by size (D88); usually has a signpost next to it |
 | screensaver mode | the world running with no session, after sunrise and before the first tap |
+| parent zone | the band along the top of the screen, 7 mm high, full width and unmarked; a tap there reveals the parent buttons and never calls (D57, D113). Also called "the top of the screen" or "the top band" |
 | edge button | the left or right control that moves the camera along the loop: a strip over the screen's whole height, 10% of its width from the edge, that never calls (D99) |
 | framing zone | an area of the level that sets the camera's zoom and position when the camera reaches it |
 | sunrise | the end of bedtime: slimes wake up and screensaver mode begins |

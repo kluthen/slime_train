@@ -1,6 +1,6 @@
 # Interactive objects
 
-Status: draft v9
+Status: draft v10
 
 **Versions (D50, D54):** v1 has only the frontier-gate set (switch, basket,
 gate) and the split zone at the start of the loop. Every other object comes in
@@ -23,8 +23,12 @@ weighs more (D16). Each object's thresholds are set when that object is
 designed.
 
 Tapping an interactive object operates it. A tap anywhere else is a call.
-Hit areas are generous, bigger than the drawn object, to suit small
-fingers (D91).
+**Only something that answers a tap takes it** (D109): a tap on an object
+that doesn't answer taps (a basket, a gate, a signpost), or that isn't
+answering right now (a switch whose basket is full, or inert), is a call.
+Hit areas are the drawn object grown by 5 mm on every side, never smaller
+than 20 × 20 mm, both measured on the screen at the current zoom (D91,
+D109). Every new object must say when it answers taps.
 
 ## Catalogue
 

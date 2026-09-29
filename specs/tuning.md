@@ -17,7 +17,13 @@ value to try. When a value is tuned, update it here and log the result in
 | Screensaver and idle zoom | 10–20% wider than normal play; one zoom for both, no stacking; built as zoom 1/1.15 (proposed; to try) | D60, D62, D80 |
 | Minimum zoom inside framing zones | to find with the prototype; measured slime sizes in O65 | O65 |
 | Wrong-code wait | 30 s after 5 wrong tries in a row | D83 |
-| Code prompt and settings close by themselves | about 15 s with no input (settings: short, to try) | D83 |
+| Code prompt closes by itself | about 15 s with no input | D83 |
+| Settings close by themselves | 30 s with no input, a warning over the last 10 s; any touch resets it; the screens opened from settings too | D113 |
+| Parent buttons hide | after 5 s with no press; a new tap on the parent zone restarts it | D113 |
+| Hit area of an interactive object | the drawing plus 5 mm on every side, at least 20 × 20 mm, on the screen at the current zoom | D109 |
+| Parent-facing targets | at least 9 × 9 mm on the screen, at least 2 mm apart | D109, ux D3 |
+| The parent zone | a band 7 mm high on the screen, full width, unmarked | D113, ux D4 |
+| A thumb resting on an edge strip | after about 5 s held, it stops blocking other touches (to check in a playtest) | D110 |
 | Delay before leaving a framing zone | a bit longer than a normal move; built as holding an edge button 1.0 s (to try) | D61, D102 |
 | Edge-button press | one fixed step, then a steady pace while held; values below (to try) | D102 |
 | Camera drag toward a call: speed, and when it goes back | slow and steady; built as 230.4 px/s, back to the rails when the 8 s answering window ends (proposed; to try) | D45 |
@@ -85,11 +91,11 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 
 | Value | Start at | Source |
 |---|---|---|
-| A full basket's reward before it fires (`REWARD_SECONDS`) | 2.0 s, counted once the basket is in view | D70, D91 |
+| A full basket's reward before it fires (`REWARD_SECONDS`) | 2.0 s, counted once the basket is in view (settled by ux D4) | D70, D91, ux D4 |
 | Release pace (`RELEASE_SECONDS`) | one released slime every 0.3 s, lowest id first, and only when the outlet is clear | D91, O62 |
 | Outlet clear (`OUTLET_CLEARANCE`) | no slime closer than the two radii plus 8 px | O62 |
 | Door clearance (`DOOR_CLEARANCE`) | 3 px (`SlimeBodies.EDGE`): a trapdoor, gate box or lid shuts only once no slime is in its way | D14 |
-| Celebration (`CELEBRATION_SECONDS`) | 4.0 s | D77 |
+| Celebration (`CELEBRATION_SECONDS`) | 4.0 s (settled by ux D4) | D77, ux D4 |
 | Default outlet (`outlet_before`, a basket property) | on the onward route, 200 px along the loop before the start of the return route its gate retires (Known gap 3); a basket may name an `outlet_point` instead | O62 |
 | Test level, basket 1 quota | 6 (weight) | test level |
 
@@ -143,7 +149,7 @@ The user's reports of 2026-09-29, all decided (D99, D100, D101).
 | Cooldown, then sunrise (`SUNRISE_MS`) | 600 s (10 min): sunrise at 1 500 s from the session start | D29, D44 |
 | Wind-down hop slowdown (`WIND_DOWN_HOP_RATE`) | hop timers slow linearly from 1× to 0.5× over the wind-down | D28, D74 |
 | Dusk tint | ramps 0 to 1 over the wind-down, holds through bedtime, fades back to 0 at sunrise | D28 |
-| Sunrise fade (`SUNRISE_SECONDS`) | 3 s | D44 |
+| Sunrise fade (`SUNRISE_SECONDS`) | 3 s (settled by ux D5) | D44, ux D5 |
 | Late sunrise shows no cue (`SUNRISE_CUE_LATE_MS`) | a sunrise more than 1 s late (the cooldown ran out while the app was closed) plays no cue | D102 |
 | Waking at sunrise (`FreeSlimes.REJOIN_DISTANCE`) | a bedtime-asleep slime within 40 px of the loop (plus its extra radius) becomes a train slime; any other becomes free and heads back | D44 |
 
@@ -162,8 +168,10 @@ These stand in until `ui_ux/` designs them.
 - **Edge buttons:** built as 96 × 192 screen px rectangles at mid-height
   on each side; to become whole-height strips 10% of the screen's width
   (D99, chunk 23). How they are drawn stays with `ui_ux/`.
-- **Top band** (the parent zone): 64 screen px.
-- **An object's hit box:** its drawn box grown by 24 px.
+- **The parent zone:** built as 64 screen px; to become 7 mm on the screen
+  (ux D4, chunk 23).
+- **An object's hit box:** its drawn box grown by 24 px; to become the
+  drawing plus 5 mm, at least 20 × 20 mm on the screen (D109, chunk 23).
 - **Dusk colour** (`DUSK_COLOUR`): the tint at full dusk, RGB (0.55, 0.52,
   0.78), over the world only (the parent band and buttons aren't tinted).
 - **Frontier art:** the shut trapdoors, closed gate boxes and shut lids as

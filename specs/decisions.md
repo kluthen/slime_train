@@ -1089,3 +1089,90 @@ Resolves O87.
   lost timer (D10) moves it (the master spec's 5.3).
 - **The build plan** (`versions/v1/build-plan.md`, v9) as a whole; it is no
   longer proposed.
+
+## D109 — Hit areas, and only what answers a tap takes it (2026-09-29)
+From the UX review's answers the user approved (ui_ux Q4, Q10).
+- **A child's target** (an interactive object): the hit area is the drawn
+  object grown by **5 mm** on every side, and never smaller than **20 × 20
+  mm**, both measured **on the screen at the current zoom**. Zooming out
+  shrinks the drawing, never the hit area's floor. Replaces D91's
+  "generous hit areas" with numbers.
+- **An adult's target** (the code digits, the parent buttons, settings): at
+  least **9 × 9 mm**.
+- **Only something that answers a tap takes it.** A tap on an object that
+  doesn't answer taps (a basket, a gate, a signpost) or that isn't
+  answering right now (a switch while its basket is full, or inert once its
+  gate is open) is an ordinary tap on the world: a call. In v1 the only
+  object that takes a tap is a switch whose basket is filling.
+- Why: 3-year-olds tap about 4.5 mm off a target's centre, and a floor held
+  on the screen keeps objects easy to hit exactly where the zoom makes them
+  small; a tap that goes nowhere breaks "every touch is answered".
+
+## D110 — A thumb resting on an edge strip stops blocking other touches (2026-09-29)
+From ui_ux Q9, approved. Amends D66 and D102 (the second finger). **To check
+in a playtest.**
+- A touch on an edge strip held longer than **about 5 s** keeps moving the
+  camera while it stays down, but stops counting as "the first touch": the
+  next touch is handled as if no finger were down, and the first-touch rule
+  then applies to it as usual.
+- Why: a child holding the phone in both hands may rest a thumb on a strip;
+  without this, that thumb would make every other touch get nothing. About
+  5 s is the longest slow tap measured at 3.
+
+## D111 — Level rule: interactive objects sit below the parent zone (2026-09-29)
+From ui_ux Q8, approved.
+- **At the rails' framing, every interactive object sits fully below the
+  parent zone** (the top band). The child can't operate an object under the
+  band, and can't bring it lower: the call drag is the only vertical
+  control. New level rule 21 in `level-design.md`.
+
+## D112 — Without pinning, the edge strips are kept from the back gesture (2026-09-29)
+From ui_ux Q5, approved. Amends D102 (O75: "the back gesture leaves the app
+as Android normally does").
+- The game runs in **sticky immersive mode** (no status or navigation bar),
+  which lifts Android's usual 200 dp limit on the areas an app may exclude
+  from the back gesture.
+- **The whole edge strips are excluded from the back gesture,** so a child's
+  tap that slides off a strip doesn't leave the app. Elsewhere the back
+  gesture still leaves as Android normally does, and home and recent apps
+  still leave. Setup's explanation of declining pinning says so.
+- Only matters without pinning: while pinned, Android ignores back anyway.
+
+## D113 — Parent surfaces: buttons, settings, setup, language (2026-09-29)
+From ui_ux Q20, Q26, Q31 and Q35, approved.
+- **The parent zone** is the canonical name of the band along the top of the
+  screen (the spec also called it "the top of the screen", ui_ux "the top
+  band").
+- **Parent buttons:** they hide after **5 s** with no press; a new tap on
+  the parent zone restarts the 5 s. **A tap outside an open parent surface**
+  (the buttons or the code prompt) **closes it and does its normal job**: it
+  calls, operates an object or moves the camera, and starts a session if it
+  reaches the world. Settings and setup fill the screen, so they have no
+  outside.
+- **Settings close after 30 s with no input,** with a warning over the last
+  10 s; any touch resets it. The same 30 s covers the screens opened from
+  settings. Settles D83's "a short time, to try".
+- **Setup has four steps:** welcome, the code (typed twice), what happens if
+  it's forgotten, and screen pinning. **The code is saved only when setup
+  finishes;** an interruption before that restarts setup from its first
+  step, so no parent skips the pinning explanation. Setup carries no line
+  asking the parent to show the child the first tap: that idea is parked
+  for v2 with the hint (O93, ux D2, ux D7).
+- **French addresses the parent as "vous".**
+
+## D114 — The parent can see the time left (2026-09-29)
+From ui_ux Q30, approved. **New v1 scope** (chunk 18).
+- The time left in the session, or until sunrise during bedtime, is shown to
+  the parent **only behind the code**: in the settings header, and on the
+  wake-early prompt. Never on the parent buttons, which the child reveals.
+- Why: a parent deciding whether to wake the slimes early, or to hand the
+  phone over now, needs the number (P4.G4); the child never meets a
+  countdown.
+
+## D115 — The first-play hint's form is a v2 question (2026-09-29)
+From ui_ux Q11, which the user deferred to v2.
+- v1's hint stays as specified: a wordless pulsing mark near the first
+  sleeper (D65).
+- Parked for v2: a demonstrating hand instead of a pulse (O92); whether the
+  personas and setup may count on the parent showing the first tap (O93);
+  making "the first sleeper is close" measurable as a level rule (O94).

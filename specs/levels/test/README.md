@@ -1,6 +1,6 @@
 # Test level
 
-Status: draft v6
+Status: draft v7
 
 A compact level that puts nearly every v1 gameplay item in one place (D76).
 It is the testing ground while the game is built, and the level the
@@ -482,6 +482,7 @@ spot a free slime can reach leads back to the loop (rule 7).
 | 18 First sleeper close | 1.1, a third of a screen away |
 | 19 Framing zones | see "Framing zones" |
 | 20 No changes after release | not applicable: never released. The `old-version` fixture exercises migrations. |
+| 21 Objects below the parent zone | the three switches sit on the loop, well below the parent zone at the rails' framing (D111); a level-rule test checks it (chunk 23) |
 
 ## What this level does not settle
 

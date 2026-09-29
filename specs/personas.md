@@ -1,6 +1,6 @@
 # Personas
 
-Status: draft v6
+Status: draft v7
 
 Who Slime Train is for, what each person is trying to get done, and the
 circumstances they use it in. These are built from the real people the user
@@ -105,4 +105,4 @@ spec cites them.
 | P4.G1 bounded time | 15 min real-time sessions, bedtime, 10 min cooldown (D29, D44, D56) |
 | P4.G2 the child can't get out | screen pinning plus the parent code (D1, D30) |
 | P4.G3 easy setup | one-time setup at first launch (D55) |
-| P4.G4 in control | wake early, leave and settings behind the code (D57) |
+| P4.G4 in control | wake early, leave and settings behind the code (D57); the time left, shown only behind the code (D114) |

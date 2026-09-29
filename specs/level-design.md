@@ -1,6 +1,6 @@
 # Level design requirements
 
-Status: draft v7
+Status: draft v8
 
 Rules every level must follow, whoever builds it. These rules make up the
 checklist for every level's design (see `levels/`). Levels are
@@ -70,3 +70,10 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
 20. **A released level isn't meant to change.** Any update must be minor and
     ship with a save migration. Keep the stable IDs of slimes, objects and
     gates (D72).
+
+## Controls
+
+21. **At the rails' framing, every interactive object sits fully below the
+    parent zone** (the band along the top of the screen), so the child can
+    operate it: the call drag is the only way to move the camera up
+    (D111).

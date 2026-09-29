@@ -359,7 +359,18 @@ parallel with the camera and objects work.
   code; delete a level's save with a second confirmation).
 - A wrong code shakes and clears. After 5 wrong tries in a row there is a
   30 s wait. The prompt closes after about 15 s with no input, and settings
-  closes by itself. Nothing pauses.
+  closes after 30 s with no input, with a warning over the last 10 s
+  (D113). Nothing pauses.
+- The parent buttons hide after 5 s with no press; a tap outside the open
+  buttons or code prompt closes it and does its normal job (D113).
+- Setup in four steps (welcome, the code, if you forget it, pinning); the
+  code is saved only when setup finishes, and an interruption restarts it
+  from the first step (D113).
+- **The time left** (session, or until sunrise) in the settings header and
+  on the wake-early prompt, never on the parent buttons (D114, new v1
+  scope).
+- Parent-facing targets at least 9 × 9 mm (D109). Text strings in English
+  and French, the French with "vous" (D102, D113).
 - The code is stored locally, never in plain text.
 - The rules follow `access-model.md`.
 - Debug tools: they move below the ingame menu when it appear. 
@@ -367,8 +378,14 @@ parallel with the camera and objects work.
 - **The session on delete (D104):** the session lives in the level's save.
   Deleting that save keeps the running session and writes it into the fresh
   save, so deleting the save can't escape bedtime.
-- **Done when:** [DoD 23, 24, 29] pass on desktop. The "forgot the code?"
-  path is stubbed until chunk 20.
+- **Done when:** [DoD 23, 24, 29] pass on desktop, including: the buttons
+  hiding after 5 s; a scripted tap on the world while the buttons or the
+  prompt are open closes them and calls (and starts a session in
+  screensaver mode); settings closing at 30 s, a touch at 25 s resetting
+  it; setup interrupted at step 3 keeping no code and restarting at step 1;
+  the time left matching the session clock in settings and on the
+  wake-early prompt. The "forgot the code?" path is stubbed until chunk
+  20.
 
 ### 19. Persistence hardening (M)
 
@@ -391,9 +408,14 @@ parallel with the camera and objects work.
   credential.
 - Real tilt from the sensor.
 - No network permission in the manifest.
+- **Sticky immersive mode**, the world drawn edge to edge with the controls
+  inside the safe area, and **the whole edge strips excluded from the back
+  gesture** (D112). Check on the reference phone (One UI) that a tap
+  sliding off a strip with pinning declined doesn't go back.
 - **Atoms (preflight start):** `req_screen_pinning`, `req_parent_gate_and_access` (forgotten code), `req_session_lifecycle` (lifecycle), `rule_no_network_connection`, `req_platform_and_performance_targets`.
-- **Done when:** [DoD 25, 26, 27] pass on the emulator, and tilt feels right on
-  the reference phone.
+- **Done when:** [DoD 25, 26, 27] pass on the emulator, including a swipe
+  from a strip with pinning declined staying in the app, and tilt feels
+  right on the reference phone.
 
 ### 21. End-to-end suite (M)
 
@@ -429,8 +451,8 @@ new reports are added here as they come, each with the spec change it
 needs and its own done-when. It runs **after chunk 22**, so it doesn't
 disturb the performance measurement; an issue can be pulled forward if it
 blocks testing. Each issue is small (S) and can land on its own. An issue
-tagged **(proposed)** still waits for the user's approval; 23.1 to 23.5 are
-decided (D99 to D101, D103, D105).
+tagged **(proposed)** still waits for the user's approval; 23.1 to 23.9 are
+decided (D99 to D101, D103, D105, D109 to D111).
 
 **23.1 Call camera dead zone** (reported and decided 2026-09-29; D101;
 master spec 5.6).
@@ -502,6 +524,51 @@ chunk 22**, which measures bedtime piles.
   no gate opens until sunrise, then both resume; slimes in the basket stay
   in it through sunrise; a save taken during bedtime reloads the same;
   [DoD 21] and [DoD 9] still pass.
+
+**23.6 Hit areas held on the screen** (decided 2026-09-29; D109; master
+spec 5.4). From the UX review (Q4).
+- An interactive object's hit area is its drawing plus 5 mm on every side,
+  never under 20 × 20 mm, measured on the screen at the current zoom
+  (replacing the fixed 24-unit margin).
+- **Done when:** at zoom 1, a scripted tap 4 mm outside a switch's drawing
+  flips it and one 6 mm outside calls; in `s3.frame.basket` (zoom 0.8), a
+  tap near the edge of the 20 × 20 mm floor centred on switch 3 flips it; [DoD 18] still
+  passes.
+
+**23.6b The parent zone at 7 mm** (decided 2026-09-29; D113, ux D4;
+master spec 5.5).
+- The parent zone becomes a band 7 mm high measured on the screen (from the
+  64 screen-unit placeholder), full width, unmarked; the edge strips start
+  below it.
+- **Done when:** on the reference phone's size, a tap 6 mm from the top
+  reveals the parent buttons and one 8 mm from the top calls (or, on a
+  strip, moves the camera); [DoD 24] still passes.
+
+**23.7 Only what answers a tap takes it** (decided 2026-09-29; D109;
+master spec 5.4, 5.5). From the UX review (Q10).
+- A tap on a basket, a gate or a signpost, or on a switch whose basket is
+  full or whose gate is open, is a call; only a switch whose basket is
+  filling takes a tap.
+- **Done when:** scripted taps on each of those call the slimes in range
+  (and start a session in screensaver mode); a tap on a filling basket's
+  switch still flips it; [DoD 11, 13] still pass.
+
+**23.8 A resting thumb on an edge strip** (decided 2026-09-29; D110;
+master spec 5.5). From the UX review (Q9). **To check in a playtest.**
+- A strip touch held longer than about 5 s keeps moving the camera but
+  stops counting as the first touch; the next touch is handled as if no
+  finger were down.
+- **Done when:** with a scripted strip touch held 6 s, a second touch
+  starting after 5 s calls (with its ripple), and one starting before 5 s
+  still gets nothing; [DoD 17] still passes. The playtest then says whether
+  5 s is right.
+
+**23.9 Objects below the parent zone** (decided 2026-09-29; D111; level
+rule 21). From the UX review (Q8).
+- A level-rule test: at the rails' framing, every interactive object sits
+  fully below the parent zone, on the whole test level.
+- **Done when:** the test passes on the test level and fails on a synthetic
+  level with a switch under the band.
 
 ### 5N. Native simulation tick (contingency, only if chunk 22 fails)
 
