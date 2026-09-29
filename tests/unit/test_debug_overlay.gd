@@ -189,14 +189,18 @@ func test_slime_at_scales_the_margin_with_zoom() -> void:
 
 func test_send_to_start_moves_a_free_slime_as_a_lost_one() -> void:
 	var sim := _sim()
-	assert_true(DebugKill.available(sim), "chunk 15's lost-slime move is there")
 	var slime := _id_of(sim, "s1.sleeper.01")
 	sim.slimes.set_state(slime, SlimeBodies.FREE)
 	assert_true(DebugKill.send_to_start(sim, slime))
 	assert_eq(sim.slimes.state_of(slime), SlimeBodies.TRAIN, "back on the train")
 	assert_true(sim.train.tracks(slime))
-	assert_almost_eq(sim.train.distance_of(slime), 0.0, 0.001, "at the start of the loop")
-	var start := sim.train.position_at(0.0) + Vector2(0.0, -Offscreen.lift(1))
+	# The first slime sits at the start: the next free spot along the loop
+	# (LoopStart.move), one width on.
+	var width := 2.0 * (SlimeBodies.ring_radius_for(1) + SlimeBodies.EDGE)
+	var distance := sim.train.distance_of(slime)
+	assert_true(is_equal_approx(fmod(distance, width), 0.0), "on a spot")
+	assert_lt(distance, LoopStart.SPOTS * width, "at the start of the loop")
+	var start := sim.train.position_at(distance) + Vector2(0.0, -Offscreen.lift(1))
 	assert_almost_eq(sim.slimes.centre_of(slime).distance_to(start), 0.0, 0.5)
 	assert_eq(sim.offscreen.lost.back()["id"], slime, "logged as lost")
 	sim.run(30)

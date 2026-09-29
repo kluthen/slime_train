@@ -11,7 +11,9 @@ extends GutTest
 ## - progress never goes back: no train slime's progress (laps included)
 ##   decreases; no gate closes, no basket's phase goes back, no switch
 ##   flips, the train's open gates never shrink;
-## - no slime is lost: none in the train's stall/out-of-bounds log nor in the
+## - no slime is lost and no train slime stalls: none in the train's stalled
+##   log (`train.stalled`: stalled or out of bounds; the safety net moved it
+##   to the start of the loop, which still fails DoD 1, D121) nor in the
 ##   off-screen lost log, and the level still holds its 200 base slimes;
 ## - the train travels the whole loop: every train slime completes MIN_LAPS.
 ## The run is repeatable: the same seed gives the same hash in a second run
@@ -25,8 +27,8 @@ extends GutTest
 ## to itself (off-screen simulation included) and once with the camera held
 ## on the size-3 slime.
 ##
-## Before chunk 16e the start basin jammed and a train slime was lost as
-## stalled; tests/e2e/test_start_basin_e2e.gd covers the basin.
+## Before chunk 16e the start basin jammed and a train slime stalled;
+## tests/e2e/test_start_basin_e2e.gd covers the basin.
 ##
 ## A third session, from `gate2-open` on STALL_SEED, checks the same without
 ## the repeat runs: before chunk 16f, the fusion dip nudge held a mixed queue
@@ -178,8 +180,8 @@ static func _progress(sim: Simulation) -> Dictionary:
 
 ## Runs `ticks` ticks of `game` with no input, checking every SAMPLE_TICKS,
 ## and draining `child`. Returns {"problems" (progress or the frontier going
-## back, base slimes missing), "lost" (each loss: "id reason tick at
-## centre"), "again_hash" (the hash at AGAIN_TICKS), "hash", "seconds"}.
+## back, base slimes missing), "lost" (each stalled train slime or lost
+## slime: "id reason tick at centre"), "again_hash" (the hash at AGAIN_TICKS), "hash", "seconds"}.
 func _watch(game: Node, ticks: int, child: Dictionary) -> Dictionary:
 	var sim: Simulation = game.simulation
 	var problems := PackedStringArray()
@@ -205,7 +207,7 @@ func _watch(game: Node, ticks: int, child: Dictionary) -> Dictionary:
 		frontier = next_frontier
 		if _base_slimes(sim) != BASE_SLIMES:
 			problems.append("tick %d: %d base slimes" % [sim.tick, _base_slimes(sim)])
-		for entry in sim.train.lost + sim.offscreen.lost:
+		for entry in sim.train.stalled + sim.offscreen.lost:
 			var text := "%d %s at tick %d" % [entry["id"], entry["reason"], entry["tick"]]
 			if seen.has(text):
 				continue
@@ -233,7 +235,7 @@ func _check_session(fixture: String, run_seed := SEED, repeat := true) -> void:
 	gut.p("%s seed %d: %d ticks in %.1f s real time, laps %s, lost %s" % [fixture, run_seed, sim.tick, run["seconds"], laps, run["lost"]])
 	assert_eq(sim.tick, SESSION_TICKS)
 	assert_eq(run["problems"], PackedStringArray(), "%s: progress never goes back, no base slime missing" % fixture)
-	assert_eq(run["lost"], PackedStringArray(), "%s: no slime lost" % fixture)
+	assert_eq(run["lost"], PackedStringArray(), "%s: no train slime stalled, no slime lost" % fixture)
 	assert_gte(laps.min() if not laps.is_empty() else 0, MIN_LAPS, "every train slime travels the whole loop")
 	if not repeat:
 		return
@@ -288,13 +290,13 @@ func _check_all_sizes_lap(follow: int) -> void:
 				sim.camera.place(sim.slimes.centre_of(slimes[follow]), 1.0)
 				game.sync_view()
 			game.test_mode.run_ticks(1)
-		if not sim.train.lost.is_empty() or not sim.offscreen.lost.is_empty():
+		if not sim.train.stalled.is_empty() or not sim.offscreen.lost.is_empty():
 			break
 		for size in slimes:
 			if not lapped.has(size) and sim.train.progress_of(slimes[size]) >= from[size] + length:
 				lapped[size] = sim.tick
 	gut.p("follow %d: laps done at %s (ticks), %.1f s real time" % [follow, lapped, (Time.get_ticks_msec() - started) / 1000.0])
-	assert_eq(sim.train.lost, [] as Array[Dictionary], "no train slime lost")
+	assert_eq(sim.train.stalled, [] as Array[Dictionary], "no train slime stalled")
 	assert_eq(sim.offscreen.lost, [] as Array[Dictionary], "no slime lost off screen")
 	for size in slimes:
 		assert_true(lapped.has(size), "the size-%d slime completed a lap of the whole loop" % size)

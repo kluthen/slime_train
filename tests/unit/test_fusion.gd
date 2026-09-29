@@ -265,7 +265,7 @@ func test_a_fused_train_slime_keeps_following_the_loop() -> void:
 	sim.view.set_to(Vector2(0, -100), 1.0, Vector2(10000, 4000))
 	sim.run(Simulation.TICK_RATE * 10)
 	assert_gt(sim.train.distance_of(a), progress + 300.0, "and hops on along the loop")
-	assert_eq(sim.train.lost, [], "never lost")
+	assert_eq(sim.train.stalled, [], "never lost")
 
 
 func test_the_fused_slime_keeps_both_identities() -> void:

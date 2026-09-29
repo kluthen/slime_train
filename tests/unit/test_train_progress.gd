@@ -81,26 +81,30 @@ func test_a_tracked_slime_counts_its_laps() -> void:
 	assert_almost_eq(train.progress_of(7), LENGTH + 20.0, 0.01)
 
 
-func test_a_slime_whose_progress_stalls_for_a_minute_is_lost() -> void:
+# The move to the start of the loop and the log: tests/unit/test_train_stalled.gd.
+# @test-link [[rule_stalled_train_slime_moved_to_start]]
+func test_a_slime_whose_progress_stalls_for_a_minute_is_stalled() -> void:
 	var train := _train()
 	train.track(3, 100.0)
-	var stall := int(Train.LOST_STALL_SECONDS * Simulation.TICK_RATE)
+	var stall := int(Train.STALL_SECONDS * Simulation.TICK_RATE)
 	for tick in stall - 1:
 		train.advance(3, Vector2(100, 0), tick)
-	assert_eq(train.lost, [])
+		assert_eq(train.stall_of(3, Vector2(100, 0), tick), "")
 	train.advance(3, Vector2(100, 0), stall)
-	assert_eq(train.lost.size(), 1)
-	assert_eq(train.lost[0]["id"], 3)
-	assert_eq(train.lost[0]["reason"], Train.LOST_STALLED)
+	assert_eq(train.stall_of(3, Vector2(100, 0), stall), Train.STALLED)
+	train.advance(3, Vector2(100 + Train.STALL_ADVANCE, 0), stall + 1)
+	assert_eq(train.stall_of(3, Vector2(100 + Train.STALL_ADVANCE, 0), stall + 1), "", "an advance restarts the count")
 
 
-func test_a_slime_that_leaves_the_level_bounds_is_lost() -> void:
+# @test-link [[rule_stalled_train_slime_moved_to_start]]
+func test_a_slime_that_leaves_the_level_bounds_is_out_of_bounds() -> void:
 	var train := _train()
 	train.bounds = Rect2(-100, -500, 1000, 700)
 	train.track(4, 100.0)
-	train.advance(4, Vector2(100, 250), 1)
-	assert_eq(train.lost.size(), 1)
-	assert_eq(train.lost[0]["reason"], Train.LOST_OUT_OF_BOUNDS)
+	train.advance(4, Vector2(100, 150), 1)
+	assert_eq(train.stall_of(4, Vector2(100, 150), 1), "")
+	train.advance(4, Vector2(100, 250), 2)
+	assert_eq(train.stall_of(4, Vector2(100, 250), 2), Train.OUT_OF_BOUNDS)
 
 
 # --- Hop aim -----------------------------------------------------------------

@@ -68,7 +68,7 @@ func test_the_game_wakes_the_first_slime() -> void:
 	var start: float = sim.train.progress_of(slime)
 	game.test_mode.run_ticks(10 * Simulation.TICK_RATE)
 	assert_gt(sim.train.progress_of(slime), start + 100.0, "it hops forward along the loop")
-	assert_eq(sim.train.lost, [])
+	assert_eq(sim.train.stalled, [])
 
 
 func test_a_restored_simulation_does_not_wake_a_second_slime() -> void:
@@ -95,12 +95,12 @@ func test_slimes_of_every_size_travel_the_loop() -> void:
 		var limit := 8 * 60 * Simulation.TICK_RATE
 		while sim.tick < limit and sim.train.progress_of(slime) < from + sim.train.length():
 			game.test_mode.run_ticks(30)
-			if not sim.train.lost.is_empty():
+			if not sim.train.stalled.is_empty():
 				break
 			if split_at < 0.0 and sim.slimes.size_of(slime) != size:
 				split_at = sim.train.progress_of(slime) - from
 		gut.p("size %d: lap at tick %d, split %.0f px in" % [size, sim.tick, split_at])
-		assert_eq(sim.train.lost, [], "no slime lost (size %d)" % size)
+		assert_eq(sim.train.stalled, [], "no slime lost (size %d)" % size)
 		assert_gte(sim.train.progress_of(slime), from + sim.train.length(),
 				"the size-%d slime completed a lap" % size)
 		if size > 1:
@@ -139,4 +139,4 @@ func test_slimes_entering_the_split_zone_leave_as_base_slimes_on_the_train() -> 
 	for slime in sim.slimes.ids():
 		var progress: float = sim.train.progress_of(slime)
 		assert_gt(fposmod(progress, sim.train.length()), past, "part %d left the zone forward" % slime)
-	assert_eq(sim.train.lost, [])
+	assert_eq(sim.train.stalled, [])

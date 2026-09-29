@@ -146,7 +146,7 @@ func test_the_basket_fills_fires_opens_the_gate_and_releases() -> void:
 	assert_gt(released, 0, "the basket lets its slimes go")
 	assert_eq(_basket(game)["weight"], 0, "empty")
 	assert_true(sim.gate_states[GATE]["entrance_closed"], "slide 1's entrance closes")
-	assert_eq(sim.train.lost, [], "no slime lost")
+	assert_eq(sim.train.stalled, [], "no slime lost")
 	assert_eq(_count(game, SlimeBodies.TRAIN), 3, "the size 3, the size 2 and the first slime ride on")
 
 

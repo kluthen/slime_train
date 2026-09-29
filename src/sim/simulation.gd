@@ -65,11 +65,12 @@ extends RefCounted
 ## hops are paced and every hop turns its slime; the split zones split (train
 ## and free slimes inherit); slimes in contact fuse or bump, and train slimes
 ## gather at dip bottoms (Fusion); the free slimes change phase or rejoin the
-## train; the train follows (progress, lost slimes); the camera watches
-## (idle clock, cue, the slime it follows, no one at bedtime), is shown the
-## gates a basket fired open this tick, and moves (Camera: rails, edge
-## buttons, call drag, framing zones, idle camera, a gate's show); spent
-## ripples go.
+## train; the train follows (progress; stalled slimes go to the start of the
+## loop); every CHECK_TICKS, slimes stuck inside each other are pulled apart
+## (StuckSlimes); the camera watches (idle clock, cue, the slime it follows,
+## no one at bedtime), is shown the gates a basket fired open this tick, and
+## moves (Camera: rails, edge buttons, call drag, framing zones, idle camera,
+## a gate's show); spent ripples go.
 
 ## Simulation ticks per second. Tuning durations (3 s of contact to fuse, 10 s
 ## before left alone, and so on) are counted in ticks at this rate.
@@ -183,6 +184,11 @@ var session := Session.new()
 ## chunk 15). Its `enabled` is a mode, set by the game.
 # @spec-link [[req_offscreen_simulation]]
 var offscreen := Offscreen.new()
+## The stuck safety net: pairs of slimes that can't fuse lodged inside each
+## other, counted every 0.5 s; the smaller one goes to the start of the loop
+## (StuckSlimes; chunk 23A). Its counts and log are in dump() and saves.
+# @spec-link [[rule_stuck_slimes_moved_to_start]]
+var stuck_slimes := StuckSlimes.new()
 
 var _pending_input: Array[Dictionary] = []
 
@@ -299,6 +305,7 @@ func step() -> void:
 	free_slimes.follow(slimes, tick, level, gates)
 	if train != null:
 		train.follow(slimes, tick)
+	stuck_slimes.step(self)
 	camera.watch(slimes, not fingers_down.is_empty(), screensaver, session.phase == Session.BEDTIME)
 	for gate_id in frontier.gates_fired_open(self):
 		camera.show_gate(level.gates[gate_id]["box"], view, level.loop, gates, tick)
@@ -377,6 +384,7 @@ func dump() -> Dictionary:
 		"frontier": frontier.dump(),
 		"session": session.dump(),
 		"offscreen": offscreen.dump(),
+		"stuck_slimes": stuck_slimes.dump(),
 		"ripples": ripples.duplicate(true),
 		"taps": taps.duplicate(true),
 		"input": {

@@ -210,7 +210,9 @@ func test_the_armed_kill_tap_sends_the_slime_to_the_start_and_never_reaches_the_
 	assert_false(overlay.kill_armed, "one use disarms")
 	assert_eq(overlay.kill_button.text, DebugOverlay.KILL_TEXT)
 	assert_eq(sim.slimes.state_of(slime), SlimeBodies.TRAIN, "on the train")
-	assert_almost_eq(sim.train.distance_of(slime), 0.0, 0.001, "at the start of the loop")
+	# At the start of the loop: the first free spot from it (LoopStart.move).
+	assert_lt(sim.train.distance_of(slime), LoopStart.SPOTS * 2.0 * (SlimeBodies.ring_radius_for(1) + SlimeBodies.EDGE),
+			"at the start of the loop")
 	assert_eq(sim.offscreen.lost.back()["id"], slime)
 	game.test_mode.run_ticks(1)
 	assert_eq(sim.input_log.size(), 0, "neither the press nor the release reached the simulation")

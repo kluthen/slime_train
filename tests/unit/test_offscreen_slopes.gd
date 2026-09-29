@@ -2,7 +2,7 @@ extends GutTest
 ## Offscreen (src/sim/offscreen.gd): parked train slimes on sloped stretches
 ## of the loop. A parked size-2 or size-3 slime keeps the off-screen pace down
 ## a slope and up one (it used to stop on a downhill stretch, lifted straight
-## up, and be lost as stalled after 60 s), rides lifted along the loop's
+## up, and stall after 60 s), rides lifted along the loop's
 ## normal like a slime resting on the slope, and laps the whole loop, every
 ## corner included, without being lost.
 ##
@@ -75,7 +75,7 @@ func _check_pace_from(from: Vector2, label: String) -> void:
 	for size in slimes:
 		var moved: float = sim.train.progress_of(slimes[size]) - before[size]
 		assert_almost_eq(moved, Offscreen.pace(size) * 2.0, 1.0, "%s: size %d, 2 s at the pace" % [label, size])
-	assert_eq(sim.train.lost, [] as Array[Dictionary], "%s: none lost" % label)
+	assert_eq(sim.train.stalled, [] as Array[Dictionary], "%s: none lost" % label)
 
 
 func test_a_parked_train_slime_keeps_the_pace_down_a_slope() -> void:
@@ -107,4 +107,4 @@ func test_parked_slimes_of_sizes_2_and_3_lap_the_loop_and_are_never_lost() -> vo
 	for slime_id in slimes:
 		assert_true(sim.slimes.is_parked(slime_id), "%d still parked" % slime_id)
 		assert_eq(sim.train.laps_of(slime_id), 1, "%d went round the loop" % slime_id)
-	assert_eq(sim.train.lost, [] as Array[Dictionary], "no stall at any corner")
+	assert_eq(sim.train.stalled, [] as Array[Dictionary], "no stall at any corner")

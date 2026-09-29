@@ -18,7 +18,7 @@ extends GutTest
 ## Before chunk 16e the slides' tail ran back along the basin floor over the
 ## loop's first stretch: each slime coming home shoved the train slimes back
 ## 100 to 250 px, and a size-3 slime crawled under the first sleeper's ledge
-## (37 px in 20 s), so a train slime could be lost as stalled
+## (37 px in 20 s), so a train slime could stall
 ## (docs/dev/README.md, chunk 16).
 # @test-link [[rule_loop_travelable_with_no_input]]
 # @test-link [[rule_all_sizes_travel_loop_v1]]
@@ -129,7 +129,7 @@ func test_a_slime_coming_home_does_not_shove_the_train_back() -> void:
 	assert_eq(sim.train.laps_of(home), 1, "the slime came home")
 	for slime_id in queue:
 		assert_lt(queue[slime_id], SHOVE_LIMIT, "train slime %d was shoved back %.0f px" % [slime_id, queue[slime_id]])
-	assert_eq(sim.train.lost, [] as Array[Dictionary])
+	assert_eq(sim.train.stalled, [] as Array[Dictionary])
 
 
 ## Whether every train slime's centre is right of level x `x`.
@@ -150,7 +150,7 @@ func test_a_fused_slime_coming_home_with_others_splits_and_all_leave_the_basin()
 	var sleeper: Vector2 = game.level.position_of(game.level.find("s1.sleeper.01"))
 	var past := sleeper.x + PACE_PAST * LevelData.SCREEN
 	var left_at := -1
-	while sim.tick < HOMECOMING_TICKS and sim.train.lost.is_empty():
+	while sim.tick < HOMECOMING_TICKS and sim.train.stalled.is_empty():
 		sim.camera.place(sim.slimes.centre_of(fused), 1.0)
 		game.sync_view()
 		game.test_mode.run_ticks(1)
@@ -158,7 +158,7 @@ func test_a_fused_slime_coming_home_with_others_splits_and_all_leave_the_basin()
 			left_at = sim.tick
 			break
 	gut.p("%d train slimes, all past the first sleeper at tick %d" % [sim.train.tracked_ids().size(), left_at])
-	assert_eq(sim.train.lost, [] as Array[Dictionary], "none lost")
+	assert_eq(sim.train.stalled, [] as Array[Dictionary], "none lost")
 	assert_eq(sim.train.tracked_ids().size(), 5, "the size 3 came home as three base slimes")
 	assert_gt(left_at, 0, "every slime left the basin within %d s" % [HOMECOMING_TICKS / TICK_RATE])
 

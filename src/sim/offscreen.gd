@@ -22,11 +22,11 @@ extends RefCounted
 ##              loop's normal (up_normal()), where a slime resting on the
 ##              slope has its centre; on the flat that is straight up, like
 ##              spawn_train_slime(). Train.follow() then projects it as
-##              usual, never backward, so the laps, the lost checks and the
+##              usual, never backward, so the laps, the stall checks and the
 ##              gates growing the loop all work unchanged. (Lifted straight
 ##              up on a downhill stretch, the centre projected behind its
 ##              progress, which never goes back: a big slime stopped there
-##              and was lost as stalled.) Single file: it never moves
+##              and stalled.) Single file: it never moves
 ##              closer than the two slimes' widths (ring radius plus EDGE,
 ##              each) behind the train slime ahead of it along the loop,
 ##              parked or not; it waits there, as it would bump into it on
@@ -58,9 +58,10 @@ extends RefCounted
 ## Left alone and lost (D10). A free slime whose centre is outside the view
 ## (the screen itself, no margin) counts off-screen ticks from `away`; back
 ## on screen, or no longer free, the count stops. After LEFT_ALONE_TICKS it
-## is left alone; LOST_TICKS after that, still free, it is lost: moved to the
-## start of the loop (distance 0, lifted by its size), back on the train,
-## and logged in `lost`. A free slime that stays on screen is never lost.
+## is left alone; LOST_TICKS after that, still free, it is lost (lose()):
+## moved to the start of the loop, back on the train (LoopStart.move, shared
+## with the stuck and stalled safety nets), and logged in `lost`. A free
+## slime that stays on screen is never lost.
 ##
 ## Zoomed out (D96). Below LOW_ZOOM every slime's ring uses the zoomed-out
 ## point counts (SlimeBodies.set_low_detail); from FULL_ZOOM up the full
@@ -398,33 +399,20 @@ func _count_away(sim: Simulation, shown: Rect2) -> void:
 		if not away.has(slime_id):
 			away[slime_id] = sim.tick
 		elif sim.tick - int(away[slime_id]) >= LEFT_ALONE_TICKS + LOST_TICKS:
-			_lose(sim, slime_id)
+			lose(sim, slime_id)
 
 
-## Moves lost slime `slime_id` to the start of the loop, back on the train.
-func _lose(sim: Simulation, slime_id: int) -> void:
-	var bodies := sim.slimes
+## Slime `slime_id` is lost (D10): it goes to the start of the loop, back on
+## the train (LoopStart.move, the move stuck and stalled slimes take too), and
+## is logged in `lost`. Its off-screen count and way go. Nothing without a
+## train. Also the debug overlay's kill tool (DebugKill).
+# @spec-link [[rule_left_alone_and_lost]]
+func lose(sim: Simulation, slime_id: int) -> void:
 	away.erase(slime_id)
 	proxies.erase(slime_id)
 	if sim.train == null:
 		return
-	var at := sim.train.position_at(0.0) + Vector2(0.0, -lift(bodies.size_of(slime_id)))
-	if bodies.is_parked(slime_id):
-		bodies.translate(slime_id, at - bodies.centre_of(slime_id))
-	else:
-		var body := bodies.body_of(slime_id)
-		var shift: Vector2 = at - bodies.centre_of(slime_id)
-		var points: PackedVector2Array = body["points"]
-		for k in points.size():
-			points[k] += shift
-		body["points"] = points
-		body["previous"] = points.duplicate()
-		body["centre"] = body["centre"] + shift
-		body["supported"] = false
-		bodies.set_body(slime_id, body)
-	bodies.set_state(slime_id, SlimeBodies.TRAIN)
-	bodies.set_hop_held(slime_id, false)
-	sim.train.track(slime_id, 0.0)
+	LoopStart.move(sim.slimes, sim.train, slime_id)
 	lost.append({"id": slime_id, "tick": sim.tick, "reason": LOST})
 	if lost.size() > LOST_LOG_SIZE:
 		lost.pop_front()

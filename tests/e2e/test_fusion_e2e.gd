@@ -253,7 +253,7 @@ func test_a_mixed_queue_passes_through_the_dip() -> void:
 		at.append(roundi(sim.train.distance_of(slime_id)) if sim.slimes.has(slime_id) else "fused")
 	gut.p("mixed queue: cleared the floor (to %.0f) after %d ticks; at %s" % [floors[0].y, cleared, at])
 	assert_gt(cleared, 0, "every slime of the queue is past the dip's floor within %d s" % MIXED_CLEAR_WITHIN)
-	assert_eq(sim.train.lost, [] as Array[Dictionary], "none stalled")
+	assert_eq(sim.train.stalled, [] as Array[Dictionary], "none stalled")
 
 
 # @test-link [[rule_dip_may_nudge_fusion]]
