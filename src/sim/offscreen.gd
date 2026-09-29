@@ -14,11 +14,19 @@ extends RefCounted
 ## included; fusion and waking already happen on screen only.
 ##
 ## Parked slimes move on their own, at the deterministic pace (pace()):
-##   train      a position along the loop: its centre is put pace × dt
-##              further along the loop (SLIDE_SPEED on a slide), lifted by
-##              its size like spawn_train_slime(). Train.follow() then
-##              projects it as usual, so the laps, the lost checks and the
-##              gates growing the loop all work unchanged. Over an open
+##   train      a position along the loop: its progress moves pace × dt
+##              on (SLIDE_SPEED on a slide), by Train.advance() from the
+##              loop point there (the point projects onto itself, so the
+##              progress moves the whole step on any slope), and its centre
+##              is put on that point, lifted by its size (lift()) along the
+##              loop's normal (up_normal()), where a slime resting on the
+##              slope has its centre; on the flat that is straight up, like
+##              spawn_train_slime(). Train.follow() then projects it as
+##              usual, never backward, so the laps, the lost checks and the
+##              gates growing the loop all work unchanged. (Lifted straight
+##              up on a downhill stretch, the centre projected behind its
+##              progress, which never goes back: a big slime stopped there
+##              and was lost as stalled.) Over an open
 ##              trapdoor (its box grown ENTRY_REACH upward) it drops into
 ##              the basket instead: it is put in the basket box's next free
 ##              clear slot (a grid its own width plus SLOT_GAP apart,
@@ -118,6 +126,14 @@ static func lift(size: int) -> float:
 	return SlimeBodies.ring_radius_for(size) - SlimeBodies.ring_radius_for(1)
 
 
+## The unit normal of a route running along `direction` on its upper side
+## (up is negative y): the way a slime resting on it is lifted. Square to a
+## vertical stretch, it points to the route's left.
+static func up_normal(direction: Vector2) -> Vector2:
+	var normal := Vector2(direction.y, -direction.x)
+	return -normal if normal.y > 0.0 else normal
+
+
 ## Whether free slime `slime_id` is left alone at `tick`.
 func is_left_alone(slime_id: int, tick: int) -> bool:
 	return away.has(slime_id) and tick - int(away[slime_id]) >= LEFT_ALONE_TICKS
@@ -209,6 +225,9 @@ func _detail(sim: Simulation) -> void:
 		sim.slimes.set_low_detail(slime_id, zoomed_out)
 
 
+## Moves parked train slime `slime_id` on along the loop (see the class doc):
+## its progress first, from the loop point itself, then its centre, lifted
+## along the loop's normal.
 func _train_proxy(sim: Simulation, slime_id: int) -> void:
 	var train := sim.train
 	if train == null or not train.tracks(slime_id) or train.length() <= 0.0:
@@ -217,7 +236,13 @@ func _train_proxy(sim: Simulation, slime_id: int) -> void:
 	var size := bodies.size_of(slime_id)
 	var distance := train.distance_of(slime_id)
 	var speed := Train.SLIDE_SPEED if train.is_slide_at(distance) else pace(size, bodies.hop_rate)
-	var at := train.position_at(distance + speed * Simulation.TICK_SECONDS) + Vector2(0.0, -lift(size))
+	var ahead := distance + speed * Simulation.TICK_SECONDS
+	var on := train.position_at(ahead)
+	# The point on the loop projects onto itself: the progress moves the whole
+	# step, whatever the slope and the lift (a lifted point could project
+	# behind, and progress never goes back: it stalled).
+	train.advance(slime_id, on, sim.tick)
+	var at := on + up_normal(train.direction_at(ahead)) * lift(size)
 	var basket := _basket_below(sim, at)
 	if not basket.is_empty():
 		at = _slot(sim, basket, size)

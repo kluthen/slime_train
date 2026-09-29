@@ -1526,8 +1526,21 @@ two a slime keeps what it was. Parked slimes move at the deterministic
 pace (`Offscreen.pace(size)`: a hop's reach per mean hop interval, about
 67 px/s for a size-1 slime; about 64 px/s on screen):
 
-- a train slime: its centre moves `pace × dt` along the loop (slide speed
-  on a slide), and `Train.follow()` projects it as usual (laps, gates);
+- a train slime: its progress moves `pace × dt` along the loop (slide
+  speed on a slide), and its centre goes to that loop point lifted by its
+  size (`Offscreen.lift`) along the loop's upward normal
+  (`Offscreen.up_normal`: where a slime resting on the slope has its
+  centre; straight up on the flat). `Offscreen` advances the progress
+  itself (`Train.advance` from the loop point, which projects onto itself),
+  then `Train.follow()` projects the centre as usual (laps, gates; never
+  backward). Fix in chunk 16s: the centre used to be lifted straight up and
+  only `follow()` moved the progress; on a downhill stretch the lifted
+  centre projected behind the progress whenever `pace × dt` was less than
+  lift × the slope's sine (about 4.5° for a size 3, 7.7° for a size 2), so
+  a big slime stopped there (section 3's ramp, 2.3 screens in section 1)
+  and was lost as stalled 60 s later; uphill it ran up to 3.5 times too
+  fast. `tests/unit/test_offscreen_slopes.gd` and
+  `tests/e2e/test_offscreen_slopes_e2e.gd` cover it;
   over an open trapdoor it drops into that basket's box, in the first clear
   slot of a grid its own width plus `SLOT_GAP` (4 px) apart, bottom row
   first. Baskets so keep counting weight off screen; the reward and firing
@@ -1621,6 +1634,11 @@ moving 10.796; mix still 12.865, moving 12.300 (before: 10.494, 10.077,
   clear slot, the route back and single file, left alone and lost, never
   lost on screen, zoomed-out detail, the call and tilt wakes, saves, same
   seed same hash.
+- `tests/unit/test_offscreen_slopes.gd` (4 tests, synthetic level with a
+  1-in-5 slope down and one up; chunk 16s): parked size-2 and size-3 train
+  slimes keep the pace down and up a slope, ride lifted along the loop's
+  normal, and lap the whole loop (every corner, the slide) without being
+  lost.
 - `tests/unit/test_slime_rest.gd` (17 tests): piles rest whole and wake
   whole on each disturbance, walls, low detail, saves.
 - `tests/e2e/test_offscreen_e2e.gd` (9 tests, game scene): DoD 10 from
@@ -1628,6 +1646,11 @@ moving 10.796; mix still 12.865, moving 12.300 (before: 10.494, 10.077,
   at 600, lost at 4200 to the loop start; followed, never lost), the camera
   coming back, a save keeping the state, same hash in process and in a
   child process.
+- `tests/e2e/test_offscreen_slopes_e2e.gd` (1 test, game scene, chunk
+  16s): from `gate2-open`, a size-3 train slime spawned at 12.9 screens
+  with the camera on the start basin stays parked and moves on at least
+  95 % of the pace every 5 s for 85 s, down section 3's ramp and on, and is
+  never lost.
 - Changed because the level grew: `test_test_level.gd` (section 2's IDs,
   sleepers, branch, set and framing zones), `test_frontier_level.gd` (a set
   per section), `test_sleepers_e2e.gd` (69 sleepers), `test_frontier_e2e.gd`
@@ -2381,6 +2404,14 @@ text) when the chunk closes.
   - `test_fusion_e2e.gd`: the bump fixture test replaced by one watching all
     four for 20 s: a 2 + 2 and a 3 + 1 bump, nothing fused.
 
+- 16s, the off-screen stall fixed (was under "Known problems found"): a
+  parked size-2 or size-3 train slime stopped on a downhill stretch and was
+  lost as stalled. `Offscreen._train_proxy` now moves the progress itself
+  and lifts the centre along the loop's normal (see "Off-screen
+  simulation"). New tests `tests/unit/test_offscreen_slopes.gd` (4) and
+  `tests/e2e/test_offscreen_slopes_e2e.gd` (1), both failing before the
+  fix. No other expectation changed.
+
 **Not done yet (in order; for 16c).**
 1. Tests still to write:
    - Level rule tests with `# @test-link` tags: rule 11 (species per
@@ -2411,15 +2442,6 @@ text) when the chunk closes.
    `rule_max_200_slimes_per_level`, `req_test_level_and_test_mode`).
 
 **Known problems found.**
-- Pre-existing, in `src/sim/offscreen.gd` (owned elsewhere, not changed): a
-  parked size-2 or size-3 train slime on a downhill stretch can stop
-  advancing and is lost as stalled after 60 s. `Offscreen._train_proxy`
-  lifts the point vertically by `ring_radius(size) - ring_radius(1)`, and
-  `Train.project` clamps to at least the current distance; when
-  pace x dt < lift x sin(slope) the projection never moves on. Seen at 13.1
-  (section 3's ramp) and at 2.3 in section 1. Fix there: lift along the
-  normal, or project the unlifted point. Tests work around it by keeping
-  the camera on the slime.
 - On screen, woken bowl slimes crowd: a rejoin probe lost 6 train slimes
   to stalls and left one free slime stuck at (14.57, 26) (the known crowd
   limitation). 40 size-1 slimes in the bowl for 5 min lost 0, 1, 0 on seeds
@@ -2460,6 +2482,7 @@ root is untracked and not this chunk's.)
 **Suite after 16b.** `tools/test.sh -gdisable_colors`: 58 scripts, 640
 tests, 640 passing, exit 0 (274 s). Before 16b: 632 tests, 11 failing, each
 an old expectation of the smaller level or the old `bump` (see "Done").
+After 16s: 60 scripts, 645 tests, 645 passing, exit 0 (285 s).
 
 **Resume.**
 ```
