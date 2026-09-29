@@ -1741,3 +1741,70 @@ released-ID list, proposed, is what protects a released level).
 **touching line**.
 
 **5. The build order.** TL1 is done. Next, chunk 18.
+
+## D130 — Chunk 18 as built: parent gate and settings, placeholder UI (2026-09-29)
+**Built** (54873c1, suite 1041/1041); **the points in 2 and 4 marked
+proposed wait for the user's approval** (with D126 to D129). Detail:
+`docs/dev/README.md`, "Parent gate and settings (chunk 18)".
+
+**1. As built.**
+- **The code** is stored as SHA-256 of a salt then the code, with a fresh
+  16-byte salt at every change, in one app-wide file, `user://parent.json`
+  (`{"format": 1, "code": {salt, hash} or null, "wrong_tries",
+  "wait_until_ms"}`), outside the level saves: deleting a level's save
+  touches neither the code nor the tries.
+- **Wrong tries and the 30 s wait are on disk**, one count for every
+  button. The wait runs on the wall clock and is capped at 30 s left, so a
+  clock set back can't lengthen it.
+- **The parent layer** is a state machine (hidden, buttons, prompt,
+  settings, setup) over the running game; its timers count simulation
+  steps; nothing pauses. The code prompt shows dots, never digits.
+- **Text** in English and French ("vous") through a small string table
+  (`src/parent/parent_text.gd`), not Godot's translation files.
+- **Sizes** in millimetres: the parent buttons 14 × 10 mm; every target at
+  least 9 × 9 mm and 2 mm apart (D109). Placeholder constants until
+  ux-writer's token file exists.
+- **Deleting a level's save:** `SaveStore.delete` is the only delete and
+  `main.delete_level_save` its only caller (a lint enforces both,
+  `rule_saves_never_wiped`); the running session and bedtime carry into the
+  fresh save (D104).
+
+**2. Proposed: the build's choices where the spec was silent.**
+- The 6th digit submits (no OK key).
+- A parent-zone tap while the prompt is open closes the prompt and shows
+  the buttons again.
+- The wake-early prompt closes if bedtime ends on its own.
+- Setup: a matching code moves to the next step by itself; Back works on
+  steps 2 to 4; setup has no idle timeout; losing window focus restarts it
+  on desktop only (on the phone, going to the background does).
+- Deleting a save lifts that level's write block (a fresh level saves again
+  even where an unreadable file had blocked saving).
+- The phone's tilt neutral carries across a delete, with the session.
+- Settings list only the running level's save to delete.
+- The parent buttons are 14 × 10 mm so the words fit (above D109's 9 mm).
+
+**3. Spec fix (wording, not behaviour).** DoD 24 said the time left shows
+"nowhere the child can reach without the code", but the wake-early prompt,
+which anyone can open before typing the code, shows it, as ux Q30, D114 and
+`rule_time_left_shown_only_behind_code` intend: it sits behind a parent's
+action, never on the parent buttons the child reveals. DoD 24 now says
+"never on the parent buttons", as D114 does.
+
+**4. Open risks, carried forward.**
+- **An unreadable `parent.json` reads as "no code"**: setup shows again,
+  maybe to the child, and a running wait is lost. *Proposed:* chunk 19's
+  persistence hardening covers `parent.json` too (atomic write with a
+  backup, the backup used when the file can't be read).
+- **Setup's text** already describes "Forgot the code?" and pinning, which
+  chunk 20 builds; the prompt's "Forgot the code?" is a stub until then.
+- **The open button row reaches 11 mm down**, below the 7 mm parent zone,
+  and can cover an object while open; a press that misses the buttons
+  closes them and is forwarded, so nothing is eaten.
+- **The debug speed-up shortens the 30 s wait** (debug builds only).
+- **A 6-digit salted hash can be brute-forced offline** by anyone who can
+  read the file; the rule asks only that the code is not readable in plain
+  text. *Proposed:* accepted for v1.
+- **The French labels' fit** hasn't been seen on a real screen: check on
+  the reference phone in chunk 20 or 22.
+
+**5. The build order.** Chunk 18 is done. Next, chunk 19.

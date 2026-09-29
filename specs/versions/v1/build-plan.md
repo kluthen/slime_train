@@ -5,7 +5,7 @@ before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
 playtest issues, last before the health review, proposed, D128; TL1 done,
-D129)
+D129; chunk 18 done, D130)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -122,7 +122,10 @@ technology, not business behaviour:
 - **TL1** done (D129): the test level is playable from fresh with base
   slimes alone (sleepers in touching lines within a called slime's
   reach; see `../../levels/test/README.md`, section 1).
-- **Next: 18** onward. (5N is a contingency, run only if chunk 22 fails,
+- **Chunk 18** done (D130; 54873c1, suite 1041/1041): the parent gate and
+  settings with a placeholder UI. Its choices where the spec was silent
+  are proposed in D130, with its open risks.
+- **Next: 19** onward. (5N is a contingency, run only if chunk 22 fails,
   D96.)
 - **Chunk 24** (the user's second round of playtest issues, an open list;
   proposed, D128): after chunk 22 (and 5N if it runs), the last chunk
@@ -433,9 +436,14 @@ instead).
 - A slime in mid-air on load: grounded, or put back at the start of its jump,
   or lost.
 - Save migration by level version: displaced slimes count as lost.
-- **Atoms (preflight start):** `req_persistence_and_saves`, `rule_saves_never_wiped`, `rule_released_level_stable_with_migration`.
+- **The parent code's file too** (`user://parent.json`, proposed, D130):
+  the same atomic write and backup, so a damaged file no longer reads as
+  "no code" (setup shown again, maybe to the child, and the wait lost).
+  The backup of a level's save goes in `SaveStore.delete` with the save.
+- **Atoms (preflight start):** `req_persistence_and_saves`, `rule_saves_never_wiped`, `rule_released_level_stable_with_migration`, `req_parent_gate_and_access` (the code's file).
 - **Done when:** [DoD 28] passes, including a kill during a write, with
-  `midair` and `old-version`.
+  `midair` and `old-version`, and a damaged `parent.json` keeps the code
+  from its backup (proposed, D130).
 
 ### 20. Android build and platform integration (L)
 
@@ -445,7 +453,10 @@ instead).
   an Android plugin; check how Godot 4.7 plugins call `startLockTask()` early
   in the chunk.
 - "Forgot the code?" through Android's system prompt with the device
-  credential.
+  credential. Chunk 18's setup text already describes it and pinning, and
+  its prompt link is a stub (D130).
+- Check on the reference phone that the French parent labels fit
+  (D130; or in chunk 22).
 - Real tilt from the sensor.
 - No network permission in the manifest.
 - **Sticky immersive mode**, the world drawn edge to edge with the controls

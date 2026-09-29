@@ -16,7 +16,9 @@ chose (23A–23D). The readings chunk 23E took where the spec was silent
 areas, which views level rule 21 checks) are tagged (proposed) until the
 user approves them, as are the basket's quota pies and its always
 emptying once fired, from the user's second round of playtest reports
-(5.4, D128).
+(5.4, D128). Definition of done 24's line on the time left now matches
+5.8 (never on the parent buttons): a wording fix, not a behaviour change
+(D130).
 
 ## 1. Concept and objective
 
@@ -890,7 +892,7 @@ later) passes the level-rules check.
     prompt closes it and also does its normal job; settings close after
     30 s with no input, warning over the last 10 s. The time left (session,
     or until sunrise) shows in settings and on the wake-early prompt, and
-    nowhere the child can reach without the code.
+    never on the parent buttons.
 25. With screen pinning accepted, the home and back buttons don't take the
     child out of the app; "leave" with the correct code does.
     Pinning is asked right after setup on first launch and at every later
