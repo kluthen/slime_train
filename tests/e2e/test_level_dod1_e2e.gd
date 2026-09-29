@@ -25,13 +25,10 @@ extends GutTest
 ## to itself (off-screen simulation included) and once with the camera held
 ## on the size-3 slime.
 ##
-## Today DoD 1 does not hold: the start basin jams and a train slime is lost
-## as stalled (KNOWN_BREAKS). The session tests then check that this is the
-## only thing that breaks (nothing else goes back, the losses are stalls in
-## the start basin), still check the repeatability, and are pending; once
-## the basin is fixed they fail until the entries are taken out.
+## Before chunk 16e the start basin jammed and a train slime was lost as
+## stalled; tests/e2e/test_start_basin_e2e.gd covers the basin.
 ##
-## About 4.5 minutes in all (docs/dev/README.md, "Test level sections 2 and 3,
+## About 4 minutes in all (docs/dev/README.md, "Test level sections 2 and 3,
 ## full population (chunk 16)").
 # @test-link [[rule_loop_travelable_with_no_input]]
 # @test-link [[rule_all_sizes_travel_loop_v1]]
@@ -42,8 +39,7 @@ extends GutTest
 # @test-link [[req_loop_and_world]]
 
 const MAIN_SCENE := "res://src/main.tscn"
-## Seed 2 breaks DoD 1 from both fixtures (KNOWN_BREAKS); probes on seeds 1 to 4 and 16
-## lost a slime in 5 of 10 sessions, always in the start basin.
+## Seed 2 lost a slime in the start basin from both fixtures before chunk 16e.
 const SEED := 2
 const TICK_RATE := Simulation.TICK_RATE
 ## specs/tuning.md: a session is 15 minutes.
@@ -62,25 +58,14 @@ const PROBLEMS_KEPT := 12
 ## A lap of the whole loop takes about 6 min for every size (probes: size 1
 ## 5.8, size 2 6.4, size 3 6.5); a lap not done by then is a failure.
 const LAP_LIMIT_TICKS := 10 * 60 * TICK_RATE
-## Where the lap test's slimes start along the loop, px: past the start
-## basin's rise, one size per species, the biggest ahead.
+## Where the lap test's slimes start along the loop, px: past the start's
+## split zone, one size per species, the biggest ahead.
 const LAP_STARTS := {1: 400.0, 2: 700.0, 3: 1000.0}
 const LAP_SPECIES := {1: "A", 2: "B", 3: "C"}
 ## Basket phases in the order they go.
 const PHASE_RANK := {
 	FrontierSets.FILLING: 0, FrontierSets.FULL: 1, FrontierSets.REWARD: 2, FrontierSets.FIRED: 3,
 }
-## The start basin, level px (x 0 to 0.62 screens, around its floor at y 500).
-const START_BASIN := Rect2(0.0, 380.0, 0.62 * LevelData.SCREEN, 140.0)
-## Fixtures whose session breaks DoD 1 for a known cause (reported, not yet
-## fixed): the test is then pending, with the cause and what the run found.
-## An entry whose run no longer breaks it fails, so it is taken out once fixed.
-const BASIN_JAM := "the start basin jams (docs/dev/README.md, chunk 16, \"DoD 1 does not hold yet\"): the placeholder " \
-		+ "slide's tail runs back along the basin floor against the loop, so each slime coming home " \
-		+ "shoves the train slimes heading for the rise back toward the loop's start, and slimes that fuse " \
-		+ "past the split zone crawl under the first sleeper's ledge; a slime kept behind its recorded " \
-		+ "progress for 60 s is lost as stalled"
-const KNOWN_BREAKS := {"gate2-open": BASIN_JAM, "gate1-open": BASIN_JAM}
 
 
 func _boot(fixture: String) -> Node:
@@ -186,13 +171,11 @@ static func _progress(sim: Simulation) -> Dictionary:
 ## Runs `ticks` ticks of `game` with no input, checking every SAMPLE_TICKS,
 ## and draining `child`. Returns {"problems" (progress or the frontier going
 ## back, base slimes missing), "lost" (each loss: "id reason tick at
-## centre"), "lost_at" (the lost slimes' centres when seen), "again_hash"
-## (the hash at AGAIN_TICKS), "hash", "seconds"}.
+## centre"), "again_hash" (the hash at AGAIN_TICKS), "hash", "seconds"}.
 func _watch(game: Node, ticks: int, child: Dictionary) -> Dictionary:
 	var sim: Simulation = game.simulation
 	var problems := PackedStringArray()
 	var lost := PackedStringArray()
-	var lost_at: Array[Vector2] = []
 	var seen := {}
 	var last := _progress(sim)
 	var frontier := _frontier(sim)
@@ -221,16 +204,13 @@ func _watch(game: Node, ticks: int, child: Dictionary) -> Dictionary:
 			seen[text] = true
 			var at := sim.slimes.centre_of(entry["id"]) if sim.slimes.has(entry["id"]) else Vector2.INF
 			lost.append("%s at %s" % [text, at.round()])
-			lost_at.append(at)
 		if problems.size() > PROBLEMS_KEPT:
 			problems.resize(PROBLEMS_KEPT)
-	return {"problems": problems, "lost": lost, "lost_at": lost_at, "again_hash": again_hash,
+	return {"problems": problems, "lost": lost, "again_hash": again_hash,
 			"hash": sim.state_hash(), "seconds": (Time.get_ticks_msec() - started) / 1000.0}
 
 
-## DoD 1 from `fixture` (see the file's doc). A fixture in KNOWN_BREAKS must
-## still lose a slime, only by the train's stall rule, in the start basin,
-## with nothing else going back; the test is then pending.
+## DoD 1 from `fixture` (see the file's doc).
 func _check_session(fixture: String) -> void:
 	var child := _start_child(fixture, SESSION_TICKS)
 	var game := _boot(fixture)
@@ -243,16 +223,8 @@ func _check_session(fixture: String) -> void:
 	gut.p("%s: %d ticks in %.1f s real time, laps %s, lost %s" % [fixture, sim.tick, run["seconds"], laps, run["lost"]])
 	assert_eq(sim.tick, SESSION_TICKS)
 	assert_eq(run["problems"], PackedStringArray(), "%s: progress never goes back, no base slime missing" % fixture)
-	var lost: PackedStringArray = run["lost"]
-	if KNOWN_BREAKS.has(fixture):
-		assert_false(lost.is_empty(), "%s no longer loses a slime: take it out of KNOWN_BREAKS" % fixture)
-		for entry in sim.train.lost + sim.offscreen.lost:
-			assert_eq(entry["reason"], Train.LOST_STALLED, "the known break: stalled (%s)" % entry)
-		for at in run["lost_at"]:
-			assert_true(START_BASIN.has_point(at), "the known break: in the start basin (%s)" % at)
-	else:
-		assert_eq(lost, PackedStringArray(), "%s: no slime lost" % fixture)
-		assert_gte(laps.min() if not laps.is_empty() else 0, MIN_LAPS, "every train slime travels the whole loop")
+	assert_eq(run["lost"], PackedStringArray(), "%s: no slime lost" % fixture)
+	assert_gte(laps.min() if not laps.is_empty() else 0, MIN_LAPS, "every train slime travels the whole loop")
 
 	var again := _boot(fixture)
 	again.test_mode.run_ticks(AGAIN_TICKS)
@@ -262,8 +234,6 @@ func _check_session(fixture: String) -> void:
 	if line != null:
 		assert_eq(line.get_string(1).to_int(), SESSION_TICKS)
 		assert_eq(line.get_string(2), run["hash"], "the same seed gives the same session in a child process")
-	if KNOWN_BREAKS.has(fixture) and not lost.is_empty():
-		pending("DoD 1 broken from %s: %s. Lost: %s" % [fixture, KNOWN_BREAKS[fixture], "; ".join(lost)])
 
 
 func test_a_session_from_gate2_open_keeps_the_train_going_and_loses_nothing() -> void:

@@ -50,7 +50,7 @@
 	"slimes": [
 		{
 			"centre": [
-				345.6,
+				218.88,
 				476.0
 			],
 			"id": "start.first-slime",
@@ -66,8 +66,8 @@
 		},
 		{
 			"centre": [
-				552.96,
-				376.0
+				529.92,
+				311.0
 			],
 			"id": "s1.sleeper.01",
 			"members": [
@@ -2561,7 +2561,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 3336.08
+				"distance": 3399.65
 			}
 		},
 		{
@@ -2578,7 +2578,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 3393.46
+				"distance": 3457.04
 			}
 		},
 		{
@@ -2596,7 +2596,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 3450.85
+				"distance": 3514.42
 			}
 		},
 		{
@@ -2612,7 +2612,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 3508.23
+				"distance": 3571.8
 			}
 		}
 	]

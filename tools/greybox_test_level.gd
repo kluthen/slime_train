@@ -22,10 +22,14 @@ const RIDE := 24.0
 
 # --- Terrain (closed outlines, x in screens, y in px) ------------------------
 
-## The top of the ground along section 1, from the lip over the start basin to
-## the slide entrance. The loop rides RIDE px above it.
+## The top of the ground along section 1, from the start basin's terrace (the
+## loop's first stretch, over the slides' lane) up out of the basin, to the
+## slide entrance. The loop rides RIDE px above it.
 const SURFACE := [
-	[0.64, 390], [0.66, 368], [0.75, 300], [0.9, 180], [1.05, 80], [1.15, 50],
+	# 1.1 Start basin: the terrace (flat past the first sleeper's ledge, so
+	# no hop takes off steeply from under it), then the climb out (35-38°).
+	[0.26, 460], [0.6, 460], [0.66, 410], [0.75, 330], [0.9, 200],
+	[1.05, 80], [1.15, 50],
 	# 1.2 Hills.
 	[1.3, 20], [1.45, 40], [1.6, 0], [1.75, 30], [1.9, -10], [2.05, 20],
 	[2.2, -20], [2.35, 10], [2.5, 0],
@@ -37,22 +41,26 @@ const SURFACE := [
 	[6.0, -100], [6.49, -100],
 ]
 ## Basket 1's pit, under the onward path, then the ground up to the slide
-## entrance, the chute's near wall and the slide tunnel's roof back to the lip
-## (it slopes down to the lip's nose, over the hump in the tunnel's floor).
+## entrance, the chute's near wall and the slide tunnel's roof back to the
+## start basin, where it is the terrace's underside (the lane's roof), 40 px
+## under its top.
 const CRUST_REST := [
 	[6.7, 100], [7.2, 100], [7.3, -100], [7.5, -100],
-	[7.25, 300], [7.0, 320], [5.0, 350], [3.0, 375], [1.5, 385], [0.78, 352],
+	[7.25, 300], [7.0, 320], [5.0, 350], [3.0, 375], [1.5, 385], [0.78, 420],
+	[0.66, 470], [0.6, 500], [0.26, 500],
 ]
-## The bedrock: the level's left wall, the start basin's floor, the slide
-## tunnel's floor running on under the pillar, section 2 (chunk 15) and
-## section 3's bowl (chunk 16) to slide 3's chute, and the chute's far wall,
-## the level's right wall. The tunnel's floor falls gently all
-## the way back to the basin, so the slides carry the slimes home. Just
-## inside the tunnel's mouth, under the lip, its floor has a hump that slopes
-## down into the basin, so a slime that falls short of the lip rolls back out
-## instead of getting lost in the tunnel.
+## The bedrock: the level's left wall, the start basin's pocket (behind the
+## loop's start) and the ramp down from it into the slides' lane, the lane's
+## floor under the terrace, the slide tunnel's floor running on under the
+## pillar, section 2 (chunk 15) and section 3's bowl (chunk 16) to slide 3's
+## chute, and the chute's far wall, the level's right wall. The tunnel's
+## floor falls gently all the way back to the basin, so the slides carry the
+## slimes home, under the terrace (the lane is about 100 px high), then up
+## the ramp (60° at the top, so the train hops only 0.05 screens across it
+## onto the terrace) into the pocket (chunk 16e).
 const BEDROCK := [
-	[0.0, -800], [0.08, -800], [0.1, 200], [0.14, 440], [0.2, 500], [0.62, 500], [0.78, 462],
+	[0.0, -800], [0.03, -800], [0.03, 440], [0.04, 490], [0.05, 500], [0.21, 500], [0.255, 590],
+	[0.28, 610], [0.64, 600], [0.78, 585],
 	[1.5, 495], [3.0, 485], [5.0, 460], [7.0, 430], [7.3, 390], [8.0, 375], [8.5, 360],
 	[10.5, 338], [12.5, 312], [12.62, 308], [13.3, 300], [14.5, 286], [16.3, 271], [16.55, 268],
 	[16.55, -800], [16.65, -800], [16.65, 1200], [0.0, 1200],
@@ -132,7 +140,7 @@ const S3_RIM := ["Rim", 15.05, 16.192, -300, -310]
 const S3_LEDGE_THICKNESS := 25.0
 ## Floating greybox pieces: name -> outline.
 const PIECES := {
-	"FirstLedge": [[0.44, 400], [0.52, 400], [0.52, 420], [0.44, 420]],
+	"FirstLedge": [[0.42, 335], [0.5, 335], [0.5, 355], [0.42, 355]],
 	"DipHollow": [[3.3, -170], [3.32, -150], [3.44, -150], [3.46, -170], [3.46, -130], [3.3, -130]],
 	"HighStep": [[3.7, -330], [4.15, -330], [4.41, -210], [3.7, -210]],
 	"TreeClimb": [[4.72, -238], [4.9, -360], [4.9, -330], [4.72, -208]],
@@ -154,17 +162,21 @@ const BUMP_TILT := 12.0
 
 # --- Routes (x in screens, y in px) ------------------------------------------
 
-## The loop out: from the start of the loop across the basin, up over the
-## lip's nose (the rise is in the open, clear of the first sleeper's ledge and
-## of the nose), then RIDE above SURFACE, over the bridge to the slide
-## entrance.
-const LOOP_START := [[0.3, 476], [0.58, 476], [0.59, 356], [0.66, 344]]
+## The loop out: from the start of the loop, at the top of the ramp out of
+## the slides' lane, up over the ramp (60 px above the loop's start, so the
+## train's hops clear a slime sitting in the ramp, and that slime, off the
+## loop, is carried back up by the slide) and down onto the terrace, then
+## RIDE above SURFACE (after its first point, the terrace's corner), out of
+## the basin and over the bridge to the slide entrance.
+const LOOP_START := [[0.21, 476], [0.25, 416]]
 const LOOP_END := [[7.6, -124]]
 ## Slide 1, the section's return route: down the chute and back under the
-## surface to the start of the loop.
+## surface, along the lane under the start basin's terrace and up the ramp to
+## the start of the loop, so a slime coming home joins the train behind its
+## start, never along its first stretch (chunk 16e).
 const SLIDE := [
 	[7.6, -124], [7.54, 0], [7.43, 150], [7.31, 300], [7.0, 406], [5.0, 436],
-	[3.0, 461], [1.5, 471], [0.78, 438], [0.62, 476], [0.3, 476],
+	[3.0, 461], [1.5, 471], [0.78, 561], [0.64, 576], [0.28, 586], [0.255, 566], [0.21, 476],
 ]
 ## Section 2 (chunk 15): on from the slide entrance over the pillar and
 ## gate 1, RIDE above S2_CRUST (over basket 2's trapdoor) to slide 2's
@@ -239,7 +251,7 @@ const ROUTE_BACK_TREE := [[4.95, -384], [5.5, -384], [5.85, -254], [5.95, -121]]
 # --- Placed things -----------------------------------------------------------
 
 ## Sleepers other than the hills', left to right: [x, y, species].
-const SLEEPERS_BEFORE_HILLS := [[0.48, 376, "B"]]
+const SLEEPERS_BEFORE_HILLS := [[0.46, 311, "B"]]
 const SLEEPERS_AFTER_HILLS := [
 	# 1.3 Fusion dip: the hollow on the rim.
 	[3.34, -174, "C"], [3.42, -174, "C"],
@@ -330,7 +342,7 @@ func _build() -> Level:
 	var loop: Loop = _add(level, level, "loop", "Loop")
 	loop.stable_id = "start.loop"
 	var outgoing: Array = LOOP_START.duplicate()
-	for point in SURFACE.slice(2):
+	for point in SURFACE.slice(1):
 		outgoing.append([point[0], point[1] - RIDE])
 	outgoing.append_array(LOOP_END)
 	var s1_loop: LoopSegment = _add(level, loop, "loop_segment", "S1Loop")
@@ -363,11 +375,14 @@ func _build() -> Level:
 	var start := _group(level, level, "Start")
 	var split_zone: SplitZone = _add(level, start, "split_zone", "SplitZone")
 	split_zone.stable_id = "start.split-zone"
-	split_zone.position = _at(0.26, 450)
-	split_zone.size = Vector2(0.28 * S, 100)
+	# The pocket, the ramp's top and the terrace up to past the first
+	# sleeper's ledge (x 0.03 to 0.54): only base slimes pass under the
+	# ledge, low enough for a called base slime to hop onto (rules 2, 18).
+	split_zone.position = _at(0.285, 465)
+	split_zone.size = Vector2(0.51 * S, 190)
 	var first_slime: FirstSlime = _add(level, start, "first_slime", "FirstSlime")
 	first_slime.species = "A"
-	first_slime.position = _at(0.3, 476)
+	first_slime.position = _at(0.19, 476)
 
 	var section := _group(level, level, "Section1")
 	var sleepers := _group(level, section, "Sleepers")

@@ -449,12 +449,9 @@ to 16.55, chunk 16, see "Test level sections 2 and 3, full population
 Chunk 6 adjusted the greybox where a train slime couldn't pass (the
 tables in the generator say where):
 
-- the lip's nose moved right (0.60 to 0.64) and the loop's rise to the lip
-  is at 0.58-0.59, in the open; the tunnel floor has a hump under the lip,
-  so a slime falling short of the lip rolls back out to the basin;
-- the loop starts at 0.3, not against the basin's left wall (a slime could
-  not reach the old start, so its progress never wrapped); the slide ends
-  there and the first slime starts there;
+- the start basin's lip and the loop's start (moved to 0.64 and 0.3 in
+  chunk 6, with a hump in the tunnel's floor under the lip) were rebuilt in
+  chunk 16e (below);
 - the crust top runs on to 6.49, closing the 58 px notch over basket 1's
   pit where a slime wedged (the pit has no entrance yet: the switch chunk
   decides it);
@@ -478,6 +475,64 @@ Chunk 14 built frontier set 1 into it:
   down the shaft past 8.66 and back along slide 1's tunnel), so opening
   gate 1 has a loop to grow into. Chunk 15 replaced them with section 2.
 
+Chunk 16e rebuilt the start basin (DoD 1, rules 1 and 2). Before, the
+slides' tail ran back along the basin floor over the loop's first stretch,
+so every slime coming home met the train head on and shoved it back, and
+the first sleeper's ledge (80 px over the floor) let only base slimes pass
+under it at pace. Now the slimes come home behind the loop's start:
+
+- **The terrace:** the loop's first stretch runs on a terrace, the crust's
+  left end, top y 460 from 0.26 to 0.6 (flat past the first sleeper's
+  ledge, so no hop takes off steeply from under it), then climbs out of the
+  basin at 35-38° (0.66, 410; 0.75, 330; 0.9, 200) to the hills. Its
+  underside (the lane's roof) is y 500 from 0.26 to 0.6, then 470 at 0.66
+  and 420 at 0.78. The old lip and its hump are gone.
+- **The lane:** the slides run home under the terrace, along the bedrock's
+  floor (0.78, 585; 0.64, 600; 0.28, 610), about 100 px high (94 px at the
+  terrace's end: a size 3 is 79 px tall), then up a ramp to the loop's
+  start at its top: 0.21, y 476 (the ramp's ground 0.28, 610; 0.255, 590;
+  0.21, 500: 60° at the top, where the slide's carry still holds). The
+  slides' last points are 0.78, 561; 0.64, 576; 0.28, 586; 0.255, 566;
+  0.21, 476.
+- **The pocket:** behind the loop's start, the basin floor y 500 from 0.05
+  to 0.21, against the level's left wall (35 px thick: 0.03 to 0.04 at the
+  floor). A slime coming home up the ramp at the slide's pace pops out
+  there, behind the train, and hops on after it; the first slime starts
+  there at 0.19, 476. From the loop's start the train hops up over the
+  ramp onto the terrace (40 px up, 0.05 screens across): the loop's route
+  rises from its start to 0.25, 416 (60 px up, above the ramp) and eases
+  down onto the terrace (0.6, 436), so the hops clear a slime sitting in
+  the ramp, and that slime, more than `OFF_ROUTE` from the loop, steers
+  from the slide (the nearest route behind it) and is carried back up to
+  the pocket. The pocket is wide enough for a size 3 coming home (split
+  there into three) and the slimes behind it. Two earlier 16e layouts
+  lost a part as stalled there: with a pocket half as wide and a ramp
+  twice as long, the slimes piled up and blocked each other's hops out;
+  with the route running straight from the loop's start to the terrace's
+  corner, a slime in the ramp sat right at `OFF_ROUTE` from it, was held
+  there as a loop slime half the time and blocked the hop out.
+- **The first sleeper** (`s1.sleeper.01`, B) sits at 0.46, 311 on
+  `FirstLedge` (0.42 to 0.5, top y 335, 20 px thick: 105 px over the
+  terrace), 0.27 screens right of the first slime (352 px away). A called
+  base slime can hop onto the ledge (its `max_rise` is about 133 px), and
+  a hopping base slime passes under it with 20 px to spare. A size-2 or
+  size-3 train slime couldn't pass under a ledge that low at its pace (its
+  hop tops out 108 or 130 px over the ground), and a ledge high enough for
+  them would be out of a called slime's reach, so:
+- **The split zone** reaches past the ledge: x 0.03 to 0.54, y 370 to 560
+  (the pocket, the ramp's top and the terrace), and only base slimes ever
+  pass under the ledge. Nothing fuses in the basin either (a split zone
+  has no fusion).
+
+`tests/e2e/test_start_basin_e2e.gd` checks it: no slide runs within 48 px
+of the loop's first 1.5 screens outside the join at its start (in every
+gate state); a slime coming home doesn't shove the train slimes on the
+terrace back (they moved back 0 to 15 px, against 37 to 109 px before);
+a size-3 slime coming home with two base slimes behind it is split and all
+five are 0.15 screens past the first sleeper within 30 s (18 s); a slime
+of every size (split or whole) is past it within 10 s (6 to 7 s; before,
+a size 2 or 3 never was).
+
 The scene is generated by `tools/greybox_test_level.gd` from tables of
 points (x in screens, y in px):
 
@@ -491,7 +546,7 @@ delete the generator. `tests/e2e/test_test_level.gd` checks the scene
 against the design and the level rules: every ID of sections 1 to 3, the
 population (200 base slimes by species and section), sleepers off the loop,
 the first sleeper near the first slime, the loop and the slides, the split
-zone at the start, routes back that start in their branch, end on the loop
+zone at the start (the start basin itself: `tests/e2e/test_start_basin_e2e.gd`), routes back that start in their branch, end on the loop
 and only go down, the frontier sets, the framing zones and the terrain bake.
 The level rules over the whole level are in `tests/e2e/test_level_rules.gd`
 and `tests/e2e/test_level_ways_back_e2e.gd`, and DoD 1 in
@@ -702,7 +757,8 @@ keeps its progress), and it can't snap to a part of the loop that is close
 in space but far along it (the slide runs back under the outgoing route).
 Past the end it wraps and counts a lap. A slime knocked more than
 `OFF_ROUTE` (36 px) off the route at its progress (thrown back out of the
-chute onto the ledge, pushed back across the start basin) steers from the
+chute onto the ledge, fallen short of the start basin's terrace onto the
+ramp) steers from the
 route point nearest it within the window behind; its recorded progress
 doesn't move. New train slimes (split parts, later sleepers) are adopted
 where the loop passes closest (`LoopData.closest`).
@@ -760,8 +816,9 @@ base slimes on the train); `tests/e2e/test_train_session_e2e.gd` runs a
 15-minute session (54 000 ticks) with no input and checks the first slime
 is never lost, its progress never goes back, it makes at least 4 laps (0.7
 of the ideal pace; it makes 5) and the same seed gives the same hash twice.
-It takes about 2 s per run, 4-5 s for the test. Several slimes at once in
-the start basin can still jam (see chunk 6's choices).
+It takes about 2 s per run, 4-5 s for the test. Chunk 16e rebuilt the
+start basin so slimes coming home no longer meet the train head on (see
+"The test level").
 
 ## Taps and the call
 
@@ -1903,49 +1960,58 @@ at 15 minutes. Then every size laps the whole loop: from `gate2-open` with
 its train slimes taken out, a size-1 A, a size-2 B and a size-3 C (so they
 don't fuse) each complete a lap, once with the camera left to itself (so
 partly off screen) and once with the camera held on the size-3 slime.
-The file takes about 4.5 minutes (275 s alone: the sessions 91 s from
-`gate2-open` and 101 s from `gate1-open` in process, plus the 2-minute
-rerun, the child running alongside; the laps 28 s and 30 s, each size
-lapping in 21 000 to 23 500 ticks, about 6 minutes of play). It is the
+The file takes about 4 minutes (in 16e's suite run: the sessions 86 s
+from `gate2-open` and 85 s from `gate1-open` in process, plus the 2-minute
+rerun, the child running alongside; the laps 25 s and 27 s, each size
+lapping in 21 600 to 23 400 ticks, about 6 minutes of play). Seed 2: every
+train slime makes 2 or 3 laps from `gate2-open`, 3 or 4 from `gate1-open`. It is the
 slowest test file; if the suite's time matters, it is the one to run apart.
 
-**DoD 1 does not hold yet: the start basin jams.** On seed 2 both sessions
-lose a train slime as stalled; probes on seeds 1 to 4 and 16 lost one in 5
-of 10 sessions (`gate2-open`'s seed 16 ran before the single file) (`gate1-open` about 4 min in, `gate2-open` about 11 min in),
-always in the start basin. The session tests are pending
-(`KNOWN_BREAKS`): they check that this is the only break (nothing else goes
-back, every loss is a stall in the start basin) and the repeatability, and
-fail once the basin no longer jams, so the entry must then be taken out.
-The cause, from traces of the lost slimes:
+**The start basin jam (fixed in chunk 16e).** Before 16e, DoD 1 broke on
+seed 2 from both fixtures, and probes on seeds 1 to 4 and 16 lost a train
+slime as stalled in 5 of 10 sessions, always in the start basin: the
+slides' tail ran back along the basin floor (0.62 to 0.3 screens) over the
+loop's first stretch the other way, so each slime coming home shoved the
+train slimes heading for the rise back 100 to 250 px; slimes queued there
+fused past the split zone (which ended at 0.4) and a size 3 then crawled
+under the first sleeper's ledge (37 px in 20 s); a slime kept behind its
+recorded progress for 60 s was lost. Chunk 16e rebuilt the basin (see "The
+test level"): the slides come home under a terrace and up into a pocket
+behind the loop's start, the ledge is where a called base slime reaches it,
+and the split zone reaches past it. The session tests have no known break
+now. The train's stall rule (`Train.LOST_STALL_*`) is chunk 6's
+placeholder and is not changed.
 
-- the placeholder slide's tail runs back along the basin floor (0.62 to
-  0.3 screens, `SLIDE`), over the loop's first stretch (0.3 to 0.58,
-  `LOOP_START`) the other way. Each slime coming home is carried left at up
-  to the slide's speed and shoves the train slimes heading right for the
-  rise back toward the loop's start, 100 to 250 px at a time. With 20
-  slimes one comes home every 15 to 20 s;
-- slimes queued in the basin fuse (mostly A: the first slime and the
-  section's A sleepers) past the split zone (which ends at 0.4), under the
-  first sleeper's ledge (`FirstLedge`, 0.44 to 0.52, underside y 420, 80 px
-  over the floor). A size-3 slime there can't hop (its ring is 78 px wide)
-  and crawls: alone, from 0.43 screens it made 37 px in 20 s (a size 2
-  325 px, a size 1 1213 px); from 0.52 it goes on normally. Rule 2 breaks
-  there;
-- a slime shoved back behind its recorded progress (which never goes back)
-  has to pass that point again before its stall count restarts; behind a
-  crawling fused slime, or shoved back again, it doesn't within 60 s and is
-  lost as stalled.
-
-Widening the split zone to just short of the rise (0.57) removed the crawl (seed 2's
-`gate1-open` session then held) but not the shoving (seed 16's lost a slime
-at 10.4 min). A fix is a level-design call (spec-writer): end the slides
-somewhere that doesn't cross the loop's start (for example into the basin
-from its left), lift `FirstLedge` or widen the split zone under it; it also
-bears on O22 (how the real level brings slimes home). The train's stall
-rule (`Train.LOST_STALL_*`) is chunk 6's placeholder and is not changed.
+Probes after 16e, 15 minutes with no input from each fixture (the probe
+stops at the first loss): seeds 1 to 8 and 16 from `gate1-open` and from
+`gate2-open`, 18 sessions, none lost a slime or went back. From
+`gate1-open` every slime made 3 laps. From `gate2-open` they made 2 or 3,
+except seed 6 (see "Known problems": a dip holding a mixed queue).
+The level bench (`tools/bench_level.gd`) is unchanged within noise: 0.999,
+1.325 and 15.119 ms median per tick (`start`, `stress-still`,
+`stress-moving`).
 
 **Known problems still open.**
-- The start basin jam above (DoD 1, rules 1 and 2).
+- A dip can hold a mixed queue (DoD 1). The dip nudge (`Fusion`,
+  `rule_dip_may_nudge_fusion`) keeps a train slime on a dip's floor from
+  hopping while a slime it may fuse with is less than 300 px behind it. In
+  a queue of base slimes whose species alternate (the DoD 1 fixtures' 20
+  slimes are A, B, C in turn), a slime of another species sits between the
+  two, so the one behind can't catch up and the whole queue waits. Since
+  16e nothing fuses in the start basin, so the train reaches the dips as 20
+  base slimes and meets this more often:
+  - `gate2-open`, seed 6 (seed 7 with an earlier 16e layout): on section
+    3's bowl floor (13.6 to 14 screens), from about 8 min, 17 train slimes
+    crept about 100 px a minute for 6 minutes (hop timers held at
+    `DIP_HOLD_SECONDS`): nothing lost, but most made only 1 lap in 15 min;
+  - `gate2-open`, seed 4, with an earlier 16e layout (the ledge higher,
+    the split zone ending at 0.32): on the fusion dip's floor (3.09 screens, y
+    210) a B waited for a B that a C between them kept back; nothing moved
+    for 60 s and the B was lost as stalled at tick 18 815. The final
+    layout holds on that seed. Chunk 9's crowd check saw the same stalls on
+    that floor (seeds 6 and 9, mixed species).
+  - A fix is in the dip nudge (for example: don't wait for a slime that
+    another slime it can't fuse with keeps back), not in the level.
 - On screen, woken bowl slimes crowd: a rejoin probe lost 6 train slimes to
   stalls and left one free slime stuck at 14.57 screens, y 26; 40 size-1
   slimes in the bowl for 5 min lost 0, 1, 0 on seeds 1 to 3.
@@ -1966,9 +2032,23 @@ rule (`Train.LOST_STALL_*`) is chunk 6's placeholder and is not changed.
   its stable IDs, or `specs/tuning.md`'s zone values.
 - `stress-still` rests about 670 ticks (11 s) after loading since 16d; the
   README says about 8 s.
-- Rule 1 and rule 2 in its rules checklist ("the loop and slides need no
-  input", "every size takes the same loop") don't hold in the start basin
-  (above).
+- The start basin (1.1) is rebuilt (chunk 16e, "The test level"): the
+  loop's start is at 0.21, y 476 (was 0.3), at the top of a ramp, with a
+  pocket behind it (floor y 500, 0.05 to 0.21; the level's left wall is
+  0.03 thick there); the loop's route rises over the ramp to 0.25, 416 and
+  its first stretch runs on a terrace (top y 460, 0.26 to 0.6), then
+  climbs out at 35-38° (the lip at 0.64 is gone);
+  the slides' tail runs under the terrace (0.78, 561; 0.64, 576; 0.28,
+  586) and up the ramp to the loop's start (0.255, 566; 0.21, 476), no
+  longer along the basin floor; the first slime starts at 0.19,
+  476 (was 0.3); the first sleeper sits at 0.46, 311 (was 0.48, 376) on
+  `FirstLedge`, 0.42 to 0.5, top y 335, 20 px thick (was 0.44 to 0.52,
+  top y 400), 0.27 screens to the right of the first slime (the README
+  says about a third); the split zone spans x 0.03 to 0.54, y 370 to 560
+  (was 0.12 to 0.4, y 400 to 500), past the first sleeper's ledge, so only
+  base slimes pass under it (a ledge a called base slime can reach is too
+  low for a size 2 or 3 to pass under at its pace). The slides' tail is
+  still a placeholder (O22).
 
 **Running.**
 ```sh
@@ -2585,8 +2665,9 @@ adb logcat -v time -s godot:*
   chunk 15.
 - **Greybox fixes, not special cases:** where a slime couldn't pass, the
   generator changed (see "The test level"), never the scene by hand.
-- **Known limit:** the slide ends across the start basin, where the
-  outgoing route starts back the other way. Several slimes arriving at once
+- **Known limit (fixed in chunk 16e, see "The test level"):** the slide
+  ends across the start basin, where the outgoing route starts back the
+  other way. Several slimes arriving at once
   can jam there, and two slimes shoved into each other by the carry can end
   up overlapping for good (the contact model can't separate two rings with
   the same centre). One slime per size passes on every seed tried; three at

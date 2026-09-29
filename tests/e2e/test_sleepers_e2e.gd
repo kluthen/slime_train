@@ -87,7 +87,7 @@ func _wake_the_first_sleeper(game: Node) -> Dictionary:
 	game.test_mode.run_ticks(60)
 	_tap_at(game, spot)
 	var out := {"tap": sim.taps[-1], "woke_at": -1, "waker_state": -1, "rejoined_at": -1, "first": first,
-			"sleeper": sleeper}
+			"sleeper": sleeper, "spot": spot}
 	for i in 90 * TICK_RATE:
 		game.test_mode.run_ticks(1)
 		if out["woke_at"] < 0 and sim.slimes.state_of(sleeper) != SlimeBodies.SLEEPER:
@@ -193,7 +193,11 @@ func test_a_call_on_the_first_sleeper_wakes_it_and_both_rejoin_the_train() -> vo
 	gut.p("woke at tick %d, both back on the train at tick %d" % [run["woke_at"], run["rejoined_at"]])
 	assert_eq(run["waker_state"], SlimeBodies.FREE, "woken by the free first slime")
 	assert_eq(run["woke_phase"], FreeSlimes.UNSURE, "woken unsure")
-	assert_lt((run["first_at"] as Vector2).y, 440.0, "the first slime was up on the ledge")
+	# Up by the sleeper on its ledge (within a slime radius of its height),
+	# not on the ground under the ledge, 125 px lower.
+	gut.p("the first slime woke it from %s, the sleeper at %s" % [run["first_at"], run["spot"]])
+	assert_lt((run["first_at"] as Vector2).y, (run["spot"] as Vector2).y + PlaceholderArt.SLIME_RADIUS,
+			"the first slime was up on the ledge")
 	assert_gt(run["rejoined_at"], 0, "both rejoined the train")
 	var sim: Simulation = game.simulation
 	assert_true(sim.train.lost.is_empty(), "no slime lost")

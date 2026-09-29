@@ -286,8 +286,8 @@ func steering_distance(distance: float, point: Vector2) -> float:
 	if _len <= 0.0 or point.distance_to(position_at(distance)) <= OFF_ROUTE:
 		return distance
 	var back := minf(PROGRESS_WINDOW, _len)
-	# Where the route runs back over itself (the slide's end across the start
-	# basin), the point nearest the progress wins.
+	# Where the route runs back close to itself (the slide's end meeting the
+	# loop's start), the point nearest the progress wins.
 	return fposmod(project(distance - back, point, true), _len)
 
 

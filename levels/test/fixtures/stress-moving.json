@@ -61,7 +61,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 15792.960000000001
+				"distance": 15856.54
 			}
 		},
 		{
@@ -77,7 +77,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 15842.960000000001
+				"distance": 15906.54
 			}
 		},
 		{
@@ -93,7 +93,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 15892.960000000001
+				"distance": 15956.54
 			}
 		},
 		{
@@ -109,7 +109,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 15942.960000000001
+				"distance": 16006.54
 			}
 		},
 		{
@@ -125,7 +125,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 15992.960000000001
+				"distance": 16056.54
 			}
 		},
 		{
@@ -141,7 +141,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16042.960000000001
+				"distance": 16106.54
 			}
 		},
 		{
@@ -157,7 +157,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 16092.960000000001
+				"distance": 16156.54
 			}
 		},
 		{
@@ -173,7 +173,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 16142.960000000001
+				"distance": 16206.54
 			}
 		},
 		{
@@ -189,7 +189,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16192.960000000001
+				"distance": 16256.54
 			}
 		},
 		{
@@ -205,7 +205,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 16242.960000000001
+				"distance": 16306.54
 			}
 		},
 		{
@@ -221,7 +221,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 16292.960000000001
+				"distance": 16356.54
 			}
 		},
 		{
@@ -237,7 +237,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16342.960000000001
+				"distance": 16406.54
 			}
 		},
 		{
@@ -253,7 +253,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 16392.96
+				"distance": 16456.54
 			}
 		},
 		{
@@ -269,7 +269,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 16442.96
+				"distance": 16506.54
 			}
 		},
 		{
@@ -285,7 +285,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 16492.96
+				"distance": 16556.54
 			}
 		},
 		{
@@ -301,7 +301,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 16542.96
+				"distance": 16606.54
 			}
 		},
 		{
@@ -317,7 +317,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16592.96
+				"distance": 16656.54
 			}
 		},
 		{
@@ -333,7 +333,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16642.96
+				"distance": 16706.54
 			}
 		},
 		{
@@ -349,7 +349,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 16692.96
+				"distance": 16756.54
 			}
 		},
 		{
@@ -365,7 +365,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 16742.96
+				"distance": 16806.54
 			}
 		},
 		{
@@ -381,7 +381,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 16792.96
+				"distance": 16856.54
 			}
 		},
 		{
@@ -397,7 +397,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 16842.96
+				"distance": 16906.54
 			}
 		},
 		{
@@ -413,7 +413,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16892.96
+				"distance": 16956.54
 			}
 		},
 		{
@@ -429,7 +429,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16942.96
+				"distance": 17006.54
 			}
 		},
 		{
@@ -445,7 +445,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16992.96
+				"distance": 17056.54
 			}
 		},
 		{
@@ -461,7 +461,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 17042.96
+				"distance": 17106.54
 			}
 		},
 		{
@@ -477,7 +477,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 17092.96
+				"distance": 17156.54
 			}
 		},
 		{
@@ -493,7 +493,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 17142.96
+				"distance": 17206.54
 			}
 		},
 		{
@@ -509,7 +509,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 17192.96
+				"distance": 17256.54
 			}
 		},
 		{
@@ -525,7 +525,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 17242.96
+				"distance": 17306.54
 			}
 		},
 		{
@@ -541,7 +541,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 17292.96
+				"distance": 17356.54
 			}
 		},
 		{
@@ -557,7 +557,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 17342.96
+				"distance": 17406.54
 			}
 		},
 		{
@@ -573,7 +573,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 17392.96
+				"distance": 17456.54
 			}
 		},
 		{
@@ -589,7 +589,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 17646.73
+				"distance": 17710.3
 			}
 		},
 		{
@@ -605,7 +605,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 15792.960000000001
+				"distance": 15856.54
 			}
 		},
 		{
@@ -621,7 +621,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 15842.960000000001
+				"distance": 15906.54
 			}
 		},
 		{
@@ -637,7 +637,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 15892.960000000001
+				"distance": 15956.54
 			}
 		},
 		{
@@ -653,7 +653,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 15942.960000000001
+				"distance": 16006.54
 			}
 		},
 		{
@@ -669,7 +669,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 15992.960000000001
+				"distance": 16056.54
 			}
 		},
 		{
@@ -685,7 +685,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16042.960000000001
+				"distance": 16106.54
 			}
 		},
 		{
@@ -701,7 +701,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16092.960000000001
+				"distance": 16156.54
 			}
 		},
 		{
@@ -717,7 +717,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 16142.960000000001
+				"distance": 16206.54
 			}
 		},
 		{
@@ -733,7 +733,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 16192.960000000001
+				"distance": 16256.54
 			}
 		},
 		{
@@ -749,7 +749,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16242.960000000001
+				"distance": 16306.54
 			}
 		},
 		{
@@ -765,7 +765,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16292.960000000001
+				"distance": 16356.54
 			}
 		},
 		{
@@ -781,7 +781,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16342.960000000001
+				"distance": 16406.54
 			}
 		},
 		{
@@ -797,7 +797,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16392.96
+				"distance": 16456.54
 			}
 		},
 		{
@@ -813,7 +813,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 16442.96
+				"distance": 16506.54
 			}
 		},
 		{
@@ -829,7 +829,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 16492.96
+				"distance": 16556.54
 			}
 		},
 		{
@@ -845,7 +845,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16542.96
+				"distance": 16606.54
 			}
 		},
 		{
@@ -861,7 +861,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16592.96
+				"distance": 16656.54
 			}
 		},
 		{
@@ -877,7 +877,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 16642.96
+				"distance": 16706.54
 			}
 		},
 		{
@@ -893,7 +893,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 16692.96
+				"distance": 16756.54
 			}
 		},
 		{
@@ -909,7 +909,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16742.96
+				"distance": 16806.54
 			}
 		},
 		{
@@ -925,7 +925,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16792.96
+				"distance": 16856.54
 			}
 		},
 		{
@@ -941,7 +941,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 16842.96
+				"distance": 16906.54
 			}
 		},
 		{
@@ -957,7 +957,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 16892.96
+				"distance": 16956.54
 			}
 		},
 		{
@@ -973,7 +973,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16942.96
+				"distance": 17006.54
 			}
 		},
 		{
@@ -989,7 +989,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16992.96
+				"distance": 17056.54
 			}
 		},
 		{
@@ -1005,7 +1005,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 17042.96
+				"distance": 17106.54
 			}
 		},
 		{
@@ -1021,7 +1021,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 17092.96
+				"distance": 17156.54
 			}
 		},
 		{
@@ -1037,7 +1037,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 17142.96
+				"distance": 17206.54
 			}
 		},
 		{
@@ -1053,7 +1053,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 17192.96
+				"distance": 17256.54
 			}
 		},
 		{
@@ -1069,7 +1069,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 17242.96
+				"distance": 17306.54
 			}
 		},
 		{
@@ -1085,7 +1085,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 17292.96
+				"distance": 17356.54
 			}
 		},
 		{
@@ -1101,7 +1101,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 17342.96
+				"distance": 17406.54
 			}
 		},
 		{
@@ -1117,7 +1117,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 17392.96
+				"distance": 17456.54
 			}
 		},
 		{
@@ -1133,7 +1133,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 15738.52
+				"distance": 15802.1
 			}
 		},
 		{
@@ -1149,7 +1149,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 17447.4
+				"distance": 17510.98
 			}
 		},
 		{
@@ -1165,7 +1165,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 15688.36
+				"distance": 15751.94
 			}
 		},
 		{
@@ -1181,7 +1181,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17497.56
+				"distance": 17561.14
 			}
 		},
 		{
@@ -1197,7 +1197,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 15633.15
+				"distance": 15696.720000000001
 			}
 		},
 		{
@@ -1213,7 +1213,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17555.23
+				"distance": 17618.8
 			}
 		},
 		{
@@ -1229,7 +1229,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17606.64
+				"distance": 17670.22
 			}
 		},
 		{
@@ -1245,7 +1245,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17658.54
+				"distance": 17722.11
 			}
 		},
 		{
@@ -1261,7 +1261,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 15792.960000000001
+				"distance": 15856.54
 			}
 		},
 		{
@@ -1277,7 +1277,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 15842.960000000001
+				"distance": 15906.54
 			}
 		},
 		{
@@ -1293,7 +1293,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 15892.960000000001
+				"distance": 15956.54
 			}
 		},
 		{
@@ -1309,7 +1309,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 15942.960000000001
+				"distance": 16006.54
 			}
 		},
 		{
@@ -1325,7 +1325,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 15992.960000000001
+				"distance": 16056.54
 			}
 		},
 		{
@@ -1341,7 +1341,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16042.960000000001
+				"distance": 16106.54
 			}
 		},
 		{
@@ -1357,7 +1357,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16092.960000000001
+				"distance": 16156.54
 			}
 		},
 		{
@@ -1373,7 +1373,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 16142.960000000001
+				"distance": 16206.54
 			}
 		},
 		{
@@ -1389,7 +1389,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 16192.960000000001
+				"distance": 16256.54
 			}
 		},
 		{
@@ -1405,7 +1405,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 16242.960000000001
+				"distance": 16306.54
 			}
 		},
 		{
@@ -1421,7 +1421,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 16292.960000000001
+				"distance": 16356.54
 			}
 		},
 		{
@@ -1437,7 +1437,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16342.960000000001
+				"distance": 16406.54
 			}
 		},
 		{
@@ -1453,7 +1453,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16392.96
+				"distance": 16456.54
 			}
 		},
 		{
@@ -1469,7 +1469,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 16442.96
+				"distance": 16506.54
 			}
 		},
 		{
@@ -1485,7 +1485,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 16492.96
+				"distance": 16556.54
 			}
 		},
 		{
@@ -1501,7 +1501,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16542.96
+				"distance": 16606.54
 			}
 		},
 		{
@@ -1517,7 +1517,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 16592.96
+				"distance": 16656.54
 			}
 		},
 		{
@@ -1533,7 +1533,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 16642.96
+				"distance": 16706.54
 			}
 		},
 		{
@@ -1549,7 +1549,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16692.96
+				"distance": 16756.54
 			}
 		},
 		{
@@ -1565,7 +1565,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16742.96
+				"distance": 16806.54
 			}
 		},
 		{
@@ -1581,7 +1581,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 16792.96
+				"distance": 16856.54
 			}
 		},
 		{
@@ -1597,7 +1597,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 16842.96
+				"distance": 16906.54
 			}
 		},
 		{
@@ -1613,7 +1613,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 16892.96
+				"distance": 16956.54
 			}
 		},
 		{
@@ -1629,7 +1629,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 16942.96
+				"distance": 17006.54
 			}
 		},
 		{
@@ -1645,7 +1645,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16992.96
+				"distance": 17056.54
 			}
 		},
 		{
@@ -1661,7 +1661,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 17042.96
+				"distance": 17106.54
 			}
 		},
 		{
@@ -1677,7 +1677,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17092.96
+				"distance": 17156.54
 			}
 		},
 		{
@@ -1693,7 +1693,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17142.96
+				"distance": 17206.54
 			}
 		},
 		{
@@ -1709,7 +1709,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 17192.96
+				"distance": 17256.54
 			}
 		},
 		{
@@ -1725,7 +1725,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17242.96
+				"distance": 17306.54
 			}
 		},
 		{
@@ -1741,7 +1741,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 17292.96
+				"distance": 17356.54
 			}
 		},
 		{
@@ -1757,7 +1757,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 17342.96
+				"distance": 17406.54
 			}
 		},
 		{
@@ -1773,7 +1773,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 17392.96
+				"distance": 17456.54
 			}
 		},
 		{
@@ -1789,7 +1789,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 15734.2
+				"distance": 15797.77
 			}
 		},
 		{
@@ -1805,7 +1805,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 17451.73
+				"distance": 17515.3
 			}
 		},
 		{
@@ -1821,7 +1821,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17716.61
+				"distance": 17780.19
 			}
 		},
 		{
@@ -1837,7 +1837,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 15684.04
+				"distance": 15747.61
 			}
 		},
 		{
@@ -1853,7 +1853,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17501.89
+				"distance": 17565.46
 			}
 		},
 		{
@@ -1869,7 +1869,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 15623.77
+				"distance": 15687.34
 			}
 		},
 		{
@@ -1885,7 +1885,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 17567.03
+				"distance": 17630.61
 			}
 		},
 		{
@@ -1901,7 +1901,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 17769.75
+				"distance": 17833.33
 			}
 		},
 		{
@@ -1917,7 +1917,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17618.45
+				"distance": 17682.03
 			}
 		},
 		{
@@ -1933,7 +1933,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 17681.28
+				"distance": 17744.86
 			}
 		},
 		{
@@ -1949,7 +1949,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16492.96
+				"distance": 16556.54
 			}
 		},
 		{
@@ -1965,7 +1965,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 17292.96
+				"distance": 17356.54
 			}
 		},
 		{
@@ -1981,7 +1981,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17342.96
+				"distance": 17406.54
 			}
 		},
 		{
@@ -1997,7 +1997,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 17392.96
+				"distance": 17456.54
 			}
 		},
 		{
@@ -2013,7 +2013,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 17456.05
+				"distance": 17519.63
 			}
 		},
 		{
@@ -2029,7 +2029,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 17733.74
+				"distance": 17797.31
 			}
 		},
 		{
@@ -2045,7 +2045,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17506.21
+				"distance": 17569.79
 			}
 		},
 		{
@@ -2061,7 +2061,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 15614.39
+				"distance": 15677.960000000001
 			}
 		},
 		{
@@ -2077,7 +2077,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17578.84
+				"distance": 17642.420000000002
 			}
 		},
 		{
@@ -2093,7 +2093,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 17793.96
+				"distance": 17857.53
 			}
 		},
 		{
@@ -2109,7 +2109,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17630.260000000002
+				"distance": 17693.84
 			}
 		},
 		{
@@ -2125,7 +2125,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 17698.41
+				"distance": 17761.99
 			}
 		},
 		{
@@ -2141,7 +2141,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 16392.96
+				"distance": 16456.54
 			}
 		},
 		{
@@ -2157,7 +2157,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 16542.96
+				"distance": 16606.54
 			}
 		},
 		{
@@ -2173,7 +2173,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16292.960000000001
+				"distance": 16356.54
 			}
 		},
 		{
@@ -2189,7 +2189,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 16642.96
+				"distance": 16706.54
 			}
 		},
 		{
@@ -2205,7 +2205,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 16192.960000000001
+				"distance": 16256.54
 			}
 		},
 		{
@@ -2221,7 +2221,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16742.96
+				"distance": 16806.54
 			}
 		},
 		{
@@ -2237,7 +2237,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16842.96
+				"distance": 16906.54
 			}
 		},
 		{
@@ -2253,7 +2253,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 16042.960000000001
+				"distance": 16106.54
 			}
 		},
 		{
@@ -2269,7 +2269,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 16442.96
+				"distance": 16506.54
 			}
 		},
 		{
@@ -2285,7 +2285,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16492.96
+				"distance": 16556.54
 			}
 		},
 		{
@@ -2301,7 +2301,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16942.96
+				"distance": 17006.54
 			}
 		},
 		{
@@ -2317,7 +2317,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 17292.96
+				"distance": 17356.54
 			}
 		},
 		{
@@ -2333,7 +2333,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17342.96
+				"distance": 17406.54
 			}
 		},
 		{
@@ -2349,7 +2349,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 17392.96
+				"distance": 17456.54
 			}
 		},
 		{
@@ -2365,7 +2365,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 15942.960000000001
+				"distance": 16006.54
 			}
 		},
 		{
@@ -2381,7 +2381,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 17042.96
+				"distance": 17106.54
 			}
 		},
 		{
@@ -2397,7 +2397,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17460.37
+				"distance": 17523.95
 			}
 		},
 		{
@@ -2413,7 +2413,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 17750.87
+				"distance": 17814.44
 			}
 		},
 		{
@@ -2429,7 +2429,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 15842.960000000001
+				"distance": 15906.54
 			}
 		},
 		{
@@ -2445,7 +2445,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 17142.96
+				"distance": 17206.54
 			}
 		},
 		{
@@ -2461,7 +2461,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 15675.39
+				"distance": 15738.960000000001
 			}
 		},
 		{
@@ -2477,7 +2477,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 15725.2
+				"distance": 15788.78
 			}
 		},
 		{
@@ -2493,7 +2493,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 17242.96
+				"distance": 17306.54
 			}
 		},
 		{
@@ -2509,7 +2509,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 17510.53
+				"distance": 17574.11
 			}
 		},
 		{
@@ -2525,7 +2525,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 15605.01
+				"distance": 15668.59
 			}
 		},
 		{
@@ -2541,7 +2541,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 17590.65
+				"distance": 17654.23
 			}
 		},
 		{
@@ -2557,7 +2557,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17814.53
+				"distance": 17878.100000000002
 			}
 		},
 		{
@@ -2573,7 +2573,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 17642.07
+				"distance": 17705.65
 			}
 		},
 		{
@@ -2589,7 +2589,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 17715.54
+				"distance": 17779.11
 			}
 		},
 		{
@@ -2605,7 +2605,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16342.960000000001
+				"distance": 16406.54
 			}
 		},
 		{
@@ -2621,7 +2621,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 16392.96
+				"distance": 16456.54
 			}
 		},
 		{
@@ -2637,7 +2637,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 16542.96
+				"distance": 16606.54
 			}
 		},
 		{
@@ -2653,7 +2653,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16592.96
+				"distance": 16656.54
 			}
 		},
 		{
@@ -2669,7 +2669,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 16242.960000000001
+				"distance": 16306.54
 			}
 		},
 		{
@@ -2685,7 +2685,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 16292.960000000001
+				"distance": 16356.54
 			}
 		},
 		{
@@ -2701,7 +2701,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 16642.96
+				"distance": 16706.54
 			}
 		},
 		{
@@ -2717,7 +2717,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 16692.96
+				"distance": 16756.54
 			}
 		},
 		{
@@ -2733,7 +2733,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16142.960000000001
+				"distance": 16206.54
 			}
 		},
 		{
@@ -2749,7 +2749,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 16192.960000000001
+				"distance": 16256.54
 			}
 		},
 		{
@@ -2765,7 +2765,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 16742.96
+				"distance": 16806.54
 			}
 		},
 		{
@@ -2781,7 +2781,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16792.96
+				"distance": 16856.54
 			}
 		},
 		{
@@ -2797,7 +2797,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 16092.960000000001
+				"distance": 16156.54
 			}
 		},
 		{
@@ -2813,7 +2813,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16842.96
+				"distance": 16906.54
 			}
 		},
 		{
@@ -2829,7 +2829,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 16892.96
+				"distance": 16956.54
 			}
 		},
 		{
@@ -2845,7 +2845,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 15992.960000000001
+				"distance": 16056.54
 			}
 		},
 		{
@@ -2861,7 +2861,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 16042.960000000001
+				"distance": 16106.54
 			}
 		},
 		{
@@ -2877,7 +2877,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 16442.96
+				"distance": 16506.54
 			}
 		},
 		{
@@ -2893,7 +2893,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 16492.96
+				"distance": 16556.54
 			}
 		},
 		{
@@ -2909,7 +2909,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 16942.96
+				"distance": 17006.54
 			}
 		},
 		{
@@ -2925,7 +2925,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 16992.96
+				"distance": 17056.54
 			}
 		},
 		{
@@ -2941,7 +2941,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 17292.96
+				"distance": 17356.54
 			}
 		},
 		{
@@ -2957,7 +2957,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 17342.96
+				"distance": 17406.54
 			}
 		},
 		{
@@ -2973,7 +2973,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 17392.96
+				"distance": 17456.54
 			}
 		},
 		{
@@ -2989,7 +2989,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 15892.960000000001
+				"distance": 15956.54
 			}
 		},
 		{
@@ -3005,7 +3005,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 15942.960000000001
+				"distance": 16006.54
 			}
 		},
 		{
@@ -3021,7 +3021,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 17042.96
+				"distance": 17106.54
 			}
 		},
 		{
@@ -3037,7 +3037,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 17092.96
+				"distance": 17156.54
 			}
 		},
 		{
@@ -3053,7 +3053,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 17464.7
+				"distance": 17528.27
 			}
 		},
 		{
@@ -3069,7 +3069,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 17767.99
+				"distance": 17831.57
 			}
 		},
 		{
@@ -3085,7 +3085,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 15792.960000000001
+				"distance": 15856.54
 			}
 		},
 		{
@@ -3101,7 +3101,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 15842.960000000001
+				"distance": 15906.54
 			}
 		},
 		{
@@ -3117,7 +3117,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17142.96
+				"distance": 17206.54
 			}
 		},
 		{
@@ -3133,7 +3133,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 17192.96
+				"distance": 17256.54
 			}
 		},
 		{
@@ -3149,7 +3149,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 15671.07
+				"distance": 15734.640000000001
 			}
 		},
 		{
@@ -3165,7 +3165,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 15720.880000000001
+				"distance": 15784.45
 			}
 		},
 		{
@@ -3181,7 +3181,7 @@
 			"species": "D",
 			"state": "train",
 			"train": {
-				"distance": 17242.96
+				"distance": 17306.54
 			}
 		},
 		{
@@ -3197,7 +3197,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 17514.86
+				"distance": 17578.43
 			}
 		},
 		{
@@ -3213,7 +3213,7 @@
 			"species": "E",
 			"state": "train",
 			"train": {
-				"distance": 15595.630000000001
+				"distance": 15659.210000000001
 			}
 		},
 		{
@@ -3229,7 +3229,7 @@
 			"species": "B",
 			"state": "train",
 			"train": {
-				"distance": 17602.46
+				"distance": 17666.04
 			}
 		},
 		{
@@ -3245,7 +3245,7 @@
 			"species": "C",
 			"state": "train",
 			"train": {
-				"distance": 17835.100000000002
+				"distance": 17898.670000000002
 			}
 		}
 	]

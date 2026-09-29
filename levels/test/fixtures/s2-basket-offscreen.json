@@ -50,8 +50,8 @@
 	"slimes": [
 		{
 			"centre": [
-				552.96,
-				376.0
+				529.92,
+				311.0
 			],
 			"id": "s1.sleeper.01",
 			"members": [
@@ -2540,7 +2540,7 @@
 			"species": "A",
 			"state": "train",
 			"train": {
-				"distance": 12462.76
+				"distance": 12526.34
 			}
 		}
 	]
