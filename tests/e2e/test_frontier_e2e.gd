@@ -11,7 +11,8 @@ extends GutTest
 ## basket takes no more slimes [DoD 13]; the celebration waits for the last
 ## basket (section 3's, since chunk 16: neither basket 1 from
 ## `s1-basket-5of6` nor basket 2 from `s2-basket-offscreen` plays it; basket
-## 3, full in `stress-still`, does), plays once, is saved, and a reload
+## 3, full in `stress-still`, does once sunrise ends that fixture's bedtime),
+## plays once, is saved, and a reload
 ## doesn't play it again [DoD 14]. The run is the same in this process and in
 ## a child process (same seed, same hash).
 
@@ -237,6 +238,9 @@ func test_the_celebration_plays_once_and_a_reload_does_not_replay_it() -> void:
 	var sim: Simulation = game.simulation
 	assert_false(sim.frontier.celebration_done)
 	assert_eq(sim.object_states[BASKET_3]["phase"], FrontierSets.FULL)
+	# stress-still is at bedtime, when a reward due waits for sunrise (item
+	# 23.5): wake early first.
+	sim.session.sunrise(sim)
 	# In view, its reward plays (2 s), then it fires.
 	assert_gt(_run_until_phase(game, FrontierSets.FIRED, 10 * TICK_RATE, BASKET_3_VIEW, BASKET_3), 0)
 	assert_true(sim.frontier.celebration_done, "the last basket fired: the celebration")

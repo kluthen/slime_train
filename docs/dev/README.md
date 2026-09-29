@@ -1602,7 +1602,7 @@ keeps them as they are.
 boxes and shut lids as blocks; the switch's and signpost's arrows (down
 into the basket when flipped, else along the loop); the basket's quota as
 slime outlines filled by weight, pulsing during the reward; rings for the
-celebration.
+celebration; bunting for the lasting mark (chunk 23D).
 
 **Tuning** (constants in `FrontierSets`): `REWARD_SECONDS` 2.0,
 `RELEASE_SECONDS` 0.3, `CELEBRATION_SECONDS` 4.0, `OUTLET_CLEARANCE` 8 px
@@ -1641,9 +1641,89 @@ rules: a signpost at every fork, the trapdoor over the basket, the outlet
 on the onward route, the gate and its lid, a return route per section,
 every branch still reachable with the gate open).
 
-**Known gaps.** What a basket does at bedtime is undecided: slimes in a
-basket stay `in_basket` and a fired basket keeps releasing. Section 3's
-segments are a stub (chunk 16).
+**Known gaps.** Section 3's segments are a stub (chunk 16). What a basket
+does at bedtime, undecided when chunk 14 was built, is settled by D105 and
+built in chunk 23D (below).
+
+### Chunk 23D: baskets at bedtime and the celebration's lasting mark
+
+Items 23.5 and 23.11 of the build plan (D105; master spec §5.1, §5.4,
+§5.7; ux D4). Atoms: `req_switch_basket_gate_set`,
+`req_session_lifecycle`, `req_slime_states`, `req_hopping_behavior`,
+`req_level_completion_celebration`, `req_persistence_and_saves`.
+
+**Baskets at bedtime (23.5).** `FrontierSets.paused(sim)` is true while the
+session is at bedtime, and `frontier.step()` then runs `_basket_wait`
+instead of `_basket_step`: baskets still catch (nothing is awake to catch)
+and weigh, the doors keep their states, but no phase changes and nothing is
+released. The slimes in a basket were never put to sleep (`_bedtime` only
+touches train and free slimes) and sunrise only wakes bedtime-asleep
+slimes, so they stay `in_basket` through bedtime and sunrise, and the
+releases resume at sunrise where they stood (`next_release` has passed).
+A reward due (`full`) doesn't turn to `reward`, so no gate opens; a reward
+playing has its `since` moved on by one every bedtime tick, so its clock
+stands still and it plays the rest at sunrise. A celebration playing when
+bedtime begins stands still the same way (`celebration_since`) and isn't
+drawn (`celebration_showing(sim)`: playing and not at bedtime). Why this
+shape: the pause needs no new saved field. The session's phase and the
+existing `since` / `celebration_since` already hold it, so a save taken at
+bedtime reloads the same, with no save format change.
+
+**The lasting mark (23.11).** `frontier.mark_showing(tick)` is true once
+the celebration has played (`celebration_done`, the level's saved done
+mark) and its burst is over; `FrontierSets.mark_point(level)` is the start
+of the loop (distance 0). `FrontierView.mark_at()` gives where the mark is
+drawn, or null; it draws placeholder bunting there (two thin posts and six
+pennants in the celebration's colours, `MARK_*` constants), not solid and
+not tappable. A reload shows it at once (the done mark is saved); a level
+whose celebration hasn't played has none. The real look is ux-writer's
+(ux D4 names bunting as an example).
+
+**The double hop (23.11).** `CelebrationHops` (`src/sim/celebration_hops.gd`,
+`frontier.hops`): when the celebration begins, every train or free slime
+whose centre is in the view gets two hops to do; each tick of the burst
+(not at bedtime) each of them that stands on something hops straight up
+(`SlimeBodies.hop`, strength `HOP_STRENGTH`), so the second hop comes on
+landing. Slimes asleep, in a basket or off screen don't; hops still due
+when the burst ends are dropped. The hops still due are state: in
+`frontier.dump()` (`celebration_hops`, so the hash) and in saves
+(`transient.frontier.celebration_hops`, `[[slime id, hops left]]`,
+optional: absent means none; format still 1).
+
+**Values** (proposed; the spec gives none): `CelebrationHops.HOPS` 2,
+`HOP_STRENGTH` 0.6 (about 50 px high, half a second in the air; both hops
+fit well inside the 4 s burst); the bunting `MARK_HALF_WIDTH` 90 px,
+`MARK_HEIGHT` 150 px above the ground, `MARK_SAG` 20 px,
+`MARK_PENNANTS` 6, `MARK_PENNANT_DROP` 26 px.
+
+**Tests.** `tests/unit/test_frontier_bedtime.gd` (synthetic level:
+releases pause and resume, the slimes in a basket stay through sunrise, a
+due reward waits and no gate opens, a playing reward stands still and plays
+the rest, the last basket's celebration waits for sunrise, a celebration
+playing at bedtime hides and resumes, a bedtime save reloads the same and
+goes on the same), `tests/unit/test_celebration.gd` (the mark after the
+burst, after a reload, never without the celebration; the double hop of
+every awake slime on screen and of nobody else; the hops saved and hashed;
+same seed same hash), `tests/e2e/test_frontier_bedtime_e2e.gd` (from
+`bedtime` with basket 1 releasing: nothing leaves until sunrise, then one
+at a time; from `s1-basket-5of6`, full and in view at bedtime: no reward and
+gate 1 shut until sunrise; a bedtime save reloads the same; repeatable) and
+`tests/e2e/test_celebration_e2e.gd` (from `stress-still`, woken early:
+the camera stays put through the burst, a tap during it calls, the awake
+slimes on screen hop, the mark stands at the start of the loop, after a
+reload too, and not on `fresh` or `gate2-open`). `stress-still` is at
+bedtime, so the DoD 14 test in `test_frontier_e2e.gd` now wakes it
+(`session.sunrise`) before basket 3 can fire. Shared helpers for the new
+unit tests: `tests/unit/frontier_test_support.gd`.
+
+**Test mode.** To watch the celebration and the mark, load `stress-still`
+(at bedtime: basket 3's reward waits) with a `skip` step of 600 s to reach
+sunrise, then bring basket 3 into view (a held right edge button); with
+`--save=` and a reload, the mark is there at once.
+
+**Not built here.** No slime has an asleep look yet (all asleep slimes,
+bedtime-asleep or in a basket at bedtime, look like awake ones but for the
+dusk tint): "shown asleep" waits for the ui_ux tree's slime look.
 
 ## Off-screen simulation (chunk 15)
 
@@ -2162,7 +2242,10 @@ session or wind-down.
   `SlimeBodies.hop_rate` (set every tick, not dumped; at 1.0 the arithmetic
   is unchanged, so no earlier hash moved).
 - Bedtime (`_bedtime`): train and free slimes become bedtime-asleep where
-  they are, hops let go; sleepers and slimes in a basket are left alone.
+  they are, hops let go; sleepers and slimes in a basket are left alone
+  (a slime in a basket sleeps in place: it stays `in_basket`, and the
+  frontier sets stand still until sunrise, chunk 23D below "Frontier
+  sets").
   The edge buttons hide (`camera.edge_buttons_visible`, a held one lets
   go), `hint.bedtime` is set, and `session.save_due` asks the game root to
   save (it does when autosave is on). Taps at bedtime still ripple and the
@@ -2361,7 +2444,7 @@ One JSON object, keys sorted, tab-indented:
 | `call` | The last call (point, tick), or null |
 | `objects`, `gates` | Stable ID to state (chunk 14): a switch `{"flipped", "trapdoor_shut"}`, a basket `{"phase", "weight", "since", "next_release"}`, a gate `{"open", "entrance_closed"}` (see "Frontier sets (chunk 14)") |
 | `celebration_done` | `true` once the level's celebration has played; left out (false) before. Optional |
-| `transient` | The view, the camera, the ripples, the last taps, the facings, the input log, the tilt (reading, neutral, flat), the fusion contact counts and the celebration's start tick (`frontier`). Optional |
+| `transient` | The view, the camera, the ripples, the last taps, the facings, the input log, the tilt (reading, neutral, flat), the fusion contact counts and the celebration's start tick and double hops still due (`frontier`: `celebration_since`, `celebration_hops` `[[slime id, hops left]]`, optional, chunk 23D). Optional |
 | `session` | The session (chunk 17): `phase`, `elapsed_ms`, `anchor` and `clock` (the clock readings it counts from; see "Sessions (chunk 17)"), `sunrise_tick`. Optional: none is screensaver mode |
 
 Not saved: the fingers on the screen and input not yet consumed (a

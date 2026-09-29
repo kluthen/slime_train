@@ -5,9 +5,11 @@ extends Node2D
 ## by the weight in it (a size-3 slime fills 3); the reward while it plays;
 ## each switch's shut trapdoor and which way it sends the flow; each
 ## signpost's arrow, the way its switch sends the flow; each gate's box while
-## closed and its lid once the old slide entrance is closed; and the level's
-## one-time celebration. It only reads the simulation. Placeholder art until
-## the ui_ux tree settles the look. Place it at the world origin.
+## closed and its lid once the old slide entrance is closed; the level's
+## one-time celebration (hidden at bedtime, when it stands still); and,
+## once it has played, the level's lasting mark at the start of the loop
+## (item 23.11). It only reads the simulation. Placeholder art until the
+## ui_ux tree settles the look. Place it at the world origin.
 # @spec-link [[req_switch_basket_gate_set]]
 # @spec-link [[rule_signpost_at_every_fork]]
 # @spec-link [[req_level_completion_celebration]]
@@ -26,6 +28,15 @@ const ARROW_LENGTH := 44.0
 const REWARD_COLOR := Color(1.0, 0.95, 0.5)
 const CELEBRATION_COLORS: Array[Color] = [Color(1.0, 0.4, 0.4), Color(1.0, 0.85, 0.3),
 		Color(0.4, 0.8, 1.0), Color(0.5, 1.0, 0.5), Color(0.85, 0.5, 1.0)]
+## The lasting mark's placeholder bunting, level pixels: half the span
+## between its posts, their height above the ground, how far the string
+## sags, its pennant count and how far each pennant hangs.
+const MARK_HALF_WIDTH := 90.0
+const MARK_HEIGHT := 150.0
+const MARK_SAG := 20.0
+const MARK_PENNANTS := 6
+const MARK_PENNANT_DROP := 26.0
+const MARK_POST_COLOR := Color(0.95, 0.95, 0.9)
 
 ## The simulation drawn.
 var simulation: Simulation = null
@@ -63,8 +74,23 @@ func _draw() -> void:
 			draw_rect(gate["lid"], DOOR_COLOR)
 	for id in level.baskets:
 		_basket(level.baskets[id], states.get(id, {}))
-	if simulation.frontier.celebration_playing(simulation.tick):
+	if simulation.frontier.celebration_showing(simulation):
 		_celebration()
+	var mark: Variant = mark_at()
+	if mark != null:
+		_mark(mark)
+
+
+## Where the level's lasting mark is drawn (the start of the loop), or null
+## while it doesn't show: the celebration hasn't played, or its burst still
+## plays (FrontierSets.mark_showing).
+# @spec-link [[req_level_completion_celebration]]
+func mark_at() -> Variant:
+	if simulation == null or simulation.level == null or simulation.level.loop == null:
+		return null
+	if not simulation.frontier.mark_showing(simulation.tick):
+		return null
+	return FrontierSets.mark_point(simulation.level)
 
 
 ## The way switch `id` sends the flow: down into its basket when flipped,
@@ -119,3 +145,26 @@ func _celebration() -> void:
 		var radius := (20.0 + 120.0 * fmod(age + k * 0.23, 1.0)) / simulation.view.zoom
 		var color: Color = CELEBRATION_COLORS[k % CELEBRATION_COLORS.size()]
 		draw_arc(spot, radius, 0.0, TAU, 32, Color(color, 1.0 - share), 5.0 / simulation.view.zoom, true)
+
+
+## The lasting mark at `at` (the start of the loop, at a base slime's centre
+## height): bunting, a string of pennants in the celebration's colours
+## between two thin posts standing on the ground. Placeholder art: its real
+## look is ux-writer's (ux D4 names bunting as an example).
+func _mark(at: Vector2) -> void:
+	var ground := at.y + PlaceholderArt.SLIME_RADIUS
+	var left := Vector2(at.x - MARK_HALF_WIDTH, ground - MARK_HEIGHT)
+	var right := Vector2(at.x + MARK_HALF_WIDTH, ground - MARK_HEIGHT)
+	draw_line(Vector2(left.x, ground), left, MARK_POST_COLOR, 4.0)
+	draw_line(Vector2(right.x, ground), right, MARK_POST_COLOR, 4.0)
+	var string := PackedVector2Array()
+	for k in MARK_PENNANTS + 1:
+		var t := float(k) / MARK_PENNANTS
+		string.append(left.lerp(right, t) + Vector2(0.0, MARK_SAG * 4.0 * t * (1.0 - t)))
+	draw_polyline(string, MARK_POST_COLOR, 2.0, true)
+	for k in MARK_PENNANTS:
+		var a := string[k]
+		var b := string[k + 1]
+		var tip := (a + b) * 0.5 + Vector2(0.0, MARK_PENNANT_DROP)
+		var color: Color = CELEBRATION_COLORS[k % CELEBRATION_COLORS.size()]
+		draw_colored_polygon(PackedVector2Array([a, b, tip]), color)

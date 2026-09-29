@@ -42,6 +42,24 @@ extends RefCounted
 ##    terrain. A door that opens or shuts (a gate's box too, when it opens)
 ##    wakes the resting piles within DOOR_WAKE_REACH of it (chunk 15).
 ##
+## Bedtime (item 23.5, D105): while the session is at bedtime (paused()),
+## the sets stand still. Baskets still catch and weigh, and the doors keep
+## their states, but no phase changes, no basket releases a slime (the
+## slimes in it stay `in_basket`, asleep in place; sunrise doesn't move them
+## out), and a reward due waits: FULL doesn't turn to REWARD, and a REWARD
+## playing has its `since` moved on by every bedtime tick, so its clock
+## stands still and it plays the rest at sunrise (no gate opens at bedtime).
+## A celebration playing stands still the same way (celebration_since) and
+## isn't shown (celebration_showing()). All the pause needs is the
+## session's phase and the states above, all saved: a save taken at bedtime
+## reloads the same. Sunrise resumes everything where it stood.
+##
+## The lasting mark (item 23.11, ux D4): once the celebration has played
+## (celebration_done, and its burst over), a small mark at the start of the
+## loop shows the level is complete (mark_showing(), mark_point()), after a
+## reload too. During the burst every awake slime on screen does a double
+## hop (CelebrationHops, `hops`).
+##
 ## Opening a gate adds it to the train's open gates (the loop grows: the
 ## section's return route is replaced by the next section's segments) and
 ## gate_states. Train slimes on the outgoing part keep their distance; those
@@ -57,6 +75,8 @@ extends RefCounted
 # @spec-link [[rule_gate_opens_via_switch_basket_set]]
 # @spec-link [[rule_frontier_set_inert_after_gate_open]]
 # @spec-link [[req_level_completion_celebration]]
+# @spec-link [[req_session_lifecycle]]
+# @spec-link [[req_slime_states]]
 
 const FILLING := "filling"
 const FULL := "full"
@@ -81,8 +101,11 @@ const DOOR_WAKE_REACH := 80.0
 
 ## Whether the celebration has played in this save (the level's mark).
 var celebration_done := false
-## The tick the celebration began, or -1. Transient.
+## The tick the celebration began, or -1, moved on by every bedtime tick
+## spent while it plays. Transient.
 var celebration_since := -1
+## The double hop of the awake slimes on screen during the burst.
+var hops := CelebrationHops.new()
 
 var _level: LevelData = null
 ## Stable ID -> TerrainSegments, one solid box each.
@@ -203,21 +226,55 @@ func tap_switch(sim: Simulation, id: String) -> bool:
 # --- Ticking ----------------------------------------------------------------------
 
 ## One tick of every frontier set (see the class doc).
+# @spec-link [[req_switch_basket_gate_set]]
 func step(sim: Simulation) -> void:
 	if _level == null:
 		return
+	var asleep := paused(sim)
 	if not _level.baskets.is_empty():
 		_catch(sim)
 		var inside := _inside(sim)
 		for id in _sorted(_level.baskets):
-			_basket_step(sim, id, inside[id])
+			if asleep:
+				_basket_wait(sim, id, inside[id])
+			else:
+				_basket_step(sim, id, inside[id])
+	if asleep:
+		if celebration_playing(sim.tick):
+			celebration_since += 1
+	else:
+		hops.step(sim, celebration_playing(sim.tick))
 	_doors_step(sim)
 	_set_doors(sim)
 
 
-## Whether the celebration is playing at `tick`.
+## Whether the frontier sets stand still now: at bedtime (see the class doc).
+# @spec-link [[req_session_lifecycle]]
+static func paused(sim: Simulation) -> bool:
+	return sim.session.phase == Session.BEDTIME
+
+
+## Whether the celebration is playing at `tick` (standing still at bedtime
+## counts as playing: it isn't over).
 func celebration_playing(tick: int) -> bool:
 	return celebration_since >= 0 and tick - celebration_since < ticks(CELEBRATION_SECONDS)
+
+
+## Whether the celebration's burst shows now: playing, and not at bedtime.
+func celebration_showing(sim: Simulation) -> bool:
+	return celebration_playing(sim.tick) and not paused(sim)
+
+
+## Whether the level's lasting mark shows at `tick`: the celebration has
+## played (its done mark) and its burst is over.
+# @spec-link [[req_level_completion_celebration]]
+func mark_showing(tick: int) -> bool:
+	return celebration_done and not celebration_playing(tick)
+
+
+## Where the lasting mark stands: the start of the loop (distance 0).
+static func mark_point(level: LevelData) -> Vector2:
+	return level.loop.position_at(0.0)
 
 
 ## Whether basket `id` holds its slimes now: collecting, full or rewarding.
@@ -232,7 +289,8 @@ func holding(sim: Simulation, id: String) -> bool:
 
 ## The state as plain data, for Simulation.dump().
 func dump() -> Dictionary:
-	return {"celebration_done": celebration_done, "celebration_since": celebration_since}
+	return {"celebration_done": celebration_done, "celebration_since": celebration_since,
+			"celebration_hops": hops.dump()}
 
 
 func _catch(sim: Simulation) -> void:
@@ -302,6 +360,20 @@ func _basket_step(sim: Simulation, id: String, inside: PackedInt32Array) -> void
 		state["next_release"] = sim.tick + ticks(RELEASE_SECONDS)
 
 
+## Basket `id` at bedtime: it still weighs the slimes in it, but no phase
+## changes and nothing is released; a reward playing keeps the time it has
+## left (its `since` moves on with the tick).
+# @spec-link [[req_switch_basket_gate_set]]
+func _basket_wait(sim: Simulation, id: String, inside: PackedInt32Array) -> void:
+	var state: Dictionary = sim.object_states[id]
+	var weight := 0
+	for slime_id in inside:
+		weight += sim.slimes.size_of(slime_id)
+	state["weight"] = weight
+	if state["phase"] == REWARD:
+		state["since"] += 1
+
+
 ## Runs the rules basket `id` triggers when full, then checks whether every
 ## basket has fired (the celebration).
 func _fire(sim: Simulation, id: String) -> void:
@@ -320,6 +392,7 @@ func _fire(sim: Simulation, id: String) -> void:
 			return
 	celebration_done = true
 	celebration_since = sim.tick
+	hops.begin(sim)
 
 
 ## Opens gate `id` for good, and grows the train's loop (see the class doc).

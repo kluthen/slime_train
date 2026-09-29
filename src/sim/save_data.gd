@@ -41,7 +41,12 @@ extends RefCounted
 ## the slimes resting in a basket are in state "in_basket". The level's
 ## celebration: "celebration_done" is its done mark (absent: false), never
 ## reset but by deleting the save; "transient.frontier" keeps
-## {"celebration_since"}, so a reload during it plays the rest, not all again.
+## {"celebration_since", "celebration_hops"} (the start tick and the double
+## hops still due, [[slime id, hops left]]; the hops optional, absent: none;
+## item 23.11), so a reload during it plays the rest, not all again. At
+## bedtime (item 23.5) the sets stand still on these same fields: a reward
+## playing and the celebration keep the time they have left in "since" and
+## "celebration_since", and nothing else is needed.
 ##
 ## Off-screen simulation (chunk 15): a body's "rest" keeps its calm
 ## ("active", "resting", "parked": SlimeBodies.CALM_NAMES), its rest count,
@@ -203,7 +208,8 @@ static func _transient(sim: Simulation) -> Dictionary:
 		"fusion": sim.fusion.dump(),
 		"camera": _exact_values(sim.camera.dump()),
 		"hint": {"since": sim.hint.since, "bedtime": sim.hint.bedtime},
-		"frontier": {"celebration_since": sim.frontier.celebration_since},
+		"frontier": {"celebration_since": sim.frontier.celebration_since,
+				"celebration_hops": sim.frontier.hops.dump()},
 		"tilt": {"degrees": exact(sim.phone_tilt.degrees), "neutral": exact(sim.phone_tilt.neutral),
 				"flat": sim.phone_tilt.flat},
 	}
@@ -533,6 +539,8 @@ static func _restore_transient(sim: Simulation, transient: Dictionary) -> void:
 		sim.hint.bedtime = bool(transient["hint"].get("bedtime", false))
 	if transient.get("frontier") is Dictionary:
 		sim.frontier.celebration_since = _whole(transient["frontier"].get("celebration_since", -1))
+		# The double hops still due (item 23.11): [[slime id, hops left]].
+		sim.frontier.hops.restore(transient["frontier"].get("celebration_hops", []))
 	if transient.get("view") is Dictionary:
 		var view: Dictionary = transient["view"]
 		sim.view.set_to(vector_from(view["centre"]), real(view["zoom"]), vector_from(view["screen_size"]))

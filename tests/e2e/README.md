@@ -57,6 +57,17 @@ pattern; `scripts/` holds the JSON run files. How to write one:
   switch back empties the basket (no tilt); once the gate is open the
   switch and the basket do nothing; the celebration plays once and a
   reload doesn't replay it; the run has the same hash in a child process.
+- `test_frontier_bedtime_e2e.gd` (chunk 23D, item 23.5) checks baskets at
+  bedtime: from `bedtime` a releasing basket 1 lets nothing go until
+  sunrise, and its slimes stay in it through sunrise; from
+  `s1-basket-5of6` a full basket in view at bedtime plays no reward and
+  opens no gate until sunrise; a save taken at bedtime reloads the same;
+  the run is repeatable.
+- `test_celebration_e2e.gd` (chunk 23D, item 23.11) checks the
+  celebration from `stress-still` (woken early): the camera stays put
+  through the burst, a tap during it calls, the awake slimes on screen
+  hop, and the lasting mark stands at the start of the loop, after a
+  reload too, and not on a level whose celebration hasn't played.
 - `test_frontier_level.gd` checks the test level's frontier set against
   the level rules: a signpost at every fork, not tappable; the trapdoor on
   the loop over the basket (no tilt needed); the outlet on the onward
