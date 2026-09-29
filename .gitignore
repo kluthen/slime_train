@@ -29,3 +29,7 @@ docs/.atd_audit.db
 /native/slime_native/**/*.o
 /native/slime_native/.sconsign*.dblite
 /native/slime_native/compile_commands.json
+
+# Claude Code: local settings and agent worktrees (project skills in .claude/skills/ are tracked)
+.claude/settings.local.json
+.claude/worktrees/
