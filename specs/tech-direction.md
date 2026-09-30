@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v24 (the hold, D145, proposed)
+Status: draft v25 (the hold and the local wake in chunk 22e, before 5N, which ports them, D146, proposed; the hold, D145, proposed)
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -195,11 +195,12 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   fired basket's releases keep its pile awake. *Proposed (D143):* level
   rule 23 keeps levels free of spots where many slimes gather awake, and
   the train holds before a crowd or a jam, holding slimes resting, with a
-  local wake (chunk 24, items 24.3, 24.7 and 24.8; D145, proposed); a
+  local wake (chunk 22e, before 5N, D146; rule 23 in chunk 24, item 24.7;
+  D145, proposed); a
   cluster the player builds stays possible, covered by crowd detail and
   the tick cap.
 - **Native code was the documented, verified contingency; it is now
-  adopted as chunk 5N, after chunk 22d** (D140, D143; the user's explicit
+  adopted as chunk 5N, after chunks 22d and 22e** (D140, D143, D146; the user's explicit
   go after chunk 22b, D142: "ok schedule work on 5N after this chunk").
   A GDExtension in C++ (godot-cpp), built with `-ffp-contract=off` so ticks
   repeat from one build to another, for the Linux desktop and, through the

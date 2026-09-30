@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v22 (the train holds before a crowd or a jam, holding slimes may rest, D145, proposed, replacing D143's lean, approved in direction, D144; its numbers proposed, O107)
+Status: draft v23 (the hold and the local wake built in chunk 22e, before 5N, D146, proposed; the train holds before a crowd or a jam, holding slimes may rest, D145, proposed, replacing D143's lean, approved in direction, D144; its numbers proposed, O107)
 
 ## States
 
@@ -90,7 +90,7 @@ Slimes move only by hopping.
 
 - Bigger slimes hop a little less often, but further and higher.
 - During bedtime's wind-down, every slime hops more slowly.
-- **The hold** *(proposed, D145, item 24.8, amending D143's lean, which
+- **The hold** *(proposed, D145, built in chunk 22e, D146, amending D143's lean, which
   was approved in direction, D144; its numbers proposed, O107)*: when its
   hop is due, a train slime **holds** (stays where it is) while either
   - more than 30 awake slimes out of a basket (not resting, not parked,
@@ -106,7 +106,7 @@ Slimes move only by hopping.
 - **A holding slime may rest** *(proposed, D145)*: once still on the
   ground, it stops being simulated, like a resting pile, and wakes when its
   hold ends or something disturbs it. It doesn't rest while it is fusing
-  with a neighbour. A wake is local (item 24.3, with O106): only the slimes
+  with a neighbour. A wake is local (chunk 22e, with O106, D146): only the slimes
   touched wake, not the whole pile.
 - The numbers are in `tuning.md`.
 

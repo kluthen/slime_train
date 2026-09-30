@@ -2589,6 +2589,8 @@ ATD: 66 `@spec-link` and 19 `@test-link` tags to
 **Item 24.8 (2 (b)) amended by D145 (proposed):** the lean is replaced by
 the hold (more than 30 awake slimes ahead, a jam, at most 5 s), holding
 slimes may rest, and the wake becomes local, with O106, in 24.3.
+**Moved by D146 (the user's reorder, 2026-09-30):** the local wake and the
+hold are built in chunk 22e, before 5N; 24.7 stays in chunk 24.
 The rest (1, O106's default, section 3 left as is, 3 and 4) stays
 proposed.
 Proposed; the user reviews. Four requests from the user (2026-09-30),
@@ -2811,7 +2813,10 @@ The user was shown three items and replied, verbatim: "agreed"
   numbers proposed.
 
 ## D145 — The train holds before a crowd; holding slimes rest; a jam grows backwards (2026-09-30)
-Proposed; the user reviews. It amends D143's item 24.8 (approved in
+Proposed; the user reviews. **Where it is built amended by D146:** the
+local wake (3) and all of 24.8 (1, 2, the counters of 7) move to chunk
+22e, before 5N; 5N then ports the rest and wake rules (2's interface).
+It amends D143's item 24.8 (approved in
 direction, D144): the hold **replaces** D143's lean (3 slimes it can't
 fuse with, within 96 px, a wait of at most 2 s), one rule instead of two.
 The user's words, verbatim (2026-09-30): "on the train management
@@ -3017,6 +3022,93 @@ budget (4 ms a frame on the reference phone, D138, measured by D142's
 method), which many resting slimes on screen at once could strain: part
 of v3's design, not v1's.
 
-**Where:** chunk 24, item 24.8 (rewritten), after 24.3, which now carries
-the local wake for O106 and the hold together. D143's item numbers and
-order stay. **Terminology** (`concept.md`): **hold** and **jam** added.
+**Where** (rewritten by D146; it was chunk 24, item 24.8, after 24.3):
+chunk 22e, after 22d and before 5N, with the local wake taken out of 24.3
+(O106) and the whole of 24.8; 24.3 keeps the basket-emptying fix and
+24.7 stays in chunk 24. D143's item numbers stay, 24.8 as a pointer. **Terminology** (`concept.md`): **hold** and **jam** added.
+
+## D146 — Chunk 22e: the cluster fixes before 5N (2026-09-30)
+Proposed where it goes beyond the user's words; the reorder itself is the
+user's. The user, verbatim (2026-09-30): "we should probably try these
+fixes before working on 5N". "These fixes" are the local wake (O106's
+default, which D145 widened, in item 24.3) and the hold (D145, item 24.8).
+It moves where they are built, not what they are: D145's rules and numbers
+are unchanged and stay proposed (O107).
+
+**1. A new chunk, 22e (S to M).** The order becomes: 22d (running now),
+**22e**, 5N, 22c, 22 repeated on the S20 FE, the rest of chunk 24, the
+health review. 22e takes out of chunk 24:
+- **24.3's local-wake part:** a basket release, the end of a hold and a
+  touch faster than `WAKE_SPEED` wake only the slimes they touch; D145's
+  fallback stays (if piles keep waking, the touched slimes' touching
+  neighbours too, one step, never the whole pile).
+- **All of 24.8, as D145 shaped it:** the blocked-hop counters (`hops`,
+  `short_hops` on the PERF line) built first; the hold (the crowd check:
+  more than 30 Physics slimes out of a basket within 240 px of the hop's
+  target and ahead of it; the jam check, stopping short of a jam by the
+  radii plus 24 px); the 0.5 s re-check and the 5 s cap; resting holders
+  (the "may rest" input); the celebration waking the resting holders on
+  screen; the bowl measure on `stress-moving` and `s3-basket-59of60`.
+- *Why the user's order works:* 5N ports behaviour that already exists,
+  so its "changes no behaviour, the existing suite is its test" stays true
+  and now covers the new rest and wake rules; 22c and 22's repeat measure
+  the crowd the game will actually have.
+
+**2. What stays in chunk 24.**
+- **24.3's other parts:** the bug itself (a fired basket that doesn't
+  empty: the reproduce-first test, the trapdoor lead, "a fired basket
+  always empties" with its time limits, bedtime pausing). 24.3 points at
+  22e for the local wake and uses it when it measures the drain.
+- **24.7:** level rule 23 and its limit, calibrated from 22d's **and
+  22e's** logs (O107).
+- **24.8** becomes a pointer to 22e (its number kept, so references to it
+  still resolve).
+- *A consequence (proposed):* 22e's drain measure on `s3-basket-59of60`
+  runs before 24.3's emptying fix, so a released slime may still fall back
+  into basket 3 (24.3's lead). The measure is the pile's Physics count
+  during the drain, which the local wake changes either way; 22e doesn't
+  fix the emptying and isn't judged on it.
+
+**3. 22e keeps both ATD steps** (it changes hopping, which slimes rest and
+how piles wake). Its preflight starts from `req_hopping_behavior`,
+`req_slime_states`, `req_waking_sleepers` and `req_switch_basket_gate_set`
+(the release). *Proposed:* it also checks `req_offscreen_simulation`
+(its resting text, D145 (6)) and `req_level_completion_celebration` (the
+celebration waking resting holders). It must not run while another chunk
+edits the slime body code, and it starts once 22d is committed (it adds to
+22d's PERF line). *Proposed:* documentalist's split of
+`domain_architecture_rationale` (D144, "after chunk 22d is committed")
+lands before 22e's preflight, so 22e tags the new atoms, not the old one.
+
+**4. Chunk 5N ports the new rules.** The GDScript behaviour stays the
+reference: the native rest pass takes the per-slime "may rest" input set
+by the behaviour code (D145's "keep the rest condition open", now a port
+of built behaviour, not a provision for later) and its wake is the local
+wake, both passing 22e's tests unchanged. The hold's checks stay in
+GDScript (the Train, behaviour code). 5N stays size M.
+
+**5. Chunk 22c measures a calmer crowd.** It now runs with the hold and
+the local wake in place, so fewer slimes cost physics near the bowl and
+basket 3. *A consequence (proposed):* 22c's done-when has `s3-basket-59of60`
+on the slowed CPU climbing to the crowd's level; if the calmer crowd no
+longer presses the slowed CPU there, the check uses `stress-moving`
+instead, and says so in its record.
+
+**6. 22e's done-when:**
+- the bowl scenes' (`stress-moving`, `s3-basket-59of60`) Physics count
+  and share of short hops drop, read from the PERF lines, with 22d's
+  numbers (and 22e's own counter build) as the before;
+- the drain of `s3-basket-59of60` no longer keeps its whole pile awake;
+- tests: the front of a queue goes first; a slime arriving behind a
+  resting queue stops short without waking it; the 5 s cap; a release
+  wakes only the slimes it touches;
+- the suite passes, and every changed hash is listed with its reason.
+The rest of 24.8's former done-when (the re-check every 0.5 s, 30 or
+fewer or a crowd behind doesn't hold, a holder rests then wakes and hops,
+fusion before rest, the celebration's double hop, [DoD 1] and the `bump`
+fixture) stays with it in 22e.
+
+**Where:** build plan (chunk 22e, after 22d; the overview: 5N depends on
+22e; 24.3 and 24.8 point at 22e); D143's and D145's "where" notes; O106
+and O107; `tuning.md`'s rows; `slimes.md`; `tech-direction.md`; the
+index.
