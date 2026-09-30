@@ -265,7 +265,7 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
 
 ## Deferred
 
-- Music comes in v2; the rest of sound around v3 for now (D50, D134, O102).
+- Sound begins at v2: music, with effects a candidate (D134, D136).
   v1 has no audio.
 - Music generator (D42, O12): it is currently a JS app, and porting it to
   Godot is a project of its own.

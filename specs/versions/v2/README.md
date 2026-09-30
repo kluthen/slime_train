@@ -9,7 +9,11 @@ Themes, set by the user (D134):
   reuse across levels.
 - **Level design made as easy as possible** for the level designer.
 - **Music**, which the user calls paramount for this kind of game (moved
-  from v3; the rest of sound is O102; the generator is O12).
+  from v3; the generator is O12). Sound begins at v2 (D136).
+- **Sound effects: a candidate**, decided when v2 is scoped (D136): species
+  voices, closer to a kind of instrument (D40), capped at 10 voices shared
+  among the species present in proportion (D68), and bedtime's softer
+  sound (D28).
 - **The first real level(s):** chunk L01, `../../levels/01/`, moved from
   v1 (O99, D134).
 

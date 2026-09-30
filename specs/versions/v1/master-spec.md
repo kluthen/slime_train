@@ -120,7 +120,7 @@ would add to P1.G1 and P1.G2) comes in a later version.
 |---|---|
 | The real first level, and more levels | v2 |
 | Music | v2 |
-| The rest of sound (effects, species voices) | v3 for now (O102) |
+| Sound effects, species voices | v2 candidates |
 | Proper graphics | v3 |
 | Every other interactive object: bending pathways, other split zones, tilt objects, reveal zones, filters (forks sorting slimes by species or by size), switches and baskets outside the frontier set | v2 |
 | Large signposts that let the child choose which branch the camera follows | v2 |

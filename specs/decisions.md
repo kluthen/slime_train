@@ -2043,3 +2043,18 @@ our objective right now."
 - O101 stays open; its proposed default now drops the release build as a
   target (a build that never ships). Which version is the first store
   release, and so carries D31's price, is O103.
+
+## D136 — Sound begins at v2; effects are a v2 candidate (2026-09-30)
+Resolves O102. Supersedes, with D134, D50's "sound comes around v3". The
+user's decision, verbatim: "I didn't believe we had sound effects planned
+for v1. I don't believe we had broached that subject during spec sessions.
+Mostly sound begins at v2, especially music. But effects may be added to v2
+scope."
+
+- **v1 (full MVP) has no sound**, as D50 says. Nothing changes for v1.
+- **Sound begins at v2.** Music is v2 (D134).
+- **Sound effects are a v2 candidate**, decided when v2 is scoped. Species
+  voices (D40), the 10-voice cap (D68) and bedtime's softer sound (D28)
+  count as effects: v2 candidates, no longer pinned to v3.
+- Effects were never discussed in spec sessions; nothing more about them is
+  specified.

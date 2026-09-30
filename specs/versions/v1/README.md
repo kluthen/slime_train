@@ -101,7 +101,7 @@ Items are settled. The decision IDs point to
 
 ## Explicitly not in v1
 
-- Sound of any kind (music v2, the rest v3 for now; D134, O102).
+- Sound of any kind: it begins at v2 (music; effects a candidate; D134, D136).
 - The real first level, chunk L01 (v2, D134).
 - Any other interactive object (v2).
 - Everything in `../timeline.md`.
