@@ -6,8 +6,8 @@ test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
 playtest issues, last before the health review, proposed, D128; TL1 done,
 D129; chunk 18 done, D130; chunk 19 done, D131; chunk 20 done on the
-emulator, D132; chunk L01, the first real level, proposed, O99; chunk 21
-done, D133)
+emulator, D132; chunk 21 done, D133; v1 is the test level only, and
+chunk L01, the first real level, moves to v2, D134)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -144,8 +144,9 @@ technology, not business behaviour:
   risks.
 - **Next: 22** onward. (5N is a contingency, run only if chunk 22 fails,
   D96.)
-- **Chunk L01** (the first real level; proposed, O99): the release build
-  ships no level until it exists.
+- **Chunk L01** (the first real level) is **v2**, not this plan (D134):
+  v1 is the test level only. The release preset stays as built, with the
+  test level left out (publishing a v1 release build: O100).
 - **Chunk 24** (the user's second round of playtest issues, an open list;
   proposed, D128): after chunk 22 (and 5N if it runs), the last chunk
   before the closing step, as the user asked. The user's next play
@@ -959,14 +960,12 @@ while another chunk edits the slime body code.
 
 ## Not in this plan
 
-- **The real first level:** its design session comes after chunk 16, once the
-  test level has been played. v1 ships that level, not the test level.
-  *Proposed (O99, D132):* build it as chunk L01, since the release build
-  leaves out the test level and so ships no level until then.
+- **The real first level:** chunk L01, moved to v2 (D134). v1 is the
+  test level only.
 - **The interface design** of the parent screens, setup and the celebration:
   the UX track. The placeholder UI from chunk 18 is replaced then.
 - **Playtesting with children** [DoD 32]: after chunks 20 and 22, on the
-  real first level.
+  test level (D134).
 - **The basket's own design** (where it releases its slimes): a later
   spec session. Chunk 14 keeps it swappable.
 

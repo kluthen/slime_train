@@ -4,17 +4,20 @@ Status: master spec consolidated (early, D76)
 
 The consolidated spec is [`master-spec.md`](master-spec.md), with its
 companion [`access-model.md`](access-model.md). This page stays the working
-scope list with decision IDs. The real first level's design is not part of it
-(`../../levels/01/`, later).
+scope list with decision IDs. The real first level is not part of it: it is
+v2's chunk L01 (`../../levels/01/`, D134).
 
-The first Android release. One level to discover the game's mechanics.
+**v1 is the test level only**, played end to end on the phones, with the
+platform, parent, save and performance work of the build plan (D134).
+Whether a v1 release build is published to a store is O100.
 Items are settled. The decision IDs point to
 `../../decisions.md`.
 
 ## In scope
 
 **World**
-- One level of 4 sections, moderately sized. The theme is very basic and close
+- The test level (3 sections, 5 species; D134). The real first level's 4
+  sections and 6 species move to v2 with it. The theme is very basic and close
   to Cocoreccho!: black "stone" and black "plants" form the ground (D34).
 - 6 species: 3 in the first section, plus one per section after it (D22, D48).
   In v1, species differ by **colour only**, since voices need sound (D40,
@@ -96,12 +99,13 @@ Items are settled. The decision IDs point to
 
 ## Explicitly not in v1
 
-- Sound of any kind (v3).
+- Sound of any kind (music v2, the rest v3 for now; D134, O102).
+- The real first level, chunk L01 (v2, D134).
 - Any other interactive object (v2).
 - Everything in `../timeline.md`.
 
 ## Open for v1
 
-O14, O22, O62, O65 and O91 (see `../../open-questions.md`). The UX
+O14, O65, O91, O100 and O101 (O22 and O62 now serve the first real level, v2) (see `../../open-questions.md`). The UX
 review's interaction details (O67–O77) are settled (D102), and so are the
 build's points O79–O87 (D103–D107).

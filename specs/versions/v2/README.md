@@ -1,8 +1,19 @@
-# v2 — Interactive objects
+# v2 — Content, level design and music
 
-Status: placeholder
+Status: themes only (D134); no spec yet
 
-Scope is not worked out yet. Assigned so far (D50):
+Themes, set by the user (D134):
+
+- **Content generation** and its tooling.
+- **Reusable mechanics:** interactive objects and components built for
+  reuse across levels.
+- **Level design made as easy as possible** for the level designer.
+- **Music**, which the user calls paramount for this kind of game (moved
+  from v3; the rest of sound is O102; the generator is O12).
+- **The first real level(s):** chunk L01, `../../levels/01/`, moved from
+  v1 (O99, D134).
+
+Assigned so far (D50, D54):
 
 - The interactive objects from `../../interactive-objects.md` beyond v1's
   frontier-gate set and loop-start split zone (D54): bending pathway, other

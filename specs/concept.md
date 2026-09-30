@@ -214,7 +214,7 @@ survives the app being killed.
 ### Bedtime (D28)
 
 - In the **last minute** the light drifts toward dusk and slimes hop more
-  slowly. The music softens too, once there is sound (v3, D50). No text, no
+  slowly. The music softens too, once there is music (v2, D134). No text, no
   countdown.
 - At **bedtime**, slimes fall asleep where they are, the game saves, and calls
   stop doing anything. Bedtime ends with the parent code or after the cooldown
@@ -253,7 +253,7 @@ survives the app being killed.
 | stalled | a train slime whose progress along the loop hasn't advanced for 60 s, or that left the level's bounds; not "lost", but with the same effect: moved to the loop start and logged (D118, D121). The build says "lost as stalled" |
 | free slime | an awake slime attracted away from the loop, driven by physics alone until it rejoins |
 | session | one timed play period (15 min for now) |
-| level | a whole world with its own loop, sections and save file; the first release ships one |
+| level | a whole world with its own loop, sections and save file; v1 has the test level only (D134) |
 | signpost | a sign at a fork showing which way the loop goes |
 | large signpost | a signpost that also lets the child pick which branch the camera follows |
 | filter | a fork that sends slimes down a branch by species or by size (D88); usually has a signpost next to it |

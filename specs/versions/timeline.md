@@ -18,6 +18,6 @@ is assigned, it moves to that version's README (D52).
 | Cross-species fusion device | D25 | "not in the first few iterations" |
 | New levels sold as paid unlocks (about $2), through Play Billing and Play Asset Delivery | D31 | |
 | Theming (desert, forest, rivers…: palette and decoration only) | precursor | |
-| Music generator, ported from JS to Godot | D42, O12 | may come with v3's sound |
+| Music generator, ported from JS to Godot | D42, O12 | music is v2 (D134); whether it uses the generator is open |
 | Procedural world generation | O13 | |
 | iOS | precursor | |

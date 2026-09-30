@@ -1,8 +1,8 @@
 # Slime Train v1 — Master spec
 
 Status: consolidated early, at the user's request. Everything here is
-settled except the design of the real first level and the gaps listed in
-"Known gaps". Companions: `access-model.md` (who may do what) and
+settled except the gaps listed in "Known gaps". v1 is the test level only;
+the real first level is v2 (D134). Companions: `access-model.md` (who may do what) and
 `../../personas.md` (who the game is for). The test level used to build and
 check v1 is in `../../levels/test/README.md`.
 
@@ -88,8 +88,9 @@ would add to P1.G1 and P1.G2) comes in a later version.
 
 ### In v1
 
-- One level of 4 sections, with a basic theme close to Cocoreccho!: black
-  "stone" and black "plants" form the ground. 6 species, told apart by colour.
+- The test level only (3 sections, 5 species, told apart by colour), played
+  end to end on the phones. Placeholder art; the intended theme is close to
+  Cocoreccho!: black "stone" and black "plants" form the ground.
 - Slimes: the train, sleepers, calls, free slimes and their phases, hopping,
   fusion up to size 3, the split zone at the start of the loop, left alone and
   lost.
@@ -104,7 +105,8 @@ would add to P1.G1 and P1.G2) comes in a later version.
   recovery, screen pinning, and the time left shown to the parent behind the
   code. Parent-facing text in English and French.
 - Persistence: one save per level, autosave, deleting a level's save.
-- A test level (not shipped) plus a test mode for end-to-end tests.
+- The test level plus a test mode for end-to-end tests; the release build
+  leaves both out (whether it is published: O100).
 - Platform: Godot 4, Android; a Linux desktop build for development and tests.
   A paid app at about $3–5, with no purchases inside the app.
 
@@ -112,7 +114,10 @@ would add to P1.G1 and P1.G2) comes in a later version.
 
 | Item | Where it goes |
 |---|---|
-| Sound of any kind (effects, species voices, music) | v3 |
+| The real first level, and more levels | v2 |
+| Music | v2 |
+| The rest of sound (effects, species voices) | v3 for now (O102) |
+| Proper graphics | v3 |
 | Every other interactive object: bending pathways, other split zones, tilt objects, reveal zones, filters (forks sorting slimes by species or by size), switches and baskets outside the frontier set | v2 |
 | Large signposts that let the child choose which branch the camera follows | v2 |
 | Turning the parent code off | v4 |
@@ -673,9 +678,9 @@ Every level, the test level included, follows these rules.
   storage for that level's design requirements and the discussion about it.
 - **The test level** (`levels/test/`) is a compact level designed to exercise
   the v1 mechanics. It is the testing ground for implementation and the base
-  for end-to-end tests. It uses placeholder art and is not shipped.
-- **The real first level** (`levels/01/`) is designed later, once enough is
-  built and checked. v1 ships that level, not the test level.
+  for end-to-end tests. It uses placeholder art. It is v1's whole content;
+  the release build leaves it out.
+- **The real first level** (`levels/01/`) is v2 (chunk L01).
 
 ## 6. Architecture decisions and why
 
@@ -796,8 +801,8 @@ Starting values, to be tuned in prototypes and playtests.
 ## 9. Definition of done
 
 v1 is done when every criterion below holds on the release build, on the
-reference phone unless stated otherwise, and the real first level (designed
-later) passes the level-rules check.
+reference phone unless stated otherwise, and the test level passes the
+level-rules check. Which build now that the release build has no level: O101.
 
 **World and slimes**
 
@@ -934,9 +939,8 @@ tracked in the project's version plan.
 
 Still undecided.
 
-1. **The real first level's design:** its layout, pacing, section sizes,
-   return routes and theme details. It will be designed in its own session,
-   in `levels/01/`, once the test level has been built and checked.
+1. **The real first level's design** (v2, chunk L01): its layout, pacing,
+   section sizes, return routes and theme details, in `levels/01/`.
 2. **How each section's return route works** (a slide, wind, a conveyor…).
    Decided with the first level's design. The test level uses underground
    slides as placeholders. Whatever it is made of, it follows level rule
@@ -973,3 +977,7 @@ Still undecided.
    stuck slimes are. Whether 24 px of progress in 60 s is the right
    measure once the real level's return routes exist is to recheck with
    the first level's design.
+8. **Publishing and the release build** (D134). v1 is the test level only,
+   and the release build leaves the test level out. Whether a v1 release
+   build is ever published to a store is not settled (O100), nor which build
+   the Definition of done is checked on (O101).

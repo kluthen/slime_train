@@ -1995,3 +1995,30 @@ test table).
 - The exported test runner hard-codes the main scene's path.
 
 **4. The build order.** Chunk 21 is done. Next, chunk 22.
+
+## D134 — The version roadmap: v1 is the test level, v2 content and music, v3 graphics (2026-09-30)
+Resolves O99. Refines D50 and D54's version split. The user's decision,
+verbatim: "v1 currently means only the test level, v2 will help working on
+content generation, preparing reusable mechanics and ensure that level
+designer have it as easy as possible, but also adding music which is
+paramount for this kind of game. Proper gfx won't probably come before v3."
+
+- **v1 is the test level only**, played end to end on the phones, with the
+  platform, parent, save and performance work of the v1 build plan. So v1
+  plays what the test level has (3 sections, 5 species); the master spec's
+  "4 sections, 6 species" describe the real first level and move with it.
+  The children's playtest [DoD 32] runs on the test level.
+- **O99 is closed:** "the release build ships no level" is not a v1 gap.
+  **Chunk L01**, the first real level (`levels/01/`), moves to **v2**. The
+  release preset stays as built: test mode and `levels/test/` are left out.
+  Whether a v1 release build is ever published to a store is not settled
+  (O100); which build v1's Definition of done is checked on is O101.
+- **v2 themes:** content generation and its tooling; reusable mechanics
+  (interactive objects and components built for reuse across levels);
+  making the level designer's work as easy as possible; **music**, which the
+  user calls paramount for this kind of game; the first real level(s), L01.
+  Music moves from v3 (D50) to v2; whether the rest of sound comes with it
+  is O102.
+- **v3 theme:** proper graphics. Placeholder art until then.
+- Only themes: no v2 or v3 spec is written yet (`versions/v2/README.md`,
+  `versions/v3/README.md`).

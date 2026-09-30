@@ -30,7 +30,7 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
     see `docs/dev/README.md`).
   - **Still to test on real phones (O14):** the floor phone, the real game
     on both phones (chunk 22), tilt input, and Android audio latency
-    (only from v3, when sound arrives).
+    (only from v2, when music arrives, D134).
 
 ## Level authoring
 
@@ -265,7 +265,8 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
 
 ## Deferred
 
-- Sound in general comes around v3 (D50). v1 has no audio.
+- Music comes in v2; the rest of sound around v3 for now (D50, D134, O102).
+  v1 has no audio.
 - Music generator (D42, O12): it is currently a JS app, and porting it to
   Godot is a project of its own.
 - Paid levels (D31): Play Billing plus Play Asset Delivery, when the second
