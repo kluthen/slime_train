@@ -44,9 +44,11 @@ extends RefCounted
 ##            even as a wall (it is left out of the pair grid); Offscreen
 ##            moves it (translate) and un-parks it near the view. Nothing
 ##            but park / unpark changes it.
-## Low detail (zoomed out): set_low_detail() gives a slime's ring the
-## LOW_POINTS_BY_SIZE count, read off its current shape (see _resample); the
-## rest area follows the point count. Offscreen decides from the zoom.
+## Detail: each slime's ring has the point count of its detail level, 0
+## (full, POINTS_BY_SIZE) to MAX_DETAIL (POINTS_BY_DETAIL). set_detail()
+## gives a slime another level, read off its current shape (see _resample);
+## the rest area follows the point count. Offscreen decides the level from
+## the zoom and the crowd (set_active_detail, crowd_count).
 ##
 ## The interface (create, remove, tick, merge, split, hop, the accessors and
 ## dump) is kept small and plain so the tick can move to a GDExtension later
@@ -103,8 +105,17 @@ const RESTING := 1
 const PARKED := 2
 ## The calm names, as dump() writes them.
 const CALM_NAMES: PackedStringArray = ["active", "resting", "parked"]
-## Ring points per size when zoomed out (index 0 unused).
-const LOW_POINTS_BY_SIZE: Array[int] = [0, 8, 10, 12]
+## Ring points per detail level (0: full) and size (index 0 unused).
+# @spec-link [[req_offscreen_simulation]]
+const POINTS_BY_DETAIL: Array[Array] = [[0, 12, 15, 18], [0, 10, 12, 15], [0, 8, 10, 12], [0, 6, 8, 9]]
+const MAX_DETAIL := 3
+## The detail level of a zoomed-out ring.
+const LOW_DETAIL := 2
+## The highest detail level a pile slime (_can_rest: in a basket, asleep at
+## bedtime) takes from set_active_detail: a pile of 6-point rings creeps for
+## long before it rests (stress-still's 140: about 1300 ticks, against 410 at
+## this level), and a resting pile is what costs nothing.
+const PILE_MAX_DETAIL := LOW_DETAIL
 ## A supported slime is still when its centre stays within REST_DRIFT px of an
 ## anchor fixed where its count started, for REST_TICKS ticks in a row; a
 ## step beyond REST_DRIFT (or losing support) moves the anchor to the centre
@@ -202,8 +213,8 @@ var angle0 := PackedFloat32Array()
 var _drift := PackedVector2Array()
 ## Each slime's calm: ACTIVE, RESTING or PARKED (see the class doc).
 var calm := PackedByteArray()
-## 1 while the slime's ring has the low-detail point count.
-var low_detail := PackedByteArray()
+## Each slime's detail level, 0 (full) to MAX_DETAIL (see the class doc).
+var detail := PackedByteArray()
 ## Ticks in a row the slime has been supported and still (the rest count,
 ## capped at REST_TICKS).
 var still_ticks := PackedInt32Array()
@@ -272,9 +283,11 @@ static func rest_area_for(slime_size: int) -> float:
 	return _polygon_area(points_for(slime_size), ring_radius_for(slime_size))
 
 
-## The ring point count of a zoomed-out slime of `slime_size`.
-static func low_points_for(slime_size: int) -> int:
-	return LOW_POINTS_BY_SIZE[slime_size]
+## The ring point count of a slime of `slime_size` at detail `level`
+## (POINTS_BY_DETAIL; level 0 is points_for()).
+static func detail_points_for(slime_size: int, level: int) -> int:
+	assert(level >= 0 and level <= MAX_DETAIL, "SlimeBodies: invalid detail level %d" % level)
+	return POINTS_BY_DETAIL[level][slime_size]
 
 
 ## The area of a regular polygon of `n` points on a circle of radius `r`.
@@ -333,7 +346,7 @@ func create(slime_species: int, slime_size: int, at: Vector2, slime_state := STA
 	angle0.append(0.0)
 	_drift.append(Vector2.ZERO)
 	calm.append(ACTIVE)
-	low_detail.append(0)
+	detail.append(0)
 	still_ticks.append(0)
 	rest_anchor.append(at)
 	pile.append(0)
@@ -647,12 +660,12 @@ func body_of(slime_id: int) -> Dictionary:
 			"hop_timer": hop_timer[s], "heading": heading[s], "held": held[s] != 0,
 			"supported": supported[s] != 0, "rng_state": _streams[s].state,
 			"calm": calm[s], "still": still_ticks[s], "anchor": rest_anchor[s], "pile": pile[s],
-			"low": low_detail[s] != 0}
+			"detail": detail[s]}
 
 
 ## Puts back a body from body_of(). False (and nothing changes) when the
 ## slime is missing or the point counts don't match its size (at the body's
-## detail, "low", full when absent). The body's "calm" and "still" are put
+## detail level, "detail", 0 when absent). The body's "calm" and "still" are put
 ## back too; a body without them leaves the slime ACTIVE. A body that moves
 ## the slime by more than a pixel wakes the resting slimes around where it
 ## was (a slime taken out from under a pile).
@@ -663,12 +676,15 @@ func set_body(slime_id: int, body: Dictionary) -> bool:
 		return false
 	var points: PackedVector2Array = body["points"]
 	var previous: PackedVector2Array = body["previous"]
-	var is_low: bool = body.get("low", false)
-	var n := low_points_for(size[s]) if is_low else points_for(size[s])
+	var level: int = body.get("detail", 0)
+	if level < 0 or level > MAX_DETAIL:
+		push_error("SlimeBodies: invalid detail level %d" % level)
+		return false
+	var n := detail_points_for(size[s], level)
 	if points.size() != n or previous.size() != n:
 		return false
-	if (low_detail[s] != 0) != is_low:
-		low_detail[s] = 1 if is_low else 0
+	if detail[s] != level:
+		detail[s] = level
 		_resample(s, n)
 	var was: Vector2 = centre[s]
 	var f := first[s]
@@ -707,10 +723,21 @@ func is_parked(slime_id: int) -> bool:
 	return s >= 0 and calm[s] == PARKED
 
 
-## Whether the slime's ring has the zoomed-out point count.
-func is_low_detail(slime_id: int) -> bool:
+## The slime's detail level (0: full), -1 for a missing slime.
+func detail_of(slime_id: int) -> int:
 	var s := index_of(slime_id)
-	return s >= 0 and low_detail[s] != 0
+	return detail[s] if s >= 0 else -1
+
+
+## How many slimes cost physics on a tick: calm ACTIVE and not sleepers
+## (resting and parked slimes, and sleepers, are never integrated).
+# @spec-link [[req_offscreen_simulation]]
+func crowd_count() -> int:
+	var count := 0
+	for s in slime_count:
+		if calm[s] == ACTIVE and state[s] != STATE_SLEEPER:
+			count += 1
+	return count
 
 
 ## Parks the slime (off screen): from now on it is neither simulated nor
@@ -771,31 +798,39 @@ func wake_around(point: Vector2, radius: float) -> int:
 	return _wake_around(point, radius, -1)
 
 
-## Gives the slime's ring the zoomed-out point count (on) or the full one
-## (off), read off its current shape (_resample). False when nothing changed.
+## Gives the slime's ring the point count of detail `level` (0 to
+## MAX_DETAIL), read off its current shape (_resample), whatever its calm.
+## False when nothing changed.
 # @spec-link [[req_offscreen_simulation]]
-func set_low_detail(slime_id: int, on: bool) -> bool:
+func set_detail(slime_id: int, level: int) -> bool:
+	assert(level >= 0 and level <= MAX_DETAIL, "SlimeBodies: invalid detail level %d" % level)
 	var s := index_of(slime_id)
-	if s < 0 or (low_detail[s] != 0) == on:
+	if s < 0 or detail[s] == level:
 		return false
-	low_detail[s] = 1 if on else 0
+	detail[s] = level
 	_resample(s, _detail_points(s, size[s]))
 	return true
 
 
-## set_low_detail(`on`) on every slime, by index: ascending, like ids(), so
-## the same state as one call per id (Offscreen's zoom, every tick). Returns
-## how many rings changed.
+## set_detail(`level`) on every calm ACTIVE slime, by index: ascending, like
+## ids(), so the same state as one call per id (Offscreen, every tick); a
+## pile slime takes PILE_MAX_DETAIL at most. Resting and parked slimes keep
+## their rings (a reshape would wake a resting pile); they take the level
+## once ACTIVE again, on the next call. Returns how many rings changed.
 # @spec-link [[req_offscreen_simulation]]
-func set_all_low_detail(on: bool) -> int:
-	var flag := 1 if on else 0
-	# Most ticks every ring already has it: one native count, no loop.
-	if low_detail.count(flag) == slime_count:
+func set_active_detail(level: int) -> int:
+	assert(level >= 0 and level <= MAX_DETAIL, "SlimeBodies: invalid detail level %d" % level)
+	# Often every ring already has it: one native count, no loop.
+	if level <= PILE_MAX_DETAIL and detail.count(level) == slime_count:
 		return 0
+	var pile_level := mini(level, PILE_MAX_DETAIL)
 	var changed := 0
 	for s in slime_count:
-		if low_detail[s] != flag:
-			low_detail[s] = flag
+		if calm[s] != ACTIVE:
+			continue
+		var wanted := pile_level if _can_rest(s) else level
+		if detail[s] != wanted:
+			detail[s] = wanted
 			_resample(s, _detail_points(s, size[s]))
 			changed += 1
 	return changed
@@ -933,7 +968,7 @@ func dump() -> Array:
 			"calm": CALM_NAMES[calm[s]],
 			"still": still_ticks[s],
 			"pile": pile[s],
-			"low": low_detail[s] != 0,
+			"detail": detail[s],
 		})
 	return out
 
@@ -989,7 +1024,7 @@ func _wake_around(point: Vector2, radius: float, except: int) -> int:
 
 ## The ring point count of slime index `s` at `slime_size`, at its detail.
 func _detail_points(s: int, slime_size: int) -> int:
-	return low_points_for(slime_size) if low_detail[s] != 0 else points_for(slime_size)
+	return POINTS_BY_DETAIL[detail[s]][slime_size]
 
 
 ## Gives slime index `s` a ring of `n` points read off its current shape: the
@@ -1003,7 +1038,9 @@ func _resample(s: int, n: int) -> void:
 	var c := _centre_at(s)
 	var velocity := _velocity_at(s)
 	var a0 := (pos[f] - c).angle()
-	var r := ring_radius[s]
+	# Not ring_radius[s] (32-bit): the radius _reshape uses, so the rest ring
+	# and area are bit for bit a fresh ring's (a reloaded save resamples).
+	var r := ring_radius_for(size[s])
 	var ring := PackedVector2Array()
 	var back := PackedVector2Array()
 	var offs := PackedVector2Array()
@@ -1020,7 +1057,7 @@ func _resample(s: int, n: int) -> void:
 		var a := a0 + TAU * k / n
 		ring[k] = c + Vector2.from_angle(a) * (r0 + (r1 - r0) * fr)
 		back[k] = ring[k] - step
-		offs[k] = Vector2.from_angle(TAU * k / n + PI * 0.5) * r
+		offs[k] = _rest_offset(k, n, r)
 	pos = pos.slice(0, f) + ring + pos.slice(f + old)
 	prev = prev.slice(0, f) + back + prev.slice(f + old)
 	rest_off = rest_off.slice(0, f) + offs + rest_off.slice(f + old)
@@ -1105,6 +1142,14 @@ func _auto_hops(dt: float) -> void:
 	hop_aim.fill(Vector2.ZERO)
 
 
+## Point `k`'s offset on a rest ring of `n` points and radius `r`: point 0
+## at the bottom. _reshape and _resample share it, so a ring resampled on
+## loading a save (SlimeBodies.set_body) is bit for bit the one made fresh.
+static func _rest_offset(k: int, n: int, r: float) -> Vector2:
+	var a := TAU * k / n + PI * 0.5
+	return Vector2(cos(a), sin(a)) * r
+
+
 ## Gives slime index `s` a fresh rest ring of `slime_size` centred at `at`,
 ## moving at `velocity`, replacing its point slice (the later slimes' slices
 ## move to stay back to back).
@@ -1120,8 +1165,7 @@ func _reshape(s: int, slime_size: int, at: Vector2, velocity: Vector2) -> void:
 		# Point 0 at the bottom: the ring is mirror-symmetric about the
 		# vertical and stands on a point (its stable resting pose), whatever
 		# the point count, so a resting slime doesn't roll.
-		var a := TAU * k / n + PI * 0.5
-		var off := Vector2(cos(a), sin(a)) * r
+		var off := _rest_offset(k, n, r)
 		offs[k] = off
 		ring[k] = at + off
 	var step := velocity * _h
@@ -1177,7 +1221,7 @@ func _remove_at(s: int) -> void:
 	angle0.remove_at(s)
 	_drift.remove_at(s)
 	calm.remove_at(s)
-	low_detail.remove_at(s)
+	detail.remove_at(s)
 	still_ticks.remove_at(s)
 	rest_anchor.remove_at(s)
 	pile.remove_at(s)

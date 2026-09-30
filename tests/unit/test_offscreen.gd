@@ -372,20 +372,20 @@ func test_zoomed_out_rings_use_fewer_points() -> void:
 	var sim := _sim()
 	var slimes := [sim.spawn_train_slime(0, 1, _distance_at(0)), sim.spawn_train_slime(0, 3, _distance_at(200))]
 	sim.run(1)
-	assert_false(sim.slimes.is_low_detail(slimes[0]))
+	assert_eq(sim.slimes.detail_of(slimes[0]), 0)
 	_look(sim, Vector2(0, -200), 0.7)
 	sim.run(1)
 	assert_true(sim.offscreen.zoomed_out)
-	assert_eq(sim.slimes.points_of(slimes[0]).size(), SlimeBodies.low_points_for(1))
-	assert_eq(sim.slimes.points_of(slimes[1]).size(), SlimeBodies.low_points_for(3))
+	assert_eq(sim.slimes.points_of(slimes[0]).size(), SlimeBodies.detail_points_for(1, SlimeBodies.LOW_DETAIL))
+	assert_eq(sim.slimes.points_of(slimes[1]).size(), SlimeBodies.detail_points_for(3, SlimeBodies.LOW_DETAIL))
 	var late := sim.spawn_train_slime(0, 2, _distance_at(-200))
 	_look(sim, Vector2(0, -200), 0.82)
 	sim.run(1)
-	assert_true(sim.slimes.is_low_detail(late), "between the thresholds the detail stays, new slimes too")
+	assert_eq(sim.slimes.detail_of(late), SlimeBodies.LOW_DETAIL, "between the thresholds the detail stays, new slimes too")
 	_look(sim, Vector2(0, -200), 0.9)
 	sim.run(1)
 	for slime_id in sim.slimes.ids():
-		assert_false(sim.slimes.is_low_detail(slime_id))
+		assert_eq(sim.slimes.detail_of(slime_id), 0)
 		assert_eq(sim.slimes.points_of(slime_id).size(), SlimeBodies.points_for(sim.slimes.size_of(slime_id)))
 
 

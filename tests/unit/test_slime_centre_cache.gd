@@ -67,18 +67,32 @@ func test_set_body_refreshes_the_slime() -> void:
 	_assert_fresh(bodies, "set_body")
 
 
+## A body at another detail level: set_body resamples the ring, then writes it.
+func test_set_body_at_another_detail_refreshes_the_slime() -> void:
+	var bodies := _bodies()
+	bodies.tick(DT)
+	var slime_id := bodies.ids()[0]
+	var body := bodies.body_of(slime_id)
+	assert_true(bodies.set_detail(slime_id, SlimeBodies.MAX_DETAIL))
+	bodies.translate(slime_id, Vector2(40, 0))
+	_warm(bodies)
+	assert_true(bodies.set_body(slime_id, body))
+	assert_eq(bodies.detail_of(slime_id), 0)
+	_assert_fresh(bodies, "set_body at another detail")
+
+
 func test_a_change_of_detail_refreshes_the_slime() -> void:
 	var bodies := _bodies()
 	bodies.tick(DT)
 	_warm(bodies)
-	assert_true(bodies.set_low_detail(bodies.ids()[0], true))
-	_assert_fresh(bodies, "set_low_detail")
+	assert_true(bodies.set_detail(bodies.ids()[0], SlimeBodies.LOW_DETAIL))
+	_assert_fresh(bodies, "set_detail")
 	_warm(bodies)
-	assert_gt(bodies.set_all_low_detail(true), 0)
-	_assert_fresh(bodies, "set_all_low_detail on")
+	assert_gt(bodies.set_active_detail(SlimeBodies.MAX_DETAIL), 0)
+	_assert_fresh(bodies, "set_active_detail up")
 	_warm(bodies)
-	assert_gt(bodies.set_all_low_detail(false), 0)
-	_assert_fresh(bodies, "set_all_low_detail off")
+	assert_gt(bodies.set_active_detail(0), 0)
+	_assert_fresh(bodies, "set_active_detail back")
 
 
 func test_merge_and_split_refresh_the_slimes() -> void:

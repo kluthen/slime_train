@@ -79,7 +79,7 @@ func _pile(rest: bool, low: bool) -> void:
 		bodies.set_heading(slime, side)
 	if low:
 		for slime_id in bodies.ids():
-			bodies.call("set_low_detail", slime_id, true)
+			bodies.call("set_detail", slime_id, SlimeBodies.LOW_DETAIL)
 	for t in SETTLE_TICKS:
 		bodies.tick(TICK)
 	var start := Time.get_ticks_usec()

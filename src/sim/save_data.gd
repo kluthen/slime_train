@@ -24,7 +24,7 @@ extends RefCounted
 ##       "body": {"points", "previous", "centre", "hop_timer", "heading", "held",
 ##                "supported", "rng_state",                                    # optional
 ##                "rest": {"calm", "still", "anchor", "pile"},                  # optional (chunk 15)
-##                "low": true},                                                 # optional (chunk 15)
+##                "detail": 1 | 2 | 3},                                         # optional (crowd detail)
 ##     } ],
 ##     "train": {"open_gates": [...], "stalled": [{"id", "tick", "reason"}]},
 ##     "call": null or {"point", "tick"},
@@ -32,7 +32,7 @@ extends RefCounted
 ##     "hint_done": true,                   # optional: the first call happened
 ##     "celebration_done": true,            # optional: the celebration played (chunk 14)
 ##     "session": {"phase", "elapsed_ms", "anchor", "clock", "sunrise_tick"},  # optional (Session)
-##     "offscreen": {"zoomed_out", "away", "proxies", "lost"},              # optional (chunk 15)
+##     "offscreen": {"zoomed_out", "crowd_level", "away", "proxies", "lost"},  # optional (chunk 15)
 ##     "stuck_slimes": {"counts": [[a, b, n]], "stuck": [{"id", "other", "tick", "reason", "moved"}]},
 ##                                                                          # optional (chunk 23A)
 ##     "transient": {"view", "camera", "ripples", "taps", "facing", "input_log",
@@ -56,9 +56,12 @@ extends RefCounted
 ## ("active", "resting", "parked": SlimeBodies.CALM_NAMES), its rest count,
 ## the centre that count started from and its pile; it is written for a slime
 ## resting, parked, or in a pile state (in a basket, asleep at bedtime), and
-## absent means active with no count. "low": true marks a zoomed-out ring
-## (SlimeBodies.LOW_POINTS_BY_SIZE points). "offscreen" keeps the Offscreen
-## state (the off-screen proxies and the left-alone timers, Offscreen.dump).
+## absent means active with no count. "detail" is the ring's detail level
+## (SlimeBodies.POINTS_BY_DETAIL points), absent for 0 (full); a save from
+## before crowd detail may instead have "low": true, read as level 2
+## (SlimeBodies.LOW_DETAIL, the zoomed-out ring). "offscreen" keeps the
+## Offscreen state (the off-screen proxies and the left-alone timers, the
+## crowd's detail level, Offscreen.dump; "crowd_level" absent: 0).
 ##
 ## The safety nets (chunk 23A): "train.stalled" is the Train's log of the
 ## stalled train slimes it moved (D121; before chunk 23A the key was "lost",
@@ -150,7 +153,8 @@ static func _offscreen(sim: Simulation) -> Dictionary:
 		var way: Dictionary = state.proxies[slime_id]
 		proxies.append({"id": slime_id, "route": way["route"], "along": exact(way["along"]),
 				"from": vector(way["from"]), "to": vector(way["to"])})
-	return {"zoomed_out": state.zoomed_out, "away": away, "proxies": proxies, "lost": state.lost.duplicate(true)}
+	return {"zoomed_out": state.zoomed_out, "crowd_level": state.crowd_level, "away": away, "proxies": proxies,
+			"lost": state.lost.duplicate(true)}
 
 
 static func _slime(sim: Simulation, slime_id: int) -> Dictionary:
@@ -176,8 +180,8 @@ static func _slime(sim: Simulation, slime_id: int) -> Dictionary:
 			or state == SlimeBodies.BEDTIME_ASLEEP):
 		out["body"]["rest"] = {"calm": SlimeBodies.CALM_NAMES[body["calm"]], "still": body["still"],
 				"anchor": vector(body["anchor"]), "pile": body["pile"]}
-	if body["low"]:
-		out["body"]["low"] = true
+	if body["detail"] != 0:
+		out["body"]["detail"] = body["detail"]
 	if sim.train != null and sim.train.tracks(slime_id):
 		var record := sim.train.record_of(slime_id)
 		out["train"] = {"distance": exact(record["distance"]), "laps": record["laps"],
@@ -310,6 +314,11 @@ static func problems(save: Variant, level_data: LevelData) -> PackedStringArray:
 		var part: Variant = save.get(key)
 		if part != null and typeof(part) != TYPE_DICTIONARY:
 			out.append("'%s' must be a dictionary or null" % key)
+	var offscreen: Variant = save.get("offscreen")
+	if offscreen is Dictionary and offscreen.has("crowd_level"):
+		var crowd: Variant = _whole(offscreen["crowd_level"])
+		if crowd == null or crowd < 0 or crowd > Offscreen.CROWD_STEPS.size():
+			out.append("'offscreen.crowd_level' must be a whole number from 0 to %d" % Offscreen.CROWD_STEPS.size())
 	if save.has("hint_done") and typeof(save["hint_done"]) != TYPE_BOOL:
 		out.append("'hint_done' must be true or false")
 	if save.has("celebration_done") and typeof(save["celebration_done"]) != TYPE_BOOL:
@@ -390,8 +399,11 @@ static func _slime_problems(slimes: Array) -> PackedStringArray:
 			out.append(at + "'train' must be a dictionary")
 		var body: Variant = slime.get("body")
 		if body != null and size != null and size >= 1 and size <= SlimeBodies.MAX_SIZE:
-			var is_low: bool = typeof(body) == TYPE_DICTIONARY and body.get("low", false) == true
-			var n := SlimeBodies.low_points_for(size) if is_low else SlimeBodies.points_for(size)
+			var level: Variant = _detail_level(body) if typeof(body) == TYPE_DICTIONARY else 0
+			if level == null:
+				out.append(at + "'body.detail' must be a whole number from 0 to %d" % SlimeBodies.MAX_DETAIL)
+				continue
+			var n := SlimeBodies.detail_points_for(size, level)
 			if (typeof(body) != TYPE_DICTIONARY or unpack_vectors(str(body.get("points", ""))).size() != n
 					or unpack_vectors(str(body.get("previous", ""))).size() != n):
 				out.append(at + "'body' must hold %d points and previous points" % n)
@@ -449,7 +461,7 @@ static func restore(save: Dictionary, level_data: LevelData, terrain: TerrainSeg
 					"previous": unpack_vectors(body["previous"]), "centre": vector_from(body["centre"]),
 					"hop_timer": real(body["hop_timer"]), "heading": real(body["heading"]),
 					"held": bool(body["held"]), "supported": bool(body["supported"]),
-					"rng_state": str(body["rng_state"]).to_int(), "low": body.get("low", false) == true}
+					"rng_state": str(body["rng_state"]).to_int(), "detail": _detail_level(body)}
 			if body.has("rest"):
 				var rest: Dictionary = body["rest"]
 				restored["calm"] = SlimeBodies.CALM_NAMES.find(str(rest["calm"]))
@@ -521,7 +533,8 @@ static func _restore_session(sim: Simulation, session: Dictionary) -> void:
 ## The Offscreen state, its reals and vectors back (Offscreen.restore).
 # @spec-link [[req_offscreen_simulation]]
 static func _restore_offscreen(sim: Simulation, saved: Dictionary) -> void:
-	var data := {"zoomed_out": saved.get("zoomed_out", false) == true, "away": [], "proxies": [], "lost": []}
+	var data := {"zoomed_out": saved.get("zoomed_out", false) == true,
+			"crowd_level": _whole(saved.get("crowd_level", 0)), "away": [], "proxies": [], "lost": []}
 	for entry in saved.get("away", []):
 		data["away"].append({"id": _whole(entry["id"]), "since": _whole(entry["since"])})
 	for entry in saved.get("proxies", []):
@@ -699,6 +712,18 @@ static func readable(save: Dictionary) -> Dictionary:
 
 static func _rounded(v: Vector2) -> Array:
 	return [snappedf(v.x, 0.01), snappedf(v.y, 0.01)]
+
+
+## A saved body's ring detail level (see the file doc): its "detail", else
+## LOW_DETAIL for an older save's "low": true, else 0; null when "detail" is
+## not a whole number from 0 to SlimeBodies.MAX_DETAIL.
+# @spec-link [[req_offscreen_simulation]]
+# @spec-link [[req_persistence_and_saves]]
+static func _detail_level(body: Dictionary) -> Variant:
+	if body.has("detail"):
+		var level: Variant = _whole(body["detail"])
+		return level if level != null and level >= 0 and level <= SlimeBodies.MAX_DETAIL else null
+	return SlimeBodies.LOW_DETAIL if body.get("low", false) == true else 0
 
 
 ## An int from an int or a whole float (JSON numbers are floats), else null.

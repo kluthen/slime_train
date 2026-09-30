@@ -716,7 +716,7 @@ func _basket_3_59of60() -> Simulation:
 ## settles here as it will in the game.
 func _settle(sim: Simulation) -> int:
 	for slime_id in sim.slimes.ids():
-		sim.slimes.set_low_detail(slime_id, true)
+		sim.slimes.set_detail(slime_id, SlimeBodies.LOW_DETAIL)
 	for tick in SETTLE_MAX_TICKS:
 		sim.step()
 		var all_rest := true

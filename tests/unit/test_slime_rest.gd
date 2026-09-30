@@ -188,7 +188,7 @@ func test_parked_slimes_are_left_out_of_the_pairs() -> void:
 			assert_eq(bodies._slime_cell[s], -1)
 
 
-func test_low_detail_resamples_the_ring_and_back() -> void:
+func test_a_detail_level_resamples_the_ring_and_back() -> void:
 	for size in [1, 2, 3]:
 		var bodies := Support.bodies_on_floor()
 		bodies.auto_hops = false
@@ -197,10 +197,10 @@ func test_low_detail_resamples_the_ring_and_back() -> void:
 		var centre := bodies.centre_of(slime)
 		var velocity := bodies.velocity_of(slime)
 		var version := bodies.topology_version
-		assert_true(bodies.set_low_detail(slime, true))
-		assert_false(bodies.set_low_detail(slime, true), "no change")
-		assert_true(bodies.is_low_detail(slime))
-		assert_eq(bodies.points_of(slime).size(), SlimeBodies.low_points_for(size))
+		assert_true(bodies.set_detail(slime, SlimeBodies.MAX_DETAIL))
+		assert_false(bodies.set_detail(slime, SlimeBodies.MAX_DETAIL), "no change")
+		assert_eq(bodies.detail_of(slime), SlimeBodies.MAX_DETAIL)
+		assert_eq(bodies.points_of(slime).size(), SlimeBodies.detail_points_for(size, SlimeBodies.MAX_DETAIL))
 		assert_gt(bodies.topology_version, version, "the renderer rebuilds")
 		assert_almost_eq(bodies.centre_of(slime), centre, Vector2(1.0, 1.0), "size %d: in place" % size)
 		assert_almost_eq(bodies.velocity_of(slime), velocity, Vector2(0.01, 0.01), "size %d: moving on" % size)
@@ -210,32 +210,38 @@ func test_low_detail_resamples_the_ring_and_back() -> void:
 		assert_between(area, 0.85, 1.1, "size %d: a low-detail slime keeps its area" % size)
 		assert_between(bodies.centre_of(slime).y, -bodies.radius_of(slime) * 1.2 - 3.0, 0.0,
 				"size %d: it rests on the floor" % size)
-		assert_true(bodies.set_low_detail(slime, false))
+		assert_true(bodies.set_detail(slime, 0))
 		assert_eq(bodies.points_of(slime).size(), SlimeBodies.points_for(size))
 		assert_eq(Support.layout_problems(bodies), PackedStringArray())
 
 
-## Every ring at once (set_all_low_detail, what Offscreen does each tick)
-## leaves exactly the state one set_low_detail per id, ascending, leaves:
-## same points, same calm (a resampled resting slime wakes its pile), same
-## hash, the rings already at that detail untouched.
-func test_setting_every_rings_detail_matches_setting_each_by_id() -> void:
+## Every active ring at once (set_active_detail, what Offscreen does each
+## tick) leaves resting rings as they are, pile still resting, and leaves
+## exactly the state one set_detail per active id, ascending, leaves (at
+## PILE_MAX_DETAIL at most: these are pile slimes, in a basket): same
+## points, same calm, same hash, the rings already at that level untouched.
+func test_setting_every_active_rings_detail_matches_setting_each_by_id() -> void:
 	var by_id := _pile(12)
 	var at_once := _pile(12)
 	assert_gt(_ticks_to_rest(by_id, 900), 0)
 	assert_gt(_ticks_to_rest(at_once, 900), 0)
+	var resting := at_once.pos
+	assert_eq(at_once.set_active_detail(SlimeBodies.MAX_DETAIL), 0, "a resting pile keeps its rings")
+	assert_eq(at_once.pos, resting)
+	assert_eq(_count(at_once, SlimeBodies.RESTING), at_once.slime_count, "and rests")
 	for bodies in [by_id, at_once]:
-		bodies.set_low_detail(bodies.id[3], true)
-	for on in [true, false]:
+		bodies.set_detail(bodies.id[3], SlimeBodies.LOW_DETAIL)
+		assert_eq(_count(bodies, SlimeBodies.ACTIVE), bodies.slime_count, "a reshape by id wakes the pile")
+	for level in [SlimeBodies.MAX_DETAIL, 1, 0]:
 		var changed := 0
 		for slime_id in by_id.ids():
-			changed += 1 if by_id.set_low_detail(slime_id, on) else 0
-		assert_eq(at_once.set_all_low_detail(on), changed, "as many rings changed")
+			changed += 1 if by_id.set_detail(slime_id, mini(level, SlimeBodies.PILE_MAX_DETAIL)) else 0
+		assert_eq(at_once.set_active_detail(level), changed, "as many rings changed")
 		assert_eq(at_once.pos, by_id.pos)
 		assert_eq(at_once.prev, by_id.prev)
 		assert_eq(at_once.calm, by_id.calm)
 		assert_eq(StateHash.of(at_once.dump()), StateHash.of(by_id.dump()))
-		assert_eq(at_once.set_all_low_detail(on), 0, "nothing left to change")
+		assert_eq(at_once.set_active_detail(level), 0, "nothing left to change")
 		_run(by_id, 30)
 		_run(at_once, 30)
 		assert_eq(at_once.pos, by_id.pos, "and they move on alike")
@@ -246,11 +252,11 @@ func test_a_low_detail_slime_merges_and_splits_at_low_detail() -> void:
 	var bodies := Support.bodies_on_floor()
 	var a := bodies.create(0, 1, Vector2(0, -30))
 	var b := bodies.create(0, 2, Vector2(60, -30))
-	bodies.set_low_detail(a, true)
+	bodies.set_detail(a, SlimeBodies.LOW_DETAIL)
 	var merged := bodies.merge(a, b)
-	assert_eq(bodies.points_of(merged).size(), SlimeBodies.low_points_for(3))
+	assert_eq(bodies.points_of(merged).size(), SlimeBodies.detail_points_for(3, SlimeBodies.LOW_DETAIL))
 	var parts := bodies.split(merged)
-	assert_eq(bodies.points_of(parts[0]).size(), SlimeBodies.low_points_for(1))
+	assert_eq(bodies.points_of(parts[0]).size(), SlimeBodies.detail_points_for(1, SlimeBodies.LOW_DETAIL))
 	assert_eq(Support.layout_problems(bodies), PackedStringArray())
 
 
@@ -258,7 +264,7 @@ func test_a_body_round_trip_keeps_the_calm_and_the_detail() -> void:
 	var bodies := _pile(12)
 	assert_gt(_ticks_to_rest(bodies, 900), 0)
 	var slime := bodies.id[3]
-	bodies.set_low_detail(bodies.id[5], true)
+	bodies.set_detail(bodies.id[5], SlimeBodies.MAX_DETAIL)
 	var copy := _pile(12)
 	for s in bodies.slime_count:
 		var body := bodies.body_of(bodies.id[s])
@@ -274,9 +280,9 @@ func test_set_body_refuses_the_wrong_point_count() -> void:
 	var bodies := Support.bodies_on_floor()
 	var slime := bodies.create(0, 1, Vector2(0, -30))
 	var body := bodies.body_of(slime)
-	body["low"] = true
-	assert_false(bodies.set_body(slime, body), "12 points for a low-detail ring of 8")
-	assert_false(bodies.is_low_detail(slime), "nothing changed")
+	body["detail"] = SlimeBodies.LOW_DETAIL
+	assert_false(bodies.set_body(slime, body), "12 points for a level-2 ring of 8")
+	assert_eq(bodies.detail_of(slime), 0, "nothing changed")
 
 
 func test_the_same_seed_rests_the_same() -> void:

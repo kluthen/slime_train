@@ -63,9 +63,25 @@ extends RefCounted
 ## with the stuck and stalled safety nets), and logged in `lost`. A free
 ## slime that stays on screen is never lost.
 ##
-## Zoomed out (D96). Below LOW_ZOOM every slime's ring uses the zoomed-out
-## point counts (SlimeBodies.set_low_detail); from FULL_ZOOM up the full
-## ones. In between the detail stays what it was.
+## Detail (D96; crowd detail). Each tick, once the slimes near the view are
+## simulated and the far ones parked, every calm ACTIVE ring takes the
+## detail level detail_level() (SlimeBodies.set_active_detail): the higher
+## of the zoom's and the crowd's.
+##   zoom       below LOW_ZOOM zoomed out: at least SlimeBodies.LOW_DETAIL;
+##              from FULL_ZOOM up not; in between it stays what it was.
+##   crowd      the slimes that cost physics this tick (calm ACTIVE, not
+##              sleepers: SlimeBodies.crowd_count): level 1 from
+##              CROWD_STEPS[0] (20), 2 from [1] (30), 3 from [2] (40); a
+##              level goes down only once the count is CROWD_EASE (5) below
+##              its step (15, 25, 35), so rings never reshape back and forth
+##              (crowd_level_for). On a screen full of slimes the chaos
+##              hides the rounder shapes, and the physics costs less.
+## A pile slime (in a basket, asleep at bedtime) stops at
+## SlimeBodies.PILE_MAX_DETAIL (level 2: at 6 points a pile creeps for long
+## before it rests). A resting or parked ring keeps its points (a reshape
+## would wake a resting pile); it takes the level on the tick it is ACTIVE
+## again. From the slimes' states only, never from a measured time: same
+## seed, same hash.
 ##
 ## Resting piles (SlimeBodies' resting-pile rule) are also woken here by the
 ## two disturbances the bodies can't see: a call (every resting slime within
@@ -102,6 +118,10 @@ const SLOT_GAP := 4.0
 ## Below this zoom rings use fewer points; from FULL_ZOOM up the full count.
 const LOW_ZOOM := 0.8
 const FULL_ZOOM := 0.85
+## The crowd (active slimes) from which the rings take detail level 1, 2, 3.
+const CROWD_STEPS: Array[int] = [20, 30, 40]
+## A crowd level goes down once the count is this far below its step.
+const CROWD_EASE := 5
 ## Single file (_train_room()): train slimes are ordered along the loop by
 ## their distance in 1/ORDER_SCALE px, then by id (the low 32 bits).
 const ORDER_SCALE := 64.0
@@ -117,6 +137,8 @@ const LOST := "lost"
 var enabled := false
 ## Whether the rings use the zoomed-out point counts.
 var zoomed_out := false
+## The crowd's detail level, 0 to SlimeBodies.MAX_DETAIL (crowd_level_for).
+var crowd_level := 0
 ## Free slime id -> the tick its off-screen count starts from.
 var away := {}
 ## Parked free slime id -> the way it follows: {"route": the route back's
@@ -158,6 +180,25 @@ static func up_normal(direction: Vector2) -> Vector2:
 	return -normal if normal.y > 0.0 else normal
 
 
+## The crowd's detail level for `count` active slimes, from `level` (the
+## last tick's): up at each of CROWD_STEPS, down only CROWD_EASE below it.
+# @spec-link [[req_offscreen_simulation]]
+static func crowd_level_for(count: int, level: int) -> int:
+	assert(count >= 0 and level >= 0 and level <= CROWD_STEPS.size(),
+			"Offscreen.crowd_level_for: count %d, level %d" % [count, level])
+	while level < CROWD_STEPS.size() and count >= CROWD_STEPS[level]:
+		level += 1
+	while level > 0 and count <= CROWD_STEPS[level - 1] - CROWD_EASE:
+		level -= 1
+	return level
+
+
+## The detail level the active rings take (see the class doc): the higher of
+## the zoom's and the crowd's.
+func detail_level() -> int:
+	return maxi(crowd_level, SlimeBodies.LOW_DETAIL if zoomed_out else 0)
+
+
 ## Whether free slime `slime_id` is left alone at `tick`.
 func is_left_alone(slime_id: int, tick: int) -> bool:
 	return away.has(slime_id) and tick - int(away[slime_id]) >= LEFT_ALONE_TICKS
@@ -173,7 +214,6 @@ func step(sim: Simulation) -> void:
 		away.clear()
 		proxies.clear()
 		return
-	_detail(sim)
 	var shown := Fusion.view_rect(sim.view)
 	var near := shown.grow(NEAR_MARGIN)
 	var far := shown.grow(PARK_MARGIN)
@@ -191,6 +231,10 @@ func step(sim: Simulation) -> void:
 			bodies.unpark(slime_id)
 		elif not far.has_point(centre):
 			bodies.park(slime_id)
+	# After the parking: the crowd is who is simulated this tick, and a slime
+	# just back takes the level before it ticks. Nothing below reads the
+	# active slimes' centres (the proxies move parked ones only).
+	_detail(sim)
 	for slime_id in proxies.keys():
 		if not bodies.is_parked(slime_id) or bodies.state_of(slime_id) != SlimeBodies.FREE:
 			proxies.erase(slime_id)
@@ -218,12 +262,16 @@ func dump() -> Dictionary:
 		ways.append({"id": slime_id, "route": way["route"], "along": snappedf(way["along"], 0.001),
 				"from": (way["from"] as Vector2).snapped(Vector2(0.01, 0.01)),
 				"to": (way["to"] as Vector2).snapped(Vector2(0.01, 0.01))})
-	return {"zoomed_out": zoomed_out, "away": counts, "proxies": ways, "lost": lost.duplicate(true)}
+	return {"zoomed_out": zoomed_out, "crowd_level": crowd_level, "away": counts, "proxies": ways,
+			"lost": lost.duplicate(true)}
 
 
 ## Puts back the state saved from dump()'s plain data (with exact values).
 func restore(data: Dictionary) -> void:
 	zoomed_out = bool(data.get("zoomed_out", false))
+	crowd_level = int(data.get("crowd_level", 0))
+	assert(crowd_level >= 0 and crowd_level <= CROWD_STEPS.size(),
+			"Offscreen.restore: invalid crowd level %d" % crowd_level)
 	away = {}
 	for entry in data.get("away", []):
 		away[int(entry["id"])] = int(entry["since"])
@@ -249,13 +297,16 @@ func _disturb(sim: Simulation) -> void:
 				bodies.wake(slime_id)
 
 
-## Low detail below LOW_ZOOM, full from FULL_ZOOM up.
+## The zoom's and the crowd's detail (see the class doc), given to every
+## active ring.
+# @spec-link [[req_offscreen_simulation]]
 func _detail(sim: Simulation) -> void:
 	if sim.view.zoom < LOW_ZOOM:
 		zoomed_out = true
 	elif sim.view.zoom >= FULL_ZOOM:
 		zoomed_out = false
-	sim.slimes.set_all_low_detail(zoomed_out)
+	crowd_level = crowd_level_for(sim.slimes.crowd_count(), crowd_level)
+	sim.slimes.set_active_detail(detail_level())
 
 
 ## Moves parked train slime `slime_id` on along the loop (see the class doc):

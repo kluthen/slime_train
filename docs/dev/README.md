@@ -2316,13 +2316,32 @@ A train slime isn't lost but stalled: `train.stalled` (see "Train").
 - Sleepers don't simulate (chunk 9); bedtime-asleep slimes now rest once
   settled, and park off screen like every slime.
 - Slimes in a full basket rest as a pile.
-- Zoomed out: below `LOW_ZOOM` (0.8) every ring uses
-  `SlimeBodies.LOW_POINTS_BY_SIZE` (8, 10, 12 points for sizes 1, 2, 3),
-  resampled from its current shape; from `FULL_ZOOM` (0.85) up, the full
-  counts.
+- Detail levels (zoom and crowd): every calm ACTIVE ring takes the detail
+  level `Offscreen.detail_level()`, resampled from its current shape
+  (`SlimeBodies.set_active_detail`); points per level (0 is full) and size
+  are `SlimeBodies.POINTS_BY_DETAIL`:
+
+  | Size | 0 | 1 | 2 | 3 |
+  |---|---|---|---|---|
+  | 1 | 12 | 10 | 8 | 6 |
+  | 2 | 15 | 12 | 10 | 8 |
+  | 3 | 18 | 15 | 12 | 9 |
+
+  The level is the higher of the zoom's and the crowd's. Zoomed out (below
+  `LOW_ZOOM` 0.8, back from `FULL_ZOOM` 0.85 up) gives at least level 2
+  (`LOW_DETAIL`). The crowd is the slimes costing physics this tick, counted
+  after the parking (`SlimeBodies.crowd_count()`: calm ACTIVE, not
+  sleepers): level 1 from 20, 2 from 30, 3 from 40 (`Offscreen.CROWD_STEPS`),
+  a level going down only once the count is 5 below its step
+  (`CROWD_EASE`: 15, 25, 35), so rings never reshape back and forth.
+  Resting and parked rings keep their points (a reshape would wake a
+  resting pile) and take the level on the tick they are ACTIVE again. The
+  count comes from the slimes' states only, never from a measured time, so
+  a run stays repeatable.
 
 **Saves and hash.** A body's `"rest"` (calm, rest count, anchor, pile) and
-`"low"` flag, and the Offscreen state (`"offscreen"`: zoomed out, away
+`"detail"` level (absent: 0; an older save's `"low": true` reads as level
+2), and the Offscreen state (`"offscreen"`: zoomed out, crowd level, away
 counts, proxies, lost log) are saved (`SaveData`, optional keys) and in
 `dump()`, so a reload continues the same way. `offscreen.enabled` is a
 mode, like the screensaver: the game turns it on (`src/main.gd`,
@@ -3382,7 +3401,8 @@ One JSON object, keys sorted, tab-indented:
 | `format` | 1. A newer format is refused, never read half-way |
 | `level` | `{"id", "version"}`. Another id, or a newer version, is refused; an older version is migrated on load (chunk 19, below) |
 | `sim` | `tick`, `seed` and `rng_state` (strings: 64-bit), `next_slime_id`. Optional |
-| `slimes` | Every slime, in runtime id order (at least one): `id` (its stable ID, below), `members`, `runtime_id`, `species` (a letter), `size`, `state` (`train`, `free`, `sleeper`, `bedtime_asleep`, `in_basket`), `centre`, `velocity`, then `train` (distance, laps, slide, stall mark; a `lost` flag from before chunk 23A is ignored) or `free` (phase, since, point, route back, stream state), and `body` (points, previous points, the solver's centre, hop timer, heading, held, supported, stream state) |
+| `slimes` | Every slime, in runtime id order (at least one): `id` (its stable ID, below), `members`, `runtime_id`, `species` (a letter), `size`, `state` (`train`, `free`, `sleeper`, `bedtime_asleep`, `in_basket`), `centre`, `velocity`, then `train` (distance, laps, slide, stall mark; a `lost` flag from before chunk 23A is ignored) or `free` (phase, since, point, route back, stream state), and `body` (points, previous points, the solver's centre, hop timer, heading, held, supported, stream state; optional `rest` and `detail`, the ring's detail level 1 to 3, absent 0, an older `"low": true` read as 2: see "Saves and hash" in the off-screen section) |
+| `offscreen` | The off-screen state (chunk 15): `zoomed_out`, `crowd_level` (0 to 3, absent 0), `away`, `proxies`, `lost`. Optional |
 | `train` | The open gates and the stalled log (`stalled`: `{"id", "tick", "reason"}`, chunk 23A; the key was `lost` before and is ignored now) |
 | `call` | The last call (point, tick), or null |
 | `objects`, `gates` | Stable ID to state (chunk 14): a switch `{"flipped", "trapdoor_shut"}`, a basket `{"phase", "weight", "since", "next_release"}`, a gate `{"open", "entrance_closed"}` (see "Frontier sets (chunk 14)") |
@@ -4579,7 +4599,8 @@ isn't a wall (two walls are never paired). Tests:
 
 **The off-screen step.** `SlimeBodies.set_all_low_detail(on)` sets every
 slime's detail by index and returns at once when nothing would change (the
-`low_detail` count); `Offscreen._detail` calls it instead of once per slime.
+`low_detail` count); `Offscreen._detail` calls it instead of once per slime
+(since crowd detail: `set_active_detail(level)` and the `detail` count).
 `Offscreen._basket_below` caches the level's usable trapdoors, sorted by
 ID, read again when the level changes. `Offscreen.step` reads each centre
 once for the proxies (the parking pass). Tests: `test_slime_rest.gd`, 1
@@ -5070,6 +5091,47 @@ clear its data: `perf.sh` installs with `adb install -r` only.
 - **The D107 findings** ("Resting piles (D107)"): revisit the rest rule
   (open piles of 40 or more take minutes or never rest; a pile hopped
   against is awake most of the time); settle the parked-stacking bug first.
+
+### Crowd detail (proposed, D140)
+
+The more slimes cost physics on a tick, the fewer points their rings get
+(the full rules: "Off-screen simulation (chunk 15)", "Detail levels").
+Each ring has a detail level 0 (full) to 3, `SlimeBodies.POINTS_BY_DETAIL`:
+
+| Size | 0 | 1 | 2 | 3 |
+|---|---|---|---|---|
+| 1 | 12 | 10 | 8 | 6 |
+| 2 | 15 | 12 | 10 | 8 |
+| 3 | 18 | 15 | 12 | 9 |
+
+| Crowd (calm ACTIVE, not sleepers) | Level up at | Level down at |
+|---|---|---|
+| Level 1 | 20 | 15 |
+| Level 2 | 30 | 25 |
+| Level 3 | 40 | 35 |
+
+The level used is the higher of the zoom's (zoomed out: at least 2) and the
+crowd's. Only ACTIVE rings are resampled; pile slimes (in a basket, asleep
+at bedtime) stop at level 2, since a pile of 6-point rings takes about 1300
+ticks to rest instead of about 410. `_resample` builds the rest ring
+exactly as a new slime's (`_rest_offset`, the double-precision radius), so
+a reloaded save is bit for bit the same.
+
+**Measured gain** (headless bench, same machine, before / after, median /
+p95 ms per tick):
+
+| Case | Before | After |
+|---|---|---|
+| `s3-basket-59of60` | 7.902 / 8.214 | 6.427 / 6.824 (-19 % / -17 %) |
+| `stress-moving` | 10.363 / 12.801 | 9.710 / 11.827 (-6 % / -8 %) |
+| `stress-still` | 1.023 / 1.145 (rested at 407) | 0.996 / 1.152 (rested at 420) |
+| `gate2-open` | 1.307 / 1.412 | 1.322 / 1.371 |
+| `start` | 0.969 / 1.130 | 0.949 / 0.985 |
+
+**Save keys** (format unchanged, optional keys): a body's `"detail"` (1 to
+3, absent for 0) replaces `"low": true`, which an older save still loads as
+level 2; `"offscreen"` gains `"crowd_level"` (0 to 3, absent 0). Tests:
+`tests/unit/test_offscreen_crowd.gd`.
 
 ## Technical choices
 
