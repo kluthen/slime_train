@@ -373,6 +373,7 @@ point_count = 3
 [node name="TestLevel" type="Node2D" unique_id=1021953943]
 script = ExtResource("1_00d6t")
 level_id = "test"
+level_version = 2
 
 [node name="Terrain" type="Node2D" parent="." unique_id=1300163356]
 

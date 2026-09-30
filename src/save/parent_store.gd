@@ -19,11 +19,20 @@ extends RefCounted
 ## the session clock's wall ms, given by the caller, so the wait survives the
 ## app being killed.
 ##
-## A file that can't be read (not JSON, another format, a bad field) is left
-## untouched and the store holds no code in memory, so setup runs again; the
-## first set_code then writes over it (chunk 19 hardens persistence).
-## Writes go to a side file (SIDE_SUFFIX) first, are read back, and only then
-## take the old file's place.
+## Every write goes to the file, then to its mirror backup (BACKUP_SUFFIX:
+## parent.json.bak, the same content, so never the code in plain text). Each
+## goes to a side file (SIDE_SUFFIX) first, is read back, and only then takes
+## the old file's place, so a kill mid-write leaves both complete.
+##
+## Loading (D130, proposed): the file if it reads; else (missing or
+## unreadable, e.g. not JSON, another format, a bad field) the backup, with
+## its code, tries and wait's end, refused loudly; the next write mends the
+## file. Neither there: no code (first launch, setup). Neither readable (or one
+## unreadable, the other missing): LOCKED (is_locked()), refused loudly. A
+## locked store says a code exists (has_code(), so setup never shows again)
+## but no code matches; the tries and the wait apply in memory only, as the
+## files are left untouched until a set_code (the forgotten-code route)
+## replaces them and unlocks the store.
 # @spec-link [[rule_parent_code_not_stored_plaintext]]
 # @spec-link [[req_denial_and_stepup_behavior]]
 
@@ -39,6 +48,8 @@ const CODE_DIGITS := 6
 const SALT_BYTES := 16
 ## The side file a write goes to before it replaces the file.
 const SIDE_SUFFIX := ".new"
+## The mirror backup, next to the file, written after it with the same content.
+const BACKUP_SUFFIX := ".bak"
 
 ## The answer to a try.
 enum Result {
@@ -55,6 +66,9 @@ var _hash_hex := ""
 var _wrong_tries := 0
 ## Wall ms when the wait ends; 0 = no wait.
 var _wait_until_ms := 0
+## Neither the file nor its backup could be read: no code matches and
+## nothing is written until a set_code.
+var _locked := false
 
 
 ## A store on the file at `store_path`, loaded if it's there.
@@ -63,15 +77,23 @@ func _init(store_path := DEFAULT_PATH) -> void:
 	_load()
 
 
-## Whether a parent code is set.
+## Whether a parent code is set (a locked store counts as having one).
 # @spec-link [[req_parent_gate_and_access]]
 func has_code() -> bool:
-	return not _hash_hex.is_empty()
+	return _locked or not _hash_hex.is_empty()
+
+
+## Whether the store is locked: neither its file nor the backup could be read,
+## so no code matches until a new one is set.
+# @spec-link [[req_denial_and_stepup_behavior]]
+func is_locked() -> bool:
+	return _locked
 
 
 ## Sets the parent code to `code` (exactly 6 ASCII digits, else refused
 ## loudly and nothing changes): a fresh salt and hash, the count and the wait
-## reset, the file written. For setup, changing the code and the code reset.
+## reset, the file and its backup written (a locked store unlocks). For
+## setup, changing the code and the code reset.
 # @spec-link [[req_parent_gate_and_access]]
 # @spec-link [[rule_parent_code_not_stored_plaintext]]
 func set_code(code: String) -> void:
@@ -83,6 +105,7 @@ func set_code(code: String) -> void:
 	_hash_hex = _hash(salt, code)
 	_wrong_tries = 0
 	_wait_until_ms = 0
+	_locked = false
 	_save()
 
 
@@ -90,6 +113,7 @@ func set_code(code: String) -> void:
 ## during a wait (nothing checked, nothing counted), else OK (count reset) or
 ## WRONG (counted; the 5th in a row starts the wait). Needs a code
 ## (has_code()): without one it is refused loudly and answers WRONG, uncounted.
+## A locked store answers WRONG to every code, counted as usual.
 # @spec-link [[req_denial_and_stepup_behavior]]
 func try_code(code: String, now_wall_ms: int) -> Result:
 	if not has_code():
@@ -100,7 +124,7 @@ func try_code(code: String, now_wall_ms: int) -> Result:
 	if _wait_until_ms != 0:
 		_wait_until_ms = 0
 		_wrong_tries = 0
-	if _hash(_salt_hex.hex_decode(), code) == _hash_hex:
+	if not _locked and _hash(_salt_hex.hex_decode(), code) == _hash_hex:
 		_wrong_tries = 0
 		_save()
 		return Result.OK
@@ -151,26 +175,58 @@ static func _hash(salt: PackedByteArray, code: String) -> String:
 	return context.finish().hex_encode()
 
 
-## Reads the file into memory if it's there; an unreadable one is refused
-## loudly, left as it is, and read as "no code".
+## Reads the file into memory, or its backup when the file is missing or
+## unreadable (refused loudly). Neither there: no code. Neither readable:
+## locked (refused loudly), the files left as they are.
+# @spec-link [[req_parent_gate_and_access]]
+# @spec-link [[rule_parent_code_not_stored_plaintext]]
 func _load() -> void:
-	if not FileAccess.file_exists(path):
+	var backup := path + BACKUP_SUFFIX
+	var main: Variant = _read(path)
+	if main is Dictionary:
+		_take(main)
 		return
-	var text := FileAccess.get_file_as_string(path)
+	var spare: Variant = _read(backup)
+	if main == null and spare == null:
+		return
+	var main_why: String = "missing" if main == null else main
+	if spare is Dictionary:
+		push_error("ParentStore: %s is %s; using its backup %s (the next write replaces the file)."
+				% [path, main_why, backup])
+		_take(spare)
+		return
+	_lock("%s is %s and %s is %s" % [path, main_why, backup, "missing" if spare == null else spare])
+
+
+## The parent file at `file_path`: its data (a Dictionary) if it reads, null
+## if it isn't there, or why it's unreadable (a String).
+static func _read(file_path: String) -> Variant:
+	if not FileAccess.file_exists(file_path):
+		return null
 	var json := JSON.new()
-	if json.parse(text) != Error.OK:
-		_unreadable("not JSON (line %d: %s)" % [json.get_error_line(), json.get_error_message()])
-		return
+	if json.parse(FileAccess.get_file_as_string(file_path)) != Error.OK:
+		return "unreadable: not JSON (line %d: %s)" % [json.get_error_line(), json.get_error_message()]
 	var why := _why_bad(json.data)
 	if not why.is_empty():
-		_unreadable(why)
-		return
-	var data: Dictionary = json.data
+		return "unreadable: " + why
+	return json.data
+
+
+## Takes the state of the readable parent file `data` into memory.
+func _take(data: Dictionary) -> void:
 	if data["code"] != null:
 		_salt_hex = data["code"]["salt"]
 		_hash_hex = data["code"]["hash"]
 	_wrong_tries = int(data["wrong_tries"])
 	_wait_until_ms = int(data["wait_until_ms"])
+
+
+## Locks the store, loudly, for `why`: no code matches and the files are left
+## untouched until a set_code.
+# @spec-link [[req_denial_and_stepup_behavior]]
+func _lock(why: String) -> void:
+	_locked = true
+	push_error("ParentStore: %s. The parent code is locked: no code matches until a new code is set; the files are left as they are." % why)
 
 
 ## Why `data` isn't a parent file of FORMAT, or "".
@@ -208,14 +264,12 @@ static func _is_hex(value: Variant) -> bool:
 	return true
 
 
-## Refuses the file loudly for `why` (the file itself isn't touched).
-func _unreadable(why: String) -> void:
-	push_error("ParentStore: %s is unreadable: %s. It is left as it is; no parent code is set." % [path, why])
-
-
-## Writes the state to the file through the side file; a failure is loud and
-## leaves the old file.
+## Writes the state to the file, then to its backup; a failure is loud and
+## leaves the file not yet swapped as it was. A locked store writes nothing:
+## its files wait, untouched, for a set_code (which unlocks it first).
 func _save() -> void:
+	if _locked:
+		return
 	var code: Variant = null
 	if has_code():
 		code = {"salt": _salt_hex, "hash": _hash_hex}
@@ -223,24 +277,36 @@ func _save() -> void:
 			"wait_until_ms": _wait_until_ms}, "\t")
 	var why := _write(text)
 	if not why.is_empty():
-		push_error("ParentStore: %s; the old file is kept" % why)
+		push_error("ParentStore: %s" % why)
 
 
-## Writes `text` to the file via the side file. Returns "" or why not.
+## Writes `text` to the file, then the same to its backup, each through its
+## side file. Returns "" or why not.
+# @spec-link [[req_parent_gate_and_access]]
+# @spec-link [[rule_parent_code_not_stored_plaintext]]
 func _write(text: String) -> String:
 	var made := DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 	if made != Error.OK and made != ERR_ALREADY_EXISTS:
 		return "can't make %s (%s)" % [path.get_base_dir(), error_string(made)]
-	var side := path + SIDE_SUFFIX
+	var why := _write_through_side(path, text)
+	if why.is_empty():
+		why = _write_through_side(path + BACKUP_SUFFIX, text)
+	return why
+
+
+## Writes `text` to `file_path` via its side file, read back before it takes
+## the old file's place. Returns "" or why not (the old file is then kept).
+static func _write_through_side(file_path: String, text: String) -> String:
+	var side := file_path + SIDE_SUFFIX
 	var file := FileAccess.open(side, FileAccess.WRITE)
 	if file == null:
-		return "can't write %s (%s)" % [side, error_string(FileAccess.get_open_error())]
+		return "can't write %s (%s); the old %s is kept" % [side, error_string(FileAccess.get_open_error()), file_path]
 	file.store_string(text)
 	var failed := file.get_error()
 	file.close()
 	if failed != Error.OK or FileAccess.get_file_as_string(side) != text:
-		return "writing %s failed" % side
-	var swapped := DirAccess.rename_absolute(side, path)
+		return "writing %s failed; the old %s is kept" % [side, file_path]
+	var swapped := DirAccess.rename_absolute(side, file_path)
 	if swapped != Error.OK:
-		return "can't move %s into place (%s)" % [side, error_string(swapped)]
+		return "can't move %s into place (%s); the old %s is kept" % [side, error_string(swapped), file_path]
 	return ""

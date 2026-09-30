@@ -2436,8 +2436,8 @@ fusion). `stress-still` is the slow one to build (see "Fixtures"): size-1
 slimes don't stack, so a 140-slime pile spreads for about a minute before
 it rests; the builder settles it at the zoomed-out detail its camera shows,
 reloads it and settles it again 6 times, and keeps the state whose reload
-rests soonest (670 ticks today). Every fixture is regenerated when the
-level changes.
+rests soonest (670 ticks then; about 410 ticks, about 7 s, since chunk
+19). Every fixture is regenerated when the level changes.
 
 **The level rules over the whole level** (numbered as in
 `specs/level-design.md`):
@@ -2507,8 +2507,9 @@ godot --headless --path . -s res://tools/bench_level.gd  # -- --ticks=600
 - `start`: the level as new (the first slime and 199 sleepers), the camera
   at the start; 600 ticks untimed first.
 - `stress-still`: the fixture, the camera where it puts it (the bowl, zoom
-  0.5); timed from tick 670 (`REST_TICK`), when the loaded pile rests, and
-  over before the idle camera's cue changes the zoom. The script prints
+  0.5); timed from tick 670 (`REST_TICK`), once the loaded pile rests
+  (about 410 since chunk 19), and over before the idle camera's cue changes
+  the zoom. The script prints
   `camera_steady=true` when the zoom and the rails held throughout.
 - `stress-moving`: the fixture, the camera on the bowl; 60 ticks untimed
   (the rings take shape from the saved centres), then the train climbing out
@@ -2611,8 +2612,8 @@ The level bench (`tools/bench_level.gd`) is unchanged within noise: 0.999,
 **Deviations from `specs/levels/test/README.md`** (for spec-writer):
 - `s2.frame.cave` (16d, above) is not in the README's framing-zone table,
   its stable IDs, or `specs/tuning.md`'s zone values.
-- `stress-still` rests about 670 ticks (11 s) after loading since 16d; the
-  README says about 8 s.
+- `stress-still` rests about 410 ticks (about 7 s) after loading since
+  chunk 19 (about 670, 11 s, from 16d); the README says about 8 s.
 - The start basin (1.1) is rebuilt (chunk 16e, "The test level"): the
   loop's start is at 0.21, y 476 (was 0.3), at the top of a ramp, with a
   pocket behind it (floor y 500, 0.05 to 0.21; the level's left wall is
@@ -2996,12 +2997,31 @@ resets it. The wait's times are the game's wall clock
 (`main.now_wall_ms()`: `session_clock` in normal play, so the debug
 overlay's speed runs it faster too; test mode's `TestClock` at the current
 tick), so it survives a kill. `wait_left_ms()` clamps a clock moved back: a
-wait never has more than 30 s left (its end moves and is saved). Writes go
-to `parent.json.new`, are read back, then renamed over the file. A file
-that can't be read (not JSON, another format, a bad field) is refused
-loudly, left untouched, and read as "no code", so setup runs again and its
-`set_code` writes over it: an open risk until chunk 19 hardens persistence
-(a damaged file means a new code, chosen by whoever holds the phone).
+wait never has more than 30 s left (its end moves and is saved).
+
+**The backup and the fallback** (chunk 19, D130, proposed). Every write
+goes to the file, then to its **mirror backup** `parent.json.bak` with the
+same content (so never the code in plain text either), each through its
+side file (`parent.json.new`, `parent.json.bak.new`), read back, then
+renamed into place: a kill mid-write leaves both whole, and the backup
+holds the tries and the wait's end exactly. Loading (`ParentStore._load`):
+
+- the file if it reads;
+- else (missing, or unreadable: not JSON, another format, a bad field) the
+  backup if it reads, refused loudly: its code, `wrong_tries` and
+  `wait_until_ms`; the next write mends the file;
+- neither there: no code (first launch, setup);
+- neither readable (or one unreadable, the other missing): **locked**
+  (`is_locked()`, refused loudly). A locked store says a code exists
+  (`has_code()` true, so setup never shows again, DoD 23) but no code
+  matches: every try is wrong and counts, the 5 tries and the 30 s wait
+  apply as usual, in memory only. Both files are left untouched until a
+  new `set_code`, which writes them and unlocks the store. Only chunk 20's
+  "Forgot the code?" route can set one; until then clearing the app's data
+  is the only way out.
+
+Before chunk 19 an unreadable file was read as "no code", so setup ran
+again and whoever held the phone chose a new code.
 
 **Strings.** Every parent-facing string goes through `ParentText`
 (`src/parent/parent_text.gd`), a table of key to `{"en", "fr"}` (the French
@@ -3022,13 +3042,15 @@ panel), `ParentPad` (keys 10 mm, 2.5 mm apart), `ParentSettings` (targets
 future `src/ui/tokens.gd` will replace these constants.
 
 **Deleting a level's save** (D43, D104, DoD 29). `SaveStore.delete(level_id)`
-is the only way a save goes: it removes the level's file and its side file
-(a missing file is no error), and lifts the level's write block, so a
-fresh level saves again even where an unreadable file had blocked it. It is
+is the only way a save goes: it removes the level's file and its side file,
+and since chunk 19 its backup and the backup's side file (a missing file
+is no error; set-aside and pre-migration files stay: see "Saves and
+fixtures", "Files and autosave"), and lifts the level's write block, so a
+fresh level saves again even where a file had blocked it. It is
 called only from `main.delete_level_save()`; two lints in
 `tests/unit/test_save_store.gd` enforce `rule_saves_never_wiped` (no other
 `src/` code removes a file, and no other caller of the store's delete).
-Chunk 19's backup copy must be removed there too. `delete_level_save()`
+`delete_level_save()`
 deletes, then `restart_fresh(true)`: a fresh simulation that keeps the
 running session (`Simulation.carry_session(old)`: phase, timer, clocks,
 the tilt's neutral, a sunrise cue moved to the new ticks or dropped if it
@@ -3066,15 +3088,18 @@ tools/test.sh -gselect=test_save_store       # SaveStore.delete and its lints
 
 By hand on desktop: `godot --path . src/main.tscn`. The first launch shows
 setup; choose a code and finish. Then click the band along the top to
-reveal the parent buttons. To see setup again, delete `user://parent.json`:
-on Linux `~/.local/share/godot/app_userdata/Slime Train/parent.json`. On
+reveal the parent buttons. To see setup again, delete `user://parent.json`
+and, since chunk 19, its backup `parent.json.bak` (one left alone is used
+instead): on Linux `~/.local/share/godot/app_userdata/Slime Train/`. On
 desktop, the window losing focus restarts setup.
 
 Tests: `tests/unit/test_parent_store.gd` (17), `test_parent_text.gd` (8),
 `test_session_parent.gd` (10), `test_save_store.gd` (the delete and its
 lints), `tests/e2e/test_parent_buttons_e2e.gd` (18),
 `test_parent_prompt_e2e.gd` (20), `test_parent_settings_e2e.gd` (19),
-`test_parent_setup_e2e.gd` (14), `test_delete_save_e2e.gd` (7).
+`test_parent_setup_e2e.gd` (14), `test_delete_save_e2e.gd` (7). Chunk 19
+added the backup and locked-store tests to `test_parent_store.gd` and
+`tests/e2e/test_parent_store_e2e.gd` (the damage paths through the game).
 
 **Choices (proposed).**
 - The 6th digit submits (no OK key).
@@ -3235,7 +3260,48 @@ Master spec §6.4 and D72 (`req_persistence_and_saves`,
 (`src/sim/save_data.gd`, pure logic); `Simulation.to_save()` and
 `Simulation.from_save(save, level_data, terrain, fallback_seed)` wrap it. A
 reloaded save has the saved state hash and stays equal to the run that
-never stopped, tick for tick (`tests/unit/test_save_data.gd`).
+never stopped, tick for tick (`tests/unit/test_save_data.gd`), when no
+slime was saved in mid-air.
+
+**Mid-air on load** (chunk 19, D12, DoD 28; `MidairLanding`,
+`src/sim/midair_landing.gd`, the last step of `SaveData.restore`). A slime
+saved in the air (its body not supported, neither a sleeper nor in a
+basket, and not parked: Offscreen places a parked slime, and it falls once
+simulated again) is moved straight down onto the first surface below it: a terrain
+or shut door surface facing up (a ring point `terrain_skin` off it), or the
+upper side of another slime's ring. It is put down at rest (previous points
+= points) and supported; it never moves up. Slimes in the air are put down
+lowest first, so one above another lands on it. With no surface below it
+(beyond the level's edge) it is lost (`Offscreen.lose`: to the loop start,
+in the lost log). Such a reload differs from the saved state; reloading it
+again is exact (`tests/unit/test_midair_load.gd`). A hand-made save's slime
+without a body (every fixture's) is not supported yet, so it is put down
+too, by a pixel or so from its rest height.
+
+**Migration by level version** (chunk 19, decision C, proposed; D72;
+`SaveMigration`, `src/sim/save_migration.gd`). `SaveData.problems` accepts
+a save of an older version of the level and refuses a newer one (a newer
+game's: kept, blocked). `SaveData.restore` migrates an older save first (a
+deep copy; keyed by stable IDs): a sleeper whose stable ID the level no
+longer has as a sleeper, whose spot moved (over 1 px, `SaveMigration.MOVED`)
+or whose species changed, and an awake slime whose centre is no longer in
+open space (inside the terrain, `TerrainSegments.is_solid`; outside
+`Train.bounds_for`; in a basket, in no basket of the level) are displaced:
+they stay in the save and, once the rest is restored and before the mid-air
+rule, are lost the usual way (`Offscreen.lose`: to the loop start, in the
+lost log), so each is lost once and the population stays whole. A level
+sleeper no slime holds is added asleep at its spot (a body-less entry, the
+next runtime id). Object and gate states of stable IDs gone are dropped (and
+gone gates leave `train.open_gates`); new ones are left out and take their
+initial state on load (`FrontierSets.start`). The header takes the level's
+version. Before the first write, the game keeps the file the save was read
+from as `<level id>.json.v<old version>` (`SaveStore.keep_version_copy`:
+side file, read back, rename; never written over: a copy with the same bytes
+is kept as it is, another file takes `.v<old>.2`, ...; never removed, not even
+by the parent's delete). A copy that fails blocks the level's writes. The
+same generic detection tells whether a fixture is older than its level
+(`LevelFixtures.stale`). Tests: `tests/unit/test_save_migration.gd`, the
+version tests of `tests/e2e/test_save_e2e.gd`.
 
 ### What a save holds
 
@@ -3244,7 +3310,7 @@ One JSON object, keys sorted, tab-indented:
 | Key | What |
 |---|---|
 | `format` | 1. A newer format is refused, never read half-way |
-| `level` | `{"id", "version"}`. Another id or version is refused (migration: chunk 19) |
+| `level` | `{"id", "version"}`. Another id, or a newer version, is refused; an older version is migrated on load (chunk 19, below) |
 | `sim` | `tick`, `seed` and `rng_state` (strings: 64-bit), `next_slime_id`. Optional |
 | `slimes` | Every slime, in runtime id order (at least one): `id` (its stable ID, below), `members`, `runtime_id`, `species` (a letter), `size`, `state` (`train`, `free`, `sleeper`, `bedtime_asleep`, `in_basket`), `centre`, `velocity`, then `train` (distance, laps, slide, stall mark; a `lost` flag from before chunk 23A is ignored) or `free` (phase, since, point, route back, stream state), and `body` (points, previous points, the solver's centre, hop timer, heading, held, supported, stream state) |
 | `train` | The open gates and the stalled log (`stalled`: `{"id", "tick", "reason"}`, chunk 23A; the key was `lost` before and is ignored now) |
@@ -3293,35 +3359,82 @@ sorted; its `id` in the save is the first member.
 
 ### Files and autosave
 
-`SaveStore` (`src/save/save_store.gd`) keeps one file per level,
+`SaveStore` (`src/save/save_store.gd`) keeps each level's save in
 `user://saves/<level id>.json` (on Linux,
-`~/.local/share/godot/app_userdata/Slime Train/saves/`). A test gives it
-another directory. The game (`src/main.gd`) reads it at start in normal
-play: a usable save is resumed, a missing file means a fresh start (the
+`~/.local/share/godot/app_userdata/Slime Train/saves/`), with a backup
+beside it since chunk 19. A test gives it another directory. The game
+(`src/main.gd`, `_resume_play`) reads it at start in normal play: a usable
+save is resumed, a missing save with no backup means a fresh start (the
 first slime woken).
+
+**The files of a level save** (chunk 19, DoD 28; `L` stands for
+`<level id>` in the save directory):
+
+| File | What it is | The parent's delete |
+|---|---|---|
+| `L.json` | The save | removes it |
+| `L.json.new` | The side file of a write: the new save before it takes the save's place | removes it |
+| `L.json.bak` | The backup: the save before the last write, a whole older save | removes it |
+| `L.json.bak.new` | The side file of the backup copy | removes it |
+| `L.json.unreadable`, then `.unreadable.2`, `.3`... | A save that couldn't be read, set aside by a read, its bytes untouched; `L.json.bak.unreadable...` for a backup | leaves it (proposed: not the save) |
+| `L.json.v<N>`, then `.v<N>.2`... | The file a save of level version N was read from, kept before its migration (`SaveStore.keep_version_copy`, through its side file `.v<N>.new`; "Migration by level version" above) | leaves it (never removed) |
+
+**A write** (`SaveStore.write`, `write_file`), in three steps:
+
+1. the save's text goes to `L.json.new`, is read back and compared;
+2. if `L.json` is there and reads as a save, its bytes go to
+   `L.json.bak.new`, are read back, and that file is renamed onto
+   `L.json.bak` (an unreadable save is never copied onto the backup);
+3. `L.json.new` is renamed onto `L.json`.
+
+A step that fails stops the write with a message; nothing more is swapped,
+so the old save and backup stay. A rename replaces a file whole and the
+save is never removed first, so a kill at any point leaves `L.json` whole
+(the old save or the new one) and `L.json.bak` whole (an older save); a
+side file a kill leaves behind is written over by the next write. A save
+the storage damaged mid-write (cut short) is caught by the next read.
+
+**A read** (`SaveStore.read`): the save if it reads; else the backup if it
+reads (`"source": "backup"`, the reason in `"error"`, which the game
+prints); else a fresh start. A file that is there but can't be read (not
+JSON, not a save) is **set aside** (proposed, rather than blocking the
+level): renamed to its first free `.unreadable` name, its bytes untouched,
+so no write lands on it, and the level is not blocked, so it saves again.
+With nothing readable the game says so and starts fresh (status FRESH, the
+new paths in `"set_aside"`). Only if a set-aside rename fails is the level
+blocked (`SaveStore.block`, status UNREADABLE: the file left where it is,
+nothing written for the session). A save that reads but that the level
+refuses (`SaveData.problems`: another level, a newer level version, a bad
+field) is kept as it is and blocked the same way, the game saying why. A
+save of an older level version is migrated as it loads, its file kept
+first as `L.json.v<old version>`; a copy that fails blocks the level too.
 
 It never wipes a save (`rule_saves_never_wiped`), except on the parent's
 explicit delete (`SaveStore.delete`, chunk 18):
 
-- no other code under `src/` can delete a file, and only the game root's
-  `delete_level_save()` calls `SaveStore.delete` (lint tests in
-  `tests/unit/test_save_store.gd`; the renames allowed are SaveStore's and
-  ParentStore's side-file swaps);
 - a save with no slimes, or with a NaN, is refused and the old file kept;
-- a write goes to `<file>.new`, is read back, then renamed over the old
-  file: a write that fails leaves the old file;
-- a file it can't read, or a save of another level version, is left as it
-  is: the game starts fresh, prints why, and writes nothing over it for the
-  session (`SaveStore.block`). A backup copy and migration come with chunk
-  19.
+- the lints in `tests/unit/test_save_store.gd`: no code under `src/`
+  removes a file except `SaveStore.delete`, and only the game root's
+  `delete_level_save()` calls it; the only renames are the two stores'
+  (SaveStore's side-file swaps, backup copy, set-asides and version copies,
+  all in `save_store.gd`; ParentStore's side-file swaps, in
+  `parent_store.gd`).
 
-The parent's delete (settings, a second confirmation) removes the level's
-file and its side file and lifts the block; the game then reloads the
-level fresh, keeps the running session and saves at once (D104; see
-"Parent gate and settings (chunk 18)"). No update, migration or
-load-failure path may call it; chunk 19's backup copy must be removed there
-too. The parent code is not a level save: it lives in `user://parent.json`
-(`ParentStore`) and a level's delete leaves it.
+The parent's delete (settings, a second confirmation; DoD 29, "its backup
+goes too") removes the save's side file, the backup's side file, the
+backup and the save, in that order (a delete stopped half-way never leaves
+a backup that would come back as the save), leaves the set-aside files and
+version copies, and lifts the block; the game then reloads the level fresh,
+keeps the running session and saves at once (D104; see "Parent gate and
+settings (chunk 18)"). No update, migration or load-failure path may call
+it. The parent code is not a level save: it lives in `user://parent.json`
+and its backup (`ParentStore`; see "Parent gate and settings (chunk 18)",
+"Code storage") and a level's delete leaves them.
+
+Outside the game, `write_file` leaves a backup too: `tools/make_fixture`
+removes the `.bak` it would leave beside a fixture (git keeps a fixture's
+history), and test mode's `--save=<path>` over an existing save leaves a
+`<path>.bak`.
 
 `Autosave` (`src/save/autosave.gd`) saves every 15 s of wall time, and on
 `NOTIFICATION_APPLICATION_PAUSED` (Android and iOS leaving the
@@ -3358,13 +3471,22 @@ save `<name>.json` in the hand-made form above.
 | `lost` | The fresh level with one free size-1 D (a parade sleeper) on the parade's first ledge beyond closed gate 1, with no route back or loop near: left alone at 10 s, lost at 70 s and moved to the start of the loop (DoD 5) |
 | `gate1-open` | Gate 1 open as after basket 1 fired (switch 1 inert, slide 1 shut): the loop runs into section 2. 20 size-1 train slimes (the first slime and `s1.sleeper.01` to `.19`) spread along the outgoing loop from 60 px past the split zone to 400 px before its end; the other 180 asleep; the camera at section 2's start (8.3 S) |
 | `gate2-open` | Gates 1 and 2 open as after baskets 1 and 2 fired (slides 1 and 2 shut): the loop runs through section 3 to slide 3. The same 20 train slimes, spread along the whole outgoing loop; the camera at section 3's start (13.0 S). Added in chunk 16 for the whole loop (DoD 1) |
-| `stress-still` | Gates 1 and 2 open, all 200 base slimes woken, none left asleep: 60 size-1 slimes in basket 3 (switch 3 flipped, the basket full, waiting to be in view: out of it, they park), and 140 piled at the bottom of section 3's bowl, asleep at bedtime (a session at bedtime: outside a basket, a pile rests only asleep); the camera on the bowl (its framing zone zooms to 0.5, so the rings are zoomed-out). The pile comes to rest about 670 ticks (11 s) after loading and stays resting (the worst still case on one screen; see below) |
+| `stress-still` | Gates 1 and 2 open, all 200 base slimes woken, none left asleep: 60 size-1 slimes in basket 3 (switch 3 flipped, the basket full, waiting to be in view: out of it, they park), and 140 piled at the bottom of section 3's bowl, asleep at bedtime (a session at bedtime: outside a basket, a pile rests only asleep); the camera on the bowl (its framing zone zooms to 0.5, so the rings are zoomed-out). The pile comes to rest about 410 ticks (about 7 s) after loading since chunk 19 (670 before) and stays resting (the worst still case on one screen; see below) |
 | `stress-moving` | Gates 1 and 2 open, all 200 base slimes as size-1 train slimes spread through section 3's bowl from its bottom up (the floor, the slopes, the shelves; x 13.5 to 15.33 S, inside the view), each following the loop from its nearest point; the camera on the bowl. The worst moving case: a measurement, not a target (D96) |
+| `midair` | The fresh level with four size-1 train slimes saved in mid-air over section 1's ground (`s1.sleeper.01` to `.04`): 4 px above the ground at x 1525, 150 px above it at x 1825, 30 px above it at x 2125, and one 80 px above that one; the camera on them. A fixture keeps only centres, so loaded (test mode or normal play) each is put straight down on what is below it, at rest, none lost (D12, DoD 28; chunk 19) |
+| `old-version` | A save of the test level's **version 1** (its header says so): the fresh level, but the sleeper nearest x 1525 on section 1's ground (`s1.sleeper.03`, on its ledge at (1428, -188) in version 2) sleeps there, at (1525, 0). Loaded, it is migrated: that slime is displaced and lost (to the loop start, in the lost log), all 200 kept; in normal play the file is kept as `test.json.v1` and the next save is at version 2 (D72; chunk 19). Older than the level on purpose: the stale-fixture check exempts it by name |
 
 To make or remake them: `godot --headless -s res://tools/make_fixture.gd`
 (all) or `... -- bump` (one). `gate1-open`, `gate2-open`, `stress-still`
 and `stress-moving` came with the whole level (chunk 16); `gate1-open` and
-`gate2-open` start the DoD 1 sessions (`tests/e2e/test_level_dod1_e2e.gd`). Each fixture is a builder function in the
+`gate2-open` start the DoD 1 sessions (`tests/e2e/test_level_dod1_e2e.gd`).
+`midair` and `old-version` came with chunk 19 (persistence;
+`tests/e2e/test_persistence_e2e.gd`, with the DoD 28 kill-during-a-write
+tests), their builders in `tools/make_fixture/persistence_fixtures.gd`.
+**The test level is at version 2 since chunk 19** (`level_version = 2` on
+its root; nothing else changed): so that `old-version` is a genuine save
+of an older version, migrated as a player's would be. Every other fixture
+was regenerated then, its header's version the only change. Each fixture is a builder function in the
 tool that sets up a simulation on the test level and saves it; the tool
 looks the stable IDs up in the level scene and checks the save loads back.
 To add one, add an entry to `FIXTURES` and its builder. Fixtures follow
@@ -3379,7 +3501,9 @@ and size-1 slimes don't stack (a pyramid of them flattens into a row), so a
 the zoomed-out detail the fixture's camera shows until every slime rests
 (at most 2 minutes, else it fails), then reloads it from its save and
 settles it again 6 times, and keeps the state whose reload rests soonest
-(it must within 12.5 s; today 670 ticks). Before chunk 16d's terrain
+(it must within 12.5 s; about 410 ticks since chunk 19, 670 before: a
+load now puts the fixture's body-less slimes down, see "Mid-air on
+load"). Before chunk 16d's terrain
 corner fix it rested at 490 with 4 rounds and a 10 s bar; with the fix the
 reloads rest in 670 to 910 ticks (4 rounds gave 744 at best), so the rounds
 went to 6 and the bar to 12.5 s, under the 15 s the load test allows. `test_fixtures_e2e.gd` checks that
@@ -3667,13 +3791,69 @@ adb logcat -v time -s godot:*
 - **Unusable saves block writing.** An unreadable file or a save of
   another level version is kept untouched and nothing is written over it in
   that session; the player plays fresh. The other choice (refuse to start)
-  seemed worse. Chunk 19 adds the backup copy and migration.
+  seemed worse. Chunk 19 adds the backup copy and migration (below).
 - **Writes go through a side file and a rename** now, rather than chunk
   19's full scheme, so a failed write can't cut a save short.
 - **Fixtures are generated**, by a tool that looks the stable IDs up in the
   level, rather than typed in; their saves are the readable hand-made form.
 - **Object and gate states are plain JSON** keyed by stable ID; chunk 14
   gives them their types (JSON reads numbers back as floats).
+
+### Chunk 19: persistence hardening
+
+DoD 28 and 29, D12, D72, D130. Built: a level save's backup and its
+three-step write, the read's fallback on the backup, the parent file's
+mirror backup, the mid-air rule on load, and migration by level version
+(see "Saves and fixtures": "Files and autosave", "Mid-air on load",
+"Migration by level version"; "Parent gate and settings (chunk 18)":
+"Code storage").
+
+- **Set aside, not blocked (proposed).** An unreadable save or backup is
+  renamed out of the way (`.unreadable`, `.unreadable.2`...) and the level
+  saves again, from the backup or fresh; before, the level was blocked for
+  the session. Nothing is deleted or written over. Only a set-aside that
+  fails blocks the level.
+- **The parent's delete takes the backup (DoD 29)** and the side files, and
+  leaves the set-aside files and pre-migration copies (proposed: they
+  aren't the save).
+- **A locked parent file (proposed, D130).** `parent.json.bak` mirrors the
+  file (tries and wait's end included). Both unreadable: a code is said to
+  exist but none matches, the tries count in memory only, and the files
+  are untouched until a new code, which only chunk 20's "Forgot the code?"
+  can set; until then clearing the app's data is the only way out.
+- **Grounded mid-air rule (proposed, D12 "whichever is easier").** On
+  every load, a slime saved in the air goes straight down onto the first
+  surface below it (terrain, a shut door, another slime), at rest; parked
+  slimes, sleepers and slimes in a basket are left as they are; with
+  nothing below it, it is lost. A reload of such a save isn't
+  tick-for-tick equal to the run that never stopped; one without slimes in
+  the air still is.
+- **Migration by stable IDs (proposed).** An older level version
+  migrates, a newer one stays blocked (a newer game's save). Displaced
+  slimes (a sleeper gone, moved or of another species; an awake slime no
+  longer in open space) stay in the save and are lost the usual way, so the
+  population stays whole; level sleepers no slime holds are added asleep;
+  the states of gone objects and gates are dropped, new ones take their
+  initial state. The file as read is kept first as `L.json.v<old version>`
+  (a copy, never removed). The same detection tells a stale fixture
+  (`LevelFixtures.stale`).
+- **The test level is at version 2**, its only change, so that the
+  `old-version` fixture is a genuine version-1 save (see "Fixtures").
+- **A kill during a write is simulated, not done.** Killing Godot mid-write
+  at a chosen point can't be made repeatable, so
+  `tests/e2e/test_persistence_e2e.gd` lays the save directory out as a kill
+  at each point of the write sequence would leave it (the side file half
+  written; the backup's side file half written; the new save whole in its
+  side file, the backup already swapped, the save not yet renamed), and as
+  storage that cut the save short would (the backup then used), then opens
+  a new game on it: it resumes from the last whole save, with no slime in
+  mid-air, and saves again.
+
+Tests: `tests/unit/test_save_store.gd` (backup, read fallback, set-aside,
+version copy, delete, lints), `test_parent_store.gd`,
+`test_save_migration.gd`, `test_midair_load.gd`, `test_save_data.gd`;
+`tests/e2e/test_persistence_e2e.gd`, `test_parent_store_e2e.gd`,
+`test_save_e2e.gd` (the version tests).
 
 ### Chunk 7: taps and the call
 

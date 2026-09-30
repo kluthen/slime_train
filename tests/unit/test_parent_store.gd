@@ -10,6 +10,13 @@ extends GutTest
 
 const DIR := "user://test-parent-store/"
 const PATH := DIR + "parent.json"
+## The mirror backup, written after the file with the same content.
+const BAK := PATH + ".bak"
+## Unreadable parent files: not JSON, not an object, another format, a bad
+## code, a bad count.
+const DAMAGED := ["not json", "[1, 2]", '{"format": 99, "code": null, "wrong_tries": 0, "wait_until_ms": 0}',
+		'{"format": 1, "code": {"salt": "zz"}, "wrong_tries": 0, "wait_until_ms": 0}',
+		'{"format": 1, "code": null, "wrong_tries": -1, "wait_until_ms": 0}']
 const CODE := "482913"
 const OTHER := "105277"
 ## A wall-clock time, in ms, for the tries.
@@ -49,6 +56,19 @@ func _try(store: ParentStore, code: String, times: int, now: int, want: ParentSt
 ## The file's raw bytes, as text.
 func _raw() -> String:
 	return FileAccess.get_file_as_bytes(PATH).get_string_from_ascii()
+
+
+## Writes `bytes` over the file at `file_path` (a damaged or stray file).
+func _put(file_path: String, bytes: PackedByteArray) -> void:
+	DirAccess.make_dir_recursive_absolute(DIR)
+	var file := FileAccess.open(file_path, FileAccess.WRITE)
+	file.store_buffer(bytes)
+	file.close()
+
+
+## Garbage bytes, as a kill or a bad disk might leave them.
+func _garbage() -> PackedByteArray:
+	return PackedByteArray([0x7b, 0x00, 0xff, 0x22, 0x9c, 0x0a, 0x13, 0xfe])
 
 
 ## Asserts the file holds `code` nowhere in plain text, deterministically: the
@@ -217,16 +237,129 @@ func test_try_code_without_a_code_is_refused_loudly() -> void:
 	assert_false(FileAccess.file_exists(PATH), "nothing written")
 
 
-func test_an_unreadable_file_is_left_untouched_and_means_no_code() -> void:
-	DirAccess.make_dir_recursive_absolute(DIR)
-	for text in ["not json", "[1, 2]", '{"format": 99, "code": null, "wrong_tries": 0, "wait_until_ms": 0}',
-			'{"format": 1, "code": {"salt": "zz"}, "wrong_tries": 0, "wait_until_ms": 0}',
-			'{"format": 1, "code": null, "wrong_tries": -1, "wait_until_ms": 0}']:
-		var file := FileAccess.open(PATH, FileAccess.WRITE)
-		file.store_string(text)
-		file.close()
+# @test-link [[req_denial_and_stepup_behavior]]
+func test_an_unreadable_file_without_a_backup_locks_the_store_and_is_left_untouched() -> void:
+	# Chunk 18 read such a file as "no code" (setup again); D130/chunk 19
+	# decision B: it locks instead, so setup never comes back.
+	for text in DAMAGED:
+		_put(PATH, text.to_utf8_buffer())
 		var store := ParentStore.new(PATH)
-		assert_push_error("unreadable")
-		assert_false(store.has_code(), "'%s': no code" % text)
-		assert_eq(store.wrong_tries(), 0)
+		assert_push_error("locked")
+		assert_true(store.has_code(), "'%s': a code exists, so no setup" % text)
+		assert_true(store.is_locked(), "'%s': locked" % text)
+		assert_eq(store.try_code(CODE, NOW), ParentStore.Result.WRONG, "'%s': no code matches" % text)
 		assert_eq(FileAccess.get_file_as_string(PATH), text, "'%s' left as it was" % text)
+		assert_false(FileAccess.file_exists(BAK), "'%s': no backup made" % text)
+
+
+# @test-link [[req_parent_gate_and_access]]
+# @test-link [[rule_parent_code_not_stored_plaintext]]
+func test_set_code_writes_the_file_and_its_backup_the_same() -> void:
+	var store := _store_with_code()
+	assert_true(FileAccess.file_exists(BAK), "the backup is written")
+	assert_eq(FileAccess.get_file_as_bytes(BAK), FileAccess.get_file_as_bytes(PATH), "same content")
+	_assert_not_in_file(CODE, "the file")
+	assert_false(FileAccess.get_file_as_string(BAK).replace(_salt(), "").replace(_digest(), "").contains(CODE),
+			"the backup holds no code in plain text")
+	_try(store, OTHER, 2, NOW, ParentStore.Result.WRONG)
+	assert_eq(FileAccess.get_file_as_bytes(BAK), FileAccess.get_file_as_bytes(PATH), "a try updates both")
+	for side in [PATH + ParentStore.SIDE_SUFFIX, BAK + ParentStore.SIDE_SUFFIX]:
+		assert_false(FileAccess.file_exists(side), "no side file %s left" % side)
+
+
+# @test-link [[req_parent_gate_and_access]]
+# @test-link [[req_denial_and_stepup_behavior]]
+func test_a_damaged_file_falls_back_to_the_backup_with_the_tries_and_the_wait() -> void:
+	var store := _store_with_code()
+	_try(store, OTHER, 5, NOW, ParentStore.Result.WRONG)
+	_put(PATH, _garbage())
+	var reopened := ParentStore.new(PATH)
+	assert_push_error("backup")
+	assert_false(reopened.is_locked())
+	assert_true(reopened.has_code())
+	assert_eq(reopened.wrong_tries(), 5, "the count from the backup")
+	assert_eq(reopened.wait_left_ms(NOW + 10000), 20000, "the wait's end from the backup")
+	assert_eq(reopened.try_code(CODE, NOW + 10000), ParentStore.Result.WAITING)
+	var after := NOW + ParentStore.WAIT_MS
+	assert_eq(reopened.try_code(CODE, after), ParentStore.Result.OK, "the code from the backup")
+	assert_eq(FileAccess.get_file_as_bytes(PATH), FileAccess.get_file_as_bytes(BAK), "the next write mends the file")
+	assert_eq(ParentStore.new(PATH).try_code(OTHER, after), ParentStore.Result.WRONG, "the file reads again")
+
+
+# @test-link [[req_parent_gate_and_access]]
+func test_a_missing_file_falls_back_to_the_backup() -> void:
+	var store := _store_with_code()
+	_try(store, OTHER, 2, NOW, ParentStore.Result.WRONG)
+	var backup := FileAccess.get_file_as_bytes(BAK)
+	_clear(DIR)
+	_put(BAK, backup)
+	var reopened := ParentStore.new(PATH)
+	assert_push_error("backup")
+	assert_true(reopened.has_code())
+	assert_eq(reopened.wrong_tries(), 2)
+	assert_eq(reopened.try_code(CODE, NOW), ParentStore.Result.OK)
+	assert_true(FileAccess.file_exists(PATH), "written again")
+
+
+# @test-link [[req_denial_and_stepup_behavior]]
+# @test-link [[req_parent_gate_and_access]]
+func test_both_damaged_lock_the_store_until_a_new_code() -> void:
+	_store_with_code()
+	_put(PATH, _garbage())
+	_put(BAK, "not json".to_utf8_buffer())
+	var store := ParentStore.new(PATH)
+	assert_push_error("locked")
+	assert_true(store.is_locked())
+	assert_true(store.has_code(), "a code exists: setup is never shown again")
+	_try(store, CODE, 4, NOW, ParentStore.Result.WRONG)
+	assert_eq(store.wait_left_ms(NOW), 0)
+	assert_eq(store.try_code(CODE, NOW), ParentStore.Result.WRONG, "the right old code is refused")
+	assert_eq(store.wait_left_ms(NOW), ParentStore.WAIT_MS, "the 5th wrong try in a row brings the wait")
+	assert_eq(store.try_code(CODE, NOW + 1000), ParentStore.Result.WAITING)
+	store.wait_left_ms(NOW - 3_600_000)
+	assert_eq(FileAccess.get_file_as_bytes(PATH), _garbage(), "the file is left byte-identical")
+	assert_eq(FileAccess.get_file_as_string(BAK), "not json", "the backup is left byte-identical")
+	store.set_code(OTHER)
+	assert_false(store.is_locked(), "a new code unlocks it")
+	assert_eq(store.wait_left_ms(NOW), 0)
+	assert_eq(store.try_code(OTHER, NOW), ParentStore.Result.OK)
+	assert_eq(FileAccess.get_file_as_bytes(BAK), FileAccess.get_file_as_bytes(PATH), "both written anew")
+	var reopened := ParentStore.new(PATH)
+	assert_false(reopened.is_locked())
+	assert_eq(reopened.try_code(OTHER, NOW), ParentStore.Result.OK, "the new code on disk")
+
+
+# @test-link [[req_denial_and_stepup_behavior]]
+func test_a_damaged_backup_without_the_file_locks_the_store() -> void:
+	_put(BAK, _garbage())
+	var store := ParentStore.new(PATH)
+	assert_push_error("locked")
+	assert_true(store.is_locked())
+	assert_true(store.has_code())
+	assert_false(FileAccess.file_exists(PATH), "nothing written")
+
+
+# @test-link [[req_parent_gate_and_access]]
+func test_a_side_file_left_by_a_kill_is_ignored_and_the_next_write_works() -> void:
+	var store := _store_with_code()
+	_try(store, OTHER, 1, NOW, ParentStore.Result.WRONG)
+	_put(PATH + ParentStore.SIDE_SUFFIX, _garbage())
+	_put(BAK + ParentStore.SIDE_SUFFIX, _garbage())
+	var reopened := ParentStore.new(PATH)
+	assert_false(reopened.is_locked())
+	assert_eq(reopened.wrong_tries(), 1, "loaded normally")
+	assert_eq(reopened.try_code(CODE, NOW), ParentStore.Result.OK)
+	assert_eq(ParentStore.new(PATH).wrong_tries(), 0, "the next write is on disk")
+	assert_eq(FileAccess.get_file_as_bytes(BAK), FileAccess.get_file_as_bytes(PATH))
+	for side in [PATH + ParentStore.SIDE_SUFFIX, BAK + ParentStore.SIDE_SUFFIX]:
+		assert_false(FileAccess.file_exists(side), "the side file %s was used and moved in" % side)
+
+
+## The salt in the file.
+func _salt() -> String:
+	return (JSON.parse_string(_raw()) as Dictionary)["code"]["salt"]
+
+
+## The hash in the file.
+func _digest() -> String:
+	return (JSON.parse_string(_raw()) as Dictionary)["code"]["hash"]

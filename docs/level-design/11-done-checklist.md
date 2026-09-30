@@ -11,8 +11,10 @@ skill runs most of it for you.
 - [ ] `project.godot` is unchanged (`git status`: nothing you didn't mean,
       [02](02-edit-in-the-editor.md)).
 - [ ] No throwaway `levels/zz-*` level or its test is left over.
-- [ ] The root's `level_id` is the folder's name; `level_version` is 1
-      until release.
+- [ ] The root's `level_id` is the folder's name; `level_version` stays
+      as scaffolded (1) until release. After release, raise it with every
+      content change so old saves are migrated (the test level is at 2 to
+      exercise migration; see docs/dev/README.md "Chunk 19").
 
 ## The rules
 

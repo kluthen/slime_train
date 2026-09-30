@@ -49,12 +49,19 @@ extends SceneTree
 ## grown loop; the stress fixtures fill section 3's bowl with the whole
 ## population (200 base slimes, no sleeper left), found by scanning the
 ## terrain for room (_bowl_spots).
+##
+## Chunk 19 (tools/make_fixture/persistence_fixtures.gd): midair has awake
+## slimes saved in mid-air; old-version is a save of the test level's
+## version 1 (its FIXTURES entry's "version": the save's header names it,
+## below the level's), with a sleeper where version 1 had it.
 # @spec-link [[req_test_level_and_test_mode]]
 # @spec-link [[req_persistence_and_saves]]
 
 const USAGE := "usage: tools/level.sh fixture [--level=<id>] [--list] [name ...]"
 ## The generic fixtures of a level other than the test level.
 const LevelFixtures := preload("res://tools/make_fixture/level_fixtures.gd")
+## The test level's persistence fixtures (chunk 19).
+const PersistenceFixtures := preload("res://tools/make_fixture/persistence_fixtures.gd")
 const S := LevelData.SCREEN
 ## The fusion dip's floor: its lowest point is at x 3.0 screens, y 240; a
 ## slime's centre rests above it.
@@ -133,7 +140,9 @@ const SETTLE_ROUNDS := 6
 const QUICK_REST_TICKS := 750
 
 ## name -> {"description", "camera" (a level point, or null), "build" (the
-## builder's name, or "" for no save: a fresh level)}.
+## builder's name, or "" for no save: a fresh level), and, only for a save
+## of an older version of the level, "version" (the version its header
+## names; the level's otherwise)}.
 const FIXTURES := {
 	"fresh": {"description": ("The test level as new: no save, the first slime woken at its marker "
 			+ "and every sleeper asleep at its own; the first-play hint is due."),
@@ -212,6 +221,10 @@ const FIXTURES := {
 			+ "on the bowl. The worst moving case: a measurement, not a target (chunk 16; "
 			+ "tools/bench_level.gd)."),
 			"camera": [BOWL_CAMERA.x, BOWL_CAMERA.y], "build": "_stress_moving"},
+	"midair": {"description": PersistenceFixtures.MIDAIR_DESCRIPTION, "camera": PersistenceFixtures.MIDAIR_CAMERA,
+			"build": "_midair"},
+	"old-version": {"description": PersistenceFixtures.OLD_VERSION_DESCRIPTION, "camera": null,
+			"build": "_old_version", "version": PersistenceFixtures.OLD_VERSION},
 }
 
 var _level_id := LevelCatalog.DEFAULT_ID
@@ -220,8 +233,8 @@ var _names := PackedStringArray()
 var _level: Level
 var _terrain: TerrainSegments
 ## The level's fixtures, in order: name -> {"description", "camera" ([x, y]
-## or null), "save" (bool)}; for a level other than the test level, also
-## "gates" (LevelFixtures.table).
+## or null), "save" (bool)}, and "version" when FIXTURES gives one; for a
+## level other than the test level, also "gates" (LevelFixtures.table).
 var _fixtures := {}
 
 
@@ -290,7 +303,8 @@ func _load_level() -> String:
 
 
 ## The level's fixtures: the test level's table (FIXTURES), or the generic
-## ones (LevelFixtures). Returns "" or the problem.
+## ones (LevelFixtures). Returns "" or the problem (a fixture's "version"
+## not below the level's).
 func _make_table() -> String:
 	if _level_id != LevelCatalog.DEFAULT_ID:
 		var table := LevelFixtures.table(_level.data)
@@ -300,11 +314,17 @@ func _make_table() -> String:
 		var fixture: Dictionary = FIXTURES[name]
 		_fixtures[name] = {"description": fixture["description"], "camera": fixture["camera"],
 				"save": fixture["build"] != ""}
+		if fixture.has("version"):
+			if int(fixture["version"]) >= _level.data.level_version:
+				return "fixture '%s' is a save of version %d, not older than the level's %d" % [name,
+						fixture["version"], _level.data.level_version]
+			_fixtures[name]["version"] = fixture["version"]
 	return ""
 
 
-## Writes fixture `name`: its save (built, cut down, loaded back) when it
-## has one, then its sidecar. Returns "" or the problem.
+## Writes fixture `name`: its save (built, cut down, its header at the
+## fixture's "version" if it has one, loaded back) when it has one, then
+## its sidecar. Returns "" or the problem.
 func _write(name: String, fixture: Dictionary) -> String:
 	var sidecar := {"description": fixture["description"], "save": fixture["save"]}
 	if fixture["camera"] != null:
@@ -315,12 +335,19 @@ func _write(name: String, fixture: Dictionary) -> String:
 		if sim == null:
 			return "fixture '%s' could not be built%s" % [name, ": " + built["error"] if built["error"] != "" else ""]
 		var save := SaveData.readable(sim.to_save())
+		if fixture.has("version"):
+			save["level"]["version"] = fixture["version"]
 		var check := Simulation.from_save(save, _level.data, _terrain, 1)
 		if check == null:
 			return "fixture '%s' doesn't load back: %s" % [name, "; ".join(SaveData.problems(save, _level.data))]
 		var error := SaveStore.write_file(TestMode.fixture_path(name, _level_id), save)
 		if error != "":
 			return error
+		# write_file keeps the file it replaced as a backup (chunk 19); a
+		# fixture needs none (git keeps its history), so none is left beside it.
+		var backup := TestMode.fixture_path(name, _level_id) + SaveStore.BACKUP_SUFFIX
+		if FileAccess.file_exists(backup) and DirAccess.remove_absolute(ProjectSettings.globalize_path(backup)) != OK:
+			return "can't remove %s" % backup
 	var path := TestMode.sidecar_path(name, _level_id)
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
@@ -795,6 +822,20 @@ func _move_first_slime(sim: Simulation, near: Vector2) -> void:
 	var first := sim.spawn_train_slime(Species.from_letter(_level.data.first_slime["species"]), 1,
 			_level.data.loop.closest(near, sim.train.open_gates)["distance"])
 	sim.identities.assign(first, PackedStringArray([_level.data.first_slime["id"]]))
+
+
+## midair: the fresh level with section 1's first sleepers woken in mid-air
+## (PersistenceFixtures.midair).
+func _midair() -> Simulation:
+	var sim := _fresh_level()
+	return sim if PersistenceFixtures.midair(sim, _level.data, _terrain) else null
+
+
+## old-version: the fresh level with one sleeper where version 1 had it
+## (PersistenceFixtures.old_version); _write gives it version 1's header.
+func _old_version() -> Simulation:
+	var sim := _fresh_level()
+	return sim if PersistenceFixtures.old_version(sim, _level.data, _terrain) else null
 
 
 ## wind-down: a session started on the fresh level, 14:50 in.

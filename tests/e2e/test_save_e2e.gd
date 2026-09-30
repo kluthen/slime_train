@@ -183,6 +183,10 @@ func test_a_game_without_a_store_never_writes() -> void:
 	assert_ne(game.save_now(), "")
 
 
+## Chunk 19 (decision A, proposed): with no backup, the unreadable file is
+## set aside with its bytes intact, never written over, and the fresh level
+## saves again.
+# @test-link [[rule_saves_never_wiped]]
 func test_an_unreadable_save_starts_fresh_and_is_never_written_over() -> void:
 	DirAccess.make_dir_recursive_absolute(DIR)
 	var corrupt := "{\"format\": 1, \"slimes\": [ truncated"
@@ -193,12 +197,42 @@ func test_an_unreadable_save_starts_fresh_and_is_never_written_over() -> void:
 	assert_eq(game.simulation.tick, 0, "fresh")
 	assert_eq(game.simulation.slimes.slime_count, 1 + game.level.data.sleepers.size(),
 			"the first slime and the sleepers")
-	assert_ne(game.save_now(), "", "refused")
+	var aside := DIR + "test.json" + SaveStore.SET_ASIDE_SUFFIX
+	assert_eq(FileAccess.get_file_as_string(aside), corrupt, "set aside, untouched")
+	assert_eq(game.save_now(), "", "the fresh level saves")
 	game.notification(Node.NOTIFICATION_APPLICATION_FOCUS_OUT)
-	assert_eq(FileAccess.get_file_as_string(DIR + "test.json"), corrupt, "untouched")
+	assert_eq(SaveStore.read_file(DIR + "test.json")["status"], SaveStore.OK)
+	assert_eq(FileAccess.get_file_as_string(aside), corrupt, "never written over")
 
 
-func test_a_save_of_another_level_version_is_not_loaded_nor_written_over() -> void:
+## Chunk 19 (decision C, proposed): a save of an older version of the level
+## is migrated and loaded; the file as it was is kept as <level>.json.v<old
+## version> before anything is written, and the next save is at the level's
+## version.
+# @test-link [[rule_released_level_stable_with_migration]]
+# @test-link [[rule_saves_never_wiped]]
+func test_a_save_of_an_older_level_version_is_migrated_and_its_file_kept() -> void:
+	var store := SaveStore.new(DIR)
+	var played := _played_and_saved(store)
+	var version: int = played.level.data.level_version
+	var save: Dictionary = store.read(LEVEL)["save"]
+	save["level"]["version"] = version - 1
+	assert_eq(SaveStore.write_file(store.path_for(LEVEL), save), "")
+	var before := FileAccess.get_file_as_bytes(store.path_for(LEVEL))
+	var game := _game(SaveStore.new(DIR))
+	assert_eq(game.simulation.tick, SAVE_TICK, "loaded, not fresh")
+	assert_eq(game.simulation.slimes.slime_count, played.simulation.slimes.slime_count, "every slime")
+	var copy := store.path_for(LEVEL) + ".v%d" % (version - 1)
+	assert_eq(FileAccess.get_file_as_bytes(copy), before, "the pre-migration file kept, byte for byte")
+	assert_eq(game.save_now(), "", "the migrated save is written")
+	assert_eq(int(store.read(LEVEL)["save"]["level"]["version"]), version, "at the level's version")
+	assert_eq(FileAccess.get_file_as_bytes(copy), before, "the copy stays")
+
+
+## A save of a newer version of the level (a newer game) can't be read: it
+## is kept as it is, and nothing is written over it (the level plays fresh).
+# @test-link [[rule_saves_never_wiped]]
+func test_a_save_of_a_newer_level_version_is_not_loaded_nor_written_over() -> void:
 	var store := SaveStore.new(DIR)
 	_played_and_saved(store)
 	var save: Dictionary = store.read(LEVEL)["save"]
@@ -206,7 +240,7 @@ func test_a_save_of_another_level_version_is_not_loaded_nor_written_over() -> vo
 	assert_eq(SaveStore.write_file(store.path_for(LEVEL), save), "")
 	var before := FileAccess.get_file_as_bytes(store.path_for(LEVEL))
 	var game := _game(SaveStore.new(DIR))
-	assert_eq(game.simulation.tick, 0, "fresh: migration comes with chunk 19")
+	assert_eq(game.simulation.tick, 0, "fresh")
 	assert_ne(game.save_now(), "", "refused")
 	assert_eq(FileAccess.get_file_as_bytes(store.path_for(LEVEL)), before, "untouched")
 

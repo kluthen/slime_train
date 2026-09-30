@@ -3,7 +3,9 @@ extends RefCounted
 ## The save format: a simulation as plain JSON data and back (pure logic, no
 ## files; SaveStore writes them). Simulation.to_save() and
 ## Simulation.from_save() use it. A reloaded save has the same state hash as
-## the simulation saved, and stays equal to it tick after tick.
+## the simulation saved, and stays equal to it tick after tick, unless a
+## slime was saved in mid-air: on load it is put on the ground below it, or
+## lost (MidairLanding, D12).
 ##
 ## Format 1 (see docs/dev/README.md, "Saves and fixtures"):
 ##
@@ -256,8 +258,11 @@ static func _typed_values(data: Dictionary) -> Dictionary:
 # --- Checking ------------------------------------------------------------------
 
 ## What makes `save` unusable with `level_data` (empty: it can be loaded).
-## A save of another level version is refused: migrating it comes with
-## chunk 19, and until then it is kept untouched.
+## A save of an older version of the level is usable: restore() migrates it
+## (SaveMigration, chunk 19, decision C). A save of a newer version (a newer
+## game's) is refused, and kept untouched (rule_saves_never_wiped).
+# @spec-link [[rule_released_level_stable_with_migration]]
+# @spec-link [[rule_saves_never_wiped]]
 static func problems(save: Variant, level_data: LevelData) -> PackedStringArray:
 	var out := PackedStringArray()
 	if typeof(save) != TYPE_DICTIONARY:
@@ -278,9 +283,11 @@ static func problems(save: Variant, level_data: LevelData) -> PackedStringArray:
 		if str(header.get("id", "")) != level_data.level_id:
 			out.append("saved for level '%s', not '%s'" % [header.get("id", ""), level_data.level_id])
 		var version: Variant = _whole(header.get("version"))
-		if version != level_data.level_version:
-			out.append("saved for version %s of level '%s', which is at version %d (migration: chunk 19)"
-					% [header.get("version"), level_data.level_id, level_data.level_version])
+		if version == null:
+			out.append("no level version (a whole number)")
+		elif version > level_data.level_version:
+			out.append("saved by a newer version of level '%s' (%d), which is at version %d in this game"
+					% [level_data.level_id, version, level_data.level_version])
 	var sim: Variant = save.get("sim", {})
 	if typeof(sim) != TYPE_DICTIONARY:
 		out.append("'sim' must be a dictionary")
@@ -402,10 +409,23 @@ static func _slime_problems(slimes: Array) -> PackedStringArray:
 
 ## The simulation saved in `save`, on `level_data` and `terrain`, or null
 ## when problems() finds any. `fallback_seed` is used when the save has none.
+## A save of an older version of the level is migrated first (SaveMigration;
+## `save` itself is left as it is), and its displaced slimes are lost once
+## the rest is restored. Last, no slime is left in mid-air (MidairLanding:
+## put on the ground below, or lost), so a slime saved in the air doesn't
+## reload exactly.
+# @spec-link [[req_persistence_and_saves]]
+# @spec-link [[rule_released_level_stable_with_migration]]
+# @spec-link [[rule_saves_never_wiped]]
 static func restore(save: Dictionary, level_data: LevelData, terrain: TerrainSegments,
 		fallback_seed: int) -> Simulation:
 	if not problems(save, level_data).is_empty():
 		return null
+	var displaced := PackedInt32Array()
+	if SaveMigration.is_older(save, level_data):
+		var migrated := SaveMigration.migrate(save, level_data, terrain)
+		save = migrated["save"]
+		displaced = migrated["displaced"]
 	var saved_sim: Dictionary = save.get("sim", {})
 	var seed_value := str(saved_sim["seed"]).to_int() if saved_sim.has("seed") else fallback_seed
 	var sim := Simulation.new(seed_value)
@@ -471,6 +491,14 @@ static func restore(save: Dictionary, level_data: LevelData, terrain: TerrainSeg
 		_restore_offscreen(sim, save["offscreen"])
 	if save.get("stuck_slimes") is Dictionary:
 		sim.stuck_slimes.restore(save["stuck_slimes"])
+	# After the Offscreen state: it replaces the lost log that losing adds to.
+	# The slimes a migration displaced are lost before the mid-air rule, so
+	# each is lost once: MidairLanding then sees it at the loop start (and
+	# puts it down there if it is in the air), never inside the terrain or
+	# outside the level where it was saved.
+	for slime_id in displaced:
+		sim.offscreen.lose(sim, slime_id)
+	MidairLanding.apply(sim)
 	sim.hint.update(sim.tick)
 	return sim
 

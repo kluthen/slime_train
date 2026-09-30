@@ -111,6 +111,8 @@ func test_the_hops_still_due_are_saved_and_hashed() -> void:
 		sim.step()
 	sim.step()
 	assert_false(sim.frontier.dump()["celebration_hops"].is_empty(), "hops still due")
+	# (D12, chunk 19: a load puts mid-air slimes down)
+	MidairLanding.apply(sim)
 	var text := JSON.stringify(sim.to_save(), "", true, true)
 	var again := Simulation.from_save(JSON.parse_string(text), F.level(), sim.slimes.terrain, 9)
 	again.view.set_to(sim.view.centre, sim.view.zoom, sim.view.screen_size)

@@ -88,6 +88,25 @@ func depth(point: Vector2) -> float:
 	return hit["distance"] if hit["hit"] else 0.0
 
 
+## Whether `point` lies inside the solid terrain, however deep (depth() and
+## resolve() only see MARGIN in). Counts the outlines crossed by a ray from
+## `point` to the right: each crossing out of a solid (outward normal
+## pointing right) adds one, each crossing into one takes one away, so the
+## sum is how many outlines hold `point`, whatever their winding. Tests
+## every segment: for loading a save (SaveMigration), not for every tick.
+func is_solid(point: Vector2) -> bool:
+	var depth_count := 0
+	for k in segment_count():
+		var a := seg_a[k]
+		var b := seg_b[k]
+		if (a.y > point.y) == (b.y > point.y):
+			continue
+		var x := a.x + (point.y - a.y) * (b.x - a.x) / (b.y - a.y)
+		if x > point.x:
+			depth_count += 1 if seg_n[k].x > 0.0 else -1
+	return depth_count > 0
+
+
 ## The index of the segment nearest `point` among those listed in its cell,
 ## or -1. Ties go to the segment listed first.
 func nearest_segment(point: Vector2) -> int:

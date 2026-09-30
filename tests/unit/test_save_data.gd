@@ -69,6 +69,15 @@ func _played() -> Simulation:
 	return sim
 
 
+## The played story with every slime put on the ground as a load does it
+## (MidairLanding: a slime is mid-hop at tick 260), so its save reloads
+## exactly (test_midair_load.gd tests a save taken in mid-air).
+func _played_on_the_ground() -> Simulation:
+	var sim := _played()
+	MidairLanding.apply(sim)
+	return sim
+
+
 ## `save` through JSON text and back, as the save file does it.
 func _through_json(save: Dictionary) -> Dictionary:
 	var json := JSON.new()
@@ -96,7 +105,7 @@ func test_the_played_story_has_free_split_and_tilted_slimes() -> void:
 
 
 func test_a_save_reloads_with_the_same_hash() -> void:
-	var sim := _played()
+	var sim := _played_on_the_ground()
 	var reloaded := _reloaded(_through_json(sim.to_save()))
 	assert_not_null(reloaded)
 	if reloaded == null:
@@ -106,7 +115,7 @@ func test_a_save_reloads_with_the_same_hash() -> void:
 
 
 func test_a_reloaded_save_stays_equal_after_more_ticks() -> void:
-	var sim := _played()
+	var sim := _played_on_the_ground()
 	var reloaded := _reloaded(_through_json(sim.to_save()))
 	assert_not_null(reloaded)
 	if reloaded == null:
@@ -118,7 +127,7 @@ func test_a_reloaded_save_stays_equal_after_more_ticks() -> void:
 
 
 func test_a_save_without_json_reloads_too() -> void:
-	var sim := _played()
+	var sim := _played_on_the_ground()
 	var reloaded := _reloaded(sim.to_save())
 	assert_not_null(reloaded)
 	if reloaded != null:
@@ -126,7 +135,7 @@ func test_a_save_without_json_reloads_too() -> void:
 
 
 func test_a_save_of_a_save_is_the_same_text() -> void:
-	var save := _played().to_save()
+	var save := _played_on_the_ground().to_save()
 	var again := _reloaded(_through_json(save)).to_save()
 	assert_eq(SaveData.to_text(again), SaveData.to_text(save))
 
@@ -179,7 +188,7 @@ func test_objects_and_gates_are_empty_for_now() -> void:
 
 
 func test_object_and_gate_states_round_trip() -> void:
-	var sim := _played()
+	var sim := _played_on_the_ground()
 	# JSON reads every number back as a float: chunk 14 gives object states
 	# their types. Until then, values that JSON keeps as they are.
 	sim.object_states["s1.basket"] = {"fill": 0.5, "shape": "round"}
@@ -265,7 +274,8 @@ func test_a_good_save_has_no_problems() -> void:
 func test_problems_that_make_a_save_unusable() -> void:
 	var cases := {
 		"another level": func(s: Dictionary) -> void: s["level"]["id"] = "other",
-		"another version": func(s: Dictionary) -> void: s["level"]["version"] = 2,
+		"a newer level version": func(s: Dictionary) -> void: s["level"]["version"] = LEVEL_VERSION + 1,
+		"no level version": func(s: Dictionary) -> void: s["level"].erase("version"),
 		"a newer format": func(s: Dictionary) -> void: s["format"] = SaveData.FORMAT + 1,
 		"no format": func(s: Dictionary) -> void: s.erase("format"),
 		"no slimes": func(s: Dictionary) -> void: s["slimes"] = [],
@@ -281,6 +291,20 @@ func test_problems_that_make_a_save_unusable() -> void:
 		cases[label].call(save)
 		assert_ne(SaveData.problems(save, _level()), PackedStringArray(), label)
 		assert_null(Simulation.from_save(save, _level(), _terrain(), 1), label + ": not loaded")
+
+
+## Chunk 19 (decision C, proposed): a save of an older level version is
+## migrated (SaveMigration, tests/unit/test_save_migration.gd), so it has no
+## problems; a newer one is refused above.
+# @test-link [[rule_released_level_stable_with_migration]]
+func test_a_save_of_an_older_level_version_is_accepted() -> void:
+	var save := _hand_made()
+	save["level"]["version"] = LEVEL_VERSION - 1
+	assert_eq(SaveData.problems(save, _level()), PackedStringArray())
+	var sim := Simulation.from_save(save, _level(), _terrain(), 1)
+	assert_not_null(sim, "loaded")
+	if sim != null:
+		assert_eq(sim.to_save()["level"]["version"], LEVEL_VERSION, "at the level's version now")
 
 
 func test_runtime_ids_must_be_given_for_all_slimes_or_none() -> void:

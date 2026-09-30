@@ -486,8 +486,11 @@ func _use_level(opened: Level) -> void:
 
 
 ## Normal play: starts from the level's save if there is a usable one (else
-## the fresh simulation stays), then turns autosave on. A save that can't be
-## used is kept as it is and blocked from being written over.
+## the fresh simulation stays), then turns autosave on. The store falls back
+## on the backup and sets unreadable files aside (SaveStore.read), which is
+## said on the error output. A save that can't be used is kept as it is and
+## blocked from being written over. A save of an older level version is
+## migrated as it loads, its file kept first (_keep_pre_migration).
 # @spec-link [[req_persistence_and_saves]]
 # @spec-link [[rule_saves_never_wiped]]
 func _resume_play() -> void:
@@ -497,17 +500,45 @@ func _resume_play() -> void:
 	var result := save_store.read(level_id)
 	if result["status"] == SaveStore.UNREADABLE:
 		printerr("Save: ", result["error"], " Starting fresh; it won't be written over.")
-	elif result["status"] == SaveStore.OK:
+	elif result["status"] == SaveStore.FRESH and not result["set_aside"].is_empty():
+		printerr("Save: ", result["error"], " Nothing could be read: starting fresh.")
+	elif result["status"] == SaveStore.OK and result["error"] != "":
+		printerr("Save: ", result["error"])
+	if result["status"] == SaveStore.OK:
 		var problems := SaveData.problems(result["save"], level.data)
 		if problems.is_empty():
+			if SaveMigration.is_older(result["save"], level.data):
+				_keep_pre_migration(result)
 			_use_simulation(Simulation.from_save(result["save"], level.data, _terrain, simulation.rng.seed_value))
 		else:
 			var reason := "; ".join(problems)
+			var used := save_store.path_for(level_id)
+			if result["source"] == SaveStore.SOURCE_BACKUP:
+				used += SaveStore.BACKUP_SUFFIX
 			save_store.block(level_id, reason)
 			printerr("Save: %s can't be used (%s). Starting fresh; it won't be written over."
-					% [save_store.path_for(level_id), reason])
+					% [used, reason])
 	autosave.enabled = true
 	autosave.start(_now())
+
+
+## Before a save of an older level version is loaded (and so migrated,
+## SaveMigration) and later written at the level's version: keeps the file
+## it was read from as it is (SaveStore.keep_version_copy), and says so on
+## the error output. A copy that fails blocks the level's writes (the
+## store does), so the old save is never written over.
+# @spec-link [[rule_released_level_stable_with_migration]]
+# @spec-link [[rule_saves_never_wiped]]
+func _keep_pre_migration(result: Dictionary) -> void:
+	var level_id := level.data.level_id
+	var old_version := int(result["save"]["level"]["version"])
+	var kept := save_store.keep_version_copy(level_id, old_version, result["source"])
+	var migrating := "Save: level '%s' was saved by its version %d and is at version %d: migrating it." % [
+			level_id, old_version, level.data.level_version]
+	if kept["error"] != "":
+		printerr(migrating, " ", kept["error"])
+	else:
+		printerr(migrating, " The file as it was is kept as ", kept["path"], ".")
 
 
 ## Adds the debug overlay (src/debug/debug_overlay.gd) on its own layer, if

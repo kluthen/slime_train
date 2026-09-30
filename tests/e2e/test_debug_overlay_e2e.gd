@@ -142,8 +142,12 @@ func test_reset_twice_within_2s_starts_over_and_replaces_the_save() -> void:
 	var after := SaveStore.read_file(store.path_for(LEVEL))
 	assert_eq(after["status"], SaveStore.OK, "the save is still there")
 	assert_eq(int(after["save"]["sim"]["tick"]), 0, "written over with the fresh level")
+	# Both sides go through a load: a load puts mid-air slimes down (D12,
+	# chunk 19), and the live fresh level, not yet ticked, has no slime
+	# marked as supported.
 	var restored := Simulation.from_save(after["save"], game.level.data, game._terrain)
-	assert_eq(restored.state_hash(), sim.state_hash(), "the save holds the fresh level")
+	var fresh := Simulation.from_save(sim.to_save(), game.level.data, game._terrain)
+	assert_eq(restored.state_hash(), fresh.state_hash(), "the save holds the fresh level")
 	assert_eq(overlay.reset_button.text, DebugOverlay.RESET_TEXT)
 
 
@@ -179,17 +183,23 @@ func test_reset_in_test_mode_opens_sessions_only_when_the_run_has_them() -> void
 		assert_eq(game.simulation.session.enabled, sessions, "sessions: %s" % sessions)
 
 func test_reset_never_writes_over_a_blocked_save() -> void:
+	# A save of a newer level version: the game blocks it (an unreadable
+	# file is set aside instead since chunk 19, so it no longer blocks).
 	var store := SaveStore.new(DIR)
+	var newer := JSON.stringify({"format": SaveData.FORMAT, "level": {"id": LEVEL, "version": 999},
+			"sim": {"tick": 5}, "slimes": [{"species": "A", "size": 1, "state": "train", "centre": [10, 20]}],
+			"objects": {}, "gates": {}})
 	DirAccess.make_dir_recursive_absolute(DIR)
 	var file := FileAccess.open(store.path_for(LEVEL), FileAccess.WRITE)
-	file.store_string("not json")
+	file.store_string(newer)
 	file.close()
 	var game := _game(store)
+	assert_false(store.can_write(LEVEL), "blocked")
 	var overlay: Node = game.debug_overlay
 	overlay.press_reset(0)
 	overlay.press_reset(1)
 	assert_eq(game.simulation.tick, 0)
-	assert_eq(FileAccess.get_file_as_string(store.path_for(LEVEL)), "not json", "kept as it is")
+	assert_eq(FileAccess.get_file_as_string(store.path_for(LEVEL)), newer, "kept as it is")
 	assert_string_contains(overlay.status, "save not written")
 
 

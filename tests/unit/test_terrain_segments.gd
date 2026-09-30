@@ -25,6 +25,22 @@ func test_normals_point_out_of_the_solid_whatever_the_winding() -> void:
 					"segment %d's normal points into the block (reverse=%s)" % [i, reverse])
 
 
+## Chunk 19 (SaveMigration): inside or not, however deep, whatever the
+## winding; two outlines one inside the other are both solid.
+func test_is_solid_sees_points_deep_inside() -> void:
+	for reverse in [false, true]:
+		var terrain := _block(reverse)
+		assert_true(terrain.is_solid(Vector2(0, 25)), "25 px deep, beyond MARGIN")
+		assert_true(terrain.is_solid(Vector2(-99, 1)), "just inside a corner")
+		assert_false(terrain.is_solid(Vector2(0, -1)), "just above")
+		assert_false(terrain.is_solid(Vector2(150, 25)), "beside it")
+		assert_false(terrain.is_solid(Vector2(-150, 25)), "on the other side")
+	var nested := TerrainSegments.new([PackedVector2Array(BLOCK),
+			PackedVector2Array([Vector2(-10, 10), Vector2(-10, 40), Vector2(10, 40), Vector2(10, 10)])])
+	assert_true(nested.is_solid(Vector2(0, 25)), "inside both")
+	assert_true(nested.is_solid(Vector2(-50, 25)), "inside the outer one only")
+
+
 func test_a_point_inside_is_pushed_to_the_nearest_surface() -> void:
 	var terrain := _block()
 	var hit := terrain.resolve(Vector2(10, 6))

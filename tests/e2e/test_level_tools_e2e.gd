@@ -211,7 +211,7 @@ func test_the_report_on_the_test_level() -> void:
 	var run := _run(LEVEL_REPORT, [])
 	var text: String = run["text"]
 	assert_eq(run["code"], 0, text)
-	assert_string_contains(text, "level_report: level test (version 1), 3 sections, 200 base slimes, first slime A")
+	assert_string_contains(text, "level_report: level test (version 2), 3 sections, 200 base slimes, first slime A")
 	assert_string_contains(text, "base slimes: 200 of at most 200 (rule 16): PASS")
 	assert_string_contains(text, "species per section (rule 11: section 1 has 3, each later section adds 1): "
 			+ "section 1: A, B, C; section 2 adds D; section 3 adds E: PASS")

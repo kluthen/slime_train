@@ -1,0 +1,8 @@
+{
+	"description": "The fresh level with four size-1 train slimes saved in mid-air over section 1's ground, made of section 1's first four sleepers (in stable ID order): one just above the ground (4 px), one well above it (150 px), one a little above it (30 px) and one 80 px above that one. A fixture keeps only their centres: loaded, each is put straight down on what is below it, at rest, none lost (D12). The camera on them. For persistence (chunk 19, DoD 28).",
+	"save": true,
+	"camera": [
+		1825.0,
+		-150.0
+	]
+}

@@ -13,18 +13,18 @@
 	"hint_done": false,
 	"level": {
 		"id": "test",
-		"version": 2
+		"version": 1
 	},
 	"objects": {
 		"s1.basket": {
 			"next_release": 0,
 			"phase": "filling",
 			"since": -1,
-			"weight": 5
+			"weight": 0
 		},
 		"s1.switch": {
-			"flipped": true,
-			"trapdoor_shut": false
+			"flipped": false,
+			"trapdoor_shut": true
 		},
 		"s2.basket": {
 			"next_release": 0,
@@ -48,6 +48,22 @@
 		}
 	},
 	"slimes": [
+		{
+			"centre": [
+				218.88,
+				476.0
+			],
+			"id": "start.first-slime",
+			"members": [
+				"start.first-slime"
+			],
+			"size": 1,
+			"species": "A",
+			"state": "train",
+			"train": {
+				"distance": 0.0
+			}
+		},
 		{
 			"centre": [
 				529.92,
@@ -76,8 +92,8 @@
 		},
 		{
 			"centre": [
-				1428.48,
-				-188.0
+				1525.0,
+				0.0
 			],
 			"id": "s1.sleeper.03",
 			"members": [
@@ -358,6 +374,71 @@
 			],
 			"size": 1,
 			"species": "A",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				7200.0,
+				-344.0
+			],
+			"id": "s1.sleeper.25",
+			"members": [
+				"s1.sleeper.25"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				7292.16,
+				-344.0
+			],
+			"id": "s1.sleeper.26",
+			"members": [
+				"s1.sleeper.26"
+			],
+			"size": 1,
+			"species": "B",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				7545.6,
+				-384.0
+			],
+			"id": "s1.sleeper.27",
+			"members": [
+				"s1.sleeper.27"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				7626.24,
+				-384.0
+			],
+			"id": "s1.sleeper.28",
+			"members": [
+				"s1.sleeper.28"
+			],
+			"size": 1,
+			"species": "C",
+			"state": "sleeper"
+		},
+		{
+			"centre": [
+				7706.88,
+				-384.0
+			],
+			"id": "s1.sleeper.29",
+			"members": [
+				"s1.sleeper.29"
+			],
+			"size": 1,
+			"species": "C",
 			"state": "sleeper"
 		},
 		{
@@ -2569,51 +2650,6 @@
 			"size": 1,
 			"species": "C",
 			"state": "sleeper"
-		},
-		{
-			"centre": [
-				7888.4800000000005,
-				60.63
-			],
-			"id": "s1.sleeper.27",
-			"members": [
-				"s1.sleeper.27",
-				"s1.sleeper.28",
-				"s1.sleeper.29"
-			],
-			"size": 3,
-			"species": "C",
-			"state": "in_basket"
-		},
-		{
-			"centre": [
-				7997.6,
-				67.3
-			],
-			"id": "s1.sleeper.25",
-			"members": [
-				"s1.sleeper.25",
-				"s1.sleeper.26"
-			],
-			"size": 2,
-			"species": "B",
-			"state": "in_basket"
-		},
-		{
-			"centre": [
-				7257.6,
-				-124.0
-			],
-			"id": "start.first-slime",
-			"members": [
-				"start.first-slime"
-			],
-			"size": 1,
-			"species": "A",
-			"state": "train",
-			"train": {
-				"distance": 7338.85
-			}
 		}
 	]
 }

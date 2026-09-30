@@ -151,6 +151,8 @@ func test_the_done_mark_survives_a_save_round_trip() -> void:
 func test_a_save_without_the_done_mark_is_due_and_keeps_its_count() -> void:
 	var sim := _sim()
 	sim.run(300)
+	# (D12, chunk 19: a load puts mid-air slimes down)
+	MidairLanding.apply(sim)
 	var again := _round_trip(sim)
 	assert_false(again.hint.done)
 	assert_eq(again.hint.since, sim.hint.since, "the count restored exactly")

@@ -428,6 +428,8 @@ func test_a_session_reloads_with_the_same_hash_and_carries_on() -> void:
 	var sim := _in_session()
 	_step_at(sim, Session.WIND_DOWN_MS + 10_000)
 	sim.run(30)
+	# (D12, chunk 19: a load puts mid-air slimes down)
+	MidairLanding.apply(sim)
 	var reloaded := _reloaded(sim)
 	assert_eq(reloaded.state_hash(), sim.state_hash())
 	assert_eq(reloaded.session.dump(), sim.session.dump())

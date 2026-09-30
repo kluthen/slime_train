@@ -573,7 +573,7 @@ func test_the_command_line_checks_the_test_level() -> void:
 		if RegEx.create_from_string("^rule \\d+ +(PASS|FAIL|MANUAL|N/A) ").search(line) != null:
 			rule_lines += 1
 	assert_eq(rule_lines, 22, run["text"])
-	assert_true(run["text"].contains("check_level: level test (version 1): 3 sections, 200 base slimes"), run["text"])
+	assert_true(run["text"].contains("check_level: level test (version 2): 3 sections, 200 base slimes"), run["text"])
 	assert_true(run["text"].contains("load     PASS    The level loads"), run["text"])
 	assert_true(run["text"].contains("rule 1   PASS    "), run["text"])
 	assert_true(run["text"].contains("(fast: behaviour skipped)"), run["text"])

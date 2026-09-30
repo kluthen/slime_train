@@ -9,7 +9,9 @@ extends GutTest
 ## section 3's bowl, a pile that comes to rest); `stress-moving` has all 200
 ## as train slimes in the bowl (chunk 16). Every fixture in the directory
 ## loads, and none is older than the level (chunk LD3: its save holds every
-## slime of the level, its sleepers where the level has them).
+## slime of the level, its sleepers where the level has them), but
+## old-version, older on purpose. midair and old-version (chunk 19) are
+## tested in tests/e2e/test_persistence_e2e.gd.
 
 # @test-link [[req_test_level_and_test_mode]]
 # @test-link [[req_persistence_and_saves]]
@@ -35,6 +37,11 @@ const BOWL_RIGHT := 15.4 * S
 ## make_fixture measured 670 (490 before chunk 16d's terrain corner fix);
 ## the rest is margin.
 const PILE_RESTS_WITHIN := 900
+## The fixtures older than the level on purpose, exempt from
+## test_no_fixture_is_older_than_the_level: old-version is a save of the
+## test level's version 1 with a sleeper where version 1 had it, to test the
+## save migration (chunk 19; tests/e2e/test_persistence_e2e.gd).
+const OLDER_ON_PURPOSE := ["old-version"]
 ## The fixture maker's generic fixtures, and stale() (chunk LD3).
 const LEVEL_FIXTURES := preload("res://tools/make_fixture/level_fixtures.gd")
 
@@ -196,7 +203,8 @@ func test_stress_moving_has_200_train_slimes_in_the_bowl() -> void:
 
 
 ## Chunk LD3: a fixture saved before the level changed still loads, without
-## what the level gained since; LevelFixtures.stale() says so.
+## what the level gained since; LevelFixtures.stale() says so. Exempt:
+## OLDER_ON_PURPOSE, older by design.
 func test_no_fixture_is_older_than_the_level() -> void:
 	var level: Level = load(LevelCatalog.scene_path(LevelCatalog.DEFAULT_ID)).instantiate()
 	add_child_autofree(level)
@@ -206,7 +214,10 @@ func test_no_fixture_is_older_than_the_level() -> void:
 		var name := file.trim_suffix(TestMode.SIDECAR_EXTENSION)
 		var loaded := TestMode.load_fixture(name)
 		assert_true(loaded["ok"], "%s: %s" % [name, loaded["error"]])
-		if loaded["ok"] and not loaded["save"].is_empty():
+		if name in OLDER_ON_PURPOSE and loaded["ok"]:
+			assert_lt(int(loaded["save"]["level"]["version"]), level.level_version,
+					"%s is a save of an older version of the level" % name)
+		elif loaded["ok"] and not loaded["save"].is_empty():
 			var stale := LEVEL_FIXTURES.stale(loaded["save"], level.data)
 			assert_eq(stale, PackedStringArray(), "fixture %s is older than the level: rerun " % name
 					+ "tools/level.sh fixture %s (%s)" % [name, "; ".join(stale)])
@@ -219,7 +230,7 @@ func test_every_fixture_loads() -> void:
 			names.append(file.trim_suffix(TestMode.SIDECAR_EXTENSION))
 	assert_true("fresh" in names)
 	assert_true("bump" in names)
-	for name in ["gate1-open", "gate2-open", "stress-still", "stress-moving"]:
+	for name in ["gate1-open", "gate2-open", "stress-still", "stress-moving", "midair", "old-version"]:
 		assert_true(name in names, name)
 	for name in names:
 		var game: Node = load(MAIN_SCENE).instantiate()

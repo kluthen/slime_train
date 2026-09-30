@@ -117,7 +117,7 @@ A `load` line comes first: the level's load errors (other than stable-ID
 ones, which are rule 20's). Output:
 
 ```
-check_level: level test (version 1): 3 sections, 200 base slimes
+check_level: level test (version 2): 3 sections, 200 base slimes
 load     PASS    The level loads
 rule 1   PASS    The loop can be travelled with no input at all
          note: ...
@@ -331,7 +331,11 @@ writes the test level's.
 
 - **The test level:** its own table of fixtures and builders, as before
   (their output is byte-identical to the committed files); opening gates
-  goes through `LevelStates.open_gates`.
+  goes through `LevelStates.open_gates`. Since chunk 19 it also has
+  `midair` and `old-version` (`tools/make_fixture/persistence_fixtures.gd`;
+  see [README.md](README.md), "Fixtures"). A `FIXTURES` entry may give a
+  `"version"` below the level's: its save's header names that version
+  (`old-version`: 1), and the tool refuses one that isn't older.
 - **Any other level** (`tools/make_fixture/level_fixtures.gd`): `fresh`
   (no save), and `gate<k>-open` for the k-th gate in loop order: the gates
   up to it open as after their baskets fired (switch inert, old slide
@@ -359,7 +363,9 @@ basket or gate with no state in it. A level's generated test and
 `tests/e2e/test_fixtures_e2e.gd` (the test level's) fail with `fixture X
 is older than the level: rerun tools/level.sh fixture --level=<id> X
 (...)`. It reads the saves as they are: no format change, and every
-committed fixture passes as it is.
+committed fixture passes as it is. The test level's `old-version` is
+older on purpose (a version-1 save with a sleeper where version 1 had it):
+`test_fixtures_e2e` exempts it by name, and only it.
 
 ### The level report
 
