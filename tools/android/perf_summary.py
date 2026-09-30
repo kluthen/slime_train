@@ -28,6 +28,7 @@ change) and the battery temperature's first, max and last.
 --self-test runs the summary on a canned log and checks its numbers.
 Exit: 0; 1 when the log holds no PERF line; 2 on bad arguments.
 """
+# @spec-link [[req_platform_and_performance_targets]]
 
 import argparse
 import math

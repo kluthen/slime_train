@@ -64,6 +64,7 @@ extends Node
 ## Its measurement flag --max-ticks-per-frame=N (parse_args()) sets that cap
 ## for the run (the game root's max_ticks_per_frame), to measure what the
 ## fixed step's catch-up costs.
+# @spec-link [[req_platform_and_performance_targets]]
 
 ## The user argument that asks for the perf log: --perf-log or --perf-log=SECONDS.
 const FLAG := "--perf-log"
