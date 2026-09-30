@@ -1874,3 +1874,85 @@ approves 2.
   now rests at about 410: chunk 22 should fix the bench's start.
 
 **5. The build order.** Chunk 19 is done. Next, chunk 20.
+
+## D132 — Chunk 20 as built: Android build and platform integration (2026-09-30)
+**Built** (72d3717, suite 1186/1186); DoD 25, 26 and 27 pass on the
+emulator (S20FE_API_34). **The points in 2 wait for the user's approval**
+(with D126 to D131); the checks in 3 wait for the user's S20 FE. Detail:
+`docs/dev/README.md`, "Chunk 20: Android" (its emulator evidence, its
+manual checklist and "Choices proposed for spec-writer").
+
+**1. As built.**
+- **A small Android plugin** does what Godot can't: pinning, the device
+  credential prompt (the screen lock, or a fingerprint or face as Android
+  allows; the older system prompt below Android 11), the back-gesture
+  exclusion, moving the app to the background, and the screen's real dpi.
+- **Two builds:** debug, and release without test mode, the tests, the
+  test level or the tools. The release key comes only from the
+  environment, never from the repository.
+- **No network (DoD 27):** the only permission in either build is the
+  fingerprint/face one; no INTERNET permission, so no exception is needed.
+- **Pinning (DoD 25):** asked at each launch; "leave" ends it. The
+  credential prompt shows while pinned.
+- **"Forgot the code?" (DoD 26)** through the device credential. It is
+  also the way out of D131's LOCKED state.
+- **The back-gesture exclusion covers the strips' whole height**: Android's
+  200 dp cap doesn't apply while the bars are hidden. In the ~4 s the bars
+  show after a swipe, the exclusion starts below them.
+- **Lifecycle:** HOME saves at once; timers stay right across background,
+  kill and reboot; the screen is kept on only during a session (and the
+  wind-down).
+- **Tilt from the accelerometer** (read correctly on the emulator's
+  injected dips).
+- **Small screens:** the parent controls sit in the safe area; the code
+  pads shrink to fit a short screen, never below 9 mm keys and 2 mm gaps.
+  Millimetres use the screen's real dpi (the S20 FE reports 480, really
+  about 409).
+
+**2. Proposed: the build's choices where the spec was silent.**
+- **Landscape fixed,** not flipping with the sensor, so turning the phone
+  never reverses the tilt.
+- **Back when not pinned** puts the game in the background; it never quits.
+- **Screen edges and safe area** (the documentalist's preflight point:
+  tech-direction's "controls inside the safe area" against the atom's tap
+  zones measured from the screen's edges): **the edge strips' and parent
+  zone's tap zones stay on the screen's edges** (a child's finger reaches
+  them there, and the exclusion covers them, parent-zone rows included);
+  **the parent's controls** (buttons, the code prompt, settings) **go inside
+  the safe area.** Both texts are right, each for its own kind of control;
+  tech-direction now says so.
+- **Real dpi** is trusted only within 0.6 to 1.6 times Android's reported
+  one; otherwise the reported one is used.
+- **Tilt:** flat within 20° of horizontal; a new reading only from 1° of
+  change.
+- **"Forgot the code?":** its texts as built; passing the screen lock only
+  lets the parent set a new code; Back, or 30 s with no press, leaves the
+  new-code screen with nothing changed.
+- **No parent-facing text for the LOCKED state** (the prompt's "Forgot the
+  code?" is the way out).
+- **Release package** `com.slimetrain`, version 0.1 (debug
+  `com.slimetrain.dev`).
+
+**3. Waiting for the user's phone** (the manual checklist, S20 FE): tilt
+feel (part of the chunk's "done when"), a back swipe off a strip with
+pinning declined on One UI, the French labels' fit, the credential prompt
+while pinned on One UI, and the punch-hole camera over an edge strip's
+arrow.
+
+**4. The release ships no level (O99).** The release build leaves out
+`levels/test/` and no real level exists, so a release build opens on an
+empty world. No chunk builds the real first level: the plan lists it as
+"not in this plan" (a design session after chunk 16). *Proposed:* a chunk
+**L01**, the first real level, designed by the user with the level-design
+toolkit; see O99.
+
+**5. Open risks, carried forward.**
+- `main.gd` is at 394 of 400 effective lines; `parent_gate.gd` links six
+  atoms: for the health review.
+- Settings' main screen isn't fitted to the height: a second level listed
+  could overflow a 57 mm screen.
+- The older credential prompt (below Android 11) is untested on a device.
+- The emulator needs `-gpu host`.
+
+**6. The build order.** Chunk 20 is done on the emulator; its phone checks
+(3) are pending. Next, chunk 21.

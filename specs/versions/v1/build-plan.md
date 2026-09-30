@@ -5,7 +5,8 @@ before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
 playtest issues, last before the health review, proposed, D128; TL1 done,
-D129; chunk 18 done, D130; chunk 19 done, D131)
+D129; chunk 18 done, D130; chunk 19 done, D131; chunk 20 done on the
+emulator, D132; chunk L01, the first real level, proposed, O99)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -130,8 +131,15 @@ technology, not business behaviour:
   slimes grounded on load, migration by level version, `parent.json`'s
   mirror). Its choices where the spec was silent are proposed in D131,
   with its open risks.
-- **Next: 20** onward. (5N is a contingency, run only if chunk 22 fails,
+- **Chunk 20** done on the emulator (D132; 72d3717, suite 1186/1186):
+  the Android build and platform integration; DoD 25, 26 and 27 pass on
+  the emulator. The checks on the user's S20 FE (tilt feel among them)
+  are pending. Its choices where the spec was silent are proposed in
+  D132, with its open risks.
+- **Next: 21** onward. (5N is a contingency, run only if chunk 22 fails,
   D96.)
+- **Chunk L01** (the first real level; proposed, O99): the release build
+  ships no level until it exists.
 - **Chunk 24** (the user's second round of playtest issues, an open list;
   proposed, D128): after chunk 22 (and 5N if it runs), the last chunk
   before the closing step, as the user asked. The user's next play
@@ -474,6 +482,9 @@ instead).
 - **Done when:** [DoD 25, 26, 27] pass on the emulator, including a swipe
   from a strip with pinning declined staying in the app, and tilt feels
   right on the reference phone.
+- **Built** (D132): done on the emulator; the phone checks (D132, 3) wait
+  for the user's S20 FE, and the choices marked proposed there wait for
+  the user.
 
 ### 21. End-to-end suite (M)
 
@@ -941,6 +952,8 @@ while another chunk edits the slime body code.
 
 - **The real first level:** its design session comes after chunk 16, once the
   test level has been played. v1 ships that level, not the test level.
+  *Proposed (O99, D132):* build it as chunk L01, since the release build
+  leaves out the test level and so ships no level until then.
 - **The interface design** of the parent screens, setup and the celebration:
   the UX track. The placeholder UI from chunk 18 is replaced then.
 - **Playtesting with children** [DoD 32]: after chunks 20 and 22, on the

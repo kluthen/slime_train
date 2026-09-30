@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v17
+Status: draft v18
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -239,11 +239,13 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   the code still guards the parent buttons (D84); the back gesture then
   leaves the app as usual (D102), except from the edge strips (D112).
 - **Sticky immersive mode** (no status or navigation bar; the world draws
-  edge to edge, controls stay inside the safe area). It lets the app exclude
-  **the whole edge strips** from Android's back gesture, beyond the usual
-  200 dp per edge (D112): `setSystemGestureExclusionRects` on the game's
-  view, through the Android plugin, to check on the reference phone (One
-  UI) in chunk 20.
+  edge to edge). The edge strips' and parent zone's tap zones stay on the
+  screen's edges; the parent's controls (buttons, the code prompt,
+  settings) stay inside the safe area (proposed, D132). It lets the app
+  exclude **the whole edge strips** from Android's back gesture (D112):
+  `setSystemGestureExclusionRects` on the game's view, through the Android
+  plugin. Built in chunk 20: the usual 200 dp cap doesn't apply while the
+  bars are hidden (D132).
 - The wrong-try count and the end of the 30 s wait are stored on disk, so
   they survive the prompt closing and the app being killed (D102).
 - Parent-facing text follows the phone's language when v1 has it, English
