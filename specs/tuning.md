@@ -131,8 +131,8 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | Load meter: calm (proposed) | busy share below 60 % and at most 1 frame that ran 2 ticks | D141 |
 | Detail ceiling steps (proposed) | starts at 0; up one step per pressed window (at most 3); down one step after 3 calm windows in a row (the count starts again after each step); held, and the calm count restarted, by a window in the band | D141 |
 | Pile detail cap (`PILE_MAX_DETAIL`) (proposed) | pile slimes (in a basket, asleep at bedtime) stop at level 2 (at 6 points the `stress-still` pile rested at about tick 1300 instead of 407) | D140 |
-| Largest awake cluster, level rule 23 (proposed; calibrated in chunk 24, O107) | above 20 slimes for more than 5 s in a row fails, over a level's played test and each basket's fire-and-drain (`stress-*` excepted); touching: in contact on the last tick, or centres within the sum of their radii plus 2 px | D143, item 24.7 |
-| The train leans away from clusters (proposed, O107) | a train slime whose hop is due waits 0.5 s while 3 or more slimes that cost physics and can't fuse with it sit within 96 px of its hop's target, at most 4 times in a row (2 s), then hops anyway | D143, item 24.8 |
+| Largest awake cluster, level rule 23 (the rule approved in direction, D144; the limit proposed, calibrated in chunk 24, O107) | above 20 slimes for more than 5 s in a row fails, over a level's played test and each basket's fire-and-drain (`stress-*` excepted); touching: in contact on the last tick, or centres within the sum of their radii plus 2 px | D143, item 24.7 |
+| The train leans away from clusters (approved in direction, D144; the numbers proposed, O107) | a train slime whose hop is due waits 0.5 s while 3 or more slimes that cost physics and can't fuse with it sit within 96 px of its hop's target, at most 4 times in a row (2 s), then hops anyway | D143, item 24.8 |
 | Test level, basket 2 quota | 15 (weight) | test level |
 
 ### Performance (chunks 22, 22b)
@@ -141,8 +141,8 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 |---|---|---|
 | Ticks per frame at most (`MAX_TICKS_PER_FRAME`) (proposed) | 2 at 1x speed (was 8); times the debug speed, rounded up; beyond it the game plays in slow motion | D138 |
 | Frame budget on the reference phone (proposed) | per 16.7 ms frame: simulation at most 8 ms, drawing at most 4 ms, at least 4.7 ms left for later animation, music and the system | D138 |
-| Phone estimate from the desktop (proposed) | a part's full-speed desktop cost × 2.1 cold, × 3.4 throttled (the GDScript tick's factors); a slowed desktop run pins the main thread only (`tools/perf_slow.sh --pin=main`); the phone's perf log settles every number | D96, D142 |
-| Debug slime labels' text refresh (`TEXT_REFRESH_MS`) (proposed) | at most every 250 ms; positions every frame (debug builds only) | D142, item 24.6 |
+| Phone estimate from the desktop | a part's full-speed desktop cost × 2.1 cold, × 3.4 throttled (the GDScript tick's factors); a slowed desktop run pins the main thread only (`tools/perf_slow.sh --pin=main`); the phone's perf log settles every number | D96, D142, D144 |
+| Debug slime labels' text refresh (`TEXT_REFRESH_MS`) | at most every 250 ms; positions every frame (debug builds only) | D142, D144, item 24.6 |
 
 ### Test level sections 2 and 3 (chunks 15, 16)
 

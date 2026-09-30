@@ -226,13 +226,13 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   change, only the seen slimes rebuilt, instanced eyes and basket slots
   (see "Slimes", Drawing); draw calls on `s3-basket-59of60` 482 -> 84; the
   same hashes; the baskets' outline feathers differ by at most 1 of 255,
-  accepted as invisible (proposed). Drawing a 60 fps frame now costs 1.2
+  accepted as invisible (approved, D144). Drawing a 60 fps frame now costs 1.2
   to 1.6 ms on the desktop; estimated on the reference phone, 2.6 to
   3.3 ms cold (within the 4 ms budget on all four measured scenes) and
   4.2 to 5.3 ms throttled (over it); only chunk 22's repeat on the phone
   closes it. The phone's GPU time can't be read with this renderer on
   Android (O14).
-- **How performance is measured (D142, proposed).** The slowed desktop
+- **How performance is measured (D142, approved, D144).** The slowed desktop
   CPU is `tools/perf_slow.sh --pin=main`: only the main thread pinned to
   a core with busy loops. Pinning the whole process (chunk 22's and
   D140's runs) also put the engine's and the GL driver's helper threads

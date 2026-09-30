@@ -15,7 +15,8 @@ review, proposed, D140; chunk 22c, crowd detail only under load, between
 5N and 22's repeat, proposed, D141; chunk 22d, the debug counters,
 between 22b and 5N, and chunk 24 gains 24.7 and 24.8, cluster avoidance,
 proposed, D143; chunk 22b done, with item 24.6, the slowed-CPU method
-`tools/perf_slow.sh --pin=main`, and the user's explicit go on 5N, D142)
+`tools/perf_slow.sh --pin=main`, and the user's explicit go on 5N, D142;
+D142 approved, and 24.7 and 24.8 approved in direction, D144)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -911,11 +912,12 @@ keep both ATD steps. Items 24.4 to 24.6 come from the user's phone
 session on the S20 FE (2026-09-30, `docs/perf/2026-09-30-s20fe-session.md`;
 proposed, D139); 24.4 changes save behaviour and 24.5 the frame rate, so
 both keep both ATD steps; 24.6 is debug tooling only. Items 24.7 and
-24.8 are cluster avoidance (the user, 2026-09-30; proposed, D143); they
+24.8 are cluster avoidance (the user, 2026-09-30; D143, approved in
+direction, D144, their numbers proposed); they
 run after 24.3, which settles O106 first, since a draining basket is
 today's biggest awake cluster; 24.8 changes hopping behaviour, so it
 keeps both ATD steps, and 24.7's rule goes to documentalist once
-approved.
+built (a rule atom under `req_level_design_rules`).
 
 **24.1 The frame rate drops in section 3** (reported 2026-09-29;
 proposed, D128; master spec 6 and 7, [DoD 30]). An investigation, then a
@@ -1080,7 +1082,7 @@ never parks either.
 **24.6 The debug labels are too expensive** (reported 2026-09-30, the
 phone session; proposed, D139; debug builds only). **Done in chunk 22b**
 (D142): the labels' text is cached and rebuilt at most every 250 ms
-(proposed), their places follow every frame, so a label may lag its
+(approved, D144), their places follow every frame, so a label may lag its
 slime's state by up to 250 ms. The phone number its done-when asks for is
 taken with chunk 22's repeat. On the phone, turning
 them on took the game from 36–38 fps to 11–14 fps. Chunk 22 already
@@ -1096,7 +1098,8 @@ screen (D138); they haven't been measured on the phone since.
   today; the release build still has none.
 
 **24.7 Level rule 23: no spot where many slimes gather awake** (the
-user, 2026-09-30; proposed, D143; `../../level-design.md` rule 23; O107).
+user, 2026-09-30; D143, approved in direction, D144, the limit proposed;
+`../../level-design.md` rule 23; O107).
 The user saw "piles of active slimes" next to basket 3, "legit slow fps".
 - **The measure:** the level bench's RESULT line takes chunk 22d's count
   names, `largest_cluster` (its maximum over the case) and the seconds
@@ -1125,7 +1128,8 @@ The user saw "piles of active slimes" next to basket 3, "legit slow fps".
   documentation; the suite passes.
 
 **24.8 The train leans away from clusters** (the user, 2026-09-30;
-proposed, D143; `req_hopping_behavior`, O107). "we could favor cluster
+D143, approved in direction, D144, the numbers proposed;
+`req_hopping_behavior`, O107). "we could favor cluster
 reducing activity".
 - **Proposed:** when a train slime's hop timer runs out, it counts the
   slimes that cost physics within 96 px (2 base-slime diameters) of its

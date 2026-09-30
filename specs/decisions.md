@@ -2421,6 +2421,10 @@ spec and the code showed a better fit (each refinement says why).
   mostly a still pile".
 
 ## D142 — Chunk 22b as built: the drawing pass; the slowed-CPU method; 5N confirmed (2026-09-30)
+**Approved by the user on 2026-09-30 (D144)**, "agreed"; first recorded
+as proposed. Still open inside it: the throttled drawing verdict (3),
+which the phone measurement decides, and O108 (6), open with its proposed
+default. The labels' 250 ms (7) is approved with it.
 **Built** (5d9533a, suite 1318/1318; the 17 fixture hashes, seed 909 over
 600 ticks, unchanged). Proposed; the user reviews: the method (2), the
 verdict's reading (3), the new open question (6) and the look and label
@@ -2580,6 +2584,10 @@ ATD: 66 `@spec-link` and 19 `@test-link` tags to
 `req_platform_and_performance_targets`; no atom file touched.
 
 ## D143 — Debug counters before 5N; cluster avoidance; two v2 level-design aids (2026-09-30)
+**Items 24.7 and 24.8 (2 (a) and (b)) approved in direction by the user on
+2026-09-30 (D144)**; their numbers stay proposed until calibrated (O107).
+The rest (1, O106's default, section 3 left as is, 3 and 4) stays
+proposed.
 Proposed; the user reviews. Four requests from the user (2026-09-30),
 relayed by the coordinator. D142 is reserved for chunk 22b as built,
 recorded once 22b closes. Refinements of the coordinator's defaults say
@@ -2756,3 +2764,45 @@ could simply switch path by population within a given fork."
 
 **Terminology** (`concept.md`): the debug overlay's slime counts renamed;
 **awake cluster**, **activity zone** and **population fork** added.
+
+## D144 — Chunk 22b's record approved; cluster avoidance approved in direction; the architecture atom's split (2026-09-30)
+The user was shown three items and replied, verbatim: "agreed"
+(2026-09-30).
+- **D142, as written:** chunk 22b as built; the slowed-CPU method
+  (`tools/perf_slow.sh --pin=main`) and the phone estimate from
+  full-speed desktop costs (× 2.1 cold, × 3.4 throttled); the verdict's
+  reading (an estimate: met cold, missed throttled); the accepted feather
+  difference (at most 1 of 255); the debug labels' text refreshed at most
+  every 250 ms (item 24.6). With it, the drawing wording D142 (5) proposed,
+  which documentalist wrote into `domain_architecture_rationale`
+  (fee5cdb).
+  - **Still open inside it:** the throttled drawing verdict: chunk 22's
+    repeat on the phone decides it. O108 stays open, with its proposed
+    default (none of the levers before 22's repeat). The 4 ms drawing
+    budget itself is D138's and stays proposed with D138 (the atom's
+    wording already says "(proposed)"); how 5N ships stays D140's
+    proposal.
+- **D143's items 24.7 and 24.8, in direction:** level rule 23 (no spot
+  where many slimes gather awake, measured by the largest awake cluster
+  over a level's played test and each basket's drain) and the train's
+  lean (a train slime's hop waits, at most 2 s, while slimes it can't
+  fuse with crowd its landing point). **Their numbers stay proposed**
+  until chunk 24 calibrates them from chunk 22d's logs (O107): rule 23's
+  limit (above 20 slimes for more than 5 s in a row), the lean's wait
+  (0.5 s, at most 4 times), its count (3 slimes) and its reach (96 px).
+  Once built, they change `req_hopping_behavior` and add a rule atom
+  under `req_level_design_rules` (documentalist, at chunk 24's sync).
+  - **Not covered, still proposed:** the rest of D143: chunk 22d's
+    counters, O106's default (settled in 24.3), section 3 left as is
+    (O107 (c)), and the two v2 aids (the activity-zone tool, the
+    population fork).
+- **Splitting `domain_architecture_rationale`,** the user's call: the ATD
+  audit flags the atom as BLOATED, and the user agreed to split it into
+  smaller atoms, which renames what code tags point at. Documentalist does
+  it after chunk 22d is committed. Flagged in the index.
+- The spec no longer tags D142's points (proposed): `tech-direction.md`
+  (how performance is measured; the feather difference), `tuning.md` (the
+  phone estimate; the labels' refresh) and the build plan's 24.6. Rule 23
+  (`level-design.md`), the lean (`slimes.md`), their `tuning.md` rows and
+  the build plan's 24.7 and 24.8 read "approved in direction", their
+  numbers proposed.

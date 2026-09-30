@@ -1,6 +1,6 @@
 # Level design requirements
 
-Status: draft v13 (rule 23, clusters, proposed, D143)
+Status: draft v13 (rule 23, clusters, D143, approved in direction, D144; its limit proposed, O107)
 
 Rules every level must follow, whoever builds it. These rules make up the
 checklist for every level's design (see `levels/`). Levels are
@@ -119,7 +119,7 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
 
 ## Where slimes gather
 
-23. *(Proposed, D143.)* **No spot where many slimes gather awake.** Keep apart the places
+23. *(D143, approved in direction, D144; the measure's numbers proposed, O107.)* **No spot where many slimes gather awake.** Keep apart the places
     where slimes pile up: a bowl or dip next to a basket, an outlet
     releasing into a crowd, a narrow ledge where the train queues, the
     landing spot of a sleeper shelf next to any of these. A pile that
