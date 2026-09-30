@@ -16,6 +16,7 @@ extends GutTest
 # @test-link [[rule_saves_never_wiped]]
 # @test-link [[req_test_level_and_test_mode]]
 
+const ChildGame := preload("res://tests/e2e/child_game.gd")
 const MAIN_SCENE := "res://src/main.tscn"
 const SCRIPT_PATH := "res://tests/e2e/scripts/save_call.json"
 const DIR := "user://test-save-e2e/"
@@ -264,8 +265,8 @@ func test_separate_processes_save_and_reload() -> void:
 ## Runs the game in a child process in test mode with the call script and
 ## `extra` flags. Returns {"code", "tick", "hash"}.
 func _child(extra: Array) -> Dictionary:
-	var args := PackedStringArray([
-		"--headless", "--quit-after", "3000", "--path", ProjectSettings.globalize_path("res://"), "--",
+	var args := ChildGame.engine_args(3000)
+	args.append_array([
 		"--test-mode", "--test-script=" + SCRIPT_PATH,
 	])
 	args.append_array(PackedStringArray(extra))

@@ -27,6 +27,11 @@ tools/test.sh -gunit_test_name=runner    # tests whose name contains it
 tools/test.sh -gdisable_colors           # plain output, for logs
 ```
 
+The end-to-end suite also runs inside an exported Linux debug build:
+`tools/linux/e2e.sh` exports it and runs `tests/e2e/` in it (`--no-export`
+reuses the last build). See "On the Linux build (DoD 31)" under
+[Chunk 21: end-to-end suite](#chunk-21-end-to-end-suite).
+
 The tests can also be run from the GUT panel in the editor (the plugin is
 enabled in `project.godot`).
 
@@ -4200,6 +4205,132 @@ change. Details in the subsections named.
 - **The release filter also leaves out** `tools/*` and
   `addons/slime_platform/*` (editor-side only).
 
+## Chunk 21: end-to-end suite
+
+Every fixture of the test level has a scripted end-to-end scenario and a
+same-seed hash test; a unit test keeps it that way; the suite also runs in
+an exported Linux debug build (DoD 31); a unit test reads the build files
+for the no-network, no-purchase guarantees.
+
+Suite time: about 16 min in the editor (`tools/test.sh`, 1198 tests, 958 s) and about 13.5 min on the Linux build (`tools/linux/e2e.sh`, 354 end-to-end tests, 809 s). The new fixture scenarios add about 30-40 s, `stress-moving` being the slowest (about 17 s).
+
+### Fixture to end-to-end test
+
+Files are in `tests/e2e/`; fixtures in `levels/test/fixtures/` (see
+"Fixtures"). "Same-seed hash test" names the test that runs the fixture
+twice on one seed and compares `Simulation.state_hash()`.
+
+| Fixture | Scripted scenarios | What they assert | Same-seed hash test |
+|---|---|---|---|
+| `fresh` | `test_test_level_playable_e2e.gd` `test_section_1_from_fresh_fills_basket_1_and_opens_gate_1`; `test_safety_nets_e2e.gd` `test_two_train_slimes_on_one_centre_one_goes_to_the_start` | calls on the sleepers wake them, basket 1 fills, gate 1 opens; a stuck pair: the higher id goes to the start of the loop | yes: `test_fixtures_e2e.gd` `test_fresh_is_the_level_as_new` (the fixture and a plain boot, same hash) |
+| `bump` | `test_fusion_e2e.gd` `test_bump_both_bumps_happen_and_nothing_fuses` | both bumps happen (2 + 2, 3 + 1), nothing fuses | yes: `test_fixtures_e2e.gd` `test_bump_runs_the_same_twice` |
+| `gate1-open` | `test_level_dod1_e2e.gd` `test_a_session_from_gate1_open_keeps_the_train_going_and_loses_nothing`; `test_test_level_playable_e2e.gd` section 2; `test_object_taps_e2e.gd` | a 15-minute session: every train slime laps, nothing lost; section 2 played by calls until gate 2 opens; taps on objects | yes: `test_level_dod1_e2e.gd` (in this process and in a child process) |
+| `gate2-open` | `test_level_dod1_e2e.gd` (session, bowl, every size laps); `test_test_level_playable_e2e.gd` section 3; `test_offscreen_slopes_e2e.gd`; `test_camera_dead_zone_e2e.gd` | a session loses nothing, another seed's session isn't held in the bowl by its dip's nudge, a size 1, 2 and 3 each lap the whole loop; basket 3 fires and the celebration plays; a size 3 off screen goes down section 3's ramp, never lost | yes: `test_level_dod1_e2e.gd` (in this process and in a child process) |
+| `lost` | `test_offscreen_e2e.gd` `test_with_no_route_near_a_free_slime_is_left_alone_then_lost_to_the_loop_start` | left alone at 10 s, lost a minute later, back at the start of the loop | yes: `test_offscreen_e2e.gd` `test_the_lost_run_is_the_same_in_a_child_process` |
+| `midair` | `test_persistence_e2e.gd` (placement at load); `test_fixture_scenarios_e2e.gd` `test_midair_slimes_land_and_play_on_the_same_twice` | the 4 slimes saved in the air land within the run and keep hopping along the loop, the population whole (300 ticks) | yes: the same test |
+| `old-version` | `test_persistence_e2e.gd` (migration at load, the `.v1` copy kept); `test_fixture_scenarios_e2e.gd` `test_old_version_migrated_plays_on_the_same_twice` | the moved sleeper, put on the train, travels the loop; count and mass kept, nothing newly lost (600 ticks) | yes: the same test |
+| `s1-basket-5of6` | `test_frontier_e2e.gd` `test_the_basket_fills_fires_opens_the_gate_and_releases`; `test_camera_gate_show_e2e.gd`; `test_frontier_bedtime_e2e.gd` | basket 1 fills, fires, gate 1 opens, the basket releases; the camera shows the gate; a full basket at bedtime waits for sunrise | yes: `test_frontier_e2e.gd` `test_the_fixture_run_is_the_same_in_a_child_process`, `test_camera_gate_show_e2e.gd` `test_a_run_with_a_gate_shown_is_repeatable` |
+| `s1-optout` | `test_frontier_e2e.gd` `test_flipping_the_switch_back_releases_and_empties_the_basket`; `test_fixture_scenarios_e2e.gd` `test_s1_optout_flipping_back_releases_the_same_twice` | a tap on the switch flips it back, the basket empties, gate 1 stays shut | yes: `test_fixture_scenarios_e2e.gd` (the second test) |
+| `s2-basket-offscreen` | `test_offscreen_e2e.gd` `test_a_basket_fills_off_screen_and_fires_once_it_comes_into_view`; `test_frontier_e2e.gd` `test_basket_2_firing_is_not_the_celebration_any_more` | basket 2 fills off screen and fires once in view; its firing is not the celebration | yes: `test_offscreen_e2e.gd` `test_the_basket_run_is_the_same_in_a_child_process` |
+| `s2-cave-return` | `test_offscreen_e2e.gd` (route back, the camera coming back, the save) | off screen the slimes follow the route back and rejoin; a save keeps the off-screen state | yes: `test_offscreen_e2e.gd` `test_the_same_seed_gives_the_same_hash_in_process` |
+| `stress-still` | `test_fixtures_e2e.gd` `test_stress_still_has_60_in_basket_3_and_a_bowl_pile_that_rests`; `test_celebration_e2e.gd`; `test_fixture_scenarios_e2e.gd` `test_stress_still_keeps_its_population_the_same_twice` | the counts, the bowl pile comes to rest; the celebration plays once and its mark survives a reload; the population, the basket's 60 and the asleep pile stay as loaded (300 ticks) | yes: `test_fixture_scenarios_e2e.gd` |
+| `stress-moving` | `test_fixtures_e2e.gd` `test_stress_moving_has_200_train_slimes_in_the_bowl`; `test_fixture_scenarios_e2e.gd` `test_stress_moving_moves_keeping_its_200_and_runs_the_same_twice` | the 200 train slimes load; over 200 ticks never above 200 slimes or size 3, mass 200, the train moves, nothing lost. A measurement, no fps target; about 17 s, the slowest scenario | yes: `test_fixture_scenarios_e2e.gd` |
+| `wind-down` | `test_session_e2e.gd` `test_the_wind_down_turns_to_dusk_then_bedtime_sleeps_saves_and_taps_only_ripple`; `test_camera_bedtime_e2e.gd` | dusk, then bedtime: slimes asleep, a save, taps only ripple; the idle camera at bedtime | yes: `test_camera_bedtime_e2e.gd` `test_a_bedtime_run_is_repeatable` |
+| `bedtime` | `test_session_e2e.gd` `test_the_bedtime_fixture_is_bedtime`; `test_frontier_bedtime_e2e.gd` | the fixture is bedtime; a releasing basket lets nothing go until sunrise | yes: `test_frontier_bedtime_e2e.gd` `test_a_bedtime_run_with_a_releasing_basket_is_repeatable` |
+| `sunrise` | `test_session_e2e.gd` through `tests/e2e/scripts/session_sunrise.json`; `test_delete_save_e2e.gd` | sunrise wakes the slimes into screensaver mode, a tap starts a session; deleting the save at bedtime keeps sunrise on time | yes: `test_session_e2e.gd` `test_a_session_run_is_repeatable`, and `test_a_separate_process_gives_the_same_hash` (a child process) |
+
+The new scenarios are in `tests/e2e/test_fixture_scenarios_e2e.gd`: each
+runs twice in the same test and compares the hashes at the end.
+
+### The coverage guard
+
+`tests/unit/test_e2e_fixture_coverage.gd` fails when a `*.fixture.json` in
+`levels/test/fixtures/` isn't named by any `.gd` file under `tests/e2e/` or
+any run file under `tests/e2e/scripts/`. "Named" means the exact quoted
+name, `"<name>"`, used as a value: `"gate1-open-x"` doesn't count for
+`gate1-open`, and comment lines, dictionary keys (`{"lost": 0}`) and
+subscripts (`run["lost"]`) don't count at all. The failure lists the
+fixtures no test names.
+
+When it fails (a new fixture): add an end-to-end test that loads the
+fixture, runs a scenario on it and has a same-seed hash test, then add its
+row to the table above.
+
+Limit: the guard matches text, not a fixture load, so a fixture name used
+as a plain string value for something else would still count. The table
+above is what says which test runs which fixture.
+
+### Repeatability
+
+- **One seed per scenario.** Every scenario sets its seed through test
+  mode's `"seed"` (the one seeded generator, `Rng`; see "Randomness").
+  Fixture saves carry no simulation seed, so the config's seed applies.
+- **A same-seed hash test per fixture** (the table's last column): in this
+  process, two boots, the same ticks, the same `Simulation.state_hash()`.
+  Several also compare with a child process of the same binary (the lines
+  that say so).
+- **Within one build.** Repeatability is promised within one build: the
+  desktop and the Android builds are not promised identical hashes (see
+  "State dump and hash").
+- **Save folders.** Each test file that saves uses its own `user://`
+  folder, `user://test-<name>/` (for example `user://test-session-e2e/`).
+  Known remaining risk: child processes and suites run at once in separate
+  worktrees share the default `user://saves/` and `user://parent.json`.
+  Autosave is off in test mode, so nothing writes there today.
+
+### On the Linux build (DoD 31)
+
+The end-to-end suite runs inside an exported Linux debug build, not only in
+the editor.
+
+```sh
+tools/linux/export.sh                              # export only
+tools/linux/e2e.sh                                 # export, then run tests/e2e/
+tools/linux/e2e.sh --no-export -gselect=test_session_e2e
+```
+
+- `tools/linux/export.sh` exports preset `Linux debug` to
+  `build/linux/slime-train-debug.x86_64` (and its `.pck`), in about 5 s. It
+  needs the Godot 4.7.2 Linux export templates.
+- `tools/linux/e2e.sh` exports, then runs `tests/e2e/` headless in that
+  binary. `--no-export` reuses the last build; other arguments go to GUT.
+  Exit codes: 0 green, 1 a test failed, 2 bad use or a failed export, 3
+  GUT quit without running, 124 a hang (`E2E_TIMEOUT`, default 3600 s). A
+  full run takes about 14 minutes.
+- **The runner.** An export template has no `-s`, so for the run an
+  `override.cfg` next to the binary makes
+  `tests/export_runner/gut_runner.tscn` the main scene; the script removes
+  it on the way out. The runner starts GUT, or hands over to the game when
+  started without GUT options (a test's child process). It refuses to run
+  in a release build.
+- **Child processes.** Tests that start a child game build its command line
+  with `tests/e2e/child_game.gd`: `--path` only in the editor (an exported
+  build refuses it).
+- **The preset** exports scripts as text (GUT finds tests by their `.gd`
+  file) and includes GUT's `addons/gut/double_templates/*.txt`.
+- **Editor-only files (proposed)**, listed in `tools/linux/e2e.sh`:
+  `test_level_checker`, `test_level_selection_e2e`, `test_level_tools_e2e`
+  and `test_new_level_e2e`. They run tools with `godot -s` or `--path`, or
+  write levels into `res://`, which is the read-only pack in an export.
+  They still run in `tools/test.sh`.
+
+### Build guarantees
+
+`tests/unit/test_build_guarantees.gd` (desktop, headless) reads the files
+that make the build:
+
+- every Android preset of `export_presets.cfg` has no `permissions/*=true`
+  and an empty `permissions/custom_permissions`;
+- the plugin's manifest
+  (`native/android_plugin/plugin/src/main/AndroidManifest.xml`) requests
+  exactly `android.permission.USE_BIOMETRIC` (commented-out tags don't
+  count);
+- `native/android_plugin/plugin/build.gradle.kts` names no billing
+  library;
+- no script in `src/**/*.gd` names a network class: `HTTPRequest`,
+  `HTTPClient`, `StreamPeerTCP`, `PacketPeerUDP`, `WebSocketPeer`,
+  `TCPServer`, `UDPServer`, `ENet*`.
+
 ## Technical choices
 
 ### Chunk 0: tooling and project setup
@@ -4402,6 +4533,29 @@ How it is built and used: "Android export (debug)" and "Chunk 20: Android".
   rotation and negates them, so `Input.get_accelerometer()` points along
   gravity in screen axes (not up, like Android's own reading):
   `atan2(x, -y)` is positive when the right edge dips.
+
+### Chunk 21: end-to-end suite
+
+How it is run and what it covers: "Chunk 21: end-to-end suite".
+
+- **The export runner through `override.cfg`, not `-s`.** An export
+  template has no `-s` option, so a `--script` runner can't start GUT in an
+  exported build. `tools/linux/e2e.sh` writes an `override.cfg` next to the
+  binary that makes `tests/export_runner/gut_runner.tscn` the main scene for
+  that run only, and removes it after; the exported pack stays the game's.
+- **Scripts exported as text** on the `Linux debug` preset: GUT finds test
+  scripts by their `.gd` file, which a binary-tokenized export doesn't keep.
+- **`tests/e2e/child_game.gd`** builds a child process's engine arguments in
+  one place: `--path` in the editor, none in an exported build (which
+  refuses it). The same child tests run in both.
+- **Editor-only test files (proposed):** the four files that run tools with
+  `godot -s` or `--path`, or write levels into `res://`, are left out of the
+  Linux-build run and listed in `tools/linux/e2e.sh` with the reason for
+  each; `tools/test.sh` still runs them.
+- **A same-seed hash test per fixture, in-process,** rather than a second
+  run of the whole suite to check repeatability: two boots in one test
+  compare `Simulation.state_hash()`, which costs one scenario's time, not
+  the suite's.
 
 ### Chunk 7: taps and the call
 

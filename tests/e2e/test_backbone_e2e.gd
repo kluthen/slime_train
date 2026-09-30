@@ -5,6 +5,7 @@ extends GutTest
 ##   1. boot the scene, 2. enable test mode with a seed and a script,
 ##   3. run ticks, 4. assert on the simulation state or its hash.
 
+const ChildGame := preload("res://tests/e2e/child_game.gd")
 const MAIN_SCENE := "res://src/main.tscn"
 const SCRIPT_PATH := "res://tests/e2e/scripts/backbone.json"
 const RUN_TICKS := 600
@@ -53,8 +54,8 @@ func test_a_separate_process_gives_the_same_hash() -> void:
 	var in_process: String = _run_scripted().simulation.state_hash()
 	var output := []
 	# --quit-after bounds the child if it ever fails to quit on its own.
-	var args := PackedStringArray([
-		"--headless", "--quit-after", "600", "--path", ProjectSettings.globalize_path("res://"), "--",
+	var args := ChildGame.engine_args(600)
+	args.append_array([
 		"--test-mode", "--test-script=" + SCRIPT_PATH, "--run-ticks=%d" % RUN_TICKS,
 	])
 	var code := OS.execute(OS.get_executable_path(), args, output, true)

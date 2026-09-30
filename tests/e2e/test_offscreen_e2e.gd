@@ -17,6 +17,7 @@ extends GutTest
 # @test-link [[rule_left_alone_and_lost]]
 # @test-link [[req_switch_basket_gate_set]]
 
+const ChildGame := preload("res://tests/e2e/child_game.gd")
 const MAIN_SCENE := "res://src/main.tscn"
 const SEED := 14
 const TICK_RATE := Simulation.TICK_RATE
@@ -89,8 +90,8 @@ func _shown(sim: Simulation) -> Rect2:
 
 
 func _run_child(fixture: String, ticks: int) -> RegExMatch:
-	var args := PackedStringArray([
-		"--headless", "--quit-after", "20000", "--path", ProjectSettings.globalize_path("res://"), "--",
+	var args := ChildGame.engine_args(20000)
+	args.append_array([
 		"--test-mode", "--seed=%d" % SEED, "--fixture=%s" % fixture, "--run-ticks=%d" % ticks,
 	])
 	var output := []

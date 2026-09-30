@@ -46,6 +46,7 @@ extends GutTest
 # @test-link [[req_loop_and_world]]
 # @test-link [[rule_stalled_train_slime_moved_to_start]]
 
+const ChildGame := preload("res://tests/e2e/child_game.gd")
 const MAIN_SCENE := "res://src/main.tscn"
 ## Seed 2 lost a slime in the start basin from both fixtures before chunk 16e.
 const SEED := 2
@@ -92,8 +93,8 @@ func _boot(fixture: String, run_seed := SEED) -> Node:
 ## {"pid", "stdio", "stderr", "text"} (execute_with_pipe's, plus the output
 ## read so far).
 func _start_child(fixture: String, ticks: int) -> Dictionary:
-	var args := PackedStringArray([
-		"--headless", "--quit-after", "20000", "--path", ProjectSettings.globalize_path("res://"), "--",
+	var args := ChildGame.engine_args(20000)
+	args.append_array([
 		"--test-mode", "--seed=%d" % SEED, "--fixture=%s" % fixture, "--run-ticks=%d" % ticks,
 	])
 	var child := OS.execute_with_pipe(OS.get_executable_path(), args, false)

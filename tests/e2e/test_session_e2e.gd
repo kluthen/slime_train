@@ -15,6 +15,7 @@ extends GutTest
 # @test-link [[req_denial_and_stepup_behavior]]
 # @test-link [[req_actor_roles_and_permissions]]
 
+const ChildGame := preload("res://tests/e2e/child_game.gd")
 const MAIN_SCENE := "res://src/main.tscn"
 const START_SCRIPT := "res://tests/e2e/scripts/session_start.json"
 const SUNRISE_SCRIPT := "res://tests/e2e/scripts/session_sunrise.json"
@@ -271,8 +272,8 @@ func test_a_separate_process_gives_the_same_hash() -> void:
 ## Runs the game in a child process in test mode with `script` for `ticks`.
 ## Returns {"code", "tick", "hash"}.
 func _child(script: String, ticks: int) -> Dictionary:
-	var args := PackedStringArray([
-		"--headless", "--quit-after", "3000", "--path", ProjectSettings.globalize_path("res://"), "--",
+	var args := ChildGame.engine_args(3000)
+	args.append_array([
 		"--test-mode", "--test-script=" + script, "--run-ticks=%d" % ticks,
 	])
 	var output := []

@@ -23,6 +23,7 @@ extends GutTest
 # @test-link [[rule_tilt_never_required]]
 # @test-link [[req_level_completion_celebration]]
 
+const ChildGame := preload("res://tests/e2e/child_game.gd")
 const MAIN_SCENE := "res://src/main.tscn"
 const SEED := 14
 const TICK_RATE := Simulation.TICK_RATE
@@ -278,8 +279,8 @@ func test_the_celebration_plays_once_and_a_reload_does_not_replay_it() -> void:
 # --- Same seed, same hash -------------------------------------------------------------
 
 func test_the_fixture_run_is_the_same_in_a_child_process() -> void:
-	var args := PackedStringArray([
-		"--headless", "--quit-after", "6000", "--path", ProjectSettings.globalize_path("res://"), "--",
+	var args := ChildGame.engine_args(6000)
+	args.append_array([
 		"--test-mode", "--seed=%d" % SEED, "--fixture=s1-basket-5of6", "--run-ticks=%d" % CHILD_TICKS,
 	])
 	var output := []

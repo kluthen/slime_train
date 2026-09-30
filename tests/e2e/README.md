@@ -6,6 +6,20 @@ asserts on the simulation state or its hash. `test_backbone_e2e.gd` is the
 pattern; `scripts/` holds the JSON run files. How to write one:
 `docs/dev/README.md`, "Simulation and test mode".
 
+Every fixture of the test level must be loaded by a test here (its quoted
+name in a `.gd` file or a run file in `scripts/`), or
+`tests/unit/test_e2e_fixture_coverage.gd` fails. Which test runs which
+fixture: `docs/dev/README.md`, "Chunk 21: end-to-end suite".
+
+The suite also runs inside an exported Linux debug build:
+`tools/linux/e2e.sh` exports it and runs this folder in it, through
+`tests/export_runner/` (a scene that starts GUT in the exported binary,
+where `-s` doesn't exist, or hands over to the game in a child process).
+Four editor-only files are left out there; the script lists them.
+
+- `child_game.gd` is a helper, not a test: the engine arguments of a
+  child process that runs the game with the same binary (`--path` only in
+  the editor). Tests that compare a run's hash across processes use it.
 - `test_test_level.gd` loads the test level scene and checks it against its
   design and the level rules (IDs, population, loop, routes back, terrain).
 - `test_level_in_game.gd` checks that the game loads the test level in a
@@ -37,6 +51,15 @@ pattern; `scripts/` holds the JSON run files. How to write one:
   size-3 and a size-2 slime of one species a little apart on the fusion
   dip's floor with the camera on them, `fresh` is the level as new, and
   every fixture in `levels/test/fixtures/` loads.
+- `test_fixture_scenarios_e2e.gd` (chunk 21) runs a scripted scenario
+  from each fixture that only had load-time checks or no same-seed hash
+  test, twice on one seed for the same hash: `stress-moving` moves, keeping its mass of 200 in at most
+  200 slimes, none above size 3, nothing lost (the wall time per tick is
+  printed, a measurement only); `midair`'s slimes land and play on;
+  `old-version`'s migrated slime travels the loop and nothing is wiped or
+  newly lost; from `s1-optout` a tap on the switch empties the basket;
+  `stress-still` keeps its 60 in the basket and its pile asleep. About
+  40 s.
 - `test_fusion_e2e.gd` checks fusion and bumping on the Meadow's fusion
   dip [DoD 6]: from `bump` the size 3 and size 2 meet and never fuse in
   10 s; two base slimes put on the dip's rim fuse within 20 s (the dip
