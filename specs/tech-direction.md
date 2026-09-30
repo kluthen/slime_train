@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v20
+Status: draft v21
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -98,7 +98,8 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   - Slimes resting in a basket may get a simplified state.
   - Sleepers stop simulating until something touches them. Slimes
     on screen may use fewer points per ring when zoomed out, or when many
-    slimes are active (crowd detail, proposed, D140).
+    slimes are active and the device can't keep up (crowd detail,
+    proposed, D140, D141).
   - Off-screen rules (D70): free slimes follow their area's route back, fusion
     and waking happen only on screen, and baskets count weight off screen.
 
@@ -158,6 +159,23 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   (33 -> 30 ms); about 4 to 5 ms of each tick doesn't depend on points,
   and the rest of the frame is about 21 ms either way. Helpful, not
   enough on its own.
+- **Crowd detail only when the device can't keep up (proposed, D141; the
+  user's amendment, chunk 22c):** a good device keeps full ring points
+  whatever the crowd. A load meter in the scene layer (every build; not
+  the debug-only perf log) judges each window of about 1 s: **pressed**
+  (busy share above 85 %, or 3 or more frames that ran 2 ticks), **calm**
+  (below 60 % and at most 1 such frame), or in the band. It moves a
+  **detail ceiling**, 0 to 3: up one step per pressed window, down one
+  step after 3 calm windows in a row, held in the band; it starts at 0.
+  An ACTIVE ring takes max(zoom's, min(crowd level, ceiling)), then the
+  pile cap. The busy share is the frame's work (the ticks plus the rest of
+  `_process`) over the window's real time, so it reads the same at 60 or
+  120 Hz. The ceiling is an input handed over at a tick boundary, like the
+  tilt; `src/sim/` never reads a clock. Modes, `--crowd-detail=auto|always|off`
+  (debug builds; release is `auto`): `auto` in normal play; `always` (the
+  ceiling at 3, D140's behaviour) is the simulation's default, so test
+  mode, fixtures, scripts, the bench and the tests keep their hashes;
+  `off` (the ceiling at 0). No new save key: the ceiling isn't saved.
 - **The realistic worst case in play is a mostly still pile** (level rule
   16): a full basket plus the train, not 200 moving slimes. The
   `stress-moving` fixture stays as a measurement, not a target. *Under
@@ -194,8 +212,9 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   debug overlay), so "drawing is not the problem" no longer holds once
   the tick shrinks. Then chunk 5N: results deterministic within one build
   (not bit-equal to the GDScript tick); saves load under either tick; the
-  GDScript tick stays as a fallback. Then chunk 22 repeated on the
-  reference phone with the perf log.
+  GDScript tick stays as a fallback. Then chunk 22c, crowd detail only
+  under load (D141). Then chunk 22 repeated on the reference phone with
+  the perf log, in `auto`.
 - **The cap on ticks per frame: 2 at 1x** (proposed, D138; was 8): an
   overloaded scene plays in slow motion instead of collapsing into the
   catch-up spiral; the cap scales with the debug speed.

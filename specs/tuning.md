@@ -106,7 +106,7 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | A fired basket empties within (proposed) | its quota × 0.3 s plus 10 s of firing, none of its slimes falling back in | D128, item 24.3 |
 | Section 3 frame budget on the desktop (proposed) | a steady 60 fps at test mode's 1152 × 648 window; at most 8 ms per tick at p95 on the section 3 bench cases, `stress-moving` excepted | D128, item 24.1 |
 
-### Off screen, resting piles and detail (chunk 15; crowd detail, D140)
+### Off screen, resting piles and detail (chunk 15; crowd detail, D140, D141)
 
 | Value | Start at | Source |
 |---|---|---|
@@ -124,7 +124,12 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | A door wakes nearby piles (`DOOR_WAKE_REACH`) | a trapdoor, gate or lid opening or shutting wakes the piles within 80 px of it | D96 |
 | Ring points per detail level (`POINTS_BY_DETAIL`) (proposed) | levels 0 (full) to 3: size 1 12, 10, 8, 6; size 2 15, 12, 10, 8; size 3 18, 15, 12, 9 | D94, D140 |
 | Zoomed-out detail (`LOW_ZOOM`, `FULL_ZOOM`, `LOW_DETAIL`) | below zoom 0.8, at least level 2 (8, 10 and 12 points for sizes 1, 2 and 3); back from 0.85 | D94, D96, D140 |
-| Crowd detail (`CROWD_STEPS`, `CROWD_EASE`) (proposed) | the crowd is the ACTIVE non-sleeper slimes after the parking; level 1 from 20, 2 from 30, 3 from 40; down only 5 below each step (15, 25, 35); the level used is the higher of the zoom's and the crowd's; only ACTIVE rings are reshaped | D140 |
+| Crowd detail (`CROWD_STEPS`, `CROWD_EASE`) (proposed) | the crowd is the ACTIVE non-sleeper slimes after the parking; level 1 from 20, 2 from 30, 3 from 40; down only 5 below each step (15, 25, 35); the level used is the higher of the zoom's and the lower of the crowd's and the detail ceiling (D141); only ACTIVE rings are reshaped | D140, D141 |
+| Crowd detail mode (`--crowd-detail`) (proposed) | `auto` (the load meter moves the ceiling) in normal play, and always in a release build; `always` (ceiling 3, D140's behaviour) is the simulation's default: test mode, fixtures, scripts, the bench, the tests; `off` (ceiling 0) | D141 |
+| Load meter window (proposed) | about 1 s of real time; dropped if it holds a frame over 250 ms, or at a debug speed other than 1x | D141 |
+| Load meter: pressed (proposed) | busy share (the ticks plus the rest of `_process`, over the window's real time) above 85 %, or 3 or more frames at 1x that ran 2 ticks | D141 |
+| Load meter: calm (proposed) | busy share below 60 % and at most 1 frame that ran 2 ticks | D141 |
+| Detail ceiling steps (proposed) | starts at 0; up one step per pressed window (at most 3); down one step after 3 calm windows in a row (the count starts again after each step); held, and the calm count restarted, by a window in the band | D141 |
 | Pile detail cap (`PILE_MAX_DETAIL`) (proposed) | pile slimes (in a basket, asleep at bedtime) stop at level 2 (at 6 points the `stress-still` pile rested at about tick 1300 instead of 407) | D140 |
 | Test level, basket 2 quota | 15 (weight) | test level |
 

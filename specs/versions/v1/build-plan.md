@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v15 (approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v16 (approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
@@ -11,7 +11,8 @@ chunk L01, the first real level, moves to v2, D134; v1 is the full MVP,
 never in a store, DoD 32 deferred, D135; chunk 22 done, DoD 30 not
 met, chunk 5N recommended, D138; chunk 24 gains 24.4 to 24.6, proposed,
 D139; crowd detail merged; the order 22b, 5N, 22 repeated, 24, the health
-review, proposed, D140)
+review, proposed, D140; chunk 22c, crowd detail only under load, between
+5N and 22's repeat, proposed, D141)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -150,9 +151,9 @@ technology, not business behaviour:
   idea, merged after it (D140): helpful, not enough on its own.
 - **Next, in this order (proposed, D140):** chunk **22b** (the drawing
   pass), chunk **5N** (the native tick, going ahead: the user's
-  conditional go, its condition met), chunk **22 repeated** on the
-  reference phone with the perf log, chunk **24**, then the closing
-  health review.
+  conditional go, its condition met), chunk **22c** (crowd detail only
+  under load, proposed, D141), chunk **22 repeated** on the reference
+  phone with the perf log, chunk **24**, then the closing health review.
 - **Chunk L01** (the first real level) is **v2**, not this plan (D134):
   v1 is the test level only. The release preset stays as built, with the
   test level left out; v1 (full MVP) is never published (D135).
@@ -191,8 +192,9 @@ technology, not business behaviour:
 | 19 | Persistence hardening | M | 16, 18 | [DoD 28]; `midair`, `old-version` |
 | 20 | Android build and platform integration | L | 18 | [DoD 25, 26, 27]; emulator |
 | 21 | End-to-end suite | M | 19 | [DoD 31] |
-| 22 | Performance pass on phones (repeated after 5N, D140) | M | 20, 23 (repeat: 5N) | [DoD 30] |
+| 22 | Performance pass on phones (repeated after 5N and 22c, D140, D141) | M | 20, 23 (repeat: 5N, 22c) | [DoD 30] |
 | 22b | Drawing pass (proposed, D140) | M | 22 | the frame's cost outside the tick measured per part and cut; same hash |
+| 22c | Crowd detail only under load (proposed, D141) | S | 5N | the load meter's unit tests; same hashes in `always`; `auto` measured on the desktop |
 | 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
 | 24 | Playtest issues, round 2 (open list; proposed) | S per issue (24.1 may be M) | 22 repeated (after 22b and 5N, D140) | each issue's own done-when |
 | LD | Level-design toolkit (technical) | L | 16 | the checker agrees with the level-rule tests on the test level; a scaffolded level loads, passes its generated tests and appears in test mode |
@@ -204,8 +206,9 @@ and 11 are independent of each other. Chunk 17 can start as soon as 8 is done, i
 parallel with the camera and objects work. Chunk 23 runs first among the
 remaining chunks, before 18 (D123), and chunk LD runs in parallel with it.
 TL1 ran after both, before 18 (D127; done, D129). After chunk 22, the
-order is 22b, 5N, 22 repeated, then chunk 24, the last chunk before the
-closing health review (D128, D140, proposed; O97 closed by D140).
+order is 22b, 5N, 22c, 22 repeated, then chunk 24, the last chunk before
+the closing health review (D128, D140, D141, proposed; O97 closed by
+D140).
 
 ## Chunks
 
@@ -553,10 +556,12 @@ closing health review (D128, D140, proposed; O97 closed by D140).
   desktop CPU standing in for the phone, `s3-basket-59of60` 16.4 -> 18.0
   fps and `stress-moving` 11.4 -> 12.3 fps; the rest of the frame stays
   about 21 ms. Helpful, not enough on its own.
-- **Repeated after 5N** (D140): on the reference phone with the perf log
-  (`tools/android/perf.sh`, labels off), cold and throttled; the done-when
-  above is unchanged. It records which of 24.3 and O106's changes to the
-  endgame have landed by then.
+- **Repeated after 5N and 22c** (D140, D141): on the reference phone with
+  the perf log (`tools/android/perf.sh`, labels off), cold and throttled,
+  with crowd detail in `auto` (the shipping behaviour; DoD 30 is judged on
+  it); the PERF lines show where the device is pressed and the ceiling it
+  reaches. The done-when above is unchanged. It records which of 24.3 and
+  O106's changes to the endgame have landed by then.
 
 ### 22b. Drawing pass (M, proposed, D140)
 
@@ -577,6 +582,48 @@ frame on its own. Runs before chunk 5N. Keeps both ATD steps, like chunk
   as the cuts allow, aiming at D138's drawing budget (at most 4 ms on the
   reference phone, proposed); what is left above it is recorded, not
   chased into behaviour changes; the suite passes with identical hashes.
+
+### 22c. Crowd detail only under load (S, proposed, D141)
+
+The user's amendment to crowd detail (D140): "if you've got a good
+phone/tablet, why degrade?". A good device keeps full ring points
+whatever the crowd; crowd detail applies only while the device can't keep
+up. Runs after chunk 5N (which changes how often a device is pressed at
+all) and before chunk 22's repeat, which measures it. It changes
+`req_offscreen_simulation`'s detail rule, so it keeps both ATD steps. It
+must not run while another chunk edits the slime body code.
+- **The load meter,** in the scene layer and in every build (not the
+  debug-only perf log; `src/sim/` never reads a clock, CODING_RULE §2),
+  its clock injected so tests can drive it. Each window of about 1 s:
+  pressed, calm or in the band (the values are in `tuning.md`, "Off
+  screen, resting piles and detail").
+- **The detail ceiling** (0 to 3): up one step per pressed window, down
+  one step after 3 calm windows in a row, held in the band; 0 at start and
+  after a load. An ACTIVE ring takes max(zoom's, min(crowd level,
+  ceiling)), then the pile cap. The ceiling is handed to the simulation at
+  a tick boundary, like the tilt, and is never saved; no save key changes.
+- **Modes:** `--crowd-detail=auto|always|off` (debug builds; release is
+  `auto`). `always` (ceiling 3) is the simulation's default; only the game
+  root in normal play turns `auto` on. Test mode accepts the flag; the
+  test-mode script format doesn't change.
+- **The perf log** gains the ceiling, the crowd level, the detail used,
+  the busy share and the missed beats on the PERF line, and a line at each
+  ceiling step with its reason; `tools/android/perf.sh` runs `auto` in
+  both modes (fixture runs pass `--crowd-detail=auto`), with a way to pick
+  another mode.
+- **Atoms (preflight start):** `req_offscreen_simulation`,
+  `req_test_level_and_test_mode`, `req_platform_and_performance_targets`.
+- **Done when:** unit tests drive the meter with an injected clock and
+  frame feed (a pressed window steps up, the band holds, 3 calm windows
+  step down, at most one step per window, a window with a frame over
+  250 ms is dropped, a debug speed other than 1x gives no verdict); the
+  whole suite passes with identical hashes (`always` everywhere outside
+  normal play), and a guard test checks that test mode defaults to
+  `always`; in `auto`, `s3-basket-59of60` stays at ceiling 0 on the
+  desktop at its normal clock, and on the slowed CPU it climbs to the crowd's level
+  within about 3 s and makes no more than a few ceiling steps over
+  2 minutes (no thrash), recorded in the project documentation; a save
+  written in `auto` loads in every mode.
 
 ### 23. Small issues (open list)
 
@@ -777,7 +824,7 @@ as chunk 23 did. The first three come from the user's own testing
 (2026-09-29): nothing major gameplay-wise, but a frame-rate drop in the
 last section, an unreadable basket display for a large quota, and a
 basket that keeps its slimes once it has fired. The chunk runs **after
-chunk 22b, 5N and chunk 22's repeat, the last chunk before the closing
+chunk 22b, 5N, 22c and chunk 22's repeat, the last chunk before the closing
 health review**, as the user asked (D128; the order is D140's, which
 closes O97). Each item is small (S) unless its
 investigation says otherwise, and can land on its own. All three items
@@ -1049,8 +1096,8 @@ behaviour, so no ATD steps; it still goes test first.
 Size M. **Chunk 22 was its trigger** (D96): it failed DoD 30 (D138), and
 crowd detail was not enough on its own, which meets the user's
 conditional go ("Should it prove unsufficient, we will see how it goes
-with 5N"). It runs after chunk 22b, and chunk 22 is then repeated (D140,
-proposed order). Technical: no ATD steps. It must not run while another
+with 5N"). It runs after chunk 22b; chunk 22c follows (D141), and chunk
+22 is then repeated (D140, proposed order). Technical: no ATD steps. It must not run while another
 chunk edits the slime body code.
 
 - **Already in place (the verified contingency):** the toolchain and a

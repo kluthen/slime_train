@@ -2310,3 +2310,112 @@ and the master spec's section 6 assume "a big crowd is mostly a still
 pile". O105 (open piles of 40 or more rest in minutes or never; an awake
 slime keeps waking a resting pile) and O106 (a fired basket's releases keep
 its pile awake) undercut that assumption. Documentalist found it.
+
+## D141 — Crowd detail only when the device can't keep up (2026-09-30)
+Proposed; the user reviews. Amends D140's crowd detail. The user's words
+(2026-09-30): "I'd like to add an amend for the next update: currently we
+reduce number of physic points a slime has when too many are simulated
+(active in/out of screen). We should probably only reduce this number IF
+fps goes below 60fps. (meaning, if you've got a good phone/tablet, why
+degrade?)". Defaults proposed by the coordinator, refined here where the
+spec and the code showed a better fit (each refinement says why).
+
+**1. The signal is load, not the displayed fps** (proposed).
+- Under vsync the fps reads 60 until the device is already late, so it
+  shows no headroom. Two measures instead, over a window of about 1 s of
+  real time:
+  - **the busy share:** the real time spent on the frame's work (the ticks
+    plus the rest of the game's `_process`, measured as the perf log's
+    process time), summed over the window, divided by the window's length;
+  - **missed beats:** frames at 1x that ran 2 ticks (the fixed step
+    catching up), so the game's 60 Hz pace slipped at that frame. They
+    catch what the busy share can't see: drawing, rendering, the system.
+- *Refined:* a share of the window rather than ms per frame. It reads the
+  same at a 60 Hz or a 120 Hz refresh (the S20 FE's screen may run at
+  120 Hz; the PERF_INFO line will tell); at 60 Hz, 85 % is about 14 ms of
+  a 16.7 ms frame and 60 % about 10 ms, the coordinator's numbers.
+- **Each window gives a verdict:**
+  - **pressed:** a busy share above 85 %, or 3 missed beats or more (under
+    about 57 fps);
+  - **calm:** a busy share below 60 % and at most 1 missed beat (a stray
+    hitch is tolerated);
+  - otherwise **in the band:** neither.
+- A window holding a frame over 250 ms (a pause, a load, the app back from
+  the background) is dropped, and so is any window at a debug speed other
+  than 1x.
+- **Where it lives:** in the scene layer, in every build, release
+  included. The perf log is debug-only and the release preset leaves
+  `src/debug/` out, so the meter can't be the perf log; the perf log
+  reports it. `src/sim/` never reads a clock (CODING_RULE §2).
+
+**2. The detail ceiling** (proposed).
+- *Refined:* rather than a separate "under pressure" flag that forces the
+  crowd level to 0, the load sets a **ceiling** on the crowd's detail
+  level, 0 to 3. The detail an ACTIVE ring takes becomes the higher of the
+  zoom's and the lower of the crowd's level and the ceiling:
+  max(zoom's, min(crowd level, ceiling)); the pile cap (level 2) applies
+  as today. The crowd level itself still follows D140's steps (up at 20,
+  30 and 40 active slimes, down at 15, 25 and 35), unchanged.
+- **How the ceiling moves:**
+  - a pressed window raises it one step (at most 3);
+  - 3 calm windows in a row lower it one step, and the count starts again,
+    so detail comes back at most one step per about 3 s;
+  - a window in the band holds it and restarts the calm count.
+- This keeps the coordinator's rules (on at once, off only after about
+  3 s of calm, at most one step per window), and it stops at the first
+  level where the device sits in the band instead of dropping straight
+  back to full detail. *Thrash:* a step changes the tick by about 1 ms on
+  the slowed desktop CPU (`stress-moving`'s contact solver 8.8 -> 5.7 ms
+  from level 0 to 3, D140), well under the band's 4 ms (60 to 85 %), so
+  it shouldn't bounce between steps; chunk 22c checks it.
+- A good device never goes pressed, so the ceiling stays 0: full ring
+  points, whatever the crowd. A pressed device gets D140's behaviour.
+- Zoom's low detail (at least level 2 below zoom 0.8, back from 0.85) is
+  unchanged: it is about what can be seen, not about load.
+
+**3. Modes and determinism** (proposed).
+- One switch, `--crowd-detail=auto|always|off` (a debug flag, debug
+  builds only; a release build is always `auto`):
+  - `auto`: the ceiling moved by the load meter. The default in normal
+    play;
+  - `always`: the ceiling fixed at 3, which is D140's behaviour exactly;
+  - `off`: the ceiling fixed at 0 (only the zoom's detail).
+- *Refined:* the simulation's own default is `always`; only the game root
+  in normal play turns `auto` on. So test mode, the fixtures, test-mode
+  scripts, the level bench, `tools/level.sh` and every unit or end-to-end
+  test run `always` unless a run asks for `auto`, and every state hash
+  stays as today (req_test_level_and_test_mode: same seed, same hash).
+  Test mode accepts the flag (the phone's fixture runs need `auto`); the
+  test-mode script format doesn't change.
+- **The ceiling is an input,** like the tilt (`TiltFeed` hands it to the
+  simulation before every tick): the scene layer hands it over at a tick
+  boundary, and a change applies from the next tick.
+- **Saves: no new key.** `detail` (each body's level) and
+  `offscreen.crowd_level` (D140's crowd level) keep their meaning. The
+  ceiling isn't saved. *Refined:* in `auto` it starts at 0 after a load or
+  a fresh start (a good device never shows reduced rings; a pressed one
+  climbs within a few seconds). A reload stays exact in `always` and
+  `off`. In `auto` the state loads exactly, but the run after it depends
+  on the device's load, as it did before the reload. No hard-contract
+  change (CODING_RULE §4).
+- It amends D140's "the count comes from the simulation's state only,
+  never from the frame rate or a measured time, so runs repeat": that
+  still holds for `always` and `off`. In `auto`, normal play's detail also
+  depends on the measured load. Documentalist: `req_offscreen_simulation`
+  (the detail rule) and `req_test_level_and_test_mode` (runs repeat
+  because test mode is `always`).
+
+**4. When: chunk 22c, after 5N and before chunk 22's repeat** (proposed).
+- 5N changes how often the device is pressed at all, and the phone run
+  should measure `auto`, the shipping behaviour. Not folded into 5N (one
+  chunk at a time) nor into 22b (running).
+- The perf log gains the ceiling, the crowd level, the detail used, the
+  busy share and the missed beats on the PERF line, plus a line at each
+  ceiling step with its reason. `tools/android/perf.sh` runs `auto` in
+  both of its modes (fixture runs pass `--crowd-detail=auto`), with a way
+  to pick another mode for comparison.
+- Chunk 22's repeat measures `auto`, and DoD 30 is judged on it.
+- The build plan has the chunk and its done-when; the values are rows in
+  `tuning.md`.
+- O105 is unchanged: this doesn't touch the rest rule or "a big crowd is
+  mostly a still pile".
