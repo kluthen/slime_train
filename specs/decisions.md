@@ -2229,3 +2229,84 @@ coordinator. The items and their done-whens are in the build plan, chunk 24.
   with labels off.
 - **24.1's target:** D138's proposal stands (it follows the phone budget
   if approved); the user reviews it.
+
+## D140 — Crowd detail; the order of the next steps; 5N goes ahead (2026-09-30)
+Proposed; the user reviews. Crowd detail is the user's idea (D138, item 5),
+merged now from branch `exp/crowd-detail`. The user's words (2026-09-30):
+"in case of screen filled with slimes, the chaos prevent accurate action.
+So having reduced physics shouldn't be problematic... graduation
+12 - 10 - 8 - 6 for <20 <30 <40 >40 simulated, for size 1 slime", and:
+"Should it prove unsufficient, we will see how it goes with 5N."
+Resolves O97.
+
+**1. Crowd detail.** It changes `req_offscreen_simulation` (and the master
+spec's 5.3, once approved): "fewer ring points zoomed out" becomes "fewer
+ring points zoomed out, or when many slimes are active".
+- **Ring points per size and detail level** (level 0 is full detail):
+
+  | Size | L0 | L1 | L2 | L3 |
+  |---|---|---|---|---|
+  | 1 | 12 | 10 | 8 | 6 |
+  | 2 | 15 | 12 | 10 | 8 |
+  | 3 | 18 | 15 | 12 | 9 |
+
+- **The crowd count:** the slimes that cost physics this tick, counted
+  after the parking: ACTIVE slimes that are not sleepers. Resting and
+  parked slimes cost nothing and don't count. The count comes from the
+  simulation's state only, never from the frame rate or a measured time,
+  so runs repeat (same seed, same hash).
+- **Levels:** up at 20, 30 and 40 active slimes; down only at 15, 25 and
+  35, so rings never reshape back and forth.
+- **Zoom:** the level used is the higher of the zoom's and the crowd's.
+  Zoomed out (below zoom 0.8, back from 0.85) gives at least level 2
+  (8, 10 and 12 points, the same as the old zoomed-out detail).
+- **Who is reshaped:** only ACTIVE rings are resampled, so a reshape never
+  wakes a resting pile. A slime waking or unparking takes the current
+  level on the tick it is ACTIVE again.
+- **Pile cap:** pile slimes (in a basket, or asleep at bedtime) stop at
+  level 2. At 6 points the `stress-still` pile rested at about tick 1300
+  instead of about 407.
+- **Save format:** each body stores `detail` (absent: 0); the off-screen
+  state stores `crowd_level` (absent: 0); an older save's `low: true`
+  loads as level 2 (a migration). A reload is exact: the same state and
+  the same run after it.
+- **Look:** in a crowd, 6-point slimes read fine. A lone slime at normal
+  zoom while a crowd sits just off screen (simulated, not parked) looks
+  like a hexagon: accepted (proposed).
+- **Measured gain,** on a slowed desktop CPU standing in for the phone:
+  - `s3-basket-59of60`: 16.4 -> 18.0 fps, tick 21 -> 17.7 ms;
+    `stress-moving`: 11.4 -> 12.3 fps, tick 33 -> 30 ms.
+  - The contact solver shrinks with the points (`stress-moving` 8.8 ->
+    5.7 ms from L0 to L3); about 4 to 5 ms of each tick doesn't depend on
+    the points.
+  - The rest of the frame, outside the tick, is about 21 ms on the slowed
+    CPU either way.
+  - **Verdict: helpful, but not enough on its own.**
+- The values are rows in `tuning.md` ("Off screen, resting piles and
+  detail").
+
+**2. The order of the next steps (proposed; the build plan follows).**
+1. **Chunk 22b, the drawing pass:** measure and cut what the frame costs
+   outside the tick, about 21 ms on the slowed CPU: the blend's field
+   viewports, the eyes, the lines, the frontier view, the debug overlay.
+2. **Chunk 5N, the native tick, goes ahead** after 22b. The targets are
+   missed (D138) and crowd detail is not enough on its own, which meets the
+   condition of the user's go quoted above. `domain_architecture_rationale`
+   adopts it (for documentalist). Its results are deterministic within one
+   build, not bit-equal to the GDScript tick. Saves load under either tick,
+   and the GDScript tick stays as a fallback.
+3. **Chunk 22 repeated** on the reference phone, with the perf log tooling
+   (`tools/android/perf.sh`).
+4. **Chunk 24.**
+5. **The coding-rule health review, last** (D122).
+
+O97 closes on this order. It keeps its proposed default (chunk 24 after 5N
+and chunk 22's repeat), with 22b placed first. 24.3 and O106 still change
+the endgame chunk 22's repeat measures; the repeat records which of them
+have landed.
+
+**3. A tension, noted in O105 (no decision).** `domain_architecture_rationale`
+and the master spec's section 6 assume "a big crowd is mostly a still
+pile". O105 (open piles of 40 or more rest in minutes or never; an awake
+slime keeps waking a resting pile) and O106 (a fired basket's releases keep
+its pile awake) undercut that assumption. Documentalist found it.

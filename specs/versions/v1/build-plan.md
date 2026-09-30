@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v14 (approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v15 (approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
@@ -10,7 +10,8 @@ emulator, D132; chunk 21 done, D133; v1 is the test level only, and
 chunk L01, the first real level, moves to v2, D134; v1 is the full MVP,
 never in a store, DoD 32 deferred, D135; chunk 22 done, DoD 30 not
 met, chunk 5N recommended, D138; chunk 24 gains 24.4 to 24.6, proposed,
-D139)
+D139; crowd detail merged; the order 22b, 5N, 22 repeated, 24, the health
+review, proposed, D140)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -81,7 +82,7 @@ in this order. A chunk isn't finished until step 6 is done.
 **Technical chunks skip the ATD steps (1 and 6).** They build tooling or
 technology, not business behaviour:
 - chunk 0 (tooling), chunk 3 (test backbone), chunk 5N (the native
-  simulation tick, a contingency), chunk 21 (the end-to-end suite) and
+  simulation tick), chunk 21 (the end-to-end suite) and
   chunk LD (the level-design toolkit, D123) still go test first. Chunk 5N changes no behaviour: the existing suite is its
   test. Chunk 0's only test is a trivial one, seen red then green, which proves the runner
   reports failures.
@@ -145,13 +146,18 @@ technology, not business behaviour:
   and `tests/e2e/` passes in the exported Linux build [DoD 31]. Its
   choices where the spec was silent are proposed in D133, with its open
   risks.
-- **Next: 22** onward. (5N is a contingency, run only if chunk 22 fails,
-  D96.)
+- **Chunk 22** done (D138; DoD 30 not met). Crowd detail, the user's
+  idea, merged after it (D140): helpful, not enough on its own.
+- **Next, in this order (proposed, D140):** chunk **22b** (the drawing
+  pass), chunk **5N** (the native tick, going ahead: the user's
+  conditional go, its condition met), chunk **22 repeated** on the
+  reference phone with the perf log, chunk **24**, then the closing
+  health review.
 - **Chunk L01** (the first real level) is **v2**, not this plan (D134):
   v1 is the test level only. The release preset stays as built, with the
   test level left out; v1 (full MVP) is never published (D135).
 - **Chunk 24** (the user's second round of playtest issues, an open list;
-  proposed, D128): after chunk 22 (and 5N if it runs), the last chunk
+  proposed, D128): after chunk 22's repeat (D140), the last chunk
   before the closing step, as the user asked. The user's next play
   reports go there.
 - **Closing step, last of all:** the coding-rule health review
@@ -168,7 +174,7 @@ technology, not business behaviour:
 | 3 | Test backbone | M | 0 | two identical scripted runs give identical state |
 | 4 | Level scaffolding and Meadow greybox | M | 3 | the loop, terrain and IDs load in a test |
 | 5 | Slime body | L | 1, 4 | unit tests on rings; a visual demo |
-| 5N | Native simulation tick (contingency, only if 22 fails) | M | 22 failing | the whole suite on the native tick; chunk 22 repeated |
+| 5N | Native simulation tick (going ahead after 22b, D140) | M | 22b | the whole suite on the native tick; saves load under either tick; chunk 22 repeated |
 | 6 | Train and split zone | M | 5 | [DoD 1 partial, 7] |
 | 7 | Taps and the call | L | 6 | [DoD 3, 4, 15, 17] |
 | 8 | Save format and fixtures | M | 7 | kill-and-reload tests; the first fixtures load [DoD 28 partial] |
@@ -185,21 +191,21 @@ technology, not business behaviour:
 | 19 | Persistence hardening | M | 16, 18 | [DoD 28]; `midair`, `old-version` |
 | 20 | Android build and platform integration | L | 18 | [DoD 25, 26, 27]; emulator |
 | 21 | End-to-end suite | M | 19 | [DoD 31] |
-| 22 | Performance pass on phones | M | 20, 23 | [DoD 30] |
+| 22 | Performance pass on phones (repeated after 5N, D140) | M | 20, 23 (repeat: 5N) | [DoD 30] |
+| 22b | Drawing pass (proposed, D140) | M | 22 | the frame's cost outside the tick measured per part and cut; same hash |
 | 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
-| 24 | Playtest issues, round 2 (open list; proposed) | S per issue (24.1 may be M) | 22, and 5N if it runs | each issue's own done-when |
+| 24 | Playtest issues, round 2 (open list; proposed) | S per issue (24.1 may be M) | 22 repeated (after 22b and 5N, D140) | each issue's own done-when |
 | LD | Level-design toolkit (technical) | L | 16 | the checker agrees with the level-rule tests on the test level; a scaffolded level loads, passes its generated tests and appears in test mode |
 | TL1 | Test level finishable from fresh (done, D129) | S | LD, R22 | the checker gives 0 warnings on the test level; a scripted play from `fresh` fills basket 1 |
 
-Chunks 1 and 2 can run in parallel with 3. Chunk 5N is not in the
-sequence: it runs only if chunk 22's measurement fails (D96). Chunks 9, 10
+Chunks 1 and 2 can run in parallel with 3. Chunk 22 failed DoD 30, so
+chunk 5N now runs (D96, D140): after chunk 22b, before chunk 22's repeat. Chunks 9, 10
 and 11 are independent of each other. Chunk 17 can start as soon as 8 is done, in
 parallel with the camera and objects work. Chunk 23 runs first among the
 remaining chunks, before 18 (D123), and chunk LD runs in parallel with it.
-TL1 ran after both, before 18 (D127; done, D129). Chunk 24 runs after 22
-(and 5N if it runs), the last chunk before the closing health review
-(D128, proposed; O97 asks whether 24.1 and 24.3 should run before 22
-instead).
+TL1 ran after both, before 18 (D127; done, D129). After chunk 22, the
+order is 22b, 5N, 22 repeated, then chunk 24, the last chunk before the
+closing health review (D128, D140, proposed; O97 closed by D140).
 
 ## Chunks
 
@@ -542,6 +548,35 @@ instead).
   most 8 ms, drawing at most 4 ms, at least 4.7 ms left), numbers from
   logs only. The rest rule's findings are O105; a fired basket's releases
   waking its pile, O106 (with 24.3); parked asleep slimes stacking, O91.
+- **Crowd detail** (the user's idea, merged after the chunk; proposed,
+  D140): fewer ring points when many slimes are active. On a slowed
+  desktop CPU standing in for the phone, `s3-basket-59of60` 16.4 -> 18.0
+  fps and `stress-moving` 11.4 -> 12.3 fps; the rest of the frame stays
+  about 21 ms. Helpful, not enough on its own.
+- **Repeated after 5N** (D140): on the reference phone with the perf log
+  (`tools/android/perf.sh`, labels off), cold and throttled; the done-when
+  above is unchanged. It records which of 24.3 and O106's changes to the
+  endgame have landed by then.
+
+### 22b. Drawing pass (M, proposed, D140)
+
+The frame outside the tick: on the slowed desktop CPU standing in for the
+phone it costs about 21 ms with or without crowd detail, more than a whole
+frame on its own. Runs before chunk 5N. Keeps both ATD steps, like chunk
+22 (the frame-rate target).
+- **Measure first,** per part, with the perf log: the blend mode's field
+  viewports, the eyes, the lines, the frontier view, the debug overlay
+  (labels off, as always), on `s3-basket-59of60` and `stress-moving`.
+- **Cut what costs,** without changing behaviour (same seed, same hash)
+  and without changing the look beyond what the user accepts (a visible
+  change goes to spec-writer first).
+- **Atoms (preflight start):** `req_platform_and_performance_targets`.
+- **Done when:** each part's cost is recorded before and after in the
+  project documentation, on the slowed desktop CPU and, where the tooling
+  allows, on the reference phone; the frame outside the tick is cut as far
+  as the cuts allow, aiming at D138's drawing budget (at most 4 ms on the
+  reference phone, proposed); what is left above it is recorded, not
+  chased into behaviour changes; the suite passes with identical hashes.
 
 ### 23. Small issues (open list)
 
@@ -742,9 +777,9 @@ as chunk 23 did. The first three come from the user's own testing
 (2026-09-29): nothing major gameplay-wise, but a frame-rate drop in the
 last section, an unreadable basket display for a large quota, and a
 basket that keeps its slimes once it has fired. The chunk runs **after
-chunk 22 (and 5N if it runs), the last chunk before the closing health
-review**, as the user asked (D128; O97 asks whether 24.1 and 24.3 should
-run before chunk 22 instead). Each item is small (S) unless its
+chunk 22b, 5N and chunk 22's repeat, the last chunk before the closing
+health review**, as the user asked (D128; the order is D140's, which
+closes O97). Each item is small (S) unless its
 investigation says otherwise, and can land on its own. All three items
 are **(proposed)** until the user approves D128. Items with business
 behaviour (24.2, 24.3) and the frame-rate target (24.1, like chunk 22)
@@ -784,7 +819,7 @@ and slime counts (built 2026-09-29).
   native code here. If chunk 22 (or 5N) has already brought section 3 to
   the target, 24.1 closes with the measurement alone.
 - **From chunk 22 (D138):** the fixture is `s3-basket-59of60`; the
-  endgame is bound by the tick, and 5N is recommended; if D138's phone
+  endgame is bound by the tick, and 5N is recommended (going ahead, D140); if D138's phone
   frame budget is approved, the desktop target below follows it (a tick
   of about 2.4 to 3.8 ms, proposed).
 - **Target (proposed):** on the desktop (the Linux build at test mode's
@@ -906,7 +941,7 @@ never parks either.
 - **Proposed:** that save plays without collapsing: in slow motion at
   worst, thanks to the tick cap (D138's cap of 2 ticks per frame).
 - **It follows** 24.4 (which caused this pile) and the resting-pile rules
-  (O105); chunk 5N (recommended, D138) lowers the tick itself.
+  (O105); chunk 5N (going ahead, D140) lowers the tick itself.
 - **Done when:** the after-migration save (as a fixture), played on the
   reference phone with the perf log (`tools/android/perf.sh`, labels
   off), never runs more than the cap's ticks per frame and stays at or
@@ -1009,16 +1044,14 @@ behaviour, so no ATD steps; it still goes test first.
   `gate1-open` and `gate2-open` baskets 2 and 3; the fixtures are
   regenerated and the whole suite passes (DoD 1 included).
 
-### 5N. Native simulation tick (contingency, only if chunk 22 fails)
+### 5N. Native simulation tick (going ahead after 22b, D140)
 
-Size M. Not in the ordered sequence: **chunk 22 is its trigger** (D96). It
-runs only if chunk 22's measurement of the real game fails on either phone,
-and chunk 22 is then repeated. Technical: no ATD steps. It must not run
-while another chunk edits the slime body code.
-
-**Recommended by chunk 22 (D138), not started:** after chunk 22's fixes,
-the section 3 endgame's phone tick is still estimated at more than a
-frame; the user decides when it starts.
+Size M. **Chunk 22 was its trigger** (D96): it failed DoD 30 (D138), and
+crowd detail was not enough on its own, which meets the user's
+conditional go ("Should it prove unsufficient, we will see how it goes
+with 5N"). It runs after chunk 22b, and chunk 22 is then repeated (D140,
+proposed order). Technical: no ATD steps. It must not run while another
+chunk edits the slime body code.
 
 - **Already in place (the verified contingency):** the toolchain and a
   trivial extension under `native/`, documented in `docs/dev/native.md`,
@@ -1032,14 +1065,18 @@ frame; the user decides when it starts.
   Android NDK, for Android arm64, both from one build script, and included
   in the Android export.
 - Determinism: hashes are compared within one build and platform. The
-  native results don't match the GDScript version bit for bit, and tests
-  compare runs within one build. Whether the GDScript tick is kept alongside
-  (for instance as a reference) is the implementer's call, written down in
-  the project documentation.
+  native results are deterministic within one build but don't match the
+  GDScript version bit for bit, and tests compare runs within one build.
+- **Saves and fallback (D140):** a save loads under either tick (a save
+  written under one runs on under the other). The GDScript tick is kept
+  as a fallback, used when the native extension is missing or fails to
+  load.
 - **Background reading:** `../../tech-direction.md` "Simulation performance"
   and the reference phone numbers in `docs/dev/spike-soft-slimes.md`.
 - **Done when:** the Linux and Android arm64 extensions build from one
-  script; the whole suite passes on the native tick; the bench numbers
+  script; the whole suite passes on the native tick; a save written under
+  either tick loads under the other, and the game runs on the GDScript
+  tick when the extension is missing; the bench numbers
   (desktop and phone, native against GDScript) are recorded in the project
   documentation; and chunk 22, repeated, passes.
 

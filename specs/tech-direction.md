@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v19
+Status: draft v20
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -97,7 +97,8 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
     outside the edge of the view, and physics takes over.
   - Slimes resting in a basket may get a simplified state.
   - Sleepers stop simulating until something touches them. Slimes
-    on screen may use fewer points per ring when zoomed out.
+    on screen may use fewer points per ring when zoomed out, or when many
+    slimes are active (crowd detail, proposed, D140).
   - Off-screen rules (D70): free slimes follow their area's route back, fusion
     and waking happen only on screen, and baskets count weight off screen.
 
@@ -126,7 +127,7 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   - resting slimes (a pile) stop being simulated, contact solving included,
     until something disturbs them;
   - sleepers don't simulate;
-  - fewer points per ring when zoomed out;
+  - fewer points per ring when zoomed out, or in a crowd (D140);
   - slimes in a full basket are simplified.
   - As built (chunk 15; values in `tuning.md`): slimes beyond a margin
     around the view are parked (not simulated, not even as walls). A pile
@@ -141,10 +142,30 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
     parking (86 parked). A big pile of base slimes in the open rests slowly;
     the rule is kept for v1 and looked at again in chunk 22 (D107);
     measured there, revisiting it is O105 (D138).
+- **Crowd detail (proposed, D140; the user's idea):** on a screen full of
+  slimes the chaos hides rounder shapes, so rings take fewer points as the
+  crowd grows. Detail levels 0 (full) to 3 (for size 1: 12, 10, 8 and 6
+  points; values in `tuning.md`). The crowd is the ACTIVE non-sleeper
+  slimes after the parking: level 1 from 20, 2 from 30, 3 from 40, down
+  only 5 below each step. The level used is the higher of the zoom's and
+  the crowd's (zoomed out gives at least level 2). Only ACTIVE rings are
+  reshaped, so a resting pile is never woken by it; pile slimes stop at
+  level 2. The count comes from the simulation's state, never from time,
+  so runs repeat. Saves store each body's `detail` and the off-screen
+  `crowd_level` (an old `low: true` loads as level 2). Measured on a
+  slowed desktop CPU standing in for the phone: `s3-basket-59of60`
+  16.4 -> 18.0 fps (tick 21 -> 17.7 ms), `stress-moving` 11.4 -> 12.3 fps
+  (33 -> 30 ms); about 4 to 5 ms of each tick doesn't depend on points,
+  and the rest of the frame is about 21 ms either way. Helpful, not
+  enough on its own.
 - **The realistic worst case in play is a mostly still pile** (level rule
   16): a full basket plus the train, not 200 moving slimes. The
-  `stress-moving` fixture stays as a measurement, not a target.
-- **Native code is the documented, verified contingency, not fired.** A
+  `stress-moving` fixture stays as a measurement, not a target. *Under
+  question (D140, O105, O106):* open piles rest slowly or never, and a
+  fired basket's releases keep its pile awake.
+- **Native code was the documented, verified contingency; it now goes
+  ahead as chunk 5N after chunk 22b (proposed order, D140; the user's
+  conditional go, its condition met).** A
   GDExtension in C++ (godot-cpp), built with `-ffp-contract=off` so ticks
   repeat from one build to another, for the Linux desktop and, through the
   Android NDK, for Android arm64. Its toolchain and a trivial extension are
@@ -167,6 +188,14 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   endgame is bound by the tick: estimated 15 to 17 ms cold, 24 to 27 ms
   throttled on the phone. **Chunk 5N is recommended** (not started);
   chunk 22 repeats after it.
+- **Next (proposed order, D140):** chunk 22b, the drawing pass: on the
+  slowed desktop CPU the frame costs about 21 ms outside the tick (the
+  blend's field viewports, the eyes, the lines, the frontier view, the
+  debug overlay), so "drawing is not the problem" no longer holds once
+  the tick shrinks. Then chunk 5N: results deterministic within one build
+  (not bit-equal to the GDScript tick); saves load under either tick; the
+  GDScript tick stays as a fallback. Then chunk 22 repeated on the
+  reference phone with the perf log.
 - **The cap on ticks per frame: 2 at 1x** (proposed, D138; was 8): an
   overloaded scene plays in slow motion instead of collapsing into the
   catch-up spiral; the cap scales with the debug speed.

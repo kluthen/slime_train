@@ -106,7 +106,7 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | A fired basket empties within (proposed) | its quota × 0.3 s plus 10 s of firing, none of its slimes falling back in | D128, item 24.3 |
 | Section 3 frame budget on the desktop (proposed) | a steady 60 fps at test mode's 1152 × 648 window; at most 8 ms per tick at p95 on the section 3 bench cases, `stress-moving` excepted | D128, item 24.1 |
 
-### Off screen, resting piles and zoomed-out detail (chunk 15)
+### Off screen, resting piles and detail (chunk 15; crowd detail, D140)
 
 | Value | Start at | Source |
 |---|---|---|
@@ -122,7 +122,10 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | A pile rests | when every slime of a touching group of pile slimes (in a basket, or asleep at bedtime) is still at once; awake slimes out of a basket hop and never rest | D96 |
 | A resting pile wakes (`WAKE_SPEED`) | a touching slime faster than 30 px/s (a hop, a landing, a neighbour moving), a state change (bedtime, sunrise, a basket catching or releasing), a slime removed, fused or split next to it; a call wakes the resting slimes within its radius, a tilt change wakes them all | D96 |
 | A door wakes nearby piles (`DOOR_WAKE_REACH`) | a trapdoor, gate or lid opening or shutting wakes the piles within 80 px of it | D96 |
-| Zoomed-out detail (`LOW_ZOOM`, `FULL_ZOOM`, `LOW_POINTS_BY_SIZE`) | below zoom 0.8, 8, 10 and 12 ring points for sizes 1, 2 and 3 (full detail: 12, 15, 18); back to full from 0.85 | D94, D96 |
+| Ring points per detail level (`POINTS_BY_DETAIL`) (proposed) | levels 0 (full) to 3: size 1 12, 10, 8, 6; size 2 15, 12, 10, 8; size 3 18, 15, 12, 9 | D94, D140 |
+| Zoomed-out detail (`LOW_ZOOM`, `FULL_ZOOM`, `LOW_DETAIL`) | below zoom 0.8, at least level 2 (8, 10 and 12 points for sizes 1, 2 and 3); back from 0.85 | D94, D96, D140 |
+| Crowd detail (`CROWD_STEPS`, `CROWD_EASE`) (proposed) | the crowd is the ACTIVE non-sleeper slimes after the parking; level 1 from 20, 2 from 30, 3 from 40; down only 5 below each step (15, 25, 35); the level used is the higher of the zoom's and the crowd's; only ACTIVE rings are reshaped | D140 |
+| Pile detail cap (`PILE_MAX_DETAIL`) (proposed) | pile slimes (in a basket, asleep at bedtime) stop at level 2 (at 6 points the `stress-still` pile rested at about tick 1300 instead of 407) | D140 |
 | Test level, basket 2 quota | 15 (weight) | test level |
 
 ### Performance (chunk 22)

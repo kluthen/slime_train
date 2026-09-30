@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v35
+Status: draft v36
 
 ## One-liner
 
@@ -243,6 +243,7 @@ survives the app being killed.
 | quota outlines | how a basket shows its quota: one empty slime outline per unit of weight, filling in the colour of each slime caught (ux D4). Not "the slime counter" |
 | quota pie | *(proposed, D128)* how a basket with a quota above 10 shows it: one pie per 10 of weight, the last holding the rest, a slice filling per unit of weight |
 | debug overlay | developer tools over the game, in debug builds only: speed, reset, slime labels, the kill tool, the fps and the **slime counts** (on screen : simulated off screen : parked) |
+| crowd detail | *(proposed, D140)* fewer ring points per slime when many slimes are active (20, 30, 40 or more) or when zoomed out; a size-1 slime goes from 12 points down to 10, 8 or 6. A detail level: 0 (full) to 3 |
 | frontier set | the signpost, switch, basket and gate that end a section: flip the switch, fill the basket, the gate opens (D14). Inert once its gate is open (D86) |
 | trapdoor | the part of a frontier switch that covers its basket: solid while the switch sends the flow onward, open while it is flipped, dropping slimes into the basket |
 | lid | the part of a gate that shuts the old return route's entrance once the gate is open (D105) |
