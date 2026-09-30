@@ -2,6 +2,8 @@ extends GutTest
 ## Test mode must be unreachable in a release build. TestModeGuard is the one
 ## check; the game asks it before anything from test mode is loaded.
 
+# @test-link [[req_test_level_and_test_mode]]
+
 const MAIN_SCENE := "res://src/main.tscn"
 const SRC_ROOT := "res://src/"
 const TEST_MODE_DIR := "res://src/test_mode/"

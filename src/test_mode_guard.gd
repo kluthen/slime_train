@@ -28,6 +28,7 @@ static func for_this_build() -> TestModeGuard:
 
 
 ## Whether this build may run test mode.
+# @spec-link [[req_test_level_and_test_mode]]
 func allows() -> bool:
 	return _is_debug_build
 

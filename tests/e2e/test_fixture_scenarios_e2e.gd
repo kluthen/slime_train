@@ -28,6 +28,7 @@ extends GutTest
 # @test-link [[rule_released_level_stable_with_migration]]
 # @test-link [[rule_saves_never_wiped]]
 # @test-link [[req_switch_basket_gate_set]]
+# @test-link [[rule_max_size_three]]
 
 const MAIN_SCENE := "res://src/main.tscn"
 const SEED := 21
@@ -194,6 +195,7 @@ func _run_stress_moving(label: String) -> Node:
 
 
 # @test-link [[rule_max_200_slimes_per_level]]
+# @test-link [[rule_max_size_three]]
 # @test-link [[req_test_level_and_test_mode]]
 func test_stress_moving_moves_keeping_its_200_and_runs_the_same_twice() -> void:
 	var first := _run_stress_moving("first run")
