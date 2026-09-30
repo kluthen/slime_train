@@ -152,3 +152,183 @@ func test_a_slime_coming_into_view_is_drawn() -> void:
 	await wait_process_frames(1)
 	assert_eq(renderer.drawn_count(), 4, "the same slimes, a new seen set")
 	assert_eq(renderer.vertex_count(), bodies.pos.size() * 2 + bodies.slime_count)
+
+
+# --- Redraw on change, compact vertices ------------------------------------------
+
+## Slimes 0, 2 and 4 seen; 1 far off the view and 3 parked in it, between
+## them, so the compact layout shifts the later slimes.
+func _mixed_bodies() -> SlimeBodies:
+	var bodies := SlimeBodies.new(Rng.new(3))
+	bodies.create(0, 1, Vector2(100, 100))
+	bodies.create(1, 1, Vector2(100000, 100))
+	bodies.create(3, 2, Vector2(200, 100))
+	bodies.park(bodies.create(2, 1, Vector2(400, 200)))
+	bodies.create(5, 3, Vector2(320, 100))
+	return bodies
+
+
+## What the full-array drawing painted (every ring point, then every skirt
+## point, then every centre; each seen slime's fan and skirt in slime order),
+## worked out from `bodies` alone: per painter, [corners, colours].
+func _full_layout_picture(bodies: SlimeBodies, seen: Array, mode: int) -> Array:
+	var pos := bodies.pos
+	var n := pos.size()
+	var verts := pos.duplicate()
+	verts.resize(n * 2 + bodies.slime_count)
+	var colors := PackedColorArray()
+	colors.resize(n * 2 + bodies.slime_count)
+	for s in bodies.slime_count:
+		var sp: int = bodies.species[s]
+		var tint: Color = Species.color(sp) if mode == SlimeRenderer.DIRECT else SlimeRenderer.ONE_HOT[sp % 3]
+		var f: int = bodies.first[s]
+		var count: int = bodies.npts[s]
+		var sum := Vector2.ZERO
+		for i in count:
+			var before: Vector2 = pos[f + (i + count - 1) % count]
+			var after: Vector2 = pos[f + (i + 1) % count]
+			var d := after - before
+			verts[n + f + i] = pos[f + i] + Vector2(d.y, -d.x).normalized() * SlimeRenderer.SKIRT
+			sum += pos[f + i]
+			colors[f + i] = Color(tint, 1.0)
+			colors[n + f + i] = Color(tint, 0.0)
+		verts[2 * n + s] = sum / count
+		colors[2 * n + s] = Color(tint, 1.0)
+	var painters := [[PackedVector2Array(), PackedColorArray()], [PackedVector2Array(), PackedColorArray()]]
+	for s in seen:
+		var painter: Array = painters[0 if mode == SlimeRenderer.DIRECT or bodies.species[s] / 3 == 0 else 1]
+		var f: int = bodies.first[s]
+		var count: int = bodies.npts[s]
+		for i in count:
+			var a := f + i
+			var b := f + (i + 1) % count
+			for v in [2 * n + s, a, b, a, n + a, n + b, a, n + b, b]:
+				painter[0].append(verts[v])
+				painter[1].append(colors[v])
+	return painters if mode == SlimeRenderer.BLEND else [painters[0]]
+
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_a_frame_where_nothing_changed_hands_nothing_over() -> void:
+	for mode in [SlimeRenderer.DIRECT, SlimeRenderer.BLEND]:
+		var bodies := _bodies()
+		var renderer := _renderer(bodies, mode)
+		await wait_process_frames(2)
+		var uploads := renderer.upload_count()
+		await wait_process_frames(3)
+		assert_eq(renderer.upload_count(), uploads, "mode %d: no tick, same view: nothing handed over" % mode)
+		bodies.tick(1.0 / 60.0)
+		await wait_process_frames(2)
+		assert_eq(renderer.upload_count(), uploads + 1, "mode %d: the tick moved them: handed over once" % mode)
+
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_a_view_change_keeping_the_seen_slimes_only_follows_the_screen() -> void:
+	var bodies := _bodies()
+	var renderer := _renderer(bodies, SlimeRenderer.BLEND)
+	await wait_process_frames(2)
+	var viewport := renderer.get_viewport()
+	var home := viewport.canvas_transform
+	var uploads := renderer.upload_count()
+	var moved := home.translated(Vector2(7, 3))
+	viewport.canvas_transform = moved
+	await wait_process_frames(1)
+	var followed := renderer.field_viewports()[0].canvas_transform
+	viewport.canvas_transform = home
+	var scale := Vector2(renderer.field_scale, renderer.field_scale)
+	assert_eq(renderer.upload_count(), uploads, "the same slimes seen: their triangles stay")
+	assert_eq(followed, Transform2D().scaled(scale) * viewport.get_final_transform() * moved, "the fields follow the view")
+
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_after_a_tick_the_picture_is_the_full_layout_one() -> void:
+	for mode in [SlimeRenderer.DIRECT, SlimeRenderer.BLEND]:
+		var bodies := _mixed_bodies()
+		var renderer := _renderer(bodies, mode)
+		await wait_process_frames(2)
+		bodies.tick(1.0 / 60.0)
+		await wait_process_frames(1)
+		assert_eq(renderer.drawn_count(), 3, "mode %d: slimes 0, 2 and 4" % mode)
+		var expected := _full_layout_picture(bodies, [0, 2, 4], mode)
+		for i in expected.size():
+			assert_eq(renderer.painted_triangles(i), expected[i][0], "mode %d painter %d: the same corners" % [mode, i])
+			assert_eq(renderer.painted_colors(i), expected[i][1], "mode %d painter %d: the same colours" % [mode, i])
+
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_unseen_slimes_hand_over_no_vertices() -> void:
+	var bodies := _mixed_bodies()
+	var renderer := _renderer(bodies, SlimeRenderer.BLEND)
+	await wait_process_frames(2)
+	var painted := renderer.painted_vertices()
+	assert_eq(painted.size(), _seen_vertices(bodies, [0, 2, 4]), "the seen slimes' vertices only")
+	for s in [1, 3]:
+		var f: int = bodies.first[s]
+		for j in range(f, f + bodies.npts[s]):
+			assert_false(painted.has(bodies.pos[j]), "slime %d's point %d is not handed over" % [s, j])
+
+
+## The painter nodes of `renderer`: its own in DIRECT, one per field viewport
+## in BLEND.
+func _painters(renderer: SlimeRenderer) -> Array[Node2D]:
+	var out: Array[Node2D] = []
+	if renderer.draw_mode == SlimeRenderer.DIRECT:
+		out.append(renderer.get_node("Painter"))
+	for view in renderer.field_viewports():
+		out.append(view.get_node("Painter"))
+	return out
+
+
+## Counts each painter's `draw` emissions (its redraws) in `draws`.
+func _count_draws(painters: Array[Node2D], draws: Array[int]) -> void:
+	draws.resize(painters.size())
+	draws.fill(0)
+	for i in painters.size():
+		painters[i].draw.connect(func() -> void: draws[i] += 1)
+
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_an_engine_redraw_of_a_painter_paints_its_triangles_again() -> void:
+	for mode in [SlimeRenderer.DIRECT, SlimeRenderer.BLEND]:
+		var renderer := _renderer(_bodies(), mode)
+		await wait_process_frames(2)
+		var painters := _painters(renderer)
+		var draws: Array[int] = []
+		_count_draws(painters, draws)
+		var uploads := renderer.upload_count()
+		var paints := renderer.paint_count()
+		var picture := renderer.painted_triangles(0)
+		assert_false(picture.is_empty(), "mode %d: painter 0 has slimes" % mode)
+		painters[0].queue_redraw()
+		await wait_process_frames(1)
+		assert_eq(draws[0], 1, "mode %d: the engine redrew painter 0 (its canvas item cleared)" % mode)
+		assert_eq(renderer.paint_count(), paints + 1, "mode %d: its triangles were added again" % mode)
+		assert_eq(renderer.painted_triangles(0), picture, "mode %d: the same picture" % mode)
+		assert_eq(renderer.upload_count(), uploads, "mode %d: nothing moved: nothing new handed over" % mode)
+
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_a_screen_size_change_in_blend_still_shows_the_slimes() -> void:
+	var screen := SubViewport.new()
+	screen.size = Vector2i(1000, 600)
+	add_child_autofree(screen)
+	var renderer := SlimeRenderer.new()
+	renderer.draw_mode = SlimeRenderer.BLEND
+	renderer.bodies = _bodies()
+	screen.add_child(renderer)
+	await wait_process_frames(2)
+	var painters := _painters(renderer)
+	var draws: Array[int] = []
+	_count_draws(painters, draws)
+	var uploads := renderer.upload_count()
+	var paints := renderer.paint_count()
+	var pictures := [renderer.painted_triangles(0), renderer.painted_triangles(1)]
+	screen.size = Vector2i(800, 500)
+	await wait_process_frames(2)
+	assert_eq(renderer.field_viewports()[0].size, Vector2i(400, 250), "the fields follow the screen size")
+	for i in painters.size():
+		assert_false(pictures[i].is_empty(), "painter %d has slimes" % i)
+		assert_gt(draws[i], 0, "painter %d was redrawn (its canvas item cleared)" % i)
+		assert_eq(renderer.painted_triangles(i), pictures[i], "painter %d: the same picture" % i)
+	assert_eq(renderer.paint_count(), paints + draws[0] + draws[1], "every redraw added the triangles again")
+	assert_eq(renderer.upload_count(), uploads, "the slimes did not move: nothing new handed over")

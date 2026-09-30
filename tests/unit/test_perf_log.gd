@@ -20,6 +20,14 @@ func _game_with_guard(is_debug_build: bool) -> Node:
 	return game
 
 
+## Part means for the line: 0.5, 1.5, 2.5 ... one per part field.
+func _parts() -> PackedFloat64Array:
+	var out := PackedFloat64Array()
+	for i in PerfLog.PART_FIELDS.size():
+		out.append(i + 0.5)
+	return out
+
+
 ## 1 ms, 2 ms, ... `count` ms.
 func _ramp(count: int) -> PackedFloat64Array:
 	var out := PackedFloat64Array()
@@ -99,12 +107,13 @@ func test_line_holds_every_field() -> void:
 	var sim := Simulation.new(7)
 	var ticking := PerfLog.tick_stats(PackedFloat64Array([0.05, 0.05]), PackedInt32Array([3, 1]),
 			PackedInt64Array([30_000, 10_000]), PackedInt32Array([80, 31]), PackedInt32Array([200, 41]))
-	var text := PerfLog.line(12.34, PerfLog.window_stats(_ramp(20)), ticking, 4.5, 300, sim)
+	var text := PerfLog.line(12.34, PerfLog.window_stats(_ramp(20)), ticking, 4.5, 300, sim, _parts())
 	assert_true(text.begins_with("PERF t=12.3 frames=20 fps=95.2 "), text)
 	for field in ["frame_ms_p50=10.00", "frame_ms_p95=19.00", "frame_ms_max=20.00", "process_ms_mean=4.50",
 			"ticks=300", "ticks_per_frame_mean=2.00", "ticks_per_frame_max=3", "tick_ms_mean=10.00",
 			"tick_ms_frame_mean=20.00", "rest_ms_mean=30.00", "on_screen=0", "simulated=0", "off_screen=0",
-			"parked=0", "bodies=0", "active=55.5", "pairs=120.5", "section=0", "zoom="]:
+			"parked=0", "bodies=0", "active=55.5", "pairs=120.5", "section=0", "zoom=",
+			"slimes_ms=0.50", "main_ms=5.50", "field_gpu_ms=10.50", "draw_calls=12", "primitives=14"]:
 		assert_string_contains(text, " " + field)
 	assert_false("\n" in text, "one line")
 
@@ -115,7 +124,7 @@ func test_line_is_key_value_numbers_in_the_documented_order() -> void:
 	var ticking := PerfLog.tick_stats(PackedFloat64Array([0.02]), PackedInt32Array([1]), PackedInt64Array([5_000]),
 			PackedInt32Array([1]), PackedInt32Array([0]))
 	var fields := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 5.0, 1,
-			Simulation.new(7)).split(" ")
+			Simulation.new(7), _parts()).split(" ")
 	assert_eq(fields[0], "PERF")
 	var keys := PackedStringArray()
 	for field in fields.slice(1):
@@ -125,7 +134,22 @@ func test_line_is_key_value_numbers_in_the_documented_order() -> void:
 	assert_eq(keys, PackedStringArray(["t", "frames", "fps", "frame_ms_p50", "frame_ms_p95", "frame_ms_max",
 			"process_ms_mean", "ticks", "ticks_per_frame_mean", "ticks_per_frame_max", "tick_ms_mean",
 			"tick_ms_frame_mean", "rest_ms_mean", "on_screen", "simulated", "off_screen", "parked", "bodies",
-			"active", "pairs", "section", "zoom"]))
+			"active", "pairs", "section", "zoom", "slimes_ms", "eyes_ms", "frontier_ms", "hud_ms", "debug_ms",
+			"main_ms", "setup_ms", "render_cpu_ms", "render_gpu_ms", "field_cpu_ms", "field_gpu_ms", "draw_calls",
+			"objects", "primitives"]))
+
+
+## The part means: the window's sums over its frames.
+func test_part_means_are_sums_over_frames() -> void:
+	var sums := PackedFloat64Array()
+	sums.resize(PerfLog.PART_FIELDS.size())
+	sums[0] = 12.0
+	sums[PerfLog.PART_FIRST_COUNT] = 300.0
+	var means := PerfLog.part_means(sums, 4)
+	assert_eq(means.size(), PerfLog.PART_FIELDS.size())
+	assert_almost_eq(means[0], 3.0, 0.0001)
+	assert_almost_eq(means[PerfLog.PART_FIRST_COUNT], 75.0, 0.0001)
+	assert_eq(means[1], 0.0)
 
 
 ## Parked counts every parked slime, on screen or not; off_screen only those
@@ -141,7 +165,7 @@ func test_parked_counts_every_parked_slime() -> void:
 	assert_eq(PerfLog.parked_bodies(sim), 2)
 	var ticking := PerfLog.tick_stats(PackedFloat64Array([0.02]), PackedInt32Array([0]), PackedInt64Array([0]),
 			PackedInt32Array([0]), PackedInt32Array([0]))
-	var text := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 1.0, 0, sim)
+	var text := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 1.0, 0, sim, _parts())
 	for field in ["on_screen=1", "simulated=1", "off_screen=1", "parked=2", "bodies=3"]:
 		assert_string_contains(text, " " + field)
 
@@ -281,6 +305,43 @@ func test_game_records_the_frames_ticks() -> void:
 	game._process(0.0)
 	assert_eq(game.frame_ticks, 0)
 	assert_lt(game.frame_tick_usec, 1000, "no tick: next to no time")
+
+
+## The perf log takes each game node's frame_cost_usec (in ms, per part)
+## and sets it back to 0: the debug overlay, its labels and test mode's
+## overlay add up to debug_ms.
+func test_perf_log_takes_and_resets_the_parts_counters() -> void:
+	var game := _game_with_guard(true)
+	assert_eq(game.enable_test_mode({"seed": 1}), PackedStringArray())
+	game.add_debug_overlay()
+	assert_eq(game.add_perf_log(PackedStringArray(["--perf-log=100"])), PackedStringArray())
+	var costs := {game.slime_renderer: 3000, game.tap_feedback: 1500, game.frontier_view: 250,
+			game.edge_buttons: 100, game.debug_overlay: 40, game.debug_overlay.labels: 20,
+			game.test_mode.overlay: 10, game: 700}
+	for node in costs:
+		node.frame_cost_usec = costs[node]
+	var parts: PackedFloat64Array = game.perf_log.take_parts()
+	assert_eq(parts.size(), PerfLog.PART_FIELDS.size())
+	var expected := {"slimes_ms": 3.0, "eyes_ms": 1.5, "frontier_ms": 0.25, "hud_ms": 0.1, "debug_ms": 0.07,
+			"main_ms": 0.7}
+	for field in expected:
+		assert_almost_eq(parts[PerfLog.PART_FIELDS.find(field)], expected[field], 0.0001, field)
+	for node in costs:
+		assert_eq(node.frame_cost_usec, 0, "taken, set back to 0: %s" % node.name)
+	parts = game.perf_log.take_parts()
+	for field in expected:
+		assert_eq(parts[PerfLog.PART_FIELDS.find(field)], 0.0, "nothing since: " + field)
+
+
+## Every node the perf log reads counts its own per-frame work, its _draw
+## included, over real frames.
+func test_game_nodes_count_their_frame_cost() -> void:
+	var game := _game_with_guard(true)
+	assert_eq(game.enable_test_mode({"seed": 1, "time_scale": 1}), PackedStringArray())
+	await wait_process_frames(3)
+	for node in [game, game.slime_renderer, game.tap_feedback, game.frontier_view, game.edge_buttons,
+			game.test_mode.overlay]:
+		assert_gt(node.frame_cost_usec, 0, node.name)
 
 
 func test_debug_game_refuses_a_malformed_flag() -> void:

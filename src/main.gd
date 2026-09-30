@@ -155,6 +155,11 @@ var max_ticks_per_frame := MAX_TICKS_PER_FRAME
 ## around the step_simulation() calls): the perf log reads them.
 var frame_ticks := 0
 var frame_tick_usec := 0
+## The real time its own _process took outside the ticks (the frame's
+## fixed step, the autosave check), microseconds, summed until the debug
+## perf log takes it (and sets it back to 0); nothing else reads it.
+# @spec-link [[req_platform_and_performance_targets]]
+var frame_cost_usec := 0
 
 var _clock := FixedStep.new()
 ## The level's collision terrain for the slimes, or null without a level.
@@ -237,7 +242,10 @@ func _ready() -> void:
 ## Runs the ticks this frame's time is worth at the current speed (FixedStep,
 ## at most FixedStep.max_ticks_for per frame), recording how many and how
 ## long they took (frame_ticks, frame_tick_usec), then autosaves when due.
+## The rest of its time goes to frame_cost_usec.
+# @spec-link [[req_platform_and_performance_targets]]
 func _process(delta: float) -> void:
+	var process_start_usec := Time.get_ticks_usec()
 	var scale: float = test_mode.time_scale if test_mode != null else 1.0
 	if debug_overlay != null:
 		scale *= debug_overlay.speed
@@ -251,6 +259,7 @@ func _process(delta: float) -> void:
 		var error := save_now()
 		if error != "":
 			printerr("Autosave: ", error)
+	frame_cost_usec += Time.get_ticks_usec() - process_start_usec - frame_tick_usec
 
 
 ## Going to the background (Autosave.is_background) saves at once.

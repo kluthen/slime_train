@@ -59,6 +59,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `src/frontier/` | Frontier set drawing (`FrontierView`: doors, arrows, the basket's outlines, the celebration); the logic itself is `src/sim/frontier_sets.gd` (see "Frontier sets (chunk 14)") |
 | `src/taps/` | Tap feedback drawing (`TapFeedback`: the ripples and the slimes' eye dots); the tap logic itself is in `src/sim/` (see "Taps and the call") |
 | `src/slimes/` | Slime drawing (`SlimeRenderer` and its shaders), the terrain hand-off to the simulation (`SlimeWorld`) and the slime demo scene |
+| `src/draw/` | Scene-layer drawing helpers: `ShapeInstances`, many copies of one shape in one instanced draw (see "Chunk 22b: drawing") |
 | `src/components/` | Reusable level components, configured in the editor (see "Levels and components") |
 | `levels/<id>/` | One folder per level: `level.tscn` and `fixtures/`, found by ID (`src/level_catalog.gd`, see [level-tooling.md](level-tooling.md)). `levels/test/level.tscn` is the test level |
 | `levels/<id>/fixtures/` | A level's fixtures: saves test mode starts from by name (see "Saves and fixtures") |
@@ -74,6 +75,8 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `tools/bench_offscreen.gd` | Times the off-screen fallbacks (see "Off-screen simulation (chunk 15)") |
 | `tools/bench_level.gd`, `tools/bench_level/` | Times a whole level: the test level with its 200 slimes (see "Off-screen simulation (chunk 15)"), or any level with `--level` (chunk LD3); `stress-still` from its pile's rest (see "Chunk 22: performance") |
 | `tools/bench_rest.gd`, `tools/bench_rest/` | The resting-pile rule measured on the test level (`tools/level.sh rest`, see "Resting piles (D107)") |
+| `tools/perf_slow.sh` | A windowed perf-log run of a fixture on the desktop, slowed or at full speed, and its summary (see "Chunk 22b: drawing", "How to measure the parts") |
+| `tools/compare_frames.py` | Compares two sets of movie frames pixel by pixel (see "Chunk 22b: drawing", "The look") |
 | `tools/make_fixture.gd` | Writes a level's fixtures (see "Saves and fixtures") |
 | `tools/check_level.gd`, `tools/level_check/` | The level-rules checker, rules 1 to 22, on any level (see [level-tooling.md](level-tooling.md)) |
 | `tools/new_level.gd` | The new-level scaffolder (see [level-tooling.md](level-tooling.md)) |
@@ -4925,9 +4928,10 @@ What exists now:
   and the max of the lines' p95s) and the worst frame; ms per tick, ms per
   frame in ticks, outside them (the rest of the frame) and in the whole
   process; ticks per frame; `active` and `pairs`; the slime counts (mean
-  and max); the seconds spent in each section; the zoom range. Then the
-  thermal status (first, max, last, and every change) and the battery
-  temperature (first, max, last). Re-summarise a saved session with:
+  and max); the seconds spent in each section; the zoom range; the frame's
+  parts, when the lines carry them (chunk 22b). Then the thermal status
+  (first, max, last, and every change) and the battery temperature (first,
+  max, last). Re-summarise a saved session with:
 
   ```sh
   tools/android/perf_summary.py --thermal=DIR/thermal.log DIR/perf.log
@@ -4965,8 +4969,12 @@ What exists now:
   `frame_ms_max`, `process_ms_mean`, `ticks`, `ticks_per_frame_mean`,
   `ticks_per_frame_max`, `tick_ms_mean`, `tick_ms_frame_mean`,
   `rest_ms_mean`, `on_screen`, `simulated`, `off_screen`, `parked`,
-  `bodies`, `active`, `pairs`, `section`, `zoom`. The class doc defines
-  each. Frame times come from the real clock (`Time.get_ticks_usec()`), not
+  `bodies`, `active`, `pairs`, `section`, `zoom`, then the frame's parts
+  outside the ticks (chunk 22b): `slimes_ms`, `eyes_ms`, `frontier_ms`,
+  `hud_ms`, `debug_ms`, `main_ms`, `setup_ms`, `render_cpu_ms`,
+  `render_gpu_ms`, `field_cpu_ms`, `field_gpu_ms`, `draw_calls`, `objects`,
+  `primitives` (what each times: "Chunk 22b: drawing", "How to measure the
+  parts"). The class doc defines each. Frame times come from the real clock (`Time.get_ticks_usec()`), not
   the smoothed delta; `process_ms_mean` is the frame's real process span
   (from the tree's `process_frame` to the perf log's own `_process`, which
   runs last), not `Performance.TIME_PROCESS` (Godot 4.7 updates that once a
@@ -4976,8 +4984,8 @@ What exists now:
   tick), so `parked` is at least `off_screen`. `section` is the section the
   camera is in: that of the current loop's segment nearest the view's
   centre, 0 without a loop. `perf_summary.py` needs every field but
-  `frame_ms_p50`, `parked` and `section` (an older log without the last
-  two still summarises).
+  `frame_ms_p50`, `parked`, `section` and the parts (an older log without
+  them still summarises).
 - **The player's data is safe.** A test-mode run writes no save (test
   mode's autosave is off unless its run asks) and the game reads the
   player's save only in normal play; `--fixture=none` and `--free-play`
@@ -5132,6 +5140,291 @@ p95 ms per tick):
 3, absent for 0) replaces `"low": true`, which an older save still loads as
 level 2; `"offscreen"` gains `"crowd_level"` (0 to 3, absent 0). Tests:
 `tests/unit/test_offscreen_crowd.gd`.
+
+## Chunk 22b: drawing
+
+Build plan chunk 22b, D138's drawing budget (at most 4 ms a frame on the
+reference phone, proposed) and D140's order (this drawing pass, then chunk
+5N, then chunk 22 repeated, then chunk 24, then the health review)
+(`req_platform_and_performance_targets`). What the frame outside the ticks
+costs, part by part, what was cut, and where drawing stands against the 4
+ms. **Nothing changed on screen or in the simulation**: movie frames
+compared pixel by pixel ("The look") and all 17 state hashes identical
+("The hashes"). BLEND mode and the Compatibility renderer stay.
+
+### How to measure the parts
+
+The perf log's `PERF` line gains 14 fields after `zoom`, in this order,
+each a mean per frame over the window (`PerfLog.PART_FIELDS`; the class
+doc defines each):
+
+| Field | What it times |
+|---|---|
+| `slimes_ms` | The slime renderer (`SlimeRenderer._process`) |
+| `eyes_ms` | `TapFeedback`: its change check and its `_draw` (ripples, the hint, the eyes) |
+| `frontier_ms` | `FrontierView`: its change check and its `_draw` (switches, signposts, gates, baskets, the celebration) |
+| `hud_ms` | `EdgeButtons`: `_process` and `_draw` |
+| `debug_ms` | The debug overlay's `_process`, its slime labels' `_draw`, test mode's overlay (debug builds only) |
+| `main_ms` | The game root's `_process` outside the ticks |
+| `setup_ms` | The rendering server's frame setup (`RenderingServer.get_frame_setup_time_cpu()`) |
+| `render_cpu_ms`, `render_gpu_ms` | The root viewport's measured render time |
+| `field_cpu_ms`, `field_gpu_ms` | The same, summed over the slime renderer's field SubViewports (0 in DIRECT) |
+| `draw_calls`, `objects`, `primitives` | The frame's `Performance.RENDER_TOTAL_*_IN_FRAME` (whole numbers) |
+
+- **The nodes' parts.** Each drawing node has a `frame_cost_usec`
+  counter: the real time around its per-frame work, summed. The perf log
+  reads it and sets it back to 0 every frame; a node that is absent counts
+  0, a node without the counter fails. A `_draw` runs after every
+  `_process` (Godot defers the redraw), so it lands in the next frame's
+  read: a window's sums are right, one frame's split is not.
+- **Render times** come from `RenderingServer.viewport_set_measure_render_time`,
+  switched on for the root viewport and for each field SubViewport (again
+  when the renderer rebuilds them). **Draw calls** are Godot's monitors, so
+  on this renderer they count GLES3 batches.
+- **Known limits.** `render_gpu_ms` and `field_gpu_ms` read 0 on Android
+  (the GPU timer queries exist only on desktop GL). `setup_ms` reads 0.00
+  on the desktop too. `render_cpu_ms` is the recording of the commands
+  only: the driver's own work lands in the buffer swap, in the frame's
+  unaccounted rest.
+- **`other`**, in the tables below: `rest_ms_mean` minus the process
+  outside the ticks (`procx`, `process_ms_mean - tick_ms_frame_mean`),
+  minus `eyes`, `frontier`, `hud`, `debug` and `render_cpu`. It is the
+  engine's own loop, the swap and any idle wait.
+- **The summary.** `tools/android/perf_summary.py` prints the parts as three
+  rows (the nodes' ms, the rendering's ms, the counts), weighted by frames,
+  when the lines carry them; an older log without them still summarises.
+- **On the desktop: `tools/perf_slow.sh`.**
+
+  ```sh
+  tools/perf_slow.sh [--hogs=N] [--cpu=C] [--pin=process|main] [--seconds=S] [--full-speed] [--max-fps=N] <fixture> [extra user args]
+  ```
+
+  It runs a test-level fixture windowed (seed 1, `--disable-vsync`,
+  `--perf-log=2`) for S seconds (default 30) after a 12 s start, logs to
+  `build/perf/desktop-<fixture>-<slow|slow-main|full>-<timestamp>.log`,
+  then prints the summary. Slowed by default: pinned to core C (default
+  the last) with N busy loops (default 2) on the same core.
+  `--pin=process` (the default, chunk 22's method) pins the whole process;
+  `--pin=main` pins only the main thread, once the game has loaded (see
+  "The method: what the slowed runs got wrong"). `--full-speed`: no pin,
+  no busy loop. `--max-fps=60`: at 60 fps a frame the game keeps up with
+  holds one tick, as on a 60 Hz phone, so the parts are the cost of a real
+  frame (see "Before and after"). Run it with labels off, and no other Godot running.
+
+### The method: what the slowed runs got wrong
+
+Chunk 22's slowed runs pinned the whole Godot process to one core. That
+also puts every helper thread on the game's core: Godot's own, and the GL
+driver's (Mesa's GL thread among them), which a phone runs on its other
+cores. Measured on `s3-basket-59of60`, before this chunk's cuts, ms a
+frame:
+
+| Run | fps | Rest | Drawn parts (`slimes`, `eyes`, `frontier`, `render_cpu`) | `other` |
+|---|---|---|---|---|
+| Full speed | 206.1 | 3.01 | 0.24, 0.33, 0.97, 0.67 | 0.67 |
+| One core, no busy loop (3 runs) | 51.5 to 53.7 | 11.55 to 11.97 | 0.25 to 0.26, 0.29 to 0.30, 0.79 to 0.83, 0.76 to 0.83 | 9.24 to 9.50 |
+| One core, no busy loop, dummy audio driver | 45.0 | 13.91 | 0.23, 0.27, 0.69, 0.69 | 11.82 |
+| Slowed, whole process pinned | 17.0 | 22.17 | 0.91, 0.91, 2.31, 2.08 | 14.86 |
+| Slowed, main thread only (`--pin=main`) | 20.7 | 16.66 | 0.74, 0.36, 3.71, 2.02 | 9.21 |
+
+- On one core with nothing else running, the rest of the frame grew from
+  3.0 to about 11.6 ms while every drawn part cost the same: all of it is
+  `other`, helper threads waiting for the one core. The audio driver isn't
+  the cause.
+- With only the main thread pinned, the slowed rest is 16.7 ms instead of
+  22.
+- A blocking wait (the swap) on a shared core also costs a scheduler time
+  slice before the game runs again. And the slowdown isn't uniform: short
+  work that fits in a slice runs at nearly full speed. The slowed runs'
+  tick moved too, though its code didn't: on `gate2-open`, 12 ms or more a
+  tick before the cuts, about 3.0 after (1.3 headless).
+
+So the slowed runs overstate `other`. The 21 ms "rest" that started this
+chunk was mostly this, plus the frontier view and the render recording.
+**The phone estimate below uses the full-speed parts times the phone
+factor** (2.1 cold, 3.4 throttled: "The reference phone: what is known"),
+not the slowed runs.
+
+### The cuts
+
+Each keeps the picture as it was.
+
+- **`FrontierView` redraws only when its drawn state changes.** A key of
+  every value its drawing reads (`_fill_drawn_state()`: per switch its
+  trapdoor and way, per signpost its way, per gate open and its entrance,
+  per basket its weight, phase and reward pulse age, the celebration and
+  the lasting mark), compared each frame; it redraws every frame while the
+  celebration's burst shows, since that moves. Otherwise the last picture
+  stays on screen (a canvas item keeps its commands until its next redraw;
+  the camera's transform still applies).
+- **`TapFeedback` redraws on change** (`refresh()`): another simulation, a
+  tick, the zoom, the shown part of the world, the ripples, the hint, the
+  slimes' centres, calm and ring radii.
+- **`EdgeButtons`, test mode's overlay and the debug overlay** redraw (or
+  assign their labels and positions) only when what they show changed
+  (`picture()`, `refresh()`).
+- **The debug slime labels** (issue 24.6, D139, proposed): their text is
+  cached and rebuilt at most every 250 ms (`TEXT_REFRESH_MS`), their places
+  follow every frame. A label may lag its slime's state by up to 250 ms.
+  Debug builds only; measure with labels off anyway.
+- **`SlimeRenderer`**: no rebuild and no hand-over to the painters when the
+  bodies, the topology and the screen are unchanged; compact vertex arrays
+  holding only the seen slimes; one seen mask, reused; `_follow_screen`
+  only when the screen changes. Each painter redraws through its `draw`
+  signal from the renderer's current arrays, so an engine redraw (a
+  viewport resize) can't leave it empty.
+- **`ShapeInstances`** (`src/draw/shape_instances.gd`): many copies of one
+  shape in one instanced draw (a MultiMesh), where a `draw_circle()` or a
+  `draw_arc()` each made a draw call (polygons never batch on GLES3). Its
+  meshes reproduce Godot 4.7.2's own geometry: `draw_circle()`'s 64-segment
+  fan and the antialiased `draw_arc()`'s feathered strip. Its colour is the
+  item's `self_modulate`: mesh vertex colours are stored in 8 bits (rounded
+  down) and instance colours in half floats, both inexact. Used for:
+  - **the eyes**: one draw per eye radius (a ring's radius depends only on
+    the slime's size, so 3 radii);
+  - **the baskets' quota slots**: per basket a `BasketDiscsN` child (the
+    filled slots) and a `BasketOutlinesN` child (every outline). The
+    celebration and the lasting mark move to a last child, `Overlay`, to
+    stay above them. At the reward pulse's peak, when an outline's feather
+    would reach the next disc, that basket draws slot by slot as before,
+    so the overlap looks the same.
+
+Draw calls on `s3-basket-59of60`: 482 before, 414 after the first cuts
+(no instanced draws yet), 84 with them; `stress-moving` 485, 355, 89;
+`gate2-open` 369, 357, 91; `fresh` 72, 71, 71.
+
+Tests: `tests/unit/test_redraw_on_change.gd`,
+`tests/unit/test_shape_instances.gd`, and more in `test_frontier_view.gd`,
+`test_tap_feedback.gd`, `test_slime_renderer.gd`, `test_debug_overlay.gd`,
+`test_perf_log.gd`.
+
+### Before and after
+
+Desktop: Ryzen 5 PRO 8640HS (Radeon 760M), Godot 4.7.2, window 1152 × 648,
+`--disable-vsync`, labels off, seed 1. Means per frame over the `PERF`
+lines from 8 s on. Before: the commit before this chunk plus the timing
+counters only, every node redrawing every frame.
+
+**Frame rate and rest.** Slowed (whole process pinned, 2 busy loops:
+comparable with chunk 22's numbers) and full speed, uncapped:
+
+| Fixture | Slowed fps | Slowed rest, ms | Full-speed fps | Draw calls |
+|---|---|---|---|---|
+| `fresh` | 41.5 → 242.1 | 17.91 → 3.70 | 605.5 → 1317.2 | 72 → 71 |
+| `gate2-open` | 17.9 → 129.6 | 30.85 → 6.36 | 207.1 → 1160.6 | 369 → 91 |
+| `s3-basket-59of60` | 17.0 → 19.8 | 22.17 → 13.56 | 185.4 → 607.4 | 482 → 84 |
+| `stress-moving` | 10.2 → 12.9 | 25.79 → 14.65 | 100.1 → 408.8 | 485 → 89 |
+
+`s3-basket-59of60` and `stress-moving` stay slow when slowed: the tick
+binds them (about 37 and 63 ms of ticks a frame, at the cap of 2).
+
+**The parts, ms a frame.** At full speed uncapped, the after parts are
+diluted by the frames without a tick, which redraw nothing now. So the
+after parts come from a run capped at 60 fps (`--max-fps=60`, a tick every
+frame), compared with the before full-speed run, where every frame
+redrew everything anyway. `other` is from the uncapped runs on both sides
+(a capped frame's `other` holds its idle wait).
+
+| Part | `fresh` | `gate2-open` | `s3-basket-59of60` | `stress-moving` |
+|---|---|---|---|---|
+| `procx` | 0.13 → 0.25 | 0.40 → 0.27 | 0.32 → 0.29 | 0.38 → 0.34 |
+| `slimes` | 0.10 → 0.07 | 0.29 → 0.11 | 0.26 → 0.16 | 0.29 → 0.22 |
+| `eyes` | 0.06 → 0.11 | 0.18 → 0.13 | 0.35 → 0.15 | 0.67 → 0.22 |
+| `frontier` | 0.63 → 0.03 | 1.11 → 0.03 | 1.04 → 0.07 | 0.94 → 0.02 |
+| `render_cpu` | 0.21 → 0.50 | 0.88 → 0.60 | 0.70 → 0.49 | 0.83 → 0.49 |
+| `other` | 0.45 → 0.34 | 1.23 → 0.36 | 0.77 → 0.42 | 0.99 → 0.48 |
+
+A capped run reads high on light scenes: the CPU idles between frames and
+clocks down. `fresh`'s tick is 1.2 to 1.3 ms uncapped and 2.1 capped, the
+same code; its `render_cpu`, recorded every frame either way, is 0.23
+uncapped after the cuts (0.21 before). So `fresh`'s higher `eyes` and
+`render_cpu` are the cap's, not a cost the cuts added. `procx` holds the
+nodes' `_process` parts (their change checks) as well as their own
+columns.
+
+### The look
+
+Movie frames under Xvfb (llvmpipe), before and after, frames 60, 180 and
+300 of `fresh`, `gate2-open`, `s3-basket-59of60` and `stress-moving`, seed
+1:
+
+```sh
+xvfb-run -a -s "-screen 0 1152x648x24" godot --path . --write-movie <dir>/f.png --fixed-fps 60 --quit-after 301 -- --test-mode --fixture=<name> --seed=1
+tools/compare_frames.py <before-dir> <after-dir> --ignore-hud
+```
+
+`tools/compare_frames.py DIR_A DIR_B [--ignore X0,Y0,X1,Y1]...
+[--ignore-hud]` compares every PNG of one folder with its namesake in the
+other, pixel by pixel (pure Python, no imaging library); `--ignore-hud`
+leaves out the debug-button row, y 80 to 102, whose fps counter follows the
+real clock. Exit 1 when a frame differs.
+
+Result: identical, except the baskets' outline feathers: at most 1 of 255
+on one channel, on 13 to 135 pixels a frame. That is sub-pixel rounding:
+`draw_arc()` builds its points at their absolute place, the instanced ring
+adds the slot's position on the GPU.
+
+### The hashes
+
+All 17 fixtures of the test level, seed 909, 600 ticks (the loop in "What
+was measured and how"): every state hash identical before and after.
+Drawing never feeds the simulation.
+
+### Verdict (an estimate, not a phone measurement)
+
+Drawing a frame at 60 fps on the desktop = `procx` + `eyes` + `frontier` +
+`hud` + `render_cpu` (from the capped run) + `other` (from the uncapped
+run). The phone: times 2.1 cold, 3.4 throttled. The debug parts
+(`debug_ms`, test mode's overlay) are left out: release builds have none.
+
+| Scene (after) | `procx` | `eyes` | `frontier` | `hud` | `render_cpu` | `other` | Desktop | Phone cold | Phone throttled |
+|---|---|---|---|---|---|---|---|---|---|
+| `fresh` | 0.25 | 0.11 | 0.03 | 0.01 | 0.50 | 0.34 | 1.24 | 2.6 | 4.2 |
+| `gate2-open` | 0.27 | 0.13 | 0.03 | 0.01 | 0.60 | 0.36 | 1.40 | 2.9 | 4.8 |
+| `s3-basket-59of60` | 0.29 | 0.15 | 0.07 | 0.01 | 0.49 | 0.42 | 1.43 | 3.0 | 4.9 |
+| `stress-moving` | 0.34 | 0.22 | 0.02 | 0.01 | 0.49 | 0.48 | 1.56 | 3.3 | 5.3 |
+
+The same sum before the cuts, from the before full-speed runs:
+
+| Scene | Desktop, before → after | Phone cold, before → after | Phone throttled, before → after |
+|---|---|---|---|
+| `fresh` | 1.50 → 1.24 | 3.2 → 2.6 | 5.1 → 4.2 |
+| `gate2-open` | 3.85 → 1.40 | 8.1 → 2.9 | 13.1 → 4.8 |
+| `s3-basket-59of60` | 3.21 → 1.43 | 6.7 → 3.0 | 10.9 → 4.9 |
+| `stress-moving` | 3.84 → 1.56 | 8.1 → 3.3 | 13.1 → 5.3 |
+
+- **Cold: all four scenes meet D138's 4 ms** (2.6 to 3.3 ms). Before the
+  cuts, only `fresh` did.
+- **Throttled: none does** (4.2 to 5.3 ms; `fresh` 0.2 over). Before: none
+  (5.1 to 13.1).
+- The estimate leans high where it can: `procx` counts the nodes' change
+  checks twice, and includes the debug overlay's `_process`; the capped
+  runs read high on light scenes. It can also miss: the factors 2.1 and 3.4
+  are the GDScript tick's, and C++ recording and the phone's driver may
+  scale otherwise.
+- **The phone's GPU time is unknown**: it can't be measured on Android with
+  this renderer (`render_gpu_ms` reads 0). BLEND's two half-resolution
+  field SubViewports and the full-screen composite are the GPU risk (O14).
+  On the desktop GPU, after the cuts: 0.2 to 0.35 ms (root), at most
+  0.14 ms (fields). Measure on the phone with `perf.sh`, by the frame rate.
+- **Not closed**: the phone run with the perf log (chunk 22 repeated, after
+  5N) is what settles drawing against the 4 ms.
+
+### What's left, for spec-writer
+
+- **Left in drawing:** the slimes' per-frame skirt loop in GDScript (about
+  0.2 ms a frame on the desktop at 60 fps on the crowded scenes); the
+  render recording, about 0.5 ms; the phone GPU's cost of BLEND, unknown.
+- **Not done, since each needs a spec change:** DIRECT mode instead of
+  BLEND in play; the Mobile renderer (O14); a lower field resolution, if it
+  changes the look.
+- **A drift to report (not fixed here):** the atom
+  `domain_architecture_rationale` says "Drawing costs little". Before this
+  chunk, drawing cost more of the frame than the tick on the light scenes
+  (`gate2-open`: 3.85 ms of drawing a frame on the desktop against a 1.3 ms
+  headless tick); after it, 1.2 to 1.6 ms a frame on the desktop.
+- **The debug labels' cached text** (D139's 24.6): proposed, for the user's
+  review.
 
 ## Technical choices
 

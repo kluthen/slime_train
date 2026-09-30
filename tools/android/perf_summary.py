@@ -17,8 +17,10 @@ p95 (the median and the max of the lines' p95s) and the worst frame, ms per
 tick (weighted by ticks), ms per frame in ticks, outside them (the rest) and
 in the whole process, ticks per frame (weighted by frames), active bodies and
 candidate pairs (weighted by frames), the slime counts (mean and max), the
-sections the camera was in (lines in each: seconds at --perf-log=1) and the
-zoom range.
+sections the camera was in (lines in each: seconds at --perf-log=1), the
+zoom range, and the frame's parts outside the ticks (weighted by frames: each
+node's ms, the rendering server's setup and render times, the draw calls,
+objects and primitives), when the lines carry them (older logs don't).
 
 --thermal=FILE reads perf.sh's thermal.log (one sample a line:
 "<date> elapsed_s=<s> thermal_status=<0..6|unavailable> battery_c=<C|unavailable>")
@@ -42,6 +44,14 @@ REQUIRED = ("t", "frames", "fps", "frame_ms_p95", "frame_ms_max", "process_ms_me
 # The count fields summarised by mean and max; parked and section are newer
 # (a log without them just skips them).
 COUNTS = ("on_screen", "simulated", "off_screen", "parked", "bodies")
+# The frame's parts outside the ticks (the perf log's PART_FIELDS), newer
+# still: summarised by their frame-weighted mean over the lines that have
+# them, in three rows (the nodes' ms, the rendering's ms, the counts).
+PART_ROWS = (
+    ("  parts ms/frame  ", ("slimes_ms", "eyes_ms", "frontier_ms", "hud_ms", "debug_ms", "main_ms"), "%.2f"),
+    ("  render ms/frame ", ("setup_ms", "render_cpu_ms", "render_gpu_ms", "field_cpu_ms", "field_gpu_ms"), "%.2f"),
+    ("  render /frame   ", ("draw_calls", "objects", "primitives"), "%.0f"),
+)
 # Android's thermal status names (PowerManager.THERMAL_STATUS_*).
 THERMAL_NAMES = {0: "none", 1: "light", 2: "moderate", 3: "severe", 4: "critical", 5: "emergency",
                  6: "shutdown"}
@@ -137,6 +147,7 @@ def summarise(records):
         "zoom_max": max(r["zoom"] for r in records),
         "counts": {},
         "sections": {},
+        "parts": {},
     }
     for key in COUNTS:
         values = [r[key] for r in records if key in r]
@@ -146,6 +157,11 @@ def summarise(records):
         if "section" in r:
             section = int(r["section"])
             out["sections"][section] = out["sections"].get(section, 0) + 1
+    for _, keys, _ in PART_ROWS:
+        for key in keys:
+            having = [r for r in records if key in r]
+            if having:
+                out["parts"][key] = weighted_mean(having, key, "frames")
     return out
 
 
@@ -170,6 +186,11 @@ def format_summary(title, records):
         lines.append("  section (lines) " + "  ".join(
             "s%d %d" % (section, n) for section, n in sorted(s["sections"].items())))
     lines.append("  zoom            %.3f..%.3f" % (s["zoom_min"], s["zoom_max"]))
+    for title, keys, number in PART_ROWS:
+        present = [key for key in keys if key in s["parts"]]
+        if present:
+            lines.append(title + "  ".join(
+                ("%s " + number) % (key.removesuffix("_ms"), s["parts"][key]) for key in present))
     return lines
 
 
@@ -236,7 +257,8 @@ def report(log_lines, cold=None, warm=None, thermal_lines=None):
 
 
 # The self-test's log: a threadtime logcat prefix on some lines, a header, a
-# PERF_INFO line, a noise line, and six PERF lines a second apart.
+# PERF_INFO line, a noise line, and six PERF lines a second apart, the last
+# two with the frame's parts (the first four are an older log's).
 CANNED_LOG = """# device test: Canned Phone
 09-30 17:00:00.000  100  101 I godot   : PERF_INFO seconds=1 model=Canned renderer=mobile
 09-30 17:00:00.500  100  101 I godot   : Slime Train booted
@@ -244,8 +266,8 @@ PERF t=10.0 frames=30 fps=30.0 frame_ms_p50=33.00 frame_ms_p95=40.00 frame_ms_ma
 PERF t=11.0 frames=60 fps=60.0 frame_ms_p50=16.00 frame_ms_p95=17.00 frame_ms_max=20.00 process_ms_mean=8.00 ticks=60 ticks_per_frame_mean=1.00 ticks_per_frame_max=1 tick_ms_mean=2.00 tick_ms_frame_mean=2.00 rest_ms_mean=14.00 on_screen=12 simulated=5 off_screen=18 parked=18 bodies=35 active=10.0 pairs=20.0 section=1 zoom=1.000
 PERF t=12.0 frames=45 fps=45.0 frame_ms_p50=22.00 frame_ms_p95=30.00 frame_ms_max=35.00 process_ms_mean=10.00 ticks=60 ticks_per_frame_mean=1.33 ticks_per_frame_max=2 tick_ms_mean=3.00 tick_ms_frame_mean=4.00 rest_ms_mean=18.00 on_screen=12 simulated=5 off_screen=18 parked=18 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800
 09-30 17:00:13.000  100  101 I godot   : PERF t=13.0 frames=20 fps=20.0 frame_ms_p50=50.00 frame_ms_p95=60.00 frame_ms_max=90.00 process_ms_mean=40.00 ticks=60 ticks_per_frame_mean=3.00 ticks_per_frame_max=4 tick_ms_mean=10.00 tick_ms_frame_mean=30.00 rest_ms_mean=20.00 on_screen=30 simulated=0 off_screen=5 parked=5 bodies=35 active=30.0 pairs=100.0 section=2 zoom=0.800
-PERF t=14.0 frames=50 fps=50.0 frame_ms_p50=20.00 frame_ms_p95=25.00 frame_ms_max=30.00 process_ms_mean=9.00 ticks=60 ticks_per_frame_mean=1.20 ticks_per_frame_max=2 tick_ms_mean=2.50 tick_ms_frame_mean=3.00 rest_ms_mean=17.00 on_screen=12 simulated=5 off_screen=18 parked=18 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800
-PERF t=15.0 frames=40 fps=40.0 frame_ms_p50=25.00 frame_ms_p95=28.00 frame_ms_max=40.00 process_ms_mean=11.00 ticks=60 ticks_per_frame_mean=1.50 ticks_per_frame_max=2 tick_ms_mean=3.50 tick_ms_frame_mean=5.25 rest_ms_mean=19.75 on_screen=12 simulated=5 off_screen=18 parked=18 bodies=35 active=10.0 pairs=20.0 section=3 zoom=0.800
+PERF t=14.0 frames=50 fps=50.0 frame_ms_p50=20.00 frame_ms_p95=25.00 frame_ms_max=30.00 process_ms_mean=9.00 ticks=60 ticks_per_frame_mean=1.20 ticks_per_frame_max=2 tick_ms_mean=2.50 tick_ms_frame_mean=3.00 rest_ms_mean=17.00 on_screen=12 simulated=5 off_screen=18 parked=18 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800 slimes_ms=2.00 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=40 objects=30 primitives=900
+PERF t=15.0 frames=40 fps=40.0 frame_ms_p50=25.00 frame_ms_p95=28.00 frame_ms_max=40.00 process_ms_mean=11.00 ticks=60 ticks_per_frame_mean=1.50 ticks_per_frame_max=2 tick_ms_mean=3.50 tick_ms_frame_mean=5.25 rest_ms_mean=19.75 on_screen=12 simulated=5 off_screen=18 parked=18 bodies=35 active=10.0 pairs=20.0 section=3 zoom=0.800 slimes_ms=4.25 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=49 objects=30 primitives=900
 """
 
 CANNED_THERMAL = """2026-09-30T17:00:00+02:00 elapsed_s=0 thermal_status=0 battery_c=31.0
@@ -274,6 +296,15 @@ def self_test():
     assert s["counts"]["parked"] == (98 / 6, 21), s["counts"]
     assert s["sections"] == {1: 2, 2: 3, 3: 1}, s["sections"]
     assert (s["zoom_min"], s["zoom_max"]) == (0.8, 1.0), s
+    # Parts: only the last two lines (50 and 40 frames) carry them.
+    assert abs(s["parts"]["slimes_ms"] - (50 * 2.0 + 40 * 4.25) / 90) < 1e-9, s["parts"]
+    assert abs(s["parts"]["draw_calls"] - (50 * 40 + 40 * 49) / 90) < 1e-9, s["parts"]
+    assert s["parts"]["field_gpu_ms"] == 2.0 and len(s["parts"]) == 14, s["parts"]
+    old = format_summary("old", records[:4])
+    assert not any(text.startswith(("  parts", "  render")) for text in old), old
+    new = format_summary("new", records[4:])
+    assert new[-3] == "  parts ms/frame  slimes 3.00  eyes 0.50  frontier 0.30  hud 0.05  debug 0.00  main 0.10", new
+    assert new[-1] == "  render /frame   draw_calls 44  objects 30  primitives 900", new
     assert [r["t"] for r in cold_window(records, 2)] == [10.0, 11.0]
     assert [r["t"] for r in warm_window(records, 2)] == [14.0, 15.0]
     thermal = format_thermal(CANNED_THERMAL.splitlines())

@@ -8,10 +8,15 @@ extends Node2D
 ## a skirt: a strip out to SKIRT px beyond the ring, where the field falls
 ## from 1 to 0. Only the slimes that can be seen are drawn (is_seen(): not
 ## parked, and on the part of the world the viewport shows, give or take
-## their reach). The vertex array (ring points, skirt points, centres) is
-## refreshed every frame for those slimes only; the colour array and each
-## slime's own indices when the slimes change (SlimeBodies.topology_version),
-## the painters' index arrays when the seen slimes change.
+## their reach). The painters get a compact vertex array of those slimes
+## only (ring points, skirt points, centres), rebuilt when the bodies moved;
+## the colours and the painters' index arrays when the seen slimes change or
+## the slimes do (SlimeBodies.topology_version). A frame where nothing drawn
+## changed hands over nothing: the canvas items keep their last triangles.
+## Each painter adds its triangles itself, on every redraw of its canvas item
+## (its `draw` signal): the renderer's own when it hands new ones over, and
+## the engine's (a viewport resize clears every canvas item in it), which so
+## paints the same picture again.
 ##
 ## BLEND (the spike's technique, the default): the fields are painted into two
 ##   SubViewports at `field_scale` of the screen's resolution, one species per
@@ -52,21 +57,58 @@ var bodies: SlimeBodies = null:
 var field_scale := 0.5
 ## The composite rectangle (BLEND), or null.
 var composite: ColorRect = null
+## The real time its per-frame drawing (_process) took, microseconds, summed
+## until the debug perf log takes it (and sets it back to 0); nothing else
+## reads it. Always counted: two clock reads a frame.
+# @spec-link [[req_platform_and_performance_targets]]
+var frame_cost_usec := 0
 
 var _pipeline_dirty := true
 var _topology := -1
 var _painters: Array[Node2D] = []
 var _painter_indices: Array[PackedInt32Array] = []
 var _field_views: Array[SubViewport] = []
+## Every point's colour in the full layout (n ring points, n skirt points,
+## one centre per slime), rebuilt with the topology; _colors is cut from it.
+var _all_colors := PackedColorArray()
+## The colours handed to the painters, in the compact layout of _verts.
 var _colors := PackedColorArray()
+## The vertices handed to the painters, compact: the seen slimes' ring
+## points (slime order), then their skirt points, then their centres.
 var _verts := PackedVector2Array()
 var _vertex_count := 0
 var _drawn_count := 0
-## Each slime's fan and skirt indices (by slime index), rebuilt with the topology.
-var _slime_indices: Array[PackedInt32Array] = []
-## Which slimes were drawn last frame (1 per slime index, is_seen()).
+## Which slimes are drawn (1 per slime index, is_seen()).
 var _seen := PackedByteArray()
-
+## The next seen mask, filled in place and swapped with _seen when it differs.
+# @spec-link [[req_platform_and_performance_targets]]
+var _seen_next := PackedByteArray()
+## The seen slimes' indices, in slime order, and where each one's ring
+## points start in _verts.
+# @spec-link [[req_platform_and_performance_targets]]
+var _seen_slimes := PackedInt32Array()
+var _seen_ring_start := PackedInt32Array()
+## The seen slimes' point ranges in bodies.pos, adjacent ones joined: start,
+## end, start, end...; how many ring points they hold in all.
+# @spec-link [[req_platform_and_performance_targets]]
+var _seen_runs := PackedInt32Array()
+var _seen_points := 0
+## What the painters' triangles were last built from: copies of the bodies'
+## pos, calm and centre (the seen mask's and the vertices' inputs).
+# @spec-link [[req_platform_and_performance_targets]]
+var _drawn_pos := PackedVector2Array()
+var _drawn_calm := PackedByteArray()
+var _drawn_centre := PackedVector2Array()
+## The screen the field viewports, the composite and the seen mask last
+## followed: the viewport's canvas and final transforms, size and visible rect.
+# @spec-link [[req_platform_and_performance_targets]]
+var _screen_canvas := Transform2D()
+var _screen_final := Transform2D()
+var _screen_size := Vector2i(-1, -1)
+var _screen_rect := Rect2()
+var _screen_field_scale := -1.0
+var _upload_count := 0
+var _paint_count := 0
 
 ## BLEND on a display, DIRECT when headless (nothing is seen, so the cheapest).
 static func default_mode() -> int:
@@ -105,7 +147,61 @@ func field_viewports() -> Array[SubViewport]:
 	return _field_views.duplicate()
 
 
+## The vertices last handed to the painters (a copy): the seen slimes' ring
+## points in slime order, then their skirt points, then their centres.
+func painted_vertices() -> PackedVector2Array:
+	return _verts.duplicate()
+
+
+## Painter `painter`'s triangles as last handed over, corner by corner in
+## draw order (three per triangle); painter 0 is species A-C in BLEND.
+func painted_triangles(painter: int) -> PackedVector2Array:
+	var corners := PackedVector2Array()
+	for i in _painter_indices[painter]:
+		corners.append(_verts[i])
+	return corners
+
+
+## The colours of painted_triangles(`painter`)'s corners, in the same order.
+func painted_colors(painter: int) -> PackedColorArray:
+	var colors := PackedColorArray()
+	for i in _painter_indices[painter]:
+		colors.append(_colors[i])
+	return colors
+
+
+## How many times the painters were handed new triangles (a frame where
+## nothing drawn changed hands over nothing: their last picture stays).
+# @spec-link [[req_platform_and_performance_targets]]
+func upload_count() -> int:
+	return _upload_count
+
+
+## How many times a painter's canvas item was given its triangles (_paint()):
+## once per redraw of a painter that has some, the engine's redraws included.
+# @spec-link [[req_platform_and_performance_targets]]
+func paint_count() -> int:
+	return _paint_count
+
+
+## Draws this frame's slimes (_render_frame()), adding the time it took to
+## frame_cost_usec.
+# @spec-link [[req_platform_and_performance_targets]]
 func _process(_delta: float) -> void:
+	var start_usec := Time.get_ticks_usec()
+	_render_frame()
+	frame_cost_usec += Time.get_ticks_usec() - start_usec
+
+
+## This frame's drawing: builds the pipeline when due, follows the screen
+## when it changed, then redoes only what the change reaches. The painters'
+## canvas items keep their last triangles, in world coordinates, so:
+## - nothing changed (no tick, no move, same screen): nothing is done;
+## - only the screen changed: the seen mask is redone, the triangles only if
+##   the seen slimes changed;
+## - the bodies moved: the vertices are rebuilt and handed over again.
+# @spec-link [[req_platform_and_performance_targets]]
+func _render_frame() -> void:
 	if _pipeline_dirty:
 		_build_pipeline()
 	if bodies == null:
@@ -114,13 +210,27 @@ func _process(_delta: float) -> void:
 	var topology_changed := bodies.topology_version != _topology
 	if topology_changed:
 		_rebuild_topology()
-	if draw_mode == BLEND:
-		_follow_screen()
-	var seen := _seen_mask(shown_rect(get_viewport()))
-	if topology_changed or seen != _seen:
-		_seen = seen
-		_rebuild_indices()
-	_draw_bodies()
+	var viewport := get_viewport()
+	var screen_changed := _screen_changed(viewport)
+	if screen_changed:
+		_follow_screen(viewport)
+	var moved := bodies.pos != _drawn_pos
+	var seen_inputs_changed := moved or bodies.calm != _drawn_calm or bodies.centre != _drawn_centre
+	if not (topology_changed or screen_changed or seen_inputs_changed):
+		return
+	if seen_inputs_changed:
+		_drawn_calm = bodies.calm.duplicate()
+		_drawn_centre = bodies.centre.duplicate()
+	_fill_seen(shown_rect(viewport))
+	var seen_changed := topology_changed or _seen_next != _seen
+	if seen_changed:
+		var swap := _seen
+		_seen = _seen_next
+		_seen_next = swap
+		_rebuild_layout()
+	if moved or seen_changed:
+		_drawn_pos = bodies.pos.duplicate()
+		_draw_bodies()
 
 
 func _teardown() -> void:
@@ -140,6 +250,7 @@ func _build_pipeline() -> void:
 	_teardown()
 	_pipeline_dirty = false
 	_topology = -1
+	_screen_size = Vector2i(-1, -1)
 	if draw_mode == DIRECT:
 		_painters.append(_new_painter(DIRECT_SHADER, self))
 		return
@@ -165,7 +276,6 @@ func _build_pipeline() -> void:
 	material.set_shader_parameter("palette", palette)
 	composite.material = material
 	add_child(composite)
-	_follow_screen()
 
 
 func _new_painter(shader: Shader, parent: Node) -> Node2D:
@@ -174,20 +284,50 @@ func _new_painter(shader: Shader, parent: Node) -> Node2D:
 	var material := ShaderMaterial.new()
 	material.shader = shader
 	painter.material = material
+	painter.draw.connect(_paint.bind(painter))
 	parent.add_child(painter)
 	return painter
 
 
-## Keeps the field viewports and the composite on the visible part of the
-## world: same world-to-screen mapping as this node's viewport, at
-## field_scale resolution.
-func _follow_screen() -> void:
-	var viewport := get_viewport()
-	if viewport == null:
-		return
+## Adds `painter`'s current triangles (its index array into _verts and
+## _colors) to its canvas item. Run on its `draw` signal, inside each redraw
+## of it, after the engine cleared the canvas item: the renderer's redraws
+## (_draw_bodies(), _clear()) and the engine's own (a viewport resize), so the
+## canvas item always holds the last picture. Nothing for a painter with no
+## triangles or no longer in the pipeline (torn down, not yet freed). Its time
+## is added to frame_cost_usec.
+# @spec-link [[req_platform_and_performance_targets]]
+func _paint(painter: Node2D) -> void:
+	var start_usec := Time.get_ticks_usec()
+	var i := _painters.find(painter)
+	if i >= 0 and i < _painter_indices.size() and not _painter_indices[i].is_empty():
+		RenderingServer.canvas_item_add_triangle_array(painter.get_canvas_item(), _painter_indices[i], _verts, _colors)
+		_paint_count += 1
+	frame_cost_usec += Time.get_ticks_usec() - start_usec
+
+
+## Whether `viewport`'s screen differs from the one last followed
+## (_follow_screen()): its canvas or final transform, size, visible rect, or
+## field_scale.
+# @spec-link [[req_platform_and_performance_targets]]
+func _screen_changed(viewport: Viewport) -> bool:
+	return (viewport.get_canvas_transform() != _screen_canvas or viewport.get_final_transform() != _screen_final
+			or viewport.size != _screen_size or viewport.get_visible_rect() != _screen_rect
+			or field_scale != _screen_field_scale)
+
+
+## Keeps the field viewports and the composite (BLEND; none in DIRECT) on
+## the visible part of the world: same world-to-screen mapping as
+## `viewport`, at field_scale resolution. Records the screen followed.
+func _follow_screen(viewport: Viewport) -> void:
 	var screen := viewport.get_canvas_transform()
+	_screen_canvas = screen
+	_screen_final = viewport.get_final_transform()
+	_screen_size = viewport.size
+	_screen_rect = viewport.get_visible_rect()
+	_screen_field_scale = field_scale
 	var field_size := Vector2i((Vector2(viewport.size) * field_scale).round().max(Vector2.ONE))
-	var to_field := Transform2D().scaled(Vector2(field_scale, field_scale)) * viewport.get_final_transform() * screen
+	var to_field := Transform2D().scaled(Vector2(field_scale, field_scale)) * _screen_final * screen
 	for view in _field_views:
 		if view.size != field_size:
 			view.size = field_size
@@ -195,106 +335,165 @@ func _follow_screen() -> void:
 	if composite != null:
 		var to_world := screen.affine_inverse()
 		composite.position = to_world * Vector2.ZERO
-		composite.size = viewport.get_visible_rect().size * to_world.get_scale()
+		composite.size = _screen_rect.size * to_world.get_scale()
 
 
-## The colour array and each slime's indices, rebuilt when slimes appear, go
-## or change size; the painters' indices follow (_rebuild_indices()).
+## Every point's colour in the full layout (_all_colors), rebuilt when
+## slimes appear, go or change size; the seen slimes' layout follows
+## (_rebuild_layout(), from _render_frame()).
 func _rebuild_topology() -> void:
 	_topology = bodies.topology_version
 	var n := bodies.pos.size()
-	_colors.resize(n * 2 + bodies.slime_count)
+	_all_colors.resize(n * 2 + bodies.slime_count)
 	for s in bodies.slime_count:
 		var sp: int = bodies.species[s]
 		var c: Color = Species.color(sp) if draw_mode == DIRECT else ONE_HOT[sp % 3]
 		var f: int = bodies.first[s]
 		for j in range(f, f + bodies.npts[s]):
-			_colors[j] = Color(c, 1.0)
-			_colors[n + j] = Color(c, 0.0)
-		_colors[2 * n + s] = Color(c, 1.0)
-	_slime_indices.clear()
-	for s in bodies.slime_count:
-		_slime_indices.append(_indices_of(s, n))
+			_all_colors[j] = Color(c, 1.0)
+			_all_colors[n + j] = Color(c, 0.0)
+		_all_colors[2 * n + s] = Color(c, 1.0)
 
 
-## A fan inside slime index `s`'s ring and a quad strip for its skirt, for a
-## vertex array of `n` ring points (then n skirt points, then the centres).
-func _indices_of(s: int, n: int) -> PackedInt32Array:
-	var indices := PackedInt32Array()
-	var f: int = bodies.first[s]
-	var count: int = bodies.npts[s]
-	var c: int = 2 * n + s
-	for i in count:
-		var a := f + i
-		var b := f + (i + 1) % count
-		indices.append_array([c, a, b, a, n + a, n + b, a, n + b, b])
-	return indices
+## Fills _seen_next: 1 for each slime index that can be seen on world rect
+## `shown`, else 0. The same test as is_seen(), inlined (the call per slime
+## cost more than the test); the buffer is reused frame to frame.
+# @spec-link [[req_platform_and_performance_targets]]
+func _fill_seen(shown: Rect2) -> void:
+	var count := bodies.slime_count
+	if _seen_next.size() != count:
+		_seen_next.resize(count)
+	var calm := bodies.calm
+	var radius := bodies.ring_radius
+	var centre := bodies.centre
+	for s in count:
+		if calm[s] == SlimeBodies.PARKED:
+			_seen_next[s] = 0
+		else:
+			_seen_next[s] = 1 if shown.grow(radius[s] * CULL_REACH + SKIRT).has_point(centre[s]) else 0
 
 
-## 1 for each slime index that can be seen on world rect `shown` (is_seen()), else 0.
-func _seen_mask(shown: Rect2) -> PackedByteArray:
-	var mask := PackedByteArray()
-	mask.resize(bodies.slime_count)
-	for s in bodies.slime_count:
-		mask[s] = 1 if is_seen(bodies, s, shown) else 0
-	return mask
-
-
-## The painters' index arrays for the seen slimes (_seen): one for every
-## species in DIRECT, species group A-C then D-F in BLEND.
-func _rebuild_indices() -> void:
-	var group_a := PackedInt32Array()
-	var group_b := PackedInt32Array()
-	_drawn_count = 0
+## The compact layout of the seen slimes (_seen): their list, their point
+## runs, where each one's ring starts, the colours cut from _all_colors, and
+## the painters' index arrays (one for every species in DIRECT, species
+## group A-C then D-F in BLEND). Each slime's triangles, in slime order:
+## per ring point a fan triangle (centre, point, next) then the two skirt
+## triangles, as the full layout drew them.
+# @spec-link [[req_platform_and_performance_targets]]
+func _rebuild_layout() -> void:
+	_seen_slimes.clear()
+	_seen_ring_start.clear()
+	_seen_runs.clear()
+	_seen_points = 0
 	_vertex_count = 0
 	for s in bodies.slime_count:
 		if _seen[s] == 0:
 			continue
-		if draw_mode == DIRECT or bodies.species[s] / 3 == 0:
-			group_a.append_array(_slime_indices[s])
+		var f: int = bodies.first[s]
+		var count: int = bodies.npts[s]
+		_seen_slimes.append(s)
+		_seen_ring_start.append(_seen_points)
+		if not _seen_runs.is_empty() and _seen_runs[_seen_runs.size() - 1] == f:
+			_seen_runs[_seen_runs.size() - 1] = f + count
 		else:
-			group_b.append_array(_slime_indices[s])
-		_drawn_count += 1
-		_vertex_count += bodies.npts[s] * 2 + 1
+			_seen_runs.append_array([f, f + count])
+		_seen_points += count
+		_vertex_count += count * 2 + 1
+	_drawn_count = _seen_slimes.size()
+	_cut_colors()
+	var group_a := PackedInt32Array()
+	var group_b := PackedInt32Array()
+	for k in _seen_slimes.size():
+		var s := _seen_slimes[k]
+		if draw_mode == DIRECT or bodies.species[s] / 3 == 0:
+			_append_indices(group_a, k)
+		else:
+			_append_indices(group_b, k)
 	_painter_indices.clear()
 	_painter_indices.append(group_a)
 	if draw_mode == BLEND:
 		_painter_indices.append(group_b)
 
 
-## Refreshes the seen slimes' vertices (the others' skirt and centre
-## vertices are left stale: no index points at them) and hands each
-## painter its triangles.
+## _colors for the compact layout: the seen runs' ring colours, their skirt
+## colours, then each seen slime's centre colour.
+# @spec-link [[req_platform_and_performance_targets]]
+func _cut_colors() -> void:
+	var n := bodies.pos.size()
+	_colors = PackedColorArray()
+	for skirt in [0, n]:
+		for r in range(0, _seen_runs.size(), 2):
+			_colors.append_array(_all_colors.slice(skirt + _seen_runs[r], skirt + _seen_runs[r + 1]))
+	for s in _seen_slimes:
+		_colors.append(_all_colors[2 * n + s])
+
+
+## Appends to `indices` the fan inside seen slime `k`'s ring and the quad
+## strip of its skirt, in the compact layout.
+# @spec-link [[req_platform_and_performance_targets]]
+func _append_indices(indices: PackedInt32Array, k: int) -> void:
+	var count: int = bodies.npts[_seen_slimes[k]]
+	var ring: int = _seen_ring_start[k]
+	var m := _seen_points
+	var c := 2 * m + k
+	var w := indices.size()
+	indices.resize(w + count * 9)
+	for i in count:
+		var a := ring + i
+		var b := ring + (i + 1) % count
+		indices[w] = c
+		indices[w + 1] = a
+		indices[w + 2] = b
+		indices[w + 3] = a
+		indices[w + 4] = m + a
+		indices[w + 5] = m + b
+		indices[w + 6] = a
+		indices[w + 7] = m + b
+		indices[w + 8] = b
+		w += 9
+
+
+## Rebuilds the compact vertices of the seen slimes (their ring points cut
+## from bodies.pos run by run, their skirt points and centres computed) and
+## hands each painter its triangles: a redraw, where _paint() adds them.
+# @spec-link [[req_platform_and_performance_targets]]
 func _draw_bodies() -> void:
 	var pos: PackedVector2Array = bodies.pos
-	var n := pos.size()
-	_verts = pos.duplicate()
-	_verts.resize(n * 2 + bodies.slime_count)
-	for s in bodies.slime_count:
-		if _seen[s] == 0:
-			continue
+	var m := _seen_points
+	_verts = PackedVector2Array()
+	for r in range(0, _seen_runs.size(), 2):
+		_verts.append_array(pos.slice(_seen_runs[r], _seen_runs[r + 1]))
+	_verts.resize(2 * m + _seen_slimes.size())
+	for k in _seen_slimes.size():
+		var s := _seen_slimes[k]
 		var f: int = bodies.first[s]
 		var last: int = f + bodies.npts[s] - 1
+		var skirt: int = m + _seen_ring_start[k] - f
 		var pp: Vector2 = pos[last]
 		var cur: Vector2 = pos[f]
 		var c := Vector2.ZERO
 		for j in range(f, last + 1):
 			var nx: Vector2 = pos[j + 1] if j < last else pos[f]
 			var d := nx - pp
-			_verts[n + j] = cur + Vector2(d.y, -d.x).normalized() * SKIRT
+			_verts[skirt + j] = cur + Vector2(d.y, -d.x).normalized() * SKIRT
 			c += cur
 			pp = cur
 			cur = nx
-		_verts[2 * n + s] = c / bodies.npts[s]
-	for i in _painters.size():
-		var item := _painters[i].get_canvas_item()
-		RenderingServer.canvas_item_clear(item)
-		if not _painter_indices[i].is_empty():
-			RenderingServer.canvas_item_add_triangle_array(item, _painter_indices[i], _verts, _colors)
+		_verts[2 * m + k] = c / bodies.npts[s]
+	for painter in _painters:
+		painter.queue_redraw()
+	_upload_count += 1
 
 
+## Draws nothing (no bodies): the painters' redraw adds no triangles
+## (_paint()); forgets what was drawn, so the next bodies are drawn in full.
 func _clear() -> void:
 	_vertex_count = 0
 	_drawn_count = 0
+	_verts = PackedVector2Array()
+	_colors = PackedColorArray()
+	_painter_indices.clear()
+	_seen = PackedByteArray()
+	_drawn_pos = PackedVector2Array()
 	for painter in _painters:
-		RenderingServer.canvas_item_clear(painter.get_canvas_item())
+		painter.queue_redraw()

@@ -21,6 +21,12 @@ class FakeClock:
 		return reading
 
 
+## A game root as the overlay reads it: its simulation, no parent layer.
+class GameHost:
+	extends Node
+	var simulation: Simulation
+
+
 ## Three sections: s1 and s2 each with an outgoing segment and a return
 ## route behind their gate, s3 with an outgoing segment and a return route
 ## without one. Two sleepers each in s1 and s2, one in s3.
@@ -241,6 +247,67 @@ func test_the_labels_are_drawn_for_seen_slimes_only() -> void:
 	assert_eq(labelled.size(), 3, "the two on screen and the one just off its edge, not the far ones")
 	sim.view.set_to(Vector2(20000, 0), 1.0, ScreenView.DEFAULT_SIZE)
 	assert_eq(DebugSlimeLabels.labelled_slimes(sim.slimes, Fusion.view_rect(sim.view), 1.0).size(), 0)
+
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_the_labels_text_is_cached_and_rebuilt_every_text_refresh_ms() -> void:
+	var sim := _placed_sim()
+	var labels: DebugSlimeLabels = autofree(DebugSlimeLabels.new())
+	labels.simulation = sim
+	var slime_id := sim.slimes.ids()[0]
+	assert_true(labels.refresh_text(1000), "the first call builds")
+	var text := labels.text_lines(slime_id)
+	assert_eq(text.lines, DebugSlimeLabels.lines_for(sim, slime_id))
+	assert_eq(text.widths.size(), text.lines.size())
+	assert_gt(text.widths[0], 0.0)
+	assert_same(labels.text_lines(slime_id), text, "cached")
+	sim.slimes.set_state(slime_id, SlimeBodies.FREE)
+	assert_false(labels.refresh_text(1000 + DebugSlimeLabels.TEXT_REFRESH_MS - 1), "too soon")
+	assert_eq(labels.text_lines(slime_id).lines, text.lines, "the old text, within the refresh period")
+	assert_true(labels.refresh_text(1000 + DebugSlimeLabels.TEXT_REFRESH_MS))
+	assert_eq(labels.text_lines(slime_id).lines, DebugSlimeLabels.lines_for(sim, slime_id), "rebuilt")
+	assert_ne(labels.text_lines(slime_id).lines[0], text.lines[0], "the new state shows")
+
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_the_labels_text_is_rebuilt_at_once_for_another_simulation() -> void:
+	var labels: DebugSlimeLabels = autofree(DebugSlimeLabels.new())
+	labels.simulation = _placed_sim()
+	labels.refresh_text(1000)
+	assert_false(labels.refresh_text(1001))
+	labels.simulation = _placed_sim()
+	assert_true(labels.refresh_text(1002), "a new simulation drops the old text")
+	assert_false(labels.refresh_text(1003))
+
+
+# --- The bar's per-frame refresh --------------------------------------------------
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_the_bar_follows_what_changes_and_keeps_what_does_not() -> void:
+	var host := GameHost.new()
+	host.simulation = _placed_sim()
+	add_child_autofree(host)
+	var overlay := DebugOverlay.new()
+	host.add_child(overlay)
+	overlay._process(0.0)
+	assert_eq(overlay.labels.simulation, host.simulation)
+	var top := TapDispatcher.parent_zone_height(host.simulation.view) + DebugOverlay.BAR_GAP
+	assert_eq(overlay.bar.position, Vector2(DebugOverlay.BAR_X, top))
+	assert_eq(overlay.status_label.text, "")
+	overlay._process(0.0)
+	assert_eq(overlay.bar.position, Vector2(DebugOverlay.BAR_X, top), "unchanged")
+	overlay.status = "done"
+	host.simulation = _placed_sim()
+	overlay._process(0.0)
+	top = TapDispatcher.parent_zone_height(host.simulation.view) + DebugOverlay.BAR_GAP
+	assert_eq(overlay.labels.simulation, host.simulation, "the new simulation")
+	assert_eq(overlay.bar.position, Vector2(DebugOverlay.BAR_X, top))
+	assert_eq(overlay.status_label.text, "done")
+	host.simulation.view.px_per_mm *= 2.0
+	overlay._process(0.0)
+	assert_almost_eq(overlay.bar.position.y,
+			TapDispatcher.parent_zone_height(host.simulation.view) + DebugOverlay.BAR_GAP, 0.001,
+			"the bar moves with the parent zone")
 
 
 # --- The sped-up clock ----------------------------------------------------------

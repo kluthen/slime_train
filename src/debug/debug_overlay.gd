@@ -85,6 +85,10 @@ var clock: DebugClock = null
 var labels: DebugSlimeLabels = null
 ## The last action's result ("" when none showing).
 var status := ""
+## The real time its per-frame refresh (_process) took, microseconds,
+## summed until the perf log takes it (and sets it back to 0).
+# @spec-link [[req_platform_and_performance_targets]]
+var frame_cost_usec := 0
 
 ## The bar holding the controls.
 var bar: HBoxContainer = null
@@ -127,7 +131,12 @@ func _exit_tree() -> void:
 		labels.queue_free()
 
 
+## Refreshes the bar (the Reset and status timeouts, the labels'
+## simulation, the bar's place, the stats), assigning only what changed;
+## the time it took goes to frame_cost_usec.
+# @spec-link [[req_platform_and_performance_targets]]
 func _process(_delta: float) -> void:
+	var start_usec := Time.get_ticks_usec()
 	var now := Time.get_ticks_msec()
 	if _reset_until_ms >= 0 and now > _reset_until_ms:
 		_reset_until_ms = -1
@@ -136,12 +145,14 @@ func _process(_delta: float) -> void:
 		_status_until_ms = -1
 		status = ""
 	var sim: Simulation = game.get("simulation") if game != null else null
-	if labels != null:
+	if labels != null and labels.simulation != sim:
 		labels.simulation = sim
 	if sim != null:
 		_place_bar(sim.view)
 		update_stats(sim, Engine.get_frames_per_second(), now)
-	status_label.text = status
+	if status_label.text != status:
+		status_label.text = status
+	frame_cost_usec += Time.get_ticks_usec() - start_usec
 
 
 ## Shows `fps`, `sim`'s "woken / available" counter and its slime counts
@@ -277,14 +288,18 @@ func _in_parent_zone(at: Vector2) -> bool:
 
 ## Puts the bar BAR_GAP under the parent zone of `view`'s screen, or under
 ## the parent buttons while they show (the game's parent layer, when it has
-## one), and hides it while a parent surface covers the world.
+## one), and hides it while a parent surface covers the world. It sets the
+## bar's position only when it moves (called every frame).
+# @spec-link [[req_platform_and_performance_targets]]
 func _place_bar(view: ScreenView) -> void:
 	var top := TapDispatcher.parent_zone_height(view)
 	var gate: Node = game.get("parent_gate") if game != null else null
 	bar.visible = gate == null or not gate.covers_world()
 	if gate != null:
 		top = maxf(top, gate.menu_bottom())
-	bar.position = Vector2(BAR_X, top + BAR_GAP)
+	var at := Vector2(BAR_X, top + BAR_GAP)
+	if bar.position != at:
+		bar.position = at
 
 
 func _build() -> void:

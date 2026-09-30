@@ -53,6 +53,39 @@ extends Node
 ##                        view's centre; 0 without a loop)
 ##   zoom                 the simulation's view's zoom
 ##
+## Then the frame's parts outside the ticks, each a mean per frame over the
+## window (PART_FIELDS; take_parts() reads them every frame), ms unless
+## noted. The game nodes' own parts are their frame_cost_usec counters (the
+## real time around their per-frame work, which the log takes and sets back
+## to 0); a node that is absent counts 0:
+##
+##   slimes_ms            the slime renderer (SlimeRenderer._process)
+##   eyes_ms              TapFeedback's _process (its change check) and
+##                        _draw: ripples, the hint, the eyes
+##   frontier_ms          FrontierView's _process (its change check) and
+##                        _draw: switches, signposts, gates, baskets, the
+##                        celebration
+##   hud_ms               EdgeButtons' _process and _draw
+##   debug_ms             the debug overlay's _process, its slime labels'
+##                        _draw and test mode's overlay's _process and _draw
+##   main_ms              the game root's _process outside the ticks
+##   setup_ms             the rendering server's frame setup
+##                        (RenderingServer.get_frame_setup_time_cpu())
+##   render_cpu_ms, render_gpu_ms
+##                        the root viewport's measured render time
+##                        (RenderingServer.viewport_get_measured_render_time_*)
+##   field_cpu_ms, field_gpu_ms
+##                        the same, summed over the renderer's field
+##                        SubViewports (0 in DIRECT, which has none)
+##   draw_calls, objects, primitives
+##                        the frame's Performance.RENDER_TOTAL_*_IN_FRAME
+##                        (%.0f)
+##
+## A _draw runs after every _process (the redraw is deferred), so a node's
+## draw is counted on the next frame's take: the sums over a window are
+## right, a frame's own split is not. A measurement this renderer doesn't
+## support reads 0.
+##
 ## Every field but the first is a number; zeros without a simulation. The
 ## tick fields come from the game root's own record of each frame
 ## (frame_ticks, frame_tick_usec: the ticks it ran and the real time around
@@ -75,6 +108,13 @@ const DEFAULT_SECONDS := 5.0
 const MAX_TICKS_FLAG := "--max-ticks-per-frame"
 ## Its process priority: after every other node's _process.
 const LAST_PRIORITY := 1 << 30
+## The PERF line's part fields, after zoom, in order (see the class doc):
+## ms (%.2f) up to PART_FIRST_COUNT, counts (%.0f) from it.
+# @spec-link [[req_platform_and_performance_targets]]
+const PART_FIELDS: Array[String] = ["slimes_ms", "eyes_ms", "frontier_ms", "hud_ms", "debug_ms", "main_ms",
+		"setup_ms", "render_cpu_ms", "render_gpu_ms", "field_cpu_ms", "field_gpu_ms",
+		"draw_calls", "objects", "primitives"]
+const PART_FIRST_COUNT := 11
 
 ## The window, real seconds.
 var seconds := DEFAULT_SECONDS
@@ -104,6 +144,11 @@ var _sim: Simulation = null
 var _last_tick := 0
 ## Time.get_ticks_usec() at the previous frame, or -1 before the first.
 var _last_usec := -1
+## The window's sums of take_parts(), one per PART_FIELDS.
+# @spec-link [[req_platform_and_performance_targets]]
+var _part_sums := PackedFloat64Array()
+## The renderer's field viewports whose render time is measured.
+var _field_rids: Array[RID] = []
 
 
 ## A perf log printing every `window_seconds` (> 0; parse_args() checks it).
@@ -113,12 +158,15 @@ func _init(window_seconds := DEFAULT_SECONDS) -> void:
 
 
 ## Takes the game root (its parent), runs its _process last, starts timing
-## the process at the tree's process_frame, and prints the PERF_INFO line.
+## the process at the tree's process_frame, has the root viewport measure its
+## render time, and prints the PERF_INFO line.
 func _ready() -> void:
 	name = "PerfLog"
 	game = get_parent()
 	process_priority = LAST_PRIORITY
 	get_tree().process_frame.connect(_on_process_frame)
+	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
+	_part_sums.resize(PART_FIELDS.size())
 	print(info_line())
 
 
@@ -127,9 +175,11 @@ func _on_process_frame() -> void:
 	_process_start_usec = Time.get_ticks_usec()
 
 
-## Times this frame, counts its ticks, and prints the line when the window is full.
+## Times this frame, counts its ticks, takes its parts, and prints the line
+## when the window is full.
 func _process(_delta: float) -> void:
 	var now := Time.get_ticks_usec()
+	var parts := take_parts()
 	var sim: Simulation = game.get("simulation")
 	if sim != null:
 		if sim == _sim:
@@ -148,10 +198,13 @@ func _process(_delta: float) -> void:
 	_frame_tick_usec.append(int(game.get("frame_tick_usec")))
 	_frame_active.append(active_bodies(sim) if sim != null else 0)
 	_frame_pairs.append(sim.slimes.candidate_pair_count() if sim != null else 0)
+	for i in parts.size():
+		_part_sums[i] += parts[i]
 	if _window_s >= seconds:
 		print(line(Time.get_ticks_msec() / 1000.0, window_stats(_deltas),
 				tick_stats(_deltas, _frame_ticks, _frame_tick_usec, _frame_active, _frame_pairs),
-				_process_s * 1000.0 / _deltas.size(), _ticks, sim))
+				_process_s * 1000.0 / _deltas.size(), _ticks, sim, part_means(_part_sums, _deltas.size())))
+		_part_sums.fill(0.0)
 		_deltas = PackedFloat64Array()
 		_frame_ticks = PackedInt32Array()
 		_frame_tick_usec = PackedInt64Array()
@@ -160,6 +213,80 @@ func _process(_delta: float) -> void:
 		_window_s = 0.0
 		_process_s = 0.0
 		_ticks = 0
+
+
+## This frame's parts outside the ticks, one per PART_FIELDS: the game
+## nodes' frame_cost_usec taken (read, then set back to 0) in ms, the frame
+## setup, the root viewport's and the field viewports' measured render times
+## (ms), and the frame's draw calls, objects and primitives.
+# @spec-link [[req_platform_and_performance_targets]]
+func take_parts() -> PackedFloat64Array:
+	var renderer: SlimeRenderer = game.get("slime_renderer")
+	var overlay: Variant = game.get("debug_overlay")
+	var labels: Variant = overlay.get("labels") if is_instance_valid(overlay) else null
+	var test_mode: Variant = game.get("test_mode")
+	var test_overlay: Variant = test_mode.get("overlay") if test_mode != null else null
+	_measure_fields(renderer)
+	var field_cpu := 0.0
+	var field_gpu := 0.0
+	for rid in _field_rids:
+		field_cpu += RenderingServer.viewport_get_measured_render_time_cpu(rid)
+		field_gpu += RenderingServer.viewport_get_measured_render_time_gpu(rid)
+	var root := get_viewport().get_viewport_rid()
+	return PackedFloat64Array([
+		_take_cost_ms(renderer),
+		_take_cost_ms(game.get("tap_feedback")),
+		_take_cost_ms(game.get("frontier_view")),
+		_take_cost_ms(game.get("edge_buttons")),
+		_take_cost_ms(overlay) + _take_cost_ms(labels) + _take_cost_ms(test_overlay),
+		_take_cost_ms(game),
+		RenderingServer.get_frame_setup_time_cpu(),
+		RenderingServer.viewport_get_measured_render_time_cpu(root),
+		RenderingServer.viewport_get_measured_render_time_gpu(root),
+		field_cpu,
+		field_gpu,
+		Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
+		Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME),
+		Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME),
+	])
+
+
+## `node`'s frame_cost_usec in ms, set back to 0; 0 when there is no node (a
+## game without it, or freed). A node without the counter is a bug: it fails.
+# @spec-link [[req_platform_and_performance_targets]]
+static func _take_cost_ms(node: Variant) -> float:
+	if not is_instance_valid(node):
+		return 0.0
+	var usec: Variant = node.get("frame_cost_usec")
+	assert(usec is int, "PerfLog: %s has no frame_cost_usec counter" % node)
+	node.set("frame_cost_usec", 0)
+	return usec / 1000.0
+
+
+## Keeps _field_rids on `renderer`'s field viewports (none without a
+## renderer), having each new one (a rebuilt pipeline) measure its render time.
+# @spec-link [[req_platform_and_performance_targets]]
+func _measure_fields(renderer: SlimeRenderer) -> void:
+	var rids: Array[RID] = []
+	if renderer != null:
+		for view in renderer.field_viewports():
+			rids.append(view.get_viewport_rid())
+	for rid in rids:
+		if not rid in _field_rids:
+			RenderingServer.viewport_set_measure_render_time(rid, true)
+	_field_rids = rids
+
+
+## The window's mean part per frame: `sums` (one per PART_FIELDS) over
+## `frames` (at least one).
+# @spec-link [[req_platform_and_performance_targets]]
+static func part_means(sums: PackedFloat64Array, frames: int) -> PackedFloat64Array:
+	assert(frames > 0 and sums.size() == PART_FIELDS.size(),
+			"PerfLog.part_means: one sum per part field, at least one frame")
+	var out := PackedFloat64Array()
+	for each in sums:
+		out.append(each / frames)
+	return out
 
 
 ## Reads --perf-log[=SECONDS] and --max-ticks-per-frame=N from the user
@@ -286,11 +413,13 @@ static func _nearest_rank(sorted: PackedFloat64Array, share: float) -> float:
 
 ## The PERF line for a window: `t` seconds since the engine started, its
 ## window_stats() `stats` and tick_stats() `ticking` (active and pairs
-## included), the mean process time `process_ms_mean`, the `ticks` run, and
+## included), the mean process time `process_ms_mean`, the `ticks` run,
 ## `sim`'s slime counts, parked slimes, camera section and zoom (zeros
-## without a simulation). The fields are the class doc's, in its order.
+## without a simulation), and the part_means() `parts`. The fields are the
+## class doc's, in its order.
 static func line(t: float, stats: Dictionary, ticking: Dictionary, process_ms_mean: float, ticks: int,
-		sim: Simulation) -> String:
+		sim: Simulation, parts: PackedFloat64Array) -> String:
+	assert(parts.size() == PART_FIELDS.size(), "PerfLog.line: one mean per part field")
 	var counts := {DebugCounts.ON_SCREEN: 0, DebugCounts.SIMULATED: 0, DebugCounts.OFF_SCREEN: 0}
 	var parked := 0
 	var section := 0
@@ -310,7 +439,17 @@ static func line(t: float, stats: Dictionary, ticking: Dictionary, process_ms_me
 			process_ms_mean, ticks, ticking["ticks_per_frame_mean"], ticking["ticks_per_frame_max"],
 			ticking["tick_ms_mean"], ticking["tick_ms_frame_mean"], ticking["rest_ms_mean"],
 			counts[DebugCounts.ON_SCREEN], counts[DebugCounts.SIMULATED], counts[DebugCounts.OFF_SCREEN], parked,
-			bodies, ticking["active_mean"], ticking["pairs_mean"], section, zoom]
+			bodies, ticking["active_mean"], ticking["pairs_mean"], section, zoom] + _part_text(parts)
+
+
+## The part fields of the PERF line for the means `parts` (one per
+## PART_FIELDS): " key=value" each, ms with 2 decimals, counts whole.
+# @spec-link [[req_platform_and_performance_targets]]
+static func _part_text(parts: PackedFloat64Array) -> String:
+	var text := ""
+	for i in PART_FIELDS.size():
+		text += (" %s=%.0f" if i >= PART_FIRST_COUNT else " %s=%.2f") % [PART_FIELDS[i], parts[i]]
+	return text
 
 
 ## How many of `sim`'s slimes are parked (SlimeBodies.PARKED), wherever they are.
