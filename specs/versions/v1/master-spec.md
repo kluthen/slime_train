@@ -702,20 +702,28 @@ Every level, the test level included, follows these rules.
   this out of the box. Slimes meet the curved terrain through the
   simulation's own test against the baked terrain outlines, not the engine's
   collision shapes.
-- **The slime simulation's tick may move to native code if the performance
-  pass on the phones demands it; its interface is ready for it.** Measured on
-  the reference phone, the tick written in Godot's scripting language can't
-  hold 60 fps with 200 slimes all simulated, and gets slower once the phone
-  throttles after a few minutes. In play, though, a big crowd is mostly a
-  still pile, and resting slimes, sleepers and a full basket's slimes stop
-  being fully simulated, so the tick stays in the scripting language. A C++
-  extension (the rings, the contacts, the terrain), built for the Linux
-  desktop and for Android, is prepared and verified, and is adopted only if
-  the real game at the endgame misses its targets on either phone. The
-  behaviour around the tick (hops, the call's phases, fusion timing) stays
-  in the scripting language either way. Drawing costs little and is not the
-  problem. The renderer is Godot's Compatibility renderer, which reaches the
-  most Android phones.
+- **The slime simulation's tick moves to native code; its interface was
+  built ready for it.** Measured on the reference phone, the tick written
+  in Godot's scripting language can't hold 60 fps with 200 slimes all
+  simulated, and gets slower once the phone throttles after a few
+  minutes. The tick was first kept in the scripting language, since in
+  play a big crowd was expected to be mostly a still pile, and resting
+  slimes, sleepers and a full basket's slimes stop being fully simulated.
+  The performance pass on the phone missed its targets at the endgame,
+  and fewer ring points in a crowd helped but not enough, so the prepared
+  C++ extension (the rings, the contacts, the terrain), built for the
+  Linux desktop and for Android, is adopted. *(proposed)* Its results
+  repeat within one build but aren't bit-equal to the scripting-language
+  tick; a save loads under either tick; the scripting-language tick stays
+  as the fallback. The behaviour around the tick (hops, the call's
+  phases, fusion timing) stays in the scripting language either way.
+- **Drawing is kept cheap by design,** not assumed cheap: only the slimes
+  near the view are drawn, each drawing redraws only when what it shows
+  changes, and repeated shapes (eyes, a basket's slots) are one instanced
+  draw each. Before that work, drawing cost more of the frame than the
+  tick on light scenes. *(proposed)* Its share of the reference phone's
+  frame is at most 4 ms. The renderer is Godot's Compatibility renderer,
+  which reaches the most Android phones.
 - **Physics only near the screen.** Up to 200 slimes on a mid-range phone
   rules out simulating every slime all the time. Off-screen slimes move along
   authored paths at a deterministic pace; that is also what makes off-screen
@@ -737,8 +745,8 @@ Every level, the test level included, follows these rules.
   losing others; level updates migrate saves rather than breaking them.
 - **Testability:** all gameplay randomness comes from one seeded
   generator so test runs repeat exactly within one build (a desktop and an
-  Android build aren't promised to give identical results if the tick ever
-  moves to native code). A test mode, only in the Linux build
+  Android build aren't promised to give identical results once the tick
+  runs as native code). A test mode, only in the Linux build
   and debug Android builds, loads fixture saves, speeds up or skips time, and
   injects taps and tilt from a script.
 
@@ -758,8 +766,9 @@ tests, and the technical choices made while building are in the project's
   The 200-slime cap stays.
 - **Measured so far:** the reference phone, with 200 slimes all simulated
   and nothing else (see section 6). The floor phone still has to be bought,
-  and the whole game at the endgame is measured on both phones before
-  release; that measurement decides whether the tick moves to native code.
+  and the whole game at the endgame is measured on both phones. The
+  reference phone missed its target on the first measurement, so the tick
+  moves to native code and the measurement is repeated after it.
 - Test environments:
 
 | Environment | Used for | Not used for |
@@ -967,13 +976,14 @@ Still undecided.
    lines; imported SVGs blur when zoomed), soft slimes at 200 with the
    blending shader and the Compatibility renderer, and running end-to-end
    tests on Linux without a screen. Checked on the reference phone: 200
-   slimes all simulated miss 60 fps, so the tick stays in the scripting
-   language with cheaper states for resting slimes first, and native code
-   is a prepared contingency (section 6). The floor phone's target now
-   applies to the largest realistic pile, not 200 slimes on one screen
+   slimes all simulated miss 60 fps; cheaper states for resting slimes
+   came first, then the whole game at the endgame missed its target too,
+   so the tick moves to native code (section 6). The floor phone's target
+   now applies to the largest realistic pile, not 200 slimes on one screen
    (Definition of done, 30). Still waiting: the floor phone (it has to be
-   bought), the whole game measured on both phones, which decides the
-   native code, and tilt input. Android audio
+   bought), the whole game measured again on both phones after the native
+   tick, the phone's GPU cost of the blending (it can't be read on Android
+   with this renderer, so only the frame rate shows it), and tilt input. Android audio
    latency matters only from the version that adds sound.
 6. **Why slimes of different species sometimes end up inside each other.**
    The build moves one of them back to the start of the loop as a

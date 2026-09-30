@@ -2420,6 +2420,165 @@ spec and the code showed a better fit (each refinement says why).
 - O105 is unchanged: this doesn't touch the rest rule or "a big crowd is
   mostly a still pile".
 
+## D142 — Chunk 22b as built: the drawing pass; the slowed-CPU method; 5N confirmed (2026-09-30)
+**Built** (5d9533a, suite 1318/1318; the 17 fixture hashes, seed 909 over
+600 ticks, unchanged). Proposed; the user reviews: the method (2), the
+verdict's reading (3), the new open question (6) and the look and label
+choices (7). Detail and every table: `docs/dev/README.md`, "Chunk 22b:
+drawing". D143 reserved this number for it.
+
+**1. As built.** Nothing changed in the simulation, and on screen only
+what 7 accepts. BLEND mode and the Compatibility renderer stay.
+- **Redraw only on change:** the frontier view (a key of every value it
+  paints, compared each frame; every frame while the celebration's burst
+  shows), the tap feedback (ripples, hint, eyes), the edge buttons, test
+  mode's overlay and the debug overlay.
+- **The slime renderer** rebuilds nothing when the bodies, the topology
+  and the screen are unchanged, and builds vertices for the seen slimes
+  only. A resize bug is fixed (a painter redraws from its own draw
+  signal), with a regression test.
+- **Instanced shapes** (`src/draw/shape_instances.gd`): one instanced draw
+  reproduces many `draw_circle()` or antialiased `draw_arc()` calls. The
+  eyes take one draw per ring radius (3); a basket's quota slots take two;
+  at the reward pulse's peak a basket falls back to slot-by-slot drawing
+  so the overlap looks the same. The celebration and the lasting mark
+  draw from an `Overlay` child, above the slots.
+- **The debug slime labels** (item 24.6): text cached and rebuilt at most
+  every 250 ms, positions every frame (7).
+- **Tools:** the PERF line gains 14 per-part fields (debug builds only:
+  `slimes_ms`, `eyes_ms`, `frontier_ms`, `hud_ms`, `debug_ms`, `main_ms`,
+  `setup_ms`, `render_cpu_ms`, `render_gpu_ms`, `field_cpu_ms`,
+  `field_gpu_ms`, `draw_calls`, `objects`, `primitives`), which
+  `perf_summary.py` reports (older logs still read);
+  `tools/perf_slow.sh` (a fixture run slowed or at full speed, then its
+  summary); `tools/compare_frames.py` (movie frames compared pixel by
+  pixel).
+- **Before -> after,** on the slowed desktop CPU with chunk 22's method
+  (whole process pinned; comparable with D138 and D140, overstated, see
+  2):
+
+  | Scene | Rest of the frame, ms | fps | Draw calls |
+  |---|---|---|---|
+  | `s3-basket-59of60` | 22.2 -> 13.6 | 17.0 -> 19.8 | 482 -> 84 |
+  | `stress-moving` | 25.8 -> 14.7 | 10.2 -> 12.9 | 485 -> 89 |
+  | `gate2-open` | 30.9 -> 6.4 | 17.9 -> 129.6 | 369 -> 91 |
+  | `fresh` | 17.9 -> 3.7 | 41.5 -> 242.1 | 72 -> 71 |
+
+  `s3-basket-59of60` and `stress-moving` stay slow: the tick binds them.
+
+**2. The method: what the slowed runs got wrong** (proposed).
+- Chunk 22's slowed runs pinned the whole Godot process to one core. That
+  also put Godot's and the GL driver's helper threads on the game's core,
+  where a phone runs them on its other cores. On `s3-basket-59of60`, one
+  core without busy loops took the rest of the frame from 3.0 to about
+  11.6 ms while every drawn part cost the same. With only the main thread
+  pinned, the rest before the cuts was 16.7 ms, not 22. So the "about
+  21 ms outside the tick" (D140) was mostly the method, plus the frontier
+  view and the render recording. The slowed runs' tick is skewed too
+  (`gate2-open`: 12 ms or more a tick slowed, 1.3 headless).
+- **The slowed-CPU method is now `tools/perf_slow.sh --pin=main`** (only
+  the main thread pinned, with the busy loops). `--pin=process`, still
+  the script's default, is kept only to compare with chunk 22's and
+  D140's numbers.
+- **The phone estimate uses full-speed costs,** not slowed runs: each
+  part's cost at full speed on the desktop, times 2.1 cold and 3.4
+  throttled (the phone factors, D96). Caveat: the factors are the GDScript
+  tick's; the engine's C++ render recording and the phone's driver may
+  scale otherwise. Only the phone's own perf log settles a number (the
+  user's rule, D138 2d).
+- Spec text that cited the 21 ms or the old method is updated: the build
+  plan's chunks 22, 22b, 22c and 5N, `tech-direction.md` ("Simulation
+  performance"), the index.
+
+**3. Verdict against D138's drawing budget (4 ms a frame on the reference
+phone): an estimate, not closed.**
+- Drawing a 60 fps frame on the desktop now costs 1.2 to 1.6 ms (the
+  four scenes above; before: 1.5 to 3.9). On the phone, estimated:
+  - **cold: 2.6 to 3.3 ms, all four scenes meet 4 ms** (before, only
+    `fresh`; the busy scenes 6.7 to 8.1);
+  - **throttled: 4.2 to 5.3 ms, none does** (`fresh` 0.2 over; before,
+    5.1 to 13.1).
+- **Only chunk 22's repeat on the phone closes it** (the perf log, cold
+  and throttled). Proposed: what drawing still costs above 4 ms there is
+  recorded, not chased into look changes (22b's done-when); the levers
+  that would change the look or the renderer are O108, the user's call.
+- **The phone's GPU cost is unknown.** On Android with this renderer
+  `render_gpu_ms` reads 0; BLEND's two half-resolution field viewports
+  and its full-screen composite are the GPU risk (desktop GPU after the
+  cuts: 0.2 to 0.35 ms root, at most 0.14 ms for the fields). It shows
+  only through the frame rate in chunk 22's repeat. Noted in O14.
+
+**4. Chunk 5N: the user's explicit go.** The user (2026-09-30, verbatim):
+"ok schedule work on 5N after this chunk". This settles adopting the
+native tick: D140's conditional go, its condition met, is now explicit.
+The native tick is no longer a contingency. How it ships stays as D140
+proposed (deterministic within one build, not bit-equal to the GDScript
+tick; saves load under either tick; the GDScript tick kept as the
+fallback). Chunk 22d still comes first: the user asked for it "prior
+working on 5N" (D143). The master spec's section 6 and known gap 5, and
+`tech-direction.md`, now say the tick moves to native code. For
+documentalist: `domain_architecture_rationale`'s "the simulation tick was
+first kept in GDScript ... prepared as a contingency" becomes, once 5N
+lands (its post-task sync), "the tick runs as native code, the GDScript
+tick kept as a fallback".
+
+**5. A drift, for documentalist: "Drawing costs little".**
+`domain_architecture_rationale` (and the master spec's section 6, fixed
+here) says drawing costs little. Measured: before 22b, drawing cost more
+of the frame than the tick on the light scenes (`gate2-open`: 3.85 ms of
+drawing a frame on the desktop against a 1.3 ms headless tick; about
+8 ms on the phone, cold). After 22b: 1.2 to 1.6 ms on the desktop. The
+wording proposed for the atom, replacing "Drawing costs little (flagged,
+unresolved: ...)":
+
+> Drawing is kept cheap by design rather than assumed cheap: only the
+> slimes near the view are drawn, each drawing redraws only when what it
+> shows changes, and repeated shapes (eyes, a basket's slots) are drawn
+> in one instanced draw. Before that work, drawing cost more of the frame
+> than the simulation tick on light scenes. Its share of the reference
+> phone's frame is at most 4 ms (proposed); estimated within it cold and
+> slightly over it once the phone throttles, and the phone measurement
+> decides.
+
+The rest of that sentence (the Compatibility renderer, which reaches the
+most Android phones) stays.
+
+**6. Left for later.**
+- **Needing a spec change, not scheduled: O108** (new). DIRECT mode
+  instead of BLEND in play (each slime drawn on its own with a soft edge,
+  so same-species slimes no longer merge into one blob: the game's look,
+  D94); the Mobile renderer (with O14's floor-phone question); a field
+  resolution below half, if it changes the look. Proposed default: none
+  before chunk 22's repeat; its phone numbers decide whether any is
+  needed.
+- **Still costing, no spec change:** the slimes' per-frame skirt loop in
+  GDScript (about 0.2 ms a frame on the desktop on crowded scenes); the
+  render recording (about 0.5 ms). Recorded, not scheduled.
+- **Caveats for later work** (in `docs/dev/README.md`): the instanced
+  discs match the old drawing exactly only while the tap feedback and the
+  frontier view keep an identity transform; no movie frame covers the
+  celebration (proposed: the user looks at it in the next play; a
+  difference goes to chunk 24's list).
+
+**7. The look and the labels** (proposed).
+- **Accepted look change:** the baskets' outline feathers differ by at
+  most 1 of 255 on one colour channel, on 13 to 135 pixels a frame
+  (sub-pixel rounding: the instanced ring adds the slot's position on the
+  GPU). Invisible. Everything else compared identical (frames 60, 180 and
+  300 of four fixtures; `fresh` and the eyes identical).
+- **Item 24.6 done in 22b:** the labels' text refreshed at most every
+  250 ms, so a label may lag its slime's state by up to 250 ms; debug
+  builds only; measured with the labels off, as always. Its phone number
+  (the done-when's share of the frame rate) is taken with chunk 22's
+  repeat.
+
+**8. The order, unchanged:** 22d, 5N, 22c, chunk 22 repeated on the
+S20 FE, chunk 24, then the coding-rule health review. The build plan marks
+22b done.
+
+ATD: 66 `@spec-link` and 19 `@test-link` tags to
+`req_platform_and_performance_targets`; no atom file touched.
+
 ## D143 — Debug counters before 5N; cluster avoidance; two v2 level-design aids (2026-09-30)
 Proposed; the user reviews. Four requests from the user (2026-09-30),
 relayed by the coordinator. D142 is reserved for chunk 22b as built,

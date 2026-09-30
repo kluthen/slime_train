@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v22
+Status: draft v23
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -79,7 +79,8 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   per 60 Hz tick. Contact pairs between slimes come from a uniform grid on
   slime centres, rebuilt once per tick. The spike's settings are a starting
   point, tuned for stability, not yet for the game's feel. The tick is
-  GDScript; native code is the contingency (D96).
+  GDScript today; it moves to native code in chunk 5N (the user's go,
+  D140, D142), the GDScript tick kept as the fallback.
 - **Drawing (D94):** each slime is drawn as a soft field blob into two
   SubViewports (one species per colour channel, three per viewport), one draw
   call per viewport. A full-screen composite shader thresholds the fields and
@@ -90,6 +91,13 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   2.6 ms at half resolution, which looks the same and is what the game uses
   (it saves battery and heat; the frame rate isn't at stake). Where two species'
   fields are equal the colour can flicker; a tie-break is needed.
+  *The rest of the drawing (chunk 22b, D142):* only the slimes near the
+  view are drawn; each drawing node (the frontier view, the tap feedback
+  and eyes, the edge buttons, the overlays) redraws only when what it
+  shows changes; repeated shapes (the eyes, a basket's quota slots) are
+  one instanced draw each. The DIRECT mode (each slime drawn on its own,
+  no blend) stays for headless runs and debugging; using it in play,
+  another renderer or a lower field resolution is O108.
 - **Scale:** up to 200 slimes per level (D67), with many possibly on one screen.
 - **Physics only near the screen** (D69):
   - Off-screen slimes follow the loop at a deterministic pace, as a place
@@ -105,7 +113,9 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
 
 ## Simulation performance (D94, D96)
 
-- **The simulation tick is the bottleneck, not drawing.** On the desktop, the
+- **The simulation tick is the bottleneck on busy scenes** (on light
+  scenes, before chunk 22b, drawing cost more of the frame than the tick;
+  D142). On the desktop, the
   GDScript tick takes about 11 ms for 200 slimes at 16 points per ring (about
   8–9 ms at 12), with no game logic around it; contacts between slimes are more
   than half of it. A line-for-line C++ port of the same tick is 20–25× faster
@@ -120,10 +130,12 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   - the phone is 2.0–2.1× slower than the desktop cold, 3.4× throttled;
   - the game's real tick (chunk 5: terrain contact, friction, touch
     tracking) costs 1.7× the spike's: about 31 ms cold, 50 ms throttled;
-  - drawing is not the problem (see "Slimes": at most 5 ms of GPU time,
-    alongside the CPU).
-- **The tick stays in GDScript (D96)**, on chunk 5's struct-of-arrays layout,
-  whose interface is ready for native code.
+  - the slimes' blend is not the problem on the GPU (see "Slimes": at most
+    5 ms of GPU time, alongside the CPU); the rest of the drawing's CPU
+    cost was, until chunk 22b (D142).
+- **The tick stayed in GDScript (D96)**, on chunk 5's struct-of-arrays layout,
+  whose interface is ready for native code; it moves to native code in
+  chunk 5N (D140, D142).
 - **Fallbacks first,** built in chunk 15 (cheaper states):
   - resting slimes (a pile) stop being simulated, contact solving included,
     until something disturbs them;
@@ -157,8 +169,8 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   slowed desktop CPU standing in for the phone: `s3-basket-59of60`
   16.4 -> 18.0 fps (tick 21 -> 17.7 ms), `stress-moving` 11.4 -> 12.3 fps
   (33 -> 30 ms); about 4 to 5 ms of each tick doesn't depend on points,
-  and the rest of the frame is about 21 ms either way. Helpful, not
-  enough on its own.
+  and the rest of the frame is about 21 ms either way (overstated by that
+  run's method, D142). Helpful, not enough on its own.
 - **Crowd detail only when the device can't keep up (proposed, D141; the
   user's amendment, chunk 22c):** a good device keeps full ring points
   whatever the crowd. A load meter in the scene layer (every build; not
@@ -185,16 +197,16 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   the train leans away from clusters (chunk 24, items 24.7 and 24.8); a
   cluster the player builds stays possible, covered by crowd detail and
   the tick cap.
-- **Native code was the documented, verified contingency; it now goes
-  ahead as chunk 5N after chunk 22b (proposed order, D140; the user's
-  conditional go, its condition met).** A
-  GDExtension in C++ (godot-cpp), built with `-ffp-contract=off` so ticks
+- **Native code was the documented, verified contingency; it is now
+  adopted as chunk 5N, after chunk 22d** (D140, D143; the user's explicit
+  go after chunk 22b, D142: "ok schedule work on 5N after this chunk").
+  A GDExtension in C++ (godot-cpp), built with `-ffp-contract=off` so ticks
   repeat from one build to another, for the Linux desktop and, through the
   Android NDK, for Android arm64. Its toolchain and a trivial extension are
   checked in under `native/` (see `docs/dev/native.md`), kept out of the
   test suite and the exports. Estimated on the reference phone: about
   0.8–1.0 ms per tick cold, 1.2–1.6 ms throttled.
-- **What would fire it:** chunk 22 measures the real game at the endgame
+- **What fired it** (it did: D138): chunk 22 measures the real game at the endgame
   (the bowl, a full basket, the train) on both phones, cold and after
   5 minutes. If either phone misses its target (60 fps on the reference
   phone in normal play; at least 30 fps on the floor phone with the largest
@@ -210,11 +222,28 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   endgame is bound by the tick: estimated 15 to 17 ms cold, 24 to 27 ms
   throttled on the phone. **Chunk 5N is recommended** (not started);
   chunk 22 repeats after it.
-- **Next (proposed order, D140, D143):** chunk 22b, the drawing pass: on the
-  slowed desktop CPU the frame costs about 21 ms outside the tick (the
-  blend's field viewports, the eyes, the lines, the frontier view, the
-  debug overlay), so "drawing is not the problem" no longer holds once
-  the tick shrinks. Then chunk 22d, the debug counters (D143): Physics,
+- **Chunk 22b as built (D142): the drawing pass.** Redraw only on
+  change, only the seen slimes rebuilt, instanced eyes and basket slots
+  (see "Slimes", Drawing); draw calls on `s3-basket-59of60` 482 -> 84; the
+  same hashes; the baskets' outline feathers differ by at most 1 of 255,
+  accepted as invisible (proposed). Drawing a 60 fps frame now costs 1.2
+  to 1.6 ms on the desktop; estimated on the reference phone, 2.6 to
+  3.3 ms cold (within the 4 ms budget on all four measured scenes) and
+  4.2 to 5.3 ms throttled (over it); only chunk 22's repeat on the phone
+  closes it. The phone's GPU time can't be read with this renderer on
+  Android (O14).
+- **How performance is measured (D142, proposed).** The slowed desktop
+  CPU is `tools/perf_slow.sh --pin=main`: only the main thread pinned to
+  a core with busy loops. Pinning the whole process (chunk 22's and
+  D140's runs) also put the engine's and the GL driver's helper threads
+  on the game's core and inflated the rest of the frame (the "about
+  21 ms" was 16.7 with the main thread alone pinned) and skewed the
+  tick; `--pin=process` is kept only to compare with those numbers. A
+  phone estimate is a part's full-speed desktop cost × 2.1 cold, × 3.4
+  throttled (the GDScript tick's factors; the engine's C++ and the phone
+  driver may scale otherwise). The phone's perf log settles every number
+  (D138).
+- **Next (proposed order, D140, D143, D142):** chunk 22d, the debug counters (D143): Physics,
   On screen, In range and Parked on the bar, and the same plus `resting`
   and the largest awake cluster on the PERF line. Then chunk 5N: results deterministic within one build
   (not bit-equal to the GDScript tick); saves load under either tick; the

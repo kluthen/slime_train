@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v16 (approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v17 (approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
@@ -14,7 +14,8 @@ D139; crowd detail merged; the order 22b, 5N, 22 repeated, 24, the health
 review, proposed, D140; chunk 22c, crowd detail only under load, between
 5N and 22's repeat, proposed, D141; chunk 22d, the debug counters,
 between 22b and 5N, and chunk 24 gains 24.7 and 24.8, cluster avoidance,
-proposed, D143)
+proposed, D143; chunk 22b done, with item 24.6, the slowed-CPU method
+`tools/perf_slow.sh --pin=main`, and the user's explicit go on 5N, D142)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -151,11 +152,17 @@ technology, not business behaviour:
   risks.
 - **Chunk 22** done (D138; DoD 30 not met). Crowd detail, the user's
   idea, merged after it (D140): helpful, not enough on its own.
-- **Next, in this order (proposed, D140, D143):** chunk **22b** (the
-  drawing pass), chunk **22d** (the debug counters, D143), chunk **5N** (the native tick, going ahead: the user's
-  conditional go, its condition met), chunk **22c** (crowd detail only
-  under load, proposed, D141), chunk **22 repeated** on the reference
-  phone with the perf log, chunk **24**, then the closing health review.
+- **Chunk 22b** done (D142; 5d9533a, suite 1318/1318, same hashes): the
+  drawing pass. Drawing estimated within its 4 ms on the reference phone
+  cold, over it throttled (4.2 to 5.3 ms); only chunk 22's repeat closes
+  it. Item 24.6 (the debug labels) done with it. The slowed-CPU method is
+  now `tools/perf_slow.sh --pin=main`.
+- **Next, in this order (proposed, D140, D143, D142):** chunk **22d** (the
+  debug counters, D143), chunk **5N** (the native tick, going ahead: the
+  user's go, "ok schedule work on 5N after this chunk", D142), chunk
+  **22c** (crowd detail only under load, proposed, D141), chunk **22
+  repeated** on the reference phone with the perf log, chunk **24**, then
+  the closing health review.
 - **Chunk L01** (the first real level) is **v2**, not this plan (D134):
   v1 is the test level only. The release preset stays as built, with the
   test level left out; v1 (full MVP) is never published (D135).
@@ -177,7 +184,7 @@ technology, not business behaviour:
 | 3 | Test backbone | M | 0 | two identical scripted runs give identical state |
 | 4 | Level scaffolding and Meadow greybox | M | 3 | the loop, terrain and IDs load in a test |
 | 5 | Slime body | L | 1, 4 | unit tests on rings; a visual demo |
-| 5N | Native simulation tick (going ahead after 22b and 22d, D140, D143) | M | 22d | the whole suite on the native tick; saves load under either tick; chunk 22 repeated |
+| 5N | Native simulation tick (going ahead after 22d, D140, D143, D142) | M | 22d | the whole suite on the native tick; saves load under either tick; chunk 22 repeated |
 | 6 | Train and split zone | M | 5 | [DoD 1 partial, 7] |
 | 7 | Taps and the call | L | 6 | [DoD 3, 4, 15, 17] |
 | 8 | Save format and fixtures | M | 7 | kill-and-reload tests; the first fixtures load [DoD 28 partial] |
@@ -195,7 +202,7 @@ technology, not business behaviour:
 | 20 | Android build and platform integration | L | 18 | [DoD 25, 26, 27]; emulator |
 | 21 | End-to-end suite | M | 19 | [DoD 31] |
 | 22 | Performance pass on phones (repeated after 5N and 22c, D140, D141) | M | 20, 23 (repeat: 5N, 22c) | [DoD 30] |
-| 22b | Drawing pass (proposed, D140) | M | 22 | the frame's cost outside the tick measured per part and cut; same hash |
+| 22b | Drawing pass (done, D142) | M | 22 | the frame's cost outside the tick measured per part and cut; same hash |
 | 22d | Debug counters and the largest awake cluster (proposed, D143) | S | 22b | unit tests of the four counts and the cluster; the PERF line and its summary carry them; same hashes |
 | 22c | Crowd detail only under load (proposed, D141) | S | 5N | the load meter's unit tests; same hashes in `always`; `auto` measured on the desktop |
 | 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
@@ -204,7 +211,8 @@ technology, not business behaviour:
 | TL1 | Test level finishable from fresh (done, D129) | S | LD, R22 | the checker gives 0 warnings on the test level; a scripted play from `fresh` fills basket 1 |
 
 Chunks 1 and 2 can run in parallel with 3. Chunk 22 failed DoD 30, so
-chunk 5N now runs (D96, D140): after chunks 22b and 22d, before chunk 22's repeat. Chunks 9, 10
+chunk 5N now runs (D96, D140; the user's go, D142): after chunks 22b (done)
+and 22d, before chunk 22's repeat. Chunks 9, 10
 and 11 are independent of each other. Chunk 17 can start as soon as 8 is done, in
 parallel with the camera and objects work. Chunk 23 runs first among the
 remaining chunks, before 18 (D123), and chunk LD runs in parallel with it.
@@ -558,19 +566,28 @@ closed by D140).
   D140): fewer ring points when many slimes are active. On a slowed
   desktop CPU standing in for the phone, `s3-basket-59of60` 16.4 -> 18.0
   fps and `stress-moving` 11.4 -> 12.3 fps; the rest of the frame stays
-  about 21 ms. Helpful, not enough on its own.
+  about 21 ms (overstated: that run pinned the whole process, putting the
+  engine's and the driver's helper threads on the game's core; D142).
+  Helpful, not enough on its own.
 - **Repeated after 5N and 22c** (D140, D141): on the reference phone with
   the perf log (`tools/android/perf.sh`, labels off), cold and throttled,
   with crowd detail in `auto` (the shipping behaviour; DoD 30 is judged on
   it); the PERF lines show where the device is pressed and the ceiling it
   reaches. The done-when above is unchanged. It records which of 24.3 and
-  O106's changes to the endgame have landed by then.
+  O106's changes to the endgame have landed by then. It also closes
+  chunk 22b's drawing verdict (D142): the PERF line's per-part fields
+  give drawing's cost on the phone against the 4 ms, cold and throttled;
+  the phone's GPU time can't be read (O14), so the frame rate shows it;
+  what is left above 4 ms is recorded, and O108's levers are the user's
+  call. It takes item 24.6's phone number too (labels on against off, in
+  the same scene).
 
-### 22b. Drawing pass (M, proposed, D140)
+### 22b. Drawing pass (M, done, D142)
 
 The frame outside the tick: on the slowed desktop CPU standing in for the
-phone it costs about 21 ms with or without crowd detail, more than a whole
-frame on its own. Runs before chunk 5N. Keeps both ATD steps, like chunk
+phone it cost about 21 ms with or without crowd detail, more than a whole
+frame on its own (mostly the slowdown method's, as 22b found; see
+"Built"). Runs before chunk 5N. Keeps both ATD steps, like chunk
 22 (the frame-rate target).
 - **Measure first,** per part, with the perf log: the blend mode's field
   viewports, the eyes, the lines, the frontier view, the debug overlay
@@ -585,6 +602,26 @@ frame on its own. Runs before chunk 5N. Keeps both ATD steps, like chunk
   as the cuts allow, aiming at D138's drawing budget (at most 4 ms on the
   reference phone, proposed); what is left above it is recorded, not
   chased into behaviour changes; the suite passes with identical hashes.
+- **Built** (D142; 5d9533a, suite 1318/1318, the 17 hashes identical;
+  detail in `docs/dev/README.md`, "Chunk 22b: drawing"): redraw only on
+  change (the frontier view, the tap feedback, the edge buttons, test
+  mode's and the debug overlay), the slime renderer rebuilding only on
+  change and only the seen slimes, instanced eyes and basket slots
+  (`ShapeInstances`), the debug labels' text refreshed every 250 ms (item
+  24.6); the PERF line's 14 per-part fields, `tools/perf_slow.sh`,
+  `tools/compare_frames.py`. Draw calls on `s3-basket-59of60` 482 -> 84.
+  **The method:** pinning the whole process to one core also pinned the
+  engine's and the driver's helper threads, which inflated the rest of the
+  frame (16.7 ms, not 22, with the main thread alone pinned); the
+  slowed-CPU method is now `tools/perf_slow.sh --pin=main`, and the phone
+  estimate is each part's full-speed desktop cost × 2.1 cold, × 3.4
+  throttled. **Verdict (an estimate):** drawing 2.6 to 3.3 ms on the
+  phone cold, all four measured scenes within 4 ms; 4.2 to 5.3 ms
+  throttled, none within; chunk 22's repeat closes it. Look: the baskets'
+  outline feathers differ by at most 1 of 255 (sub-pixel), accepted as
+  invisible (proposed). Left: O108 (DIRECT mode, the Mobile renderer, a
+  lower field resolution; each a spec change), the skirt loop and the
+  render recording (recorded, not scheduled).
 
 ### 22d. Debug counters and the largest awake cluster (S, proposed, D143)
 
@@ -592,7 +629,9 @@ The user: "try to do these debug changes prior working on 5N", and
 "ensure these informations are also available regularily in the logs for
 your perusal". Today's bar ("on screen : simulated : off screen") misled:
 slimes in a basket count as on screen. Runs after chunk 22b, before 5N,
-so 5N and 22's repeat are read with the new counts. Debug tooling only
+so 5N and 22's repeat are read with the new counts. Its windowed run uses
+the slowed-CPU method, `tools/perf_slow.sh --pin=main`, where it runs
+slowed (D142). Debug tooling only
 (no atom pins the overlay): no ATD steps; it still goes test first. It
 must not run while another chunk edits the debug overlay or the perf log.
 - **The bar** (every 250 ms, as now), in slimes: **Physics** (calm ACTIVE,
@@ -657,7 +696,8 @@ must not run while another chunk edits the slime body code.
   whole suite passes with identical hashes (`always` everywhere outside
   normal play), and a guard test checks that test mode defaults to
   `always`; in `auto`, `s3-basket-59of60` stays at ceiling 0 on the
-  desktop at its normal clock, and on the slowed CPU it climbs to the crowd's level
+  desktop at its normal clock, and on the slowed CPU (`tools/perf_slow.sh
+  --pin=main`, D142) it climbs to the crowd's level
   within about 3 s and makes no more than a few ceiling steps over
   2 minutes (no thrash), recorded in the project documentation; a save
   written in `auto` loads in every mode.
@@ -1038,7 +1078,11 @@ never parks either.
   recorded in the project documentation.
 
 **24.6 The debug labels are too expensive** (reported 2026-09-30, the
-phone session; proposed, D139; debug builds only). On the phone, turning
+phone session; proposed, D139; debug builds only). **Done in chunk 22b**
+(D142): the labels' text is cached and rebuilt at most every 250 ms
+(proposed), their places follow every frame, so a label may lag its
+slime's state by up to 250 ms. The phone number its done-when asks for is
+taken with chunk 22's repeat. On the phone, turning
 them on took the game from 36–38 fps to 11–14 fps. Chunk 22 already
 redraws them only while shown and labels only the slimes seen near the
 screen (D138); they haven't been measured on the phone since.
@@ -1186,12 +1230,14 @@ behaviour, so no ATD steps; it still goes test first.
   `gate1-open` and `gate2-open` baskets 2 and 3; the fixtures are
   regenerated and the whole suite passes (DoD 1 included).
 
-### 5N. Native simulation tick (going ahead after 22b and 22d, D140, D143)
+### 5N. Native simulation tick (going ahead after 22d, D140, D143, D142)
 
 Size M. **Chunk 22 was its trigger** (D96): it failed DoD 30 (D138), and
 crowd detail was not enough on its own, which meets the user's
 conditional go ("Should it prove unsufficient, we will see how it goes
-with 5N"). It runs after chunks 22b and 22d (D143); chunk 22c follows (D141), and chunk
+with 5N"). After chunk 22b the user gave the go outright: "ok schedule
+work on 5N after this chunk" (D142). It runs after chunks 22b (done) and
+22d (D143); chunk 22c follows (D141), and chunk
 22 is then repeated (D140, proposed order). Technical: no ATD steps. It must not run while another
 chunk edits the slime body code.
 
@@ -1215,6 +1261,12 @@ chunk edits the slime body code.
   load.
 - **Background reading:** `../../tech-direction.md` "Simulation performance"
   and the reference phone numbers in `docs/dev/spike-soft-slimes.md`.
+- **Measuring (D142):** desktop numbers at full speed, headless for the
+  tick; a slowed run, if any, with `tools/perf_slow.sh --pin=main` (never
+  the whole process pinned, which skews the tick and the frame); a phone
+  estimate is the full-speed cost × 2.1 cold, × 3.4 throttled, and only the
+  phone's perf log settles it. The factors are the GDScript tick's; the
+  native tick's own phone factor is measured on the phone.
 - **Done when:** the Linux and Android arm64 extensions build from one
   script; the whole suite passes on the native tick; a save written under
   either tick loads under the other, and the game runs on the GDScript
