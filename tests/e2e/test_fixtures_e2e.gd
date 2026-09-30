@@ -33,9 +33,10 @@ const GATE_AWAKE := 20
 ## Section 3's bowl, where the stress fixtures put their slimes (x, px).
 const BOWL_LEFT := 13.3 * S
 const BOWL_RIGHT := 15.4 * S
-## stress-still's pile comes to rest within this after loading (ticks):
-## make_fixture measured 670 (490 before chunk 16d's terrain corner fix);
-## the rest is margin.
+## stress-still's pile comes to rest within this after loading (ticks): it
+## rests at about 410 since chunk 19 (670 before, 490 before chunk 16d's
+## terrain corner fix); the rest is margin. tools/bench_level.gd waits for
+## the same rest, within the same bound.
 const PILE_RESTS_WITHIN := 900
 ## The fixtures older than the level on purpose, exempt from
 ## test_no_fixture_is_older_than_the_level: old-version is a save of the
@@ -44,6 +45,8 @@ const PILE_RESTS_WITHIN := 900
 const OLDER_ON_PURPOSE := ["old-version"]
 ## The fixture maker's generic fixtures, and stale() (chunk LD3).
 const LEVEL_FIXTURES := preload("res://tools/make_fixture/level_fixtures.gd")
+## When a loaded bedtime pile rests: the criterion the bench shares (D131).
+const PILE_REST := preload("res://tools/bench_level/pile_rest.gd")
 
 
 func _boot(config := {}) -> Node:
@@ -171,23 +174,14 @@ func test_stress_still_has_60_in_basket_3_and_a_bowl_pile_that_rests() -> void:
 	assert_eq(sim.object_states["s3.basket"]["phase"], FrontierSets.FULL, "basket 3 full")
 	assert_eq(int(sim.object_states["s3.basket"]["weight"]), 60)
 	assert_eq(sim.session.phase, Session.BEDTIME)
-	var pile := []
-	for slime_id in sim.slimes.ids():
-		if sim.slimes.state_of(slime_id) == SlimeBodies.BEDTIME_ASLEEP:
-			pile.append(slime_id)
-			var at := sim.slimes.centre_of(slime_id)
-			assert_between(at.x, BOWL_LEFT, BOWL_RIGHT, "in the bowl")
-	var rested_at := -1
-	for i in PILE_RESTS_WITHIN:
-		game.test_mode.run_ticks(1)
-		if pile.all(func(slime_id): return sim.slimes.calm_of(slime_id) == SlimeBodies.RESTING):
-			rested_at = i + 1
-			break
+	var pile: Array[int] = PILE_REST.pile_of(sim)
+	for slime_id in pile:
+		assert_between(sim.slimes.centre_of(slime_id).x, BOWL_LEFT, BOWL_RIGHT, "in the bowl")
+	var rested_at: int = PILE_REST.ticks_to_rest(sim, pile, PILE_RESTS_WITHIN, game.test_mode.run_ticks.bind(1))
 	gut.p("stress-still: the pile rests %d ticks after loading" % rested_at)
 	assert_gt(rested_at, 0, "the whole pile rests (on screen: resting, not parked)")
 	game.test_mode.run_ticks(60)
-	assert_true(pile.all(func(slime_id): return sim.slimes.calm_of(slime_id) == SlimeBodies.RESTING),
-			"and stays resting")
+	assert_true(PILE_REST.rests(sim, pile), "and stays resting")
 
 
 func test_stress_moving_has_200_train_slimes_in_the_bowl() -> void:

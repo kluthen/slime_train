@@ -205,6 +205,44 @@ func test_the_bar_shows_the_fps_and_the_slime_counts_at_most_every_stats_ms() ->
 	assert_eq(overlay.slimes_label.text, "Slimes 2 on screen : 2 simulated : 1 off screen")
 
 
+func test_the_woken_counter_refreshes_with_the_stats_at_most_every_stats_ms() -> void:
+	var host := Node.new()
+	add_child_autofree(host)
+	var overlay := DebugOverlay.new()
+	host.add_child(overlay)
+	var sim := _placed_sim()
+	assert_true(overlay.update_stats(sim, 60.0, 1000))
+	assert_eq(overlay.counter_label.text, "Woken 0 / available 5")
+	sim.slimes.set_state(sim.slimes.ids()[0], SlimeBodies.FREE)
+	assert_false(overlay.update_stats(sim, 60.0, 1000 + DebugOverlay.STATS_MS - 1), "too soon")
+	assert_eq(overlay.counter_label.text, "Woken 0 / available 5")
+	assert_true(overlay.update_stats(sim, 60.0, 1000 + DebugOverlay.STATS_MS))
+	assert_eq(overlay.counter_label.text, "Woken 1 / available 5")
+
+
+# --- The slime labels -----------------------------------------------------------
+
+func test_the_labels_only_process_while_shown() -> void:
+	var labels := DebugSlimeLabels.new()
+	labels.visible = false
+	add_child_autofree(labels)
+	assert_false(labels.is_processing(), "no redraw while hidden")
+	labels.visible = true
+	assert_true(labels.is_processing())
+	labels.visible = false
+	assert_false(labels.is_processing())
+
+
+func test_the_labels_are_drawn_for_seen_slimes_only() -> void:
+	var sim := _placed_sim()
+	sim.step()
+	var shown := Fusion.view_rect(sim.view)
+	var labelled := DebugSlimeLabels.labelled_slimes(sim.slimes, shown, 1.0)
+	assert_eq(labelled.size(), 3, "the two on screen and the one just off its edge, not the far ones")
+	sim.view.set_to(Vector2(20000, 0), 1.0, ScreenView.DEFAULT_SIZE)
+	assert_eq(DebugSlimeLabels.labelled_slimes(sim.slimes, Fusion.view_rect(sim.view), 1.0).size(), 0)
+
+
 # --- The sped-up clock ----------------------------------------------------------
 
 func test_clock_at_1x_passes_the_reading_through() -> void:
@@ -328,7 +366,7 @@ func test_ticks_run_in_batches_give_the_same_hash() -> void:
 func test_code_outside_debug_never_names_it() -> void:
 	var offenders := PackedStringArray()
 	var pattern := RegEx.create_from_string(
-			"\\b(DebugOverlay|DebugCounts|DebugClock|DebugKill|DebugSlimeLabels)\\b")
+			"\\b(DebugOverlay|DebugCounts|DebugClock|DebugKill|DebugSlimeLabels|PerfLog)\\b")
 	for path in _gd_files(SRC_ROOT):
 		if path.begins_with(DEBUG_DIR):
 			continue

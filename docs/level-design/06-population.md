@@ -79,18 +79,31 @@ Rule 16's other half, big piles staying mostly still, is a MANUAL item.
 Measure it with the level benchmark: it times every tick of the level as
 new and of each fixture with a save (make a fixture of the crowded spot
 first, [08](08-fixtures-and-testing.md)), and says per case how many
-slimes are parked or resting:
+slimes are on screen, simulated off screen, parked off screen
+(`off_screen`) or resting, and how many the solver works on (`active`):
 
 ```sh
 tools/level.sh bench --level=zz-tutorial
 tools/level.sh bench --level=zz-tutorial --fixture=gate1-open --ticks=300
 ```
 
+An example of the output: a real run of the test level's three default
+cases (`tools/level.sh bench --level=test`, on the development desktop,
+2026-09-30). Your level, your fixtures and your computer give other
+numbers; the shape of the lines is the same:
+
 ```
-RESULT case=start base=10 bodies=10 ticks=600 lead_in=600 median_ms=0.169 p95_ms=0.177 mean_ms=0.168 parked=8 resting=0->0 zoom=1.000 camera_steady=true
-RESULT case=gate1-open base=10 bodies=10 ticks=600 lead_in=60 median_ms=0.123 p95_ms=0.129 mean_ms=0.124 parked=10 resting=0->0 zoom=1.000 camera_steady=true
+RESULT case=start base=200 bodies=200 ticks=600 lead_in=600 rested_at=- median_ms=0.960 p95_ms=1.050 max_ms=1.402 mean_ms=0.970 on_screen=1 simulated=3 off_screen=196 resting=0->0 zoom=1.000 camera_steady=true active=1.0 pairs=0.0
+RESULT case=stress-still base=200 bodies=200 ticks=600 lead_in=407 rested_at=407 median_ms=0.983 p95_ms=1.067 max_ms=2.453 mean_ms=0.996 on_screen=139 simulated=1 off_screen=60 resting=140->140 zoom=0.500 camera_steady=true active=0.0 pairs=0.0
+RESULT case=stress-moving base=200 bodies=200->133 ticks=600 lead_in=60 rested_at=- median_ms=10.354 p95_ms=12.654 max_ms=14.343 mean_ms=10.693 on_screen=128 simulated=4 off_screen=1 resting=0->0 zoom=0.500 camera_steady=true active=161.8 pairs=292.8
 ```
 
-A pile that stays still shows as parked or resting slimes and a low, flat
-cost per tick; then play the spot in test mode to see it settle (a pile in
-a basket rests).
+`stress-still` is a pile that stays still: 140 resting, nothing active,
+about 1 ms a tick. `stress-moving` is the worst moving case on purpose:
+all 200 woken as train slimes in section 3's bowl, 162 bodies active on
+average, fusing down to 133 bodies, about ten times the cost.
+
+A pile that stays still shows as parked (`off_screen`) or resting slimes,
+few `active`, and a low, flat cost per tick (`p95_ms` near `median_ms`);
+then play the spot in test mode to see it settle (a pile in a basket
+rests).

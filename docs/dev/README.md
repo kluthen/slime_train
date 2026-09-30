@@ -52,7 +52,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `src/sim/` | The simulation core: pure logic, with no scene dependencies, so it can be unit tested |
 | `src/test_mode_guard.gd` | The one check that keeps test mode out of release builds |
 | `src/test_mode/` | Test mode: scripted input, time control, fixtures and saves to start from, the on-screen marker |
-| `src/debug/` | The debug overlay, debug builds only: speed, reset, slime labels, the kill tool, the fps, the woken/available counter, the slime counts (see "Debug overlay") |
+| `src/debug/` | The debug overlay, debug builds only: speed, reset, slime labels, the kill tool, the fps, the woken/available counter, the slime counts (see "Debug overlay"); the perf log (`PerfLog`, see "Measuring on the phone") |
 | `src/save/` | The save files (`SaveStore`: one per level, never wiped), autosave timing (`Autosave`), the real clocks sessions count on (`SessionClock`) and the app's parent code (`ParentStore`, see "Parent gate and settings (chunk 18)"); the save format itself is `src/sim/save_data.gd` (see "Saves and fixtures") |
 | `src/parent/` | The parent layer: the parent buttons, the code prompt, settings and setup (`ParentGate` and its surfaces), their strings (`ParentText`) and sizes (`ParentLayout`) (see "Parent gate and settings (chunk 18)") |
 | `src/session/` | The session's screen effects (`SessionScreen`: the dusk tint, keeping the screen on); the session logic itself is `src/sim/session.gd` (see "Sessions (chunk 17)") |
@@ -68,11 +68,12 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `tests/e2e/levels/` | Each level's generated test script, `test_level_<id>.gd` (written by `tools/new_level.gd`; not for the test level) |
 | `tests/gut_post_run.gd` | The GUT hook that makes a broken suite fail (see below) |
 | `tools/test.sh` | The one entry point for the test suite |
-| `tools/level.sh` | Runs a level-design tool (`check`, `report`, `new`, `fixture`, `bench`): imports first, no Godot banner (see [level-tooling.md](level-tooling.md)) |
+| `tools/level.sh` | Runs a level-design tool (`check`, `report`, `new`, `fixture`, `bench`, `rest`): imports first, no Godot banner (see [level-tooling.md](level-tooling.md)) |
 | `tools/greybox_test_level.gd` | Generates the test level's greybox scene (see "Levels and components") |
 | `tools/bench_slimes.gd` | Times the slime tick (see "Slimes") |
 | `tools/bench_offscreen.gd` | Times the off-screen fallbacks (see "Off-screen simulation (chunk 15)") |
-| `tools/bench_level.gd` | Times a whole level: the test level with its 200 slimes (see "Off-screen simulation (chunk 15)"), or any level with `--level` (chunk LD3) |
+| `tools/bench_level.gd`, `tools/bench_level/` | Times a whole level: the test level with its 200 slimes (see "Off-screen simulation (chunk 15)"), or any level with `--level` (chunk LD3); `stress-still` from its pile's rest (see "Chunk 22: performance") |
+| `tools/bench_rest.gd`, `tools/bench_rest/` | The resting-pile rule measured on the test level (`tools/level.sh rest`, see "Resting piles (D107)") |
 | `tools/make_fixture.gd` | Writes a level's fixtures (see "Saves and fixtures") |
 | `tools/check_level.gd`, `tools/level_check/` | The level-rules checker, rules 1 to 22, on any level (see [level-tooling.md](level-tooling.md)) |
 | `tools/new_level.gd` | The new-level scaffolder (see [level-tooling.md](level-tooling.md)) |
@@ -86,7 +87,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `src/platform/` | The phone: `PhonePlatform` (the plugin's wrapper, a desktop stub otherwise), screen pinning, the safe area, the tilt sensor (see "Chunk 20: Android") |
 | `native/android_plugin/` | The SlimePlatform Android plugin's Java and its Gradle project (see "How to build, install and run (chunk 20)") |
 | `addons/slime_platform/` | The editor plugin that adds the SlimePlatform AAR (`bin/`, gitignored) to Gradle exports |
-| `tools/android/` | `build_plugin.sh`, `export.sh` (debug or release APK), `check_emulator.sh` |
+| `tools/android/` | `build_plugin.sh`, `export.sh` (debug or release APK), `check_emulator.sh`, `perf.sh` (a perf session on a device) and `perf_summary.py` (its summary, from the log), see "Measuring on the phone" |
 | `android/build/` | Godot's Android build template, installed by `tools/android/export.sh` (gitignored) |
 | `addons/gut/` | The GUT test framework, vendored |
 
@@ -103,8 +104,13 @@ The simulation (`src/sim/simulation.gd`, class `Simulation`) runs at a fixed
 The game root (`src/main.gd`) turns frame time into whole ticks with
 `FixedStep` (`src/sim/fixed_step.gd`) in `_process`, so the game advances by
 elapsed time, never by frame count: 30, 60 or 144 frames per second give the
-same ticks. After a hitch a frame runs at most 8 ticks (times the time
-scale); the rest is dropped, so the game slows down instead of spiralling.
+same ticks. A frame runs at most `MAX_TICKS_PER_FRAME` ticks (2, proposed
+in chunk 22; 8 before) times the time scale rounded up
+(`FixedStep.max_ticks_for`); the rest is dropped, so a frame of up to 33 ms
+(30 fps) still plays at full speed, and beyond that the game plays in slow
+motion instead of spiralling (see "The cap on ticks per frame" under
+[Chunk 22: performance](#chunk-22-performance)). A debug run can set
+another cap for a measurement with `--max-ticks-per-frame=N`.
 
 Durations in `specs/tuning.md` become tick counts at 60 per second (3 s of
 contact is 180 ticks). The fixed step is our own accumulator in `_process`,
@@ -265,7 +271,8 @@ Flags: `--test-script=PATH` (res:// or a file path), `--seed=N`,
 `--load=PATH` (start from a save), `--run-ticks=N` (run N ticks at once,
 print the hash, quit), `--print-state` (also print the state as JSON) and
 `--save=PATH` (with `--run-ticks`: then save to PATH, for kill-and-reload
-across processes). A run that can't start
+across processes). Test mode leaves the perf log's flags, `--perf-log` and
+`--max-ticks-per-frame` (chunk 22), to the perf log. A run that can't start
 quits with code 1. Without `--run-ticks`, in a window, the game plays the
 script in real time (scaled) with a pink "TEST MODE" banner and a ring on
 every finger down. To record a debug run without a screen, use Godot's movie
@@ -816,6 +823,17 @@ heading, hold and velocity. Both bump `topology_version`.
 
 It draws the last tick's state; there is no interpolation between ticks.
 
+**Culling (chunk 22).** Only the slimes that can be seen are drawn:
+`SlimeRenderer.is_seen()` leaves out parked slimes and those whose centre is
+farther than their ring radius times `CULL_REACH` (2.0) plus the skirt
+outside the shown rect (`SlimeRenderer.shown_rect(viewport)`, the world
+rect the viewport shows through its canvas transform), so a squashed slime
+across the edge is still drawn. The indices are rebuilt only when the
+topology or the seen set changes, the vertices each frame for the seen
+slimes only. `vertex_count()` and `drawn_count()` count what was drawn.
+`TapFeedback`'s eyes and the debug labels use the same test. Details and
+numbers: "The fixes" under [Chunk 22: performance](#chunk-22-performance).
+
 ### Demo and bench
 
 ```sh
@@ -841,6 +859,10 @@ Heavier than the spike: terrain segments instead of a flat floor, friction,
 touch tracking and a denser pile. In GDScript the tick alone is most of a
 60 Hz frame at 200 slimes: fine for development and a handful of slimes,
 but the full count needs the native tick (spike 1's conclusion).
+
+The whole level's tick cost (`tools/level.sh bench`), the resting-pile
+measurements (`tools/level.sh rest`), the perf log and the phone
+measurements are in [Chunk 22: performance](#chunk-22-performance).
 
 ## Train
 
@@ -2520,20 +2542,31 @@ Now a parked train slime waits a slime's width behind the train slime ahead
 simulation on, no input) and times every tick:
 
 ```sh
-godot --headless --path . -s res://tools/bench_level.gd  # -- --ticks=600
+tools/level.sh bench                  # or: godot --headless --path . -s res://tools/bench_level.gd -- --ticks=600
+tools/level.sh bench --fixture=s3-basket-59of60 --lead-in=700
 ```
 
 - `start`: the level as new (the first slime and 199 sleepers), the camera
   at the start; 600 ticks untimed first.
 - `stress-still`: the fixture, the camera where it puts it (the bowl, zoom
-  0.5); timed from tick 670 (`REST_TICK`), once the loaded pile rests
-  (about 410 since chunk 19), and over before the idle camera's cue changes
-  the zoom. The script prints
-  `camera_steady=true` when the zoom and the rails held throughout.
+  0.5); timed from the tick the loaded pile rests, detected (chunk 22,
+  D131: tick 407 on the bench's seed; until chunk 22 a fixed `REST_TICK`
+  670), and over before the idle camera's cue changes the zoom. A pile that
+  doesn't rest within `REST_WITHIN` (900) ticks isn't timed: exit code 3.
+  The script prints `camera_steady=true` when the zoom and the rails held
+  throughout.
 - `stress-moving`: the fixture, the camera on the bowl; 60 ticks untimed
   (the rings take shape from the saved centres), then the train climbing out
   of the bowl. Train slimes fuse on the way, so the bodies drop while the
   base slimes stay 200.
+- Any other fixture by name (`--fixture=NAME[,NAME...]`), after a 60-tick
+  lead-in; `--lead-in=N` replaces every case's lead-in (chunk 22).
+
+Each case prints a `RESULT` line (its fields: "What was measured and how"
+under [Chunk 22: performance](#chunk-22-performance); `parked=` became
+`on_screen=`, `simulated=` and `off_screen=` there) and a row of a table.
+The numbers below are chunk 16's; chunk 22's, after its fixes, are in
+"Chunk 22: performance".
 
 Runs on the same machine (Ryzen 5 PRO 8640HS, Godot 4.7.2, headless),
 600 timed ticks each. 16c-A ran beside a test suite (a little high); 16d
@@ -2621,7 +2654,8 @@ The level bench (`tools/bench_level.gd`) is unchanged within noise: 0.999,
 - Big piles outside a basket rest slowly: the rest rule's anchor is where
   the count started, so in a large touching group of size-1 slimes (which
   don't stack) some member always creeps past 1 px until the whole pile has
-  stopped spreading. Kept for v1 and revisited in chunk 22 (O87, D107).
+  stopped spreading. Kept for v1 and revisited in chunk 22 (O87, D107):
+  measured there, not changed (see "Resting piles (D107)").
 - A centre can end up inside a terrain outline when a ring hits the end of
   a floating piece thinner than the 32 px `TerrainSegments` needs (the
   level's are 20 to 25 px): its points end up on both faces. No spot of the
@@ -3163,10 +3197,10 @@ labels on and 2x at frame 3 and arming Kill at frame 150: tick 299 at frame
 |---|---|
 | **1x / 2x / 5x / 10x** | The simulation speed. Each frame runs that many times the ticks (the same ticks, see below) |
 | **Reset** | Asks ("Reset? click again"). A second click within 2 s starts the level over and replaces its save |
-| **Labels** | Draws each slime's runtime id and state under it (`#12 train`) and its stable ID on a second line (`s1.sleeper.04 +2`: its first member and how many more) |
+| **Labels** | Draws each slime's runtime id and state under it (`#12 train`) and its stable ID on a second line (`s1.sleeper.04 +2`: its first member and how many more). Only for the slimes seen on screen (`LABEL_REACH`, 160 screen px past its edge), and nothing redrawn while off (chunk 22). They cost a lot on the phone: measure with labels off |
 | **Kill** | Arms the kill tool (red, "Kill: tap a slime"). The next tap sends the slime under it to the start of the loop, as a lost slime |
 | **60 fps** | The frame rate (`Engine.get_frames_per_second()`, rounded), refreshed at most every 250 ms |
-| **Woken n / available m** | The counter, in base slimes (see below) |
+| **Woken n / available m** | The counter, in base slimes, refreshed at most every 250 ms (see below) |
 | **Slimes a on screen : b simulated : c off screen** | The slime counts, in slimes, refreshed at most every 250 ms (see below) |
 
 The last action's result shows after the slime counts for 4 s ("Kill: #12 sent
@@ -3175,8 +3209,9 @@ also prints it.
 
 **Speed and the clocks.** The game root multiplies its frame time by the
 overlay's `speed` before `FixedStep`, like test mode's `time_scale` (they
-multiply), and raises the hitch cap with it (8 ticks a frame times the
-speed, so 80 at 10x). The ticks are the very same ticks: a run at 10x has
+multiply), and raises the hitch cap with it (`MAX_TICKS_PER_FRAME`, 2
+ticks a frame since chunk 22, times the speed rounded up, so 20 at 10x;
+`FixedStep.max_ticks_for`). The ticks are the very same ticks: a run at 10x has
 the same state hash as at 1x after the same tick. The sessions' clock runs
 at the same speed: `DebugClock` wraps the game root's `session_clock` and
 adds (speed - 1) x the real time elapsed to both its wall and monotonic
@@ -3231,9 +3266,10 @@ margins (see "Off-screen simulation" for the margins):
 - **off screen**: off the visible rect and parked (`SlimeBodies.is_parked`):
   neither simulated nor touched, moved by `Offscreen`'s proxies.
 
-The fps and the slime counts refresh at most every `STATS_MS` (250 real
-ms), as the counts loop over every slime; the woken/available counter
-refreshes every frame.
+The fps, the slime counts and the woken/available counter refresh at most
+every `STATS_MS` (250 real ms), counting included (`update_stats`), as the
+counts loop over every slime. Until chunk 22 the counts ran every frame
+and only their text waited.
 
 **Kill.** The tap is intercepted before the simulation: the game root's
 `_unhandled_input` asks `DebugOverlay.intercept()` right after the parent
@@ -3273,6 +3309,19 @@ main scene; a game a test adds gets one only through
 (`DEBUG_OVERLAY_SCRIPT`), and no script outside `src/debug/` names a debug
 class (a lint in `tests/unit/test_debug_overlay.gd`), so a release export
 loads nothing from `src/debug/` and its preset can leave it out.
+
+**The perf log (chunk 22).** `src/debug/perf_log.gd` (`PerfLog`), the same
+way: the game root adds it by path (`add_perf_log()`), after
+`TestModeGuard` allows it, when the user arguments hold
+`--perf-log[=SECONDS]` (default 5), in normal play or in test mode. It
+prints a `PERF_INFO` line, then a `PERF` line every window: fps, frame
+times, ticks per frame, ms per tick, the rest of the frame, the slime
+counts (the parked ones included), the active bodies and pairs, the
+camera's section and the zoom (the fields: "Measuring on the phone"
+under [Chunk 22: performance](#chunk-22-performance)).
+`--max-ticks-per-frame=N`, read with it, sets the fixed step's cap for the
+run. The lint above covers `PerfLog` too. Tests:
+`tests/unit/test_perf_log.gd`.
 
 ## Saves and fixtures
 
@@ -3494,6 +3543,7 @@ save `<name>.json` in the hand-made form above.
 | `gate2-open` | Gates 1 and 2 open as after baskets 1 and 2 fired (slides 1 and 2 shut): the loop runs through section 3 to slide 3. The same 20 train slimes, spread along the whole outgoing loop; the camera at section 3's start (13.0 S). Added in chunk 16 for the whole loop (DoD 1) |
 | `stress-still` | Gates 1 and 2 open, all 200 base slimes woken, none left asleep: 60 size-1 slimes in basket 3 (switch 3 flipped, the basket full, waiting to be in view: out of it, they park), and 140 piled at the bottom of section 3's bowl, asleep at bedtime (a session at bedtime: outside a basket, a pile rests only asleep); the camera on the bowl (its framing zone zooms to 0.5, so the rings are zoomed-out). The pile comes to rest about 410 ticks (about 7 s) after loading since chunk 19 (670 before) and stays resting (the worst still case on one screen; see below) |
 | `stress-moving` | Gates 1 and 2 open, all 200 base slimes as size-1 train slimes spread through section 3's bowl from its bottom up (the floor, the slopes, the shelves; x 13.5 to 15.33 S, inside the view), each following the loop from its nearest point; the camera on the bowl. The worst moving case: a measurement, not a target (D96) |
+| `s3-basket-59of60` | Gates 1 and 2 open as after baskets 1 and 2 fired, all 200 base slimes woken, not at bedtime (no session): switch 3 flipped (its trapdoor open), basket 3 at 59 of 60 (59 size-1 slimes in it, section 3's last 59 sleepers, laid out as `stress-still`'s) and the other 141 as size-1 train slimes through section 3's bowl (as `stress-moving`'s); the camera on basket 3's framing zone (18288, -150; zoom 0.8). Played on, the basket fills (about 9 s), fires in view and the celebration plays (chunk 22, D128 24.1) |
 | `midair` | The fresh level with four size-1 train slimes saved in mid-air over section 1's ground (`s1.sleeper.01` to `.04`): 4 px above the ground at x 1525, 150 px above it at x 1825, 30 px above it at x 2125, and one 80 px above that one; the camera on them. A fixture keeps only centres, so loaded (test mode or normal play) each is put straight down on what is below it, at rest, none lost (D12, DoD 28; chunk 19) |
 | `old-version` | A save of the test level's **version 1** (its header says so): the fresh level, but the sleeper nearest x 1525 on section 1's ground (`s1.sleeper.03`, on its ledge at (1428, -188) in version 2) sleeps there, at (1525, 0). Loaded, it is migrated: that slime is displaced and lost (to the loop start, in the lost log), all 200 kept; in normal play the file is kept as `test.json.v1` and the next save is at version 2 (D72; chunk 19). Older than the level on purpose: the stale-fixture check exempts it by name |
 
@@ -3504,6 +3554,9 @@ and `stress-moving` came with the whole level (chunk 16); `gate1-open` and
 `midair` and `old-version` came with chunk 19 (persistence;
 `tests/e2e/test_persistence_e2e.gd`, with the DoD 28 kill-during-a-write
 tests), their builders in `tools/make_fixture/persistence_fixtures.gd`.
+`s3-basket-59of60` came with chunk 22, for the section 3 endgame; its
+builder shares `_into_basket_3` with `stress-still`'s (moved unchanged;
+`stress-still` was not regenerated).
 **The test level is at version 2 since chunk 19** (`level_version = 2` on
 its root; nothing else changed): so that `old-version` is a genuine save
 of an older version, migrated as a player's would be. Every other fixture
@@ -3616,7 +3669,7 @@ Details in [level-tooling.md](level-tooling.md).
   probes agree, see level-tooling.md), and sections 2 and 3 follow from
   it.
 - **`tools/level.sh <tool>`** (`check`, `report`, `new`, `fixture`,
-  `bench`): imports first (the stale class cache), starts Godot with
+  `bench`; `rest` since chunk 22): imports first (the stale class cache), starts Godot with
   `--no-header` (`--json` is pure JSON on stdout). The docs, the skills and
   `rules_table.py` (no more `tail -n 1`) use it.
 - **`project.godot`** no longer holds `window/handheld/orientation=0`: it
@@ -3739,6 +3792,9 @@ adb -s RFCNA0WV2AR logcat -v time -s godot:*    # Godot's print() goes to the ta
 The launcher activity is `com.godot.game.GodotAppLauncher`: starting
 `GodotApp` directly is refused (not exported). The release build is
 `com.slimetrain`, so it installs beside the debug one.
+A debug build takes extra user arguments at launch through the intent's
+`slime_args` extra (`--esa slime_args --test-mode,--perf-log=5`, chunk 22;
+see "Measuring on the phone").
 
 **Release keystore.** `export.sh release` refuses to start without
 `GODOT_ANDROID_KEYSTORE_RELEASE_PATH`, `GODOT_ANDROID_KEYSTORE_RELEASE_USER`
@@ -3816,6 +3872,16 @@ frame, and `safe_area()` is the window's rect.
 the tree (like `session_clock` and `quit_app`) with an inline
 `class FakePlatform extends PhonePlatform` that records the calls (see
 `tests/e2e/test_screen_pinning_e2e.gd`).
+
+**Launch arguments (chunk 22).** Godot 4.6 and later strip their own
+`command_line_params` extra from an intent to an exported activity, and
+`adb` can't start the non-exported `GodotApp`, so the plugin overrides
+`GodotPlugin.getCommandLineParams()`: in a debuggable build only
+(`ApplicationInfo.FLAG_DEBUGGABLE`) it reads the launch intent's
+string-array extra `slime_args` and appends it to Godot's command line,
+after a `--` unless the line has one, so the game reads it with
+`OS.get_cmdline_user_args()`. A release build returns nothing, whatever the
+intent holds. `tools/android/perf.sh` launches this way.
 
 `src/platform/screen_pinning.gd` (`ScreenPinning`, a child of the game root)
 does the rest:
@@ -4235,6 +4301,7 @@ twice on one seed and compares `Simulation.state_hash()`.
 | `s2-cave-return` | `test_offscreen_e2e.gd` (route back, the camera coming back, the save) | off screen the slimes follow the route back and rejoin; a save keeps the off-screen state | yes: `test_offscreen_e2e.gd` `test_the_same_seed_gives_the_same_hash_in_process` |
 | `stress-still` | `test_fixtures_e2e.gd` `test_stress_still_has_60_in_basket_3_and_a_bowl_pile_that_rests`; `test_celebration_e2e.gd`; `test_fixture_scenarios_e2e.gd` `test_stress_still_keeps_its_population_the_same_twice` | the counts, the bowl pile comes to rest; the celebration plays once and its mark survives a reload; the population, the basket's 60 and the asleep pile stay as loaded (300 ticks) | yes: `test_fixture_scenarios_e2e.gd` |
 | `stress-moving` | `test_fixtures_e2e.gd` `test_stress_moving_has_200_train_slimes_in_the_bowl`; `test_fixture_scenarios_e2e.gd` `test_stress_moving_moves_keeping_its_200_and_runs_the_same_twice` | the 200 train slimes load; over 200 ticks never above 200 slimes or size 3, mass 200, the train moves, nothing lost. A measurement, no fps target; about 17 s, the slowest scenario | yes: `test_fixture_scenarios_e2e.gd` |
+| `s3-basket-59of60` | `test_frontier_e2e.gd` `test_basket_3_at_59_of_60_fills_fires_and_plays_the_celebration`; `test_fixture_scenarios_e2e.gd` `test_s3_basket_59of60_fills_the_last_basket_and_celebrates_the_same_twice` | 59 of 60 at load, not at bedtime; basket 3 full within 30 s, fires, the celebration plays and ends, the mark shows; mass 200, none above size 3 (1100 ticks, about 18 s) | yes: `test_fixture_scenarios_e2e.gd` |
 | `wind-down` | `test_session_e2e.gd` `test_the_wind_down_turns_to_dusk_then_bedtime_sleeps_saves_and_taps_only_ripple`; `test_camera_bedtime_e2e.gd` | dusk, then bedtime: slimes asleep, a save, taps only ripple; the idle camera at bedtime | yes: `test_camera_bedtime_e2e.gd` `test_a_bedtime_run_is_repeatable` |
 | `bedtime` | `test_session_e2e.gd` `test_the_bedtime_fixture_is_bedtime`; `test_frontier_bedtime_e2e.gd` | the fixture is bedtime; a releasing basket lets nothing go until sunrise | yes: `test_frontier_bedtime_e2e.gd` `test_a_bedtime_run_with_a_releasing_basket_is_repeatable` |
 | `sunrise` | `test_session_e2e.gd` through `tests/e2e/scripts/session_sunrise.json`; `test_delete_save_e2e.gd` | sunrise wakes the slimes into screensaver mode, a tap starts a session; deleting the save at bedtime keeps sunrise on time | yes: `test_session_e2e.gd` `test_a_session_run_is_repeatable`, and `test_a_separate_process_gives_the_same_hash` (a child process) |
@@ -4330,6 +4397,679 @@ that make the build:
 - no script in `src/**/*.gd` names a network class: `HTTPRequest`,
   `HTTPClient`, `StreamPeerTCP`, `PacketPeerUDP`, `WebSocketPeer`,
   `TCPServer`, `UDPServer`, `ENet*`.
+
+## Chunk 22: performance
+
+Build plan chunk 22, [DoD 30], D107 and D131
+(`req_platform_and_performance_targets`, `req_offscreen_simulation`). What
+was measured and how, what was made faster, and where the game stands
+against the phones' targets. Every change to the simulation kept its
+behaviour exactly: on every fixture, the same seed gives the same state
+hash before and after (see "What was measured and how"). **DoD 30 is not
+closed**: the reference phone hasn't been measured with the perf log yet,
+and the floor phone isn't bought (see "Verdict").
+
+The hand-played phone session that started this chunk and an independent
+review of where the time goes are kept in `docs/perf/`:
+[the session on the S20 FE](../perf/2026-09-30-s20fe-session.md) and
+[the review](../perf/2026-09-30-independent-review.md).
+
+### What was measured and how
+
+Desktop numbers: Ryzen 5 PRO 8640HS, Godot 4.7.2, the machine of every
+earlier bench in these notes.
+
+- **Tick cost, headless: `tools/level.sh bench`** (`tools/bench_level.gd`,
+  its cases in "Test level sections 2 and 3, full population (chunk
+  16)"). Chunk 22 added:
+  - `--lead-in=N`: every case's untimed lead-in is N ticks in place of its
+    own, to time a later moment of a fixture. `--fixture=s3-basket-59of60
+    --lead-in=700` times basket 3 releasing (full about tick 554, fired
+    about 2 s later).
+  - `stress-still`'s lead-in is its pile's rest, detected (see "The bench's
+    start (D131)").
+  - The `RESULT` line's fields, in order: `case`, `base`, `bodies`,
+    `ticks`, `lead_in`, `rested_at` (the tick `stress-still`'s pile rested
+    at, `-` for the other cases), `median_ms`, `p95_ms`, `max_ms`,
+    `mean_ms`, `on_screen`, `simulated`, `off_screen`, `resting`
+    (before -> after), `zoom`, `camera_steady`, `active`, `pairs`.
+    `on_screen`, `simulated` and `off_screen` are the debug overlay's counts
+    (`DebugCounts.count_slimes`) at the end of the timed ticks; they replace
+    `parked=`. `active` and `pairs` are means over the timed ticks: the
+    bodies the solver simulates (`PerfLog.active_bodies`, slimes in a basket
+    included) and its candidate pairs (`SlimeBodies.candidate_pair_count()`).
+    The table gains the columns Lead-in, Max, On screen, Simulated and Off
+    screen.
+- **Resting piles: `tools/level.sh rest`** (`tools/bench_rest.gd`), D107's
+  two measurements; see "Resting piles (D107)".
+- **Windowed runs with the perf log.** A debug run in a window (1152 × 648)
+  with `--perf-log[=SECONDS]` prints a `PERF` line every window of that many
+  seconds: fps, frame times, ticks per frame, ms per tick, the rest of the
+  frame, the slime counts, the active bodies and pairs (the fields: "Measuring
+  on the phone"). `--disable-vsync` (Godot's own) shows a frame's real cost
+  instead of the wait for the next 60 Hz refresh; `--max-ticks-per-frame=N`
+  (debug builds only) sets the fixed step's cap at 1x for the run. Labels
+  off. Test mode leaves both flags to the perf log. For example:
+
+  ```sh
+  godot --path . --disable-vsync -- --test-mode --fixture=s3-basket-59of60 --seed=1 --perf-log=2 --max-ticks-per-frame=8
+  ```
+- **"Slowed" runs, a stand-in for the phone.** Godot pinned to one CPU
+  core that two busy loops share: ticks 2.7 to 2.8 times slower than
+  normal. The reference phone's GDScript tick is 2.0 to 2.1 times the
+  desktop's cold and about 3.4 times once it throttles (chunk 1's spike),
+  so a slowed run shows how the frame behaves when a tick costs more than a
+  frame. Its numbers are not the phone's.
+- **The profile.** The phases of a tick timed one by one, with a throwaway
+  timing script (not kept), on four cases: "Profile before the fixes".
+- **The same behaviour, checked after every fix.** Every fixture of the
+  test level (17) runs 600 ticks in test mode on seed 909, and the final
+  state hashes are compared with the run before the fix:
+
+  ```sh
+  for f in levels/test/fixtures/*.fixture.json; do
+    n=$(basename "$f" .fixture.json)
+    echo "$n $(godot --headless --no-header -- --test-mode --level=test \
+      --fixture="$n" --seed=909 --run-ticks=600 | sed -n 's/^STATE tick=[0-9]* hash=//p')"
+  done
+  ```
+
+  All 17 hashes stayed identical after every fix; for the centre cache
+  also on seed 1 over 1200 ticks. The fixes change how fast a tick runs,
+  never what it computes.
+- **Machine load.** The desktop numbers move with the machine's load: at
+  the chunk's start, `stress-moving` gave 43.9 ms median (p95 66.8, load
+  about 3.7), then 28.5 (43.6) in the next run. Each before/after pair
+  below was run back to back (A/B interleaved where the table says so),
+  its load average noted in brackets. Compare within a table, not across
+  tables. Before measuring, check that no other Godot runs
+  (`pgrep -af godot`).
+
+### The bench's start (D131)
+
+`stress-still` was timed from a fixed tick, `REST_TICK` 670, where its
+loaded pile rested when the fixture was made; since chunk 19 it rests at
+about 410, so 260 ticks were wasted, and a pile resting after 670 would
+have been timed while it settled. Now the lead-in lasts until the pile
+rests: `tools/bench_level/pile_rest.gd` takes the pile (every slime asleep
+for the night when the fixture loads) and steps until each one is
+RESTING (not parked either: on screen the pile rests, it isn't parked
+away), at most `REST_WITHIN` (900) ticks. It rests at tick 407 (seed 909),
+printed as `rested_at=407`. A pile that doesn't rest within the bound is
+not timed: the bench exits with code 3 (an unrested pile is never measured
+as a resting one).
+
+`tests/e2e/test_fixtures_e2e.gd` checks the loaded pile with the same
+criterion. `tests/e2e/test_bench_pile_rest_e2e.gd` (2 tests) checks the
+detection: the pile rests within the bound, RESTING at the tick found; with
+too small a bound the answer is "never".
+
+### A regression that wasn't
+
+At the chunk's start `stress-moving` read 30.9 ms median (34 to 37 in other
+runs), against 14.8 in chunk 16c-B. No tick code changed in between
+(`c31d9c6..78fdfbc`): four Godot runs shared the machine. Chunk TL1 also
+rebuilt section 3's bowl and regenerated `stress-moving` (`9d4052d`), so
+the scenario differs from 16c-B's: 133 bodies at the end, not 137. The
+chunk-start numbers below are this chunk's own, run on the current level.
+
+### Profile before the fixes
+
+Mean ms per tick by phase, headless, 600 ticks per case (`bench_slimes`
+run beside it gave 0.99 times its recorded numbers: a quiet machine).
+Shares of the tick's total where they matter.
+
+| Phase | `stress-moving` | `s3-basket-59of60` | `stress-still` | `start` |
+|---|---|---|---|---|
+| Off-screen step (`Offscreen.step`) | 0.41 | 1.46 (18 %) | 0.36 (26 %) | 0.42 (42 %) |
+| The train's steering | 0.84 | 0.22 | 0 | 0.01 |
+| Tick: integrate | 0.40 | 0.28 | 0.05 | 0.05 |
+| Tick: build the pairs | 0.36 | 0.25 | 0.37 (27 %) | 0.03 |
+| Tick: slime contacts | 2.30 | 1.78 (22 %) | 0 | 0 |
+| Tick: rings | 1.32 | 0.86 | 0.02 | 0.03 |
+| Tick: terrain | 0.94 | 0.59 | 0.02 | 0.03 |
+| Tick: door passes (5 doors shut) | 2.02 | 1.21 (15 %) | 0.08 | 0.07 |
+| Fusion: count and fuse | 0.21 | 0.11 | 0 | 0 |
+| Fusion: the dip nudge (`Fusion._nudge`) | 19.5 (66 %) | 0.18 | 0 | 0 |
+| Frontier sets | 0.29 | 0.40 | 0.24 | 0.13 |
+| The train's follow | 0.57 | 0.53 | 0.08 | 0.08 |
+| **Whole tick, mean / median / p95** | 30.97 / 29.2 / 39.3 | 8.21 / 9.27 / 9.85 | 1.37 / 1.35 / 1.46 | 1.00 / 0.98 / 1.02 |
+
+Per tick: `stress-moving` 293 candidate pairs, 193 touching, 162 active
+bodies, 1370 active ring points; `s3-basket-59of60` 167 candidate pairs,
+143 touching, 75 active, 17.5 resting, 107 parked. `centre_of` is called
+about 1000 times a tick (0.52 µs each). The dip nudge made 21 000
+`can_merge` and 3 600 `touching()` calls a tick, with about 151 slimes on
+the bowl's floor.
+
+### The fixes
+
+Median / p95 / max ms per tick, headless (`tools/level.sh bench`), the load
+average in brackets. Each fix kept all 17 hashes.
+
+**The dip nudge.** `src/sim/fusion.gd`: `_nudge` computes the distances
+once; it stops early when no slime is on a dip's floor; each slime's
+partners on the floor and what it holds over come from maps
+(`_floor_partners`, `_holding`) rather than searches, and the gathering goes
+by index; the train gained `Train.marked_at_of()`. Tests:
+`tests/unit/test_fusion.gd`, 4 more, pinning the nudge's choices.
+
+| Case | Before (3.1) | After (2.1) |
+|---|---|---|
+| `stress-moving` | 27.640 / 39.112 / 42.966 | 11.955 / 14.728 / 16.644 |
+| `s3-basket-59of60` | 9.490 / 10.027 / 13.104 | 9.298 / 9.645 / 11.267 |
+| `gate2-open` | 1.408 / 1.491 / 2.162 | 1.414 / 1.470 / 1.664 |
+
+**Door passes by bounding box, and the pair loop's end.**
+`src/sim/slime_bodies.gd`. The terrain solve runs one pass per shut door
+(`_solve_terrain`, `_solve_against`). Each slime now has a bounding box
+(`_box_lo`, `_box_hi`: measured only while a door is shut, grown when a push
+moves the slime), and a door's pass skips the slimes whose box lies outside
+the door's grid. `_build_pairs` stops its loop at the highest index that
+isn't a wall (two walls are never paired). Tests:
+`tests/unit/test_slime_broadphase.gd` (4 tests).
+
+| Case | Before (1.35) | Door passes (1.27) | And the pair loop (1.05) |
+|---|---|---|---|
+| `stress-moving` | 13.806 / 16.317 / 20.386 | 10.330 / 13.211 / 14.689 | 10.452 / 12.981 / 15.246 |
+| `s3-basket-59of60` | 10.085 / 11.056 / 12.528 | 8.253 / 8.565 / 9.862 | 8.254 / 8.547 / 9.076 |
+| `stress-still` | 1.462 / 1.628 / 2.412 | 1.336 / 1.395 / 1.830 | 1.005 / 1.065 / 1.234 |
+| `gate2-open` | 1.544 / 1.666 / 2.524 | 1.386 / 1.449 / 2.250 | 1.371 / 1.430 / 2.085 |
+| `start` | 1.063 / 1.219 / 2.166 | 0.975 / 1.005 / 1.214 | 0.967 / 1.005 / 1.833 |
+
+**The off-screen step.** `SlimeBodies.set_all_low_detail(on)` sets every
+slime's detail by index and returns at once when nothing would change (the
+`low_detail` count); `Offscreen._detail` calls it instead of once per slime.
+`Offscreen._basket_below` caches the level's usable trapdoors, sorted by
+ID, read again when the level changes. `Offscreen.step` reads each centre
+once for the proxies (the parking pass). Tests: `test_slime_rest.gd`, 1
+more (the same result as a call per slime), `test_offscreen.gd`, 1 more
+(the trapdoors are the loaded level's). The off-screen phase: `s3-basket-59of60`
+1.457 -> 1.196 ms, `stress-still` 0.356 -> 0.292, `fresh` 0.422 -> 0.373,
+`stress-moving` 0.413 -> 0.362; the whole tick within noise. After it and
+every fix above (1.46): `stress-moving` 10.638 / 13.105 / 16.343,
+`s3-basket-59of60` 8.134 / 8.593 / 11.150, `stress-still` 0.987 / 1.114 /
+3.406, `gate2-open` 1.307 / 1.365 / 3.643, `start` 0.914 / 1.093 / 3.151.
+
+**The centre cache.** `centre_of(id)` averaged a ring's points at every
+call, about 1000 calls a tick. The `centre[]` array can't stand in: it is
+written in `_integrate`, before the solves move the points, and `translate`
+adds to it (1330 of 1440 values differed from the ring's mean). A lazy
+cache per slime (`_centre_cache`, `_centre_ok`): `_centre_cached(s)`
+computes the centre once; `centre_of()` and `brake()` read it. It is
+cleared in `tick()` (filled again after the solves), `translate`,
+`set_body`, `_resample` and `_reshape` (so detail changes, merge, split and
+create); park, unpark, hop and `set_velocity` touch only the previous
+points. Tests: `tests/unit/test_slime_centre_cache.gd` (7 tests; 6 fail
+with the clearing taken out). Hashes identical on seed 909 over 600 ticks
+and on seed 1 over 1200. About 0.2 to 0.5 ms a tick saved; three
+before/after pairs, median / mean:
+
+| Case | Before | After |
+|---|---|---|
+| `stress-moving` | 12.97 / 13.26, 10.93 / 11.76, 11.82 / 11.77 | 10.73 / 11.21, 10.85 / 11.38, 10.55 / 10.97 |
+| `s3-basket-59of60` | 8.13 / 7.96, 8.22 / 7.40, 8.39 / 8.14 | 8.09 / 7.35, 8.00 / 7.15, 7.83 / 7.01 |
+
+**Drawing: culling and less work per frame.** Not the tick: the rest of
+the frame.
+
+- `SlimeRenderer` draws only the slimes that can be seen:
+  `SlimeRenderer.is_seen(slimes, s, shown)` is true when the slime isn't
+  parked and its centre lies within the shown rect grown by its ring radius
+  times `CULL_REACH` (2.0) plus the skirt, so a squashed slime across the
+  edge is still drawn; `SlimeRenderer.shown_rect(viewport)` is the world rect
+  the viewport shows, through its canvas transform. The indices per slime
+  are built once per topology change, the painters' index arrays again only
+  when the topology or the seen set changes, and the vertex loop covers the
+  seen slimes only (`vertex_count()` counts what is drawn; `drawn_count()`
+  the slimes drawn). Before, all 200 slimes were drawn every frame, parked
+  ones and slimes in a basket included.
+- `TapFeedback` draws an eye only for a seen slime (`eyed_slimes`); before,
+  one per slime, parked ones included.
+- The debug labels redraw only while shown and label only the slimes seen
+  within `LABEL_REACH` (160 screen px) of the screen.
+- The debug overlay counts every 250 ms, with its refresh
+  (`update_stats`); before, it counted every slime every frame and only its
+  text waited.
+- `FrontierView`'s way on at each switch and signpost (`way_of(id)`) is
+  cached for the level and its open gates; before, `loop.closest` ran for
+  each switch and signpost every frame.
+
+Tests: `test_slime_renderer.gd` 8 more, `test_tap_feedback.gd` (2, new),
+`test_frontier_view.gd` (4, new), `test_debug_overlay.gd` 3 more. Hashes
+identical. `--write-movie` of 240 frames per fixture before and after: only
+the overlay's text differs; the demo in blend and in direct is identical
+pixel for pixel.
+
+Windowed, 1152 × 648, `--disable-vsync`, seed 1, labels off, before and
+after interleaved (load 1.9 to 3.8); two runs each where two numbers show:
+
+| Scene (run length) | fps | Frame p50, ms | Tick, ms | Rest of the frame, ms |
+|---|---|---|---|---|
+| `s3-basket-59of60` (45 s) | 130, 137 -> 195, 203 | 6.4, 5.7 -> 3.5, 3.3 | 6.7 -> 6.6 | 4.6, 4.4 -> 3.1, 3.0 |
+| `fresh` (25 s) | 238, 282 -> 636, 655 | 3.5, 3.3 -> 1.4 | 1.2 -> 1.2 | 4.0, 3.3 -> 1.46, 1.42 |
+| `gate2-open` (25 s) | 237, 234 -> 476, 471 | 3.8 -> 1.8 | 1.6 | 3.8 -> 1.9 |
+| `s3-basket-59of60` slowed (40 s) | 15.8, 15.6 -> 16.5, 16.5 | 69 -> 67 | 21.3 -> 21.7 | 21.9, 23.0 -> 18.9, 18.6 |
+
+**The cap on ticks per frame: 8 -> 2 at 1x (proposed).** `FixedStep` turns
+frame time into ticks and a frame runs at most the cap; the rest is
+dropped. With a tick costing `c` ms and the rest of the frame `D` ms, a
+frame lasts about `D / (1 - c / 16.7)` while `c` is under 16.7 ms; from
+16.7 ms up, every frame runs the whole cap, so a frame lasts `D + 8 c` and
+the game plays 8 ticks per frame at a few fps: a tick over a frame's time
+multiplies the next frame (the catch-up spiral the cap was meant to stop).
+`MAX_TICKS_PER_FRAME` (`src/main.gd`) is now 2: a 33 ms frame (30 fps)
+still plays at full speed; beyond, the game plays in slow motion rather than
+collapsing. `FixedStep.max_ticks_for(scale, cap_at_1x)` is
+`cap × max(1, ceil(scale))`, so the overlay's and test mode's speeds keep
+their pace. `--max-ticks-per-frame=N` sets another cap for a measurement
+(debug builds only; the game root's `max_ticks_per_frame`). Tests:
+`test_fixed_step.gd` (3 new, failing first), `test_perf_log.gd`,
+`test_test_mode.gd`, `test_backbone_e2e.gd`. Hashes identical (the cap only
+groups ticks into frames).
+
+Windowed, 1152 × 648, vsync on, seed 1, labels off, means of the 2 s
+`PERF` lines; "quiet" is the machine alone, "loaded" a load average of 13,
+"slowed" as above. A cap of 8/2 means the same with either.
+
+| Scene | Cap | fps | Frame p50 / p95, ms | Ticks per frame | Tick, ms | Rest, ms | Active | Pairs | Ticks per s |
+|---|---|---|---|---|---|---|---|---|---|
+| `s3-basket-59of60` quiet | 8, 2 or 1 | 60 | 16.7 / 17.9 | 1.0 | 6.8 | 9.9 | 59 | 106 | 60 |
+| `s3-basket-59of60` loaded | 8 | 6.2 | 179 / 200 | 7.6 | 19.0 | 19.2 | about 69 | 122 | 49 |
+| `s3-basket-59of60` slowed | 8 | 5.4 | 210 / 221 | 7.9 | 21.1 | 23.9 | 69 | 128 | 46 |
+| `s3-basket-59of60` slowed | 2 | 15.6 | 70 / 76 | 2.0 | 21.3 | 22.6 | 71 | 140 | 32 |
+| `s3-basket-59of60` slowed | 1 | 22.4 | 46 / 53 | 1.0 | 22.2 | 23.6 | 72 | 147 | 23 |
+| `stress-moving` quiet | 8/2 | 58 | 16.7 / 18 | 1.05 | 10.7 | 6.2 | 143 | 253 | 60 |
+| `stress-moving` slowed | 8 -> 2 | 3.4 -> 10.9 | 290 -> 93 (p50) | 7.9 -> 2.0 | 35 | 25 -> 22 | 168 | 310 | 29 -> 22 |
+| `gate2-open` quiet | 8/2 | 60 | 16.7 / 18 | 1.0 | 2.3 | 14.4 | 2 | 0 | 60 |
+| `gate2-open` slowed | 8 / 2 | 36 / 30 | 26 / 34 (p50) | 1.7 / 1.9 | 3.6 / 4.4 | 22 / 25 | 2 | 0 | 60 / 57 |
+
+With vsync on, "rest" includes the wait for the refresh when the frame is
+under budget. A cap of 1 is smoother still, but at 23 ticks per second
+where 2 gives 32; 2 keeps 30 fps at full speed. Headless, `--lead-in=700`
+on `s3-basket-59of60` (the releases): median 7.94, mean 7.11 ms, active
+72.6, pairs 140.8; the default lead-in: 7.97 / 7.11, active 75.2, pairs 167.
+
+**Left alone** (small, or changing the hash): the basket slot scan
+(`_slot`), `_count_away`, a binary search in `is_parked`; caching the angles
+(`atan2`) in the contacts and rings, which changes the hash: for the native
+tick (chunk 5N).
+
+**Where the chunk leaves each case.** Median / p95 / max ms per tick,
+headless. The chunk's start is the "before" of the first fix that ran on
+the case (the dip nudge's for the first three; the door passes' for the
+last two, which the dip nudge doesn't touch); the off-screen column is the
+run after the off-screen step; the last column is the centre cache's
+medians (the drawing work and the cap don't change a headless tick).
+
+| Case | Chunk start | After the off-screen step | End of chunk 22 (median) |
+|---|---|---|---|
+| `stress-moving` | 27.640 / 39.112 / 42.966 | 10.638 / 13.105 / 16.343 | 10.55 to 10.85 (-61 %) |
+| `s3-basket-59of60` | 9.490 / 10.027 / 13.104 | 8.134 / 8.593 / 11.150 | 7.83 to 8.09 (about 7.9) |
+| `gate2-open` | 1.408 / 1.491 / 2.162 | 1.307 / 1.365 / 3.643 | about 1.3 |
+| `stress-still` | 1.462 / 1.628 / 2.412 | 0.987 / 1.114 / 3.406 | about 1.0 |
+| `start` | 1.063 / 1.219 / 2.166 | 0.914 / 1.093 / 3.151 | about 0.92 |
+
+Most of `stress-moving`'s gain is the dip nudge. Under overload, the cap of
+2 gives slow motion (15.6 fps at 32 ticks per second in the slowed run)
+instead of a collapse (5.4 fps).
+
+### Resting piles (D107)
+
+`tools/level.sh rest` (`tools/bench_rest.gd`, with
+`tools/bench_rest/open_pile.gd` and `tools/bench_rest/hoppers.gd`) measures
+the rest rule as it is (`REST_DRIFT` 1 px, `REST_TICKS` 30, `WAKE_SPEED`)
+without changing it. `REST_DRIFT`'s code comment now says what D107 keeps:
+the anchor is fixed where the count started, it never slides along.
+
+```sh
+tools/level.sh rest --case=open --slimes=20,40,80,120 --seeds=1,2,3 --within=14400
+tools/level.sh rest --case=wake --pile=bowl --hoppers=0,1,3 --seeds=1,2,3 --ticks=7200
+tools/level.sh rest --case=wake --pile=open --slimes=20 --hoppers=1,3 --seeds=1,2,3 --ticks=7200
+```
+
+**A. A bedtime pile in the open.** The fresh test level with gates 1 and 2
+open; N size-1 free slimes heaped (about 45°) on the parade, section 2's
+flat floor (x about 9.5 screens), jittered by the seed; bedtime through a
+session started and its clock jumped to the end; the camera on the pile.
+
+| N | Ticks to rest, seeds 1 / 2 / 3 | Settling, mean / max ms per tick | At rest, ms per tick |
+|---|---|---|---|
+| 20 | 1329 (22.2 s) / 1130 / 1215 | 1.0 / 3.3 | 0.15 |
+| 40 | 9871 (164.5 s) / 10473 / 12947 | 1.7 to 2.0 / 6.5 | 0.23 to 0.31 |
+| 80 | never in 4 min (seed 1: not in 10 min) | 3.3 to 3.4 / 9.2 | - |
+| 120 | never; nothing simulated after 136 to 163 s | 3.8 to 4.1 / 22.5 | - |
+
+The heap spreads into one layer and creeps a few px/s for minutes, into the
+second dip. Part of "never" is the measure, not the pile: slimes creeping
+past the park margin are parked, and a parked slime never counts as resting
+(see "Parked slimes stacking" below).
+
+**B. Wakes by hoppers.** The pile rests first (`stress-still`'s 140 in the
+bowl, or an open pile of 20), then 7200 ticks with K hoppers: train slimes
+started 300 px before the pile, passing along it one after the other.
+Seeds 1 / 2 / 3.
+
+| Pile | Hoppers | Wakes per min | Mean wake, ticks | Share of ticks awake | ms per tick, resting / awake |
+|---|---|---|---|---|---|
+| bowl, 140 | 0 | 0 | - | 0 | 1.0 / - |
+| bowl, 140 | 1 | 10.5 / 23.0 / 15.5 | 267 / 79 / 155 (max 4287) | 0.75 / 0.49 / 0.65 | 1.4 / 6.4 to 6.5 |
+| bowl, 140 | 3 | 10.0 / 2.5 / 7.0 | 319 / 1591 / 458 | 0.90 to 0.93 | 1.5 / 6.6 to 7.2 |
+| open, 20 | 1 | 10.0 / 7.5 / 10.0 | 328 / 426 / 236 | 0.87 to 0.91 | 0.26 / 1.07 |
+| open, 20 | 3 | 0.5 to 1.0 | awake to the end | 0.96 | 0.28 / 1.3 |
+
+A hopper never gets past the pile: at the bowl it wedges in and wakes 124
+of the 140 until the 60 s stall rule moves it to the loop's start.
+
+**Findings (for spec-writer; the rule is not changed here).**
+- A resting pile is cheap (0.15 to 0.31 ms a tick for 20 to 40 slimes; the
+  bowl's 140 about 1 ms with the rest of the level).
+- An open pile of size-1 slimes rests slowly with the fixed anchor: about
+  20 s for 20, about 3 minutes for 40, and 80 or more not within 4 minutes.
+  Settling costs 1 to 4 ms a tick on average, with spikes of 9 to 22 ms.
+- A pile that awake slimes hop against is awake most of the time: the bowl
+  pile with one hopper is awake half to three quarters of the time, and
+  then costs 6.4 to 7.2 ms a tick on the desktop (1.0 to 1.5 resting), well
+  over the simulation budget proposed below.
+- So the rest rule should be revisited (D107's "if needed"): a spec-writer
+  call, with the parked-stacking bug below settled first, since it skews
+  the open-pile numbers.
+
+`tests/e2e/test_bench_rest_e2e.gd` pins the first result: an open pile of
+20 on seed 1 rests between 600 and 2400 ticks, every member RESTING, none
+parked.
+
+**Parked slimes stacking (likely a bug; not fixed, a design call; related
+to O91).** A bedtime-asleep slime stays where it is while parked (only
+train and free slimes get off-screen proxies), and parking happens at the
+view grown by `PARK_MARGIN` (384 px). A parked slime is not a wall, so the
+next slime creeping out of the pile slides into the same spot and parks
+there too: 28 to 31 slimes on one centre (for example (12005.7, -6.0)).
+Unparking only sets them ACTIVE with zero velocity, so 30 rings wake on one
+spot, and two rings on one spot never come apart (see "Off-screen
+simulation (chunk 15)"). The stuck safety net skips bedtime-asleep slimes
+(chunk 23A), and no test covers the case. Options: (a) a parked asleep
+slime stays a wall; (b) a touching asleep pile parks whole or not at all;
+(c) coincident slimes are spread apart when they unpark.
+
+### The section 3 endgame
+
+The user's phone session saw 4 to 5 fps while basket 3 filled, fired and
+the celebration played, with only 3 to 16 slimes "simulated". Two causes,
+both confirmed on the desktop with `s3-basket-59of60`.
+
+**C: the releases wake the pile.** A fired basket releases one slime every
+0.3 s, 18 ticks (`FrontierSets`). Each release gives the slime a new body
+(`set_body`, which wakes its resting neighbours) and puts it on the train
+(`set_state`, which wakes its whole pile). `REST_TICKS` (30) is longer than
+18, so the basket's roughly 59 packed slimes stay ACTIVE for the whole
+drain. The celebration's hop landings wake piles too. With the perf log's
+active count: about 96 active while basket 3 fills, about 32 once the full
+pile rests (tick 5.4 ms), bursts of about 89 during the drain (tick 8.5 ms,
++57 %), while the overlay's "simulated" stays at 20: a basket on screen
+counts as "on screen", and "simulated" counts only slimes off the view.
+The drain is slow too: 55 slimes left 10 s after the celebration, 44 after
+60 s (issue 24.3). Changing it is a design call (D107,
+`req_offscreen_simulation`): for chunk 24.
+
+**A: the catch-up spiral.** Once a tick costs more than 16.7 ms, the fixed
+step runs the cap every frame: with the old cap, 8 ticks per frame, the
+ticks about 80 % of the frame (the table under "The cap on ticks per
+frame"). Estimated on the
+phone: a drain tick of 14 to 18 ms cold and 23 to 29 ms throttled, and a
+rest of the frame of about 40 ms (from 20 fps at section 2's gate). With a
+cap of 8 that gives 4.0 to 4.5 fps, which matches the 4 fps seen; with 2,
+about 10 to 14 fps, in slow motion (20 to 28 ticks a second).
+
+**Tick or drawing?** The section 3 endgame and `stress-moving` are bound
+by the tick: through the spiral, a tick over a frame's time became 8 ticks
+per frame (frame = rest + 8 × tick: 4 fps). Lighter scenes (a few slimes
+simulated, 13 to 20 fps on the phone) are bound by drawing and the rest of
+the frame, which the culling cut.
+
+### The reference phone: what is known
+
+The only phone evidence so far is the user's hand-played session on the
+S20 FE, 2026-09-30, 15:43 to 15:54, read from the debug overlay's
+screenshots (the full report: [the session on the S20
+FE](../perf/2026-09-30-s20fe-session.md)). Its build was exported at 15:31
+with the dip nudge, door and pair fixes of the time, but **before** the cap
+of 2, the culling and the centre cache. GLES (Compatibility), Adreno 650.
+
+| Where | Labels | fps | On screen : simulated : off screen |
+|---|---|---|---|
+| A migrated old save, about 100 awake at the loop's start | off | 3 | 12 : 99 : 86 |
+| Fresh start (after Reset) | off | 47 | 2 : 5 : 193 |
+| Section 1 | on | 13 | 6 : 5 : 186 |
+| Section 2, the gate | off | 20 | 7 : 31 : 159 |
+| Section 3, the right shelves, 102 woken | off | 15 | 79 : 31 : 84 |
+| Section 3's endgame (basket 3 full, the celebration playing), 178 woken | off | 4 | 75 : 5 : 112 |
+
+The battery went from 33.6 to 35.8 °C, thermal status 0 then 1 (light)
+from about 15:49. The debug labels alone took section 1 from 47 to 13 fps
+with 5 slimes simulated: measure with labels off. The migrated save's awake
+pile is a migration bug, for chunk 24.
+
+What this says, plainly:
+
+- **DoD 30's reference-phone half is not met** on this evidence (3 to 20
+  fps in normal play, 4 at the section 3 endgame), and it is **not
+  closed**. The fixes since that build haven't been measured on the phone.
+- **The floor-phone half stays open**: the phone isn't bought.
+- **Emulator and desktop numbers are leads, never DoD 30 evidence.**
+
+### Measuring on the phone
+
+What exists now:
+
+- **`tools/android/perf.sh`**, two modes. Both export and install the
+  debug APK (`--no-build`, `--no-install` skip either), clear logcat,
+  start the app with the perf log at one `PERF` line a second
+  (`--period=P` changes it), record the whole session and summarise it
+  from the log. `--serial=S` picks the device (default: the only one
+  attached); `--label=TEXT` prefixes the session folder (default `run`).
+  - **Fixture mode** (the default): `[--fixture=NAME|none] [--seconds=N]
+    [--warm-minutes=M]`. `--fixture=NAME` plays a test-level fixture in
+    test mode (`--test-mode --fixture=NAME --seed=1`; default
+    `stress-still`); `--fixture=none` is normal play from the phone's own
+    save. It summarises a cold window (the first N s of `PERF` lines,
+    default 60) and a warm one (the last N s of a run lasting M minutes
+    after the first line, default 5; `--warm-minutes=0`: the cold window
+    only), then stops the app.
+  - **Free-play mode**: `--free-play [--minutes=N]`. Normal play, no
+    fixture and no test mode: the user just plays. It records until N
+    minutes are up (default 0: until Ctrl-C or the app stops), summarises
+    the whole session and leaves the app running.
+  - **Ctrl-C** (in either mode) stops the recording cleanly, summarises
+    what was recorded and exits 0. Otherwise: exit 0; 2 on bad arguments
+    or no single device; 1 when the build or install fails, no `PERF` line
+    comes in time in fixture mode (or the app stops there), or none was
+    recorded at all.
+- **The files.** Each session gets a folder,
+  `build/perf/<label>-<mode>-<timestamp>/` (mode: the fixture's name,
+  `normal` for `--fixture=none`, or `free-play`):
+  - `logcat.txt`: the full logcat stream of the `godot` and `SlimePlatform`
+    tags;
+  - `perf.log`: a `# ` header (the device, its Android version, the mode,
+    the launch arguments, how the session ended), the `PERF_INFO` line and
+    every `PERF` line;
+  - `thermal.log`: every 15 s (`THERMAL_EVERY` in the environment changes
+    it), the thermal status (`dumpsys thermalservice`, 0 none to 6
+    shutdown) and the battery temperature;
+  - `summary.txt`: the summary printed at the end.
+- **The summary** comes from the log only, by
+  `tools/android/perf_summary.py` (Python 3). For the whole session, then
+  the cold and warm windows in fixture mode: fps as p50, p5 (95 % of the
+  seconds ran at least that fast) and min; the frame time's p95 (the median
+  and the max of the lines' p95s) and the worst frame; ms per tick, ms per
+  frame in ticks, outside them (the rest of the frame) and in the whole
+  process; ticks per frame; `active` and `pairs`; the slime counts (mean
+  and max); the seconds spent in each section; the zoom range. Then the
+  thermal status (first, max, last, and every change) and the battery
+  temperature (first, max, last). Re-summarise a saved session with:
+
+  ```sh
+  tools/android/perf_summary.py --thermal=DIR/thermal.log DIR/perf.log
+  tools/android/perf_summary.py --cold=60 --warm=60 --thermal=DIR/thermal.log DIR/perf.log
+  ```
+
+  It also reads a whole logcat capture (anything before `PERF` on a line is
+  ignored). `perf_summary.py --self-test` checks its numbers on canned
+  logs (the repository's test suite has no Python runner).
+- **Don't run Godot on the computer during a session.** Every Godot
+  process that quits (the editor, an export, the tests, another worktree's
+  run) restarts the adb server, which ends the logcat stream. `perf.sh`
+  resumes it from `logcat.txt`'s last timestamp (`logcat -T`; the lines in
+  between are still in the phone's buffer) and drops the duplicates, so no
+  line is lost (checked with `adb kill-server` in the middle of a run: 58
+  lines, no gap, no duplicate), but it's noise best avoided.
+- **Launching by hand.** Godot 4.6 and later strip their own
+  `command_line_params` extra from an intent to an exported activity, and
+  `adb` can't start the non-exported `GodotApp`. So the SlimePlatform
+  plugin reads a string-array extra, `slime_args`, in a debuggable build
+  only, and hands it to Godot as user arguments (see "Platform wrapper
+  (chunk 20)"):
+
+  ```sh
+  adb -s <serial> shell am start -S -W -n com.slimetrain.dev/com.godot.game.GodotAppLauncher \
+    --esa slime_args --test-mode,--fixture=stress-still,--seed=1,--perf-log=5
+  adb -s <serial> logcat -v time -s godot:*
+  ```
+- **The perf log** (`src/debug/perf_log.gd`, `PerfLog`, debug builds only,
+  added by the game root by path when the user arguments hold
+  `--perf-log[=SECONDS]`, in normal play or test mode): one `PERF_INFO`
+  line at start (model, renderer, refresh rate, window, vsync, the cap on
+  ticks per frame), then a `PERF` line per window, `key=value` fields in a
+  fixed order: `t`, `frames`, `fps`, `frame_ms_p50`, `frame_ms_p95`,
+  `frame_ms_max`, `process_ms_mean`, `ticks`, `ticks_per_frame_mean`,
+  `ticks_per_frame_max`, `tick_ms_mean`, `tick_ms_frame_mean`,
+  `rest_ms_mean`, `on_screen`, `simulated`, `off_screen`, `parked`,
+  `bodies`, `active`, `pairs`, `section`, `zoom`. The class doc defines
+  each. Frame times come from the real clock (`Time.get_ticks_usec()`), not
+  the smoothed delta; `process_ms_mean` is the frame's real process span
+  (from the tree's `process_frame` to the perf log's own `_process`, which
+  runs last), not `Performance.TIME_PROCESS` (Godot 4.7 updates that once a
+  second, with the second's worst frame). `bodies` is every slime.
+  `off_screen` counts the parked slimes off the view; `parked` counts every
+  parked slime, on screen or not (those in the view unpark on the next
+  tick), so `parked` is at least `off_screen`. `section` is the section the
+  camera is in: that of the current loop's segment nearest the view's
+  centre, 0 without a loop. `perf_summary.py` needs every field but
+  `frame_ms_p50`, `parked` and `section` (an older log without the last
+  two still summarises).
+- **The player's data is safe.** A test-mode run writes no save (test
+  mode's autosave is off unless its run asks) and the game reads the
+  player's save only in normal play; `--fixture=none` and `--free-play`
+  play and autosave the phone's own save, as opening the app does.
+  **Never uninstall the app and never clear its data** (`pm clear`):
+  install with `adb install -r` only, which keeps the saves and the parent
+  code. If an install is refused (another signing key), stop; never
+  uninstall to get round it.
+- **Screen pinning.** The pinning prompt shows at launch (the phone has a
+  parent code), as in normal play; a force-stop ends the app and the
+  pinning.
+- **Checked so far: on the emulator only.** That proves the pipeline;
+  **its numbers mean nothing** for the phone (a software device on a busy
+  computer: another worktree ran Godot throughout, load 2.4 to 5.3). With
+  `--fixture=s3-basket-59of60`, 20 s windows, warm after 1 minute: the
+  session's fps p50 10.6, p5 9.7, min 9.2; frame p95 median 100 ms; 10.9
+  ms a tick, the rest of the frame 70.7 ms; 71 active; section 3 all along;
+  thermal status 0, battery 25.0 °C. Free play for 1 minute: 58 lines, fps
+  26.4 / 24.4 / 22.8. Ctrl-C after 32 s of free play: "interrupted
+  (Ctrl-C)", 29 lines summarised; after 25 s of a fixture run: the cold and
+  warm windows summarised. Not yet done: a run on the phone, a cross-check
+  with SurfaceFlinger's frame timings, the release build on the device.
+
+### The phone checklist
+
+For the user, on the reference phone (and the floor phone once bought),
+with `tools/android/perf.sh`. Debug labels off (they alone took section 1
+from 47 to 13 fps, see above). **The numbers come from the log**: each
+session's `summary.txt`, never the overlay's screenshots; take a
+screenshot only for a visual bug. Note each run's thermal status and
+battery temperature (the summary gives both, first, max and last); unplug
+the phone to let it cool between runs. Never uninstall the app and never
+clear its data: `perf.sh` installs with `adb install -r` only.
+
+1. Cold, then after 5 minutes (fixture mode's cold and warm windows), one
+   run each:
+
+   ```sh
+   tools/android/perf.sh --fixture=s3-basket-59of60   # the section 3 endgame: basket 3 fills, fires, the celebration plays
+   tools/android/perf.sh --fixture=stress-still --no-build
+   tools/android/perf.sh --fixture=stress-moving --no-build   # a measurement, D96
+   tools/android/perf.sh --fixture=gate2-open --no-build      # then play on: the train through the whole loop
+   ```
+
+2. A free-play session, normal play from the phone's own save, for 10
+   minutes (Ctrl-C ends it earlier and still summarises):
+
+   ```sh
+   tools/android/perf.sh --free-play --minutes=10 --no-build
+   ```
+
+3. Keep each session's folder (`build/perf/<label>-<mode>-<timestamp>/`:
+   the summary with its raw log, the logcat stream and the thermal samples)
+   and note the build's commit. The fixture is in the folder's name and in
+   `perf.log`'s header.
+
+### Verdict
+
+- **DoD 30: not met, not closed.** The reference half fails on the only
+  evidence there is (the hand session above, before the cap, the culling
+  and the centre cache); no perf-log run on the phone yet, and the checklist
+  and `perf.sh` are ready for it. The floor-phone half is open (no phone).
+- **The endgame and `stress-moving` are bound by the tick.** After every
+  fix, the desktop tick is about 7 to 8 ms for `s3-basket-59of60` (drain
+  bursts about 8.5 ms, about 89 active) and about 10.5 to 11 ms for
+  `stress-moving`. At 2.1 times cold and 3.4 throttled on the phone: 15 to
+  17 and 24 to 27 ms for `s3-basket-59of60`, 22 and 36 ms for
+  `stress-moving`. The tick alone is over the whole 16.7 ms frame. Lighter
+  scenes (`fresh`, `gate2-open`, resting piles) tick in 0.9 to 1.6 ms on
+  the desktop (2 to 5 ms on the phone); drawing and the rest of the frame
+  dominate there, and the culling cut 1.4 to 2.3 ms a frame on the desktop.
+- **A budget with headroom (proposed).** This is the raw version: animated
+  objects and music come later and need their share of the frame. On the
+  reference phone: the simulation at most 8 ms a frame (half of 16.7),
+  drawing at most 4 ms, at least 4.7 ms left for animation, audio and the
+  system. The desktop equivalent of the simulation's share: a tick of at
+  most 3.8 ms (the phone at 2.1 times, cold) or 2.4 ms (3.4 times,
+  throttled).
+
+  | Scene | Desktop tick, ms | Phone estimate, cold / throttled, ms | Left of the 8 ms, cold / throttled |
+  |---|---|---|---|
+  | `fresh` | 0.9 | 1.9 / 3.1 | 6.1 / 4.9 |
+  | `gate2-open` | 1.3 | 2.7 / 4.4 | 5.3 / 3.6 |
+  | `stress-still` | 1.0 | 2.1 / 3.4 | 5.9 / 4.6 |
+  | `s3-basket-59of60` (the endgame) | 7 to 8 | 15 to 17 / 24 to 27 | none: the tick alone is over the frame |
+  | `stress-moving` (a measurement, D96) | 10.5 to 11 | 22 / 36 | far over |
+
+  The drawing side is not known yet: before the culling, the hand session
+  suggested drawing near 40 ms a frame on the phone (20 fps with ticks of
+  about 5 to 8 ms). It must be measured again with the perf log.
+- **Chunk 5N: recommended, not started.** The section 3 endgame's cost is
+  the GDScript tick, mostly contacts, rings and terrain on 60 to 90 active
+  slimes, and the cheap fixes are done. Per the build plan, chunk 22 is
+  repeated after 5N.
+- **For chunk 24** (with issue 24.3): a fired basket's releases, every 18
+  ticks, wake its whole pile (`REST_TICKS` 30), a design call that changes
+  D107 and `req_offscreen_simulation`; and the parked-stacking bug above
+  (bedtime-asleep slimes creeping past the park margin park on one spot;
+  O91).
+
+### Choices proposed for spec-writer (chunk 22)
+
+- **The cap on ticks per frame: 2 at 1x** (proposed; was 8): overload
+  plays in slow motion instead of collapsing ("The cap on ticks per
+  frame").
+- **The frame budget on the reference phone** (proposed): simulation at
+  most 8 ms, drawing at most 4 ms, at least 4.7 ms left ("Verdict").
+- **The `s3-basket-59of60` fixture**, a row for
+  `specs/levels/test/README.md`'s fixture list (its text is the row in
+  "Fixtures").
+- **The D107 findings** ("Resting piles (D107)"): revisit the rest rule
+  (open piles of 40 or more take minutes or never rest; a pile hopped
+  against is awake most of the time); settle the parked-stacking bug first.
 
 ## Technical choices
 
@@ -4557,6 +5297,45 @@ How it is run and what it covers: "Chunk 21: end-to-end suite".
   compare `Simulation.state_hash()`, which costs one scenario's time, not
   the suite's.
 
+### Chunk 22: performance
+
+What was measured and made faster, and the verdict: "Chunk 22:
+performance".
+
+- **Measure the tick before touching the frame.** A per-phase profile of
+  the tick on four cases picked the fixes (the dip nudge was two thirds of
+  `stress-moving`'s tick); drawing came after, measured with the perf log.
+- **Faster, never different.** Every simulation fix kept the state hash of
+  all 17 fixtures (seed 909, 600 ticks; the centre cache also seed 1, 1200
+  ticks), so no behaviour, fixture or test expectation moved. Changes that
+  would move the hash (caching the angles in the contacts and rings) are
+  left to the native tick.
+- **The bench's start detected, not fixed** (D131): a fixed start tick
+  went stale once the pile rested sooner; detecting the rest, and refusing
+  to time an unrested pile (exit 3), can't silently time the wrong thing.
+- **A cap of 2 ticks per frame (proposed), not 8 nor 1.** With 8, a tick
+  over 16.7 ms made every frame run 8 ticks (4 fps on the phone at the
+  endgame); 2 keeps a 30 fps frame at full speed and turns overload into
+  slow motion; 1 would already slow the game at 30 fps. Scaled by the
+  debug speeds so 10x keeps its pace.
+- **Culling in the renderer, by the shown rect.** The viewport's own
+  canvas transform gives the rect, so it follows the camera and the zoom;
+  `CULL_REACH` 2 ring radii keeps a squashed slime across the edge drawn;
+  parked slimes are never drawn (they are off the view by at least the
+  park margin). Checked by movie capture: only the overlay's text
+  changed.
+- **The perf log in `src/debug/`, by path**, like the overlay, so the
+  release preset leaves it out. It times frames on the real clock and
+  measures the process span itself: `Performance.TIME_PROCESS` is updated
+  once a second with the worst frame, and the smoothed delta hides hitches.
+- **Launch arguments through a plugin extra**, debuggable builds only:
+  Godot strips its own intent extra for an exported activity, and a file
+  under `user://` would have to be written with `run-as` before each run.
+- **Left for later:** small wins (the basket slot scan, `_count_away`, a
+  binary search in `is_parked`) not worth their risk now; the rest rule
+  (D107) and a fired basket's releases waking its pile are design calls
+  (for spec-writer, chunk 24).
+
 ### Chunk 7: taps and the call
 
 - **Taps are resolved in the simulation, through a view.** The scene only
@@ -4615,6 +5394,10 @@ How it is run and what it covers: "Chunk 21: end-to-end suite".
 
 - A verified GDExtension toolchain, not used by the game and kept out of
   the tests and exports. See `docs/dev/native.md`.
+- Chunk 22 recommends it: after the cheap fixes, the section 3 endgame's
+  cost is the GDScript tick (contacts, rings and terrain on 60 to 90
+  active slimes). Not started; chunk 22 is repeated after it (see
+  "Verdict" under "Chunk 22: performance").
 
 ### Chunk 2: spike: vector look
 

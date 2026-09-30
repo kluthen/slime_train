@@ -10,6 +10,9 @@
 # Agent/tooling logs
 .agent/
 
+# Python bytecode (tools/android/perf_summary.py)
+__pycache__/
+
 # Build outputs
 /build/
 

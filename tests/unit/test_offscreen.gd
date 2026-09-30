@@ -37,7 +37,9 @@ const LOOP_LENGTH := 10000.0 + 424.0 + 10000.0 + 424.0
 const DT := Simulation.TICK_SECONDS
 
 
-func _level() -> LevelData:
+## The synthetic level (see the file doc); without t.switch when not
+## `with_switch`.
+func _level(with_switch := true) -> LevelData:
 	var data := LevelData.new("offscreen", 1)
 	var loop := LoopData.new("t.loop")
 	loop.add_segment("t.loop.out", 1, LoopData.OUTGOING, PackedVector2Array([
@@ -48,7 +50,8 @@ func _level() -> LevelData:
 	data.first_slime = {"id": "t.first-slime", "species": "A", "position": Vector2(-4900, -24)}
 	data.add_branch(BRANCH, Rect2(2000, -900, 1200, 600))
 	data.add_route_back(ROUTE, BRANCH, PackedVector2Array(ROUTE_POINTS))
-	data.add_switch(SWITCH, Rect2(-3900, -100, 50, 50), BASKET, TRAPDOOR)
+	if with_switch:
+		data.add_switch(SWITCH, Rect2(-3900, -100, 50, 50), BASKET, TRAPDOOR)
 	data.add_basket(BASKET, BASKET_BOX, QUOTA, Vector2(-3000, -24))
 	data.add_gate(GATE, Rect2(4800, -200, 20, 200))
 	data.rules.append({"when": {"object": BASKET, "event": "full"}, "then": {"object": GATE, "action": "open"}})
@@ -223,6 +226,23 @@ func test_a_shut_trapdoor_lets_parked_slimes_pass() -> void:
 	sim.run(60 * 15)
 	assert_eq(sim.slimes.state_of(slime), SlimeBodies.TRAIN)
 	assert_gt(sim.slimes.centre_of(slime).x, -3600.0, "past the trapdoor")
+
+
+## The switches a parked train slime drops through are the loaded level's:
+## once another level is loaded, the first one's open trapdoor is gone.
+func test_the_trapdoors_are_the_loaded_levels() -> void:
+	var sim := _sim()
+	sim.object_states[SWITCH]["flipped"] = true
+	var first := sim.spawn_train_slime(1, 1, _distance_at(-4200))
+	sim.run(60 * 15)
+	assert_eq(sim.slimes.state_of(first), SlimeBodies.IN_BASKET, "dropped through the open trapdoor")
+	for slime_id in sim.slimes.ids():
+		sim.slimes.remove(slime_id)
+	sim.load_level(_level(false))
+	var slime := sim.spawn_train_slime(1, 1, _distance_at(-4200))
+	sim.run(60 * 15)
+	assert_eq(sim.slimes.state_of(slime), SlimeBodies.TRAIN, "no switch on this level")
+	assert_gt(sim.slimes.centre_of(slime).x, -3600.0, "past the pit")
 
 
 # --- Free slimes off screen -----------------------------------------------------------

@@ -1,0 +1,8 @@
+{
+	"description": "Gates 1 and 2 open as after baskets 1 and 2 fired, all 200 base slimes woken (no sleeper left), not at bedtime (no session). Switch 3 flipped (its trapdoor open) and basket 3 at 59 of 60: 59 size-1 slimes resting in it (section 3's last 59 sleepers, in stable ID order). The other 141, size-1 train slimes, spread through section 3's bowl from its bottom up, each following the loop toward switch 3. The camera on basket 3's framing zone (switch 3 and the basket in view). Played on, the first slime over the trapdoor drops in: the basket fills (60), plays its reward, fires, and the level's celebration plays. For the section-3 endgame (chunk 22, D128 item 24.1).",
+	"save": true,
+	"camera": [
+		18288.0,
+		-150.0
+	]
+}

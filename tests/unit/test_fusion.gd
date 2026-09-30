@@ -446,3 +446,54 @@ func test_nothing_waits_for_a_partner_out_of_reach_or_one_it_would_bump_with() -
 	var bumping := Simulation.new(11)
 	var pair := _on_dip_floor(bumping, [2, 2], [200.0, 80.0], [2, 2])
 	assert_eq(_held_after_step(bumping, pair), [false, false] as Array[bool], "2 + 2 would bump")
+
+
+# @test-link [[rule_dip_may_nudge_fusion]]
+func test_a_slime_touching_a_partner_on_the_dip_floor_is_held_too() -> void:
+	var sim := Simulation.new(11)
+	var gap := 2.0 * SlimeBodies.ring_radius_for(1)
+	# Rings touching: the back one has nobody behind it, so only the touch
+	# (holding) keeps it; the front one also gathers it.
+	var ids := _on_dip_floor(sim, [2, 2], [200.0, 200.0 - gap])
+	assert_eq(_held_after_step(sim, ids), [true, true] as Array[bool], "both wait")
+	assert_true(sim.slimes.touching(ids[0], ids[1]), "they touch")
+
+
+# @test-link [[rule_dip_may_nudge_fusion]]
+func test_touching_slimes_it_may_not_fuse_with_does_not_hold_it() -> void:
+	var sim := Simulation.new(11)
+	var gap := 2.0 * SlimeBodies.ring_radius_for(1)
+	# A, B, A in a touching row: the B touches both As but may fuse with
+	# neither; the front A gathers the back A behind the B.
+	var ids := _on_dip_floor(sim, [0, 1, 0], [200.0, 200.0 - gap, 200.0 - 2.0 * gap])
+	assert_eq(_held_after_step(sim, ids), [true, false, false] as Array[bool], "only the front A waits")
+	assert_true(sim.slimes.touching(ids[0], ids[1]) and sim.slimes.touching(ids[1], ids[2]),
+			"the B touches both")
+
+
+# @test-link [[rule_dip_may_nudge_fusion]]
+func test_a_partner_off_screen_holds_nothing() -> void:
+	var sim := Simulation.new(11)
+	var gap := 2.0 * SlimeBodies.ring_radius_for(1)
+	var ids := _on_dip_floor(sim, [2, 2], [200.0, 200.0 - gap])
+	# The view's left edge (inside the margin) between the two centres.
+	var middle := (sim.slimes.centre_of(ids[0]).x + sim.slimes.centre_of(ids[1]).x) * 0.5
+	var half := sim.view.world_width() * 0.5
+	sim.view.set_to(Vector2(middle + half - Fusion.VIEW_MARGIN, -100), 1.0, ScreenView.DEFAULT_SIZE)
+	assert_true(Fusion.on_screen(sim.view, sim.slimes.centre_of(ids[0])), "the front one on screen")
+	assert_false(Fusion.on_screen(sim.view, sim.slimes.centre_of(ids[1])), "the back one off screen")
+	assert_eq(_held_after_step(sim, ids), [false, false] as Array[bool], "nobody waits")
+
+
+# @test-link [[rule_dip_may_nudge_fusion]]
+func test_off_a_dip_floor_nothing_is_held() -> void:
+	var sim := Simulation.new(11)
+	sim.slimes.terrain = TerrainSegments.new([Support.floor_polygon()])
+	sim.load_level(_flat_level())
+	sim.view.set_to(Vector2(0, -100), 1.0, ScreenView.DEFAULT_SIZE)
+	sim.slimes.auto_hops = false
+	var gap := 2.0 * SlimeBodies.ring_radius_for(1)
+	# The same touching pair as above, on a loop with no dip.
+	var ids: Array[int] = [sim.spawn_train_slime(2, 1, 1700.0), sim.spawn_train_slime(2, 1, 1700.0 - gap)]
+	assert_eq(_held_after_step(sim, ids), [false, false] as Array[bool], "no dip, no nudge")
+	assert_true(sim.slimes.touching(ids[0], ids[1]), "they touch")

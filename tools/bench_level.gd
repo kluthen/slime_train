@@ -5,7 +5,7 @@ extends SceneTree
 ## whole level, 200 slimes"); on another level it measures what level rule
 ## 16 asks a person to look at (piles mostly still).
 ##
-## Run:   tools/level.sh bench [--level=<id>] [--ticks=600] [--fixture=NAME[,NAME...]]
+## Run:   tools/level.sh bench [--level=<id>] [--ticks=600] [--fixture=NAME[,NAME...]] [--lead-in=N]
 ##   (or godot --headless --path . -s res://tools/bench_level.gd -- [...])
 ##
 ##   --level=<id>     the level (LevelCatalog; default "test")
@@ -15,8 +15,15 @@ extends SceneTree
 ##                    below, or for another level `start` and every fixture
 ##                    of its folder that has a save, each with a lead-in of
 ##                    MOVING_LEAD_IN ticks
+##   --lead-in=N      every case's untimed lead-in, N ticks (0 or more), in
+##                    place of its own (stress-still's rest detection
+##                    included); to time a later moment of a fixture, e.g.
+##                    s3-basket-59of60's basket releasing (full about tick
+##                    554, fired about 2 s later): --lead-in=700
 ##
-## Exit code: 0; 2 on a bad argument, an unknown level or fixture.
+## Exit code: 0; 2 on a bad argument, an unknown level or fixture; 3 when
+## stress-still's pile doesn't rest within REST_WITHIN ticks (nothing timed:
+## an unrested pile is never measured as a resting one).
 ##
 ## Each case runs Simulation.step as the game does (the view follows the
 ## camera first; off-screen simulation on, as src/main.gd turns it on), no
@@ -26,23 +33,39 @@ extends SceneTree
 ##                  and 199 sleepers, the camera at the start; lead-in 600.
 ##   stress-still   the fixture (60 in basket 3, 140 piled in the bowl, asleep
 ##                  at bedtime), the camera where the fixture puts it (the
-##                  bowl, zoom 0.5); lead-in REST_TICK, when the loaded pile
-##                  rests, so the timed ticks are the resting pile's. They end
+##                  bowl, zoom 0.5); lead-in until the loaded pile rests
+##                  (chunk 22, D131: tools/bench_level/pile_rest.gd, every
+##                  slime asleep for the night RESTING, detected tick by
+##                  tick, at most REST_WITHIN; about 410 ticks since chunk
+##                  19), so the timed ticks are the resting pile's. They end
 ##                  before the idle camera's cue (at 35 s without a touch)
-##                  changes the zoom; the script checks it.
+##                  changes the zoom; the script checks it (camera_steady).
 ##   stress-moving  the fixture (200 train slimes through the bowl), the
 ##                  camera on the bowl; lead-in 60 (the rings take shape
 ##                  from the saved centres), then the train climbing out.
-## It prints one RESULT line per case (median, p95 and mean ms per tick, the
-## base slimes and the slime bodies, before -> after when fusion changed them,
-## and what was simulated) and a table.
+## It prints one RESULT line per case and a table: median, p95, max and mean
+## ms per tick; the base slimes and the slime bodies, before -> after when
+## fusion changed them; the lead-in (lead_in) and, for stress-still, the tick
+## its pile rested at (rested_at, "-" for the other cases); the slime counts
+## at the end of the timed ticks, as the debug overlay counts them
+## (DebugCounts.count_slimes: on screen, simulated off screen, off screen
+## parked); the resting slimes before -> after; the camera's zoom and whether
+## it stayed steady; and, as means over the timed ticks, the bodies the
+## solver simulates (active: PerfLog.active_bodies, baskets included) and its
+## candidate pairs (pairs: SlimeBodies.candidate_pair_count).
 # @spec-link [[req_platform_and_performance_targets]]
 
-const USAGE := "usage: tools/level.sh bench [--level=<id>] [--ticks=N] [--fixture=NAME[,NAME...]]"
+const USAGE := "usage: tools/level.sh bench [--level=<id>] [--ticks=N] [--fixture=NAME[,NAME...]] [--lead-in=N]"
 const SEED := 909
-## stress-still's pile rests this many ticks after loading
-## (tools/make_fixture.gd measured it; test_fixtures_e2e checks it).
-const REST_TICK := 670
+## When stress-still's pile rests (the lead-in until it does).
+const PILE_REST := preload("res://tools/bench_level/pile_rest.gd")
+## stress-still's pile must rest within this many ticks of loading (about
+## 410 since chunk 19; the rest is margin, as test_fixtures_e2e's
+## PILE_RESTS_WITHIN), else the bench fails (exit code 3).
+const REST_WITHIN := 900
+## A case's lead-in that runs until its loaded pile rests (PILE_REST), not a
+## fixed number of ticks.
+const UNTIL_PILE_RESTS := -1
 const START_LEAD_IN := 600
 const MOVING_LEAD_IN := 60
 
@@ -50,6 +73,8 @@ var ticks := 600
 var level_id := LevelCatalog.DEFAULT_ID
 ## The fixtures asked for (--fixture), or [] for the default cases.
 var fixtures: PackedStringArray = []
+## The lead-in asked for (--lead-in), ticks, or -1: each case's own.
+var lead_in_override := -1
 var level: Level
 var terrain: TerrainSegments
 var rows: Array[String] = []
@@ -79,10 +104,14 @@ func _init() -> void:
 			level.free()
 			quit(2)
 			return
-		_case("start" if case[0] == "fresh" else case[0], sim, case[1])
+		if not _case("start" if case[0] == "fresh" else case[0], sim, case[1]):
+			level.free()
+			quit(3)
+			return
 	print("")
-	print("| Case | Base slimes | Bodies | Ticks | Median ms/tick | p95 ms/tick | Mean ms/tick |")
-	print("|---|---|---|---|---|---|---|")
+	print("| Case | Base slimes | Bodies | Ticks | Lead-in | Median ms/tick | p95 ms/tick | Max ms/tick "
+			+ "| Mean ms/tick | On screen | Simulated | Off screen |")
+	print("|---|---|---|---|---|---|---|---|---|---|---|---|")
 	for row in rows:
 		print(row)
 	level.free()
@@ -105,13 +134,17 @@ func _parse() -> String:
 				fixtures = value.split(",", false)
 				if fixtures.is_empty():
 					return "--fixture wants fixture names, comma separated"
+			"--lead-in":
+				if not value.is_valid_int() or value.to_int() < 0:
+					return "--lead-in wants a whole number of ticks, 0 or more (got '%s')" % value
+				lead_in_override = value.to_int()
 			_:
 				return "unknown argument '%s'" % arg
 	return ""
 
 
 ## The cases to run, [fixture name ("fresh": the level as new), lead-in
-## ticks], in order (see the file's doc).
+## ticks or UNTIL_PILE_RESTS], in order (see the file's doc).
 func _cases() -> Array:
 	if not fixtures.is_empty():
 		var asked := []
@@ -133,13 +166,16 @@ func _cases() -> Array:
 	return out
 
 
-## Case `name`'s lead-in, ticks: the test level's own cases keep theirs
-## (so a --fixture run matches the default one), any other MOVING_LEAD_IN.
+## Case `name`'s lead-in, ticks or UNTIL_PILE_RESTS: --lead-in's when
+## given, else the test level's own cases keep theirs (so a --fixture run
+## matches the default one), any other MOVING_LEAD_IN.
 func _lead_in(name: String) -> int:
+	if lead_in_override >= 0:
+		return lead_in_override
 	if name == "fresh":
 		return START_LEAD_IN
 	if level_id == LevelCatalog.DEFAULT_ID and name == "stress-still":
-		return REST_TICK
+		return UNTIL_PILE_RESTS
 	return MOVING_LEAD_IN
 
 
@@ -184,22 +220,35 @@ func _from_fixture(fixture_name: String) -> Simulation:
 	return sim
 
 
-## Runs `lead_in` ticks untimed, then times each of `ticks` ticks and prints
-## the case's RESULT line.
-func _case(case_name: String, sim: Simulation, lead_in: int) -> void:
-	if sim == null:
-		return
-	for t in lead_in:
-		_step(sim)
+## Runs the lead-in untimed (`lead_in` ticks, or until the loaded pile
+## rests for UNTIL_PILE_RESTS), then times each of `ticks` ticks and prints
+## the case's RESULT line. False (said on stderr) when the pile doesn't rest
+## within REST_WITHIN: nothing is timed then.
+func _case(case_name: String, sim: Simulation, lead_in: int) -> bool:
+	var rested_at := "-"
+	if lead_in == UNTIL_PILE_RESTS:
+		lead_in = PILE_REST.ticks_to_rest(sim, PILE_REST.pile_of(sim), REST_WITHIN, _step.bind(sim))
+		if lead_in == PILE_REST.NEVER:
+			push_error("bench_level: %s's pile doesn't rest within %d ticks: not timed" % [case_name, REST_WITHIN])
+			printerr("bench_level: %s's pile doesn't rest within %d ticks: not timed" % [case_name, REST_WITHIN])
+			return false
+		rested_at = "%d" % lead_in
+	else:
+		for t in lead_in:
+			_step(sim)
 	var zoom_before := sim.camera.zoom
 	var bodies_before := sim.slimes.slime_count
 	var resting_before := _count_calm(sim, SlimeBodies.RESTING)
 	var spent := PackedFloat64Array()
 	spent.resize(ticks)
+	var active_sum := 0
+	var pairs_sum := 0
 	for t in ticks:
 		var start := Time.get_ticks_usec()
 		_step(sim)
 		spent[t] = (Time.get_ticks_usec() - start) / 1000.0
+		active_sum += PerfLog.active_bodies(sim)
+		pairs_sum += sim.slimes.candidate_pair_count()
 	var total := 0.0
 	for ms in spent:
 		total += ms
@@ -207,16 +256,23 @@ func _case(case_name: String, sim: Simulation, lead_in: int) -> void:
 	sorted.sort()
 	var median := sorted[sorted.size() / 2]
 	var p95 := sorted[mini(sorted.size() - 1, int(ceil(sorted.size() * 0.95)) - 1)]
+	var worst := sorted[sorted.size() - 1]
 	var mean := total / ticks
 	var steady := is_equal_approx(sim.camera.zoom, zoom_before) and sim.camera.mode == Camera.RAILS
 	var bodies := "%d" % bodies_before
 	if sim.slimes.slime_count != bodies_before:
 		bodies += "->%d" % sim.slimes.slime_count
-	print("RESULT case=%s base=%d bodies=%s ticks=%d lead_in=%d median_ms=%.3f p95_ms=%.3f mean_ms=%.3f parked=%d resting=%d->%d zoom=%.3f camera_steady=%s" % [
-		case_name, _base_slimes(sim), bodies, ticks, lead_in, median, p95, mean, _count_calm(sim, SlimeBodies.PARKED),
-		resting_before, _count_calm(sim, SlimeBodies.RESTING), sim.camera.zoom, steady])
-	rows.append("| %s | %d | %s | %d | %.3f | %.3f | %.3f |" % [case_name, _base_slimes(sim), bodies, ticks, median, p95,
-			mean])
+	var counts := DebugCounts.count_slimes(sim)
+	print(("RESULT case=%s base=%d bodies=%s ticks=%d lead_in=%d rested_at=%s median_ms=%.3f p95_ms=%.3f "
+			+ "max_ms=%.3f mean_ms=%.3f on_screen=%d simulated=%d off_screen=%d resting=%d->%d zoom=%.3f "
+			+ "camera_steady=%s active=%.1f pairs=%.1f") % [case_name, _base_slimes(sim), bodies, ticks, lead_in,
+			rested_at, median, p95, worst, mean, counts[DebugCounts.ON_SCREEN], counts[DebugCounts.SIMULATED],
+			counts[DebugCounts.OFF_SCREEN], resting_before, _count_calm(sim, SlimeBodies.RESTING), sim.camera.zoom,
+			steady, float(active_sum) / ticks, float(pairs_sum) / ticks])
+	rows.append("| %s | %d | %s | %d | %d | %.3f | %.3f | %.3f | %.3f | %d | %d | %d |" % [case_name,
+			_base_slimes(sim), bodies, ticks, lead_in, median, p95, worst, mean, counts[DebugCounts.ON_SCREEN],
+			counts[DebugCounts.SIMULATED], counts[DebugCounts.OFF_SCREEN]])
+	return true
 
 
 ## One tick as the game runs it: the view follows the camera first.

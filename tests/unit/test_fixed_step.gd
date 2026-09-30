@@ -51,3 +51,30 @@ func test_reset_clears_the_remainder() -> void:
 	clock.advance(1.0 / 120.0, 8)
 	clock.reset()
 	assert_eq(clock.advance(1.0 / 120.0, 8), 0)
+
+
+# The frame loop's cap policy (chunk 22, proposed): the game root runs at
+# most FixedStep.max_ticks_for(speed, MAX_TICKS_PER_FRAME) ticks a frame.
+# @test-link [[req_platform_and_performance_targets]]
+func test_the_cap_is_the_1x_cap_times_the_speed_rounded_up() -> void:
+	assert_eq(FixedStep.max_ticks_for(1.0, 2), 2)
+	assert_eq(FixedStep.max_ticks_for(0.5, 2), 2, "slower than 1x keeps the 1x cap")
+	assert_eq(FixedStep.max_ticks_for(0.0, 2), 2, "paused")
+	assert_eq(FixedStep.max_ticks_for(1.5, 2), 4)
+	assert_eq(FixedStep.max_ticks_for(4.0, 2), 8, "a debug speed keeps its pace")
+	assert_eq(FixedStep.max_ticks_for(10.0, 3), 30)
+
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_the_game_caps_at_two_ticks_a_frame_at_1x() -> void:
+	assert_eq(load("res://src/main.gd").MAX_TICKS_PER_FRAME, 2)
+
+
+## An overloaded frame (20 fps: 3 ticks' worth) plays in slow motion at 1x
+## (2 ticks a frame, 40 ticks/s) instead of running more ticks per frame,
+## which would make the next frame longer still.
+# @test-link [[req_platform_and_performance_targets]]
+func test_an_overloaded_frame_plays_in_slow_motion() -> void:
+	var cap := FixedStep.max_ticks_for(1.0, load("res://src/main.gd").MAX_TICKS_PER_FRAME)
+	assert_eq(_ticks_for_frames(1.0 / 20.0, 20, cap), 40)
+	assert_eq(_ticks_for_frames(1.0 / 30.0, 60, cap), 120, "30 fps still runs at full speed")

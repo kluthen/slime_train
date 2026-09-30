@@ -74,7 +74,7 @@ Every tool runs headless from the project root, takes `--level=<id>`
 refuses, and exits non-zero on a problem.
 
 Run them through **`tools/level.sh <tool> [arguments...]`** (chunk LD3;
-`check`, `report`, `new`, `fixture`, `bench`). Like `tools/test.sh`, it
+`check`, `report`, `new`, `fixture`, `bench`; `rest` since chunk 22). Like `tools/test.sh`, it
 imports the project first: after a pull that adds `class_name`s, a tool run
 bare fails to parse (`Parse Error: Identifier "LevelBuilder" not declared
 in the current scope`) until `godot --headless --import` runs. And it starts
@@ -90,7 +90,8 @@ is `godot --headless --no-header --path . -s res://tools/<script>.gd --
 | Scaffolder | `tools/level.sh new --id=<id> [--sections=N]` |
 | Fixtures | `tools/level.sh fixture [--level=<id>] [--list] [name ...]` |
 | Level report | `tools/level.sh report --level=<id> [--json]` |
-| Level benchmark | `tools/level.sh bench [--level=<id>] [--ticks=N] [--fixture=NAME[,NAME...]]` |
+| Level benchmark | `tools/level.sh bench [--level=<id>] [--ticks=N] [--fixture=NAME[,NAME...]] [--lead-in=N]` |
+| Resting piles (test level) | `tools/level.sh rest [--case=open\|wake\|all] [--slimes=N,...] [--seeds=S,...] [--within=N] [--after=N] [--pile=bowl\|open] [--hoppers=K,...] [--ticks=N]` |
 | Play a level | `godot --path . -- --test-mode --level=<id> --seed=1 [--fixture=NAME] [--at=<stable id>\|x,y]` |
 | A level's test | `tools/test.sh -gdisable_colors -gselect=test_level_<id>` |
 
@@ -398,20 +399,31 @@ Exit 0; 2 on a bad argument or a level that doesn't load.
 
 ### The level benchmark
 
-`tools/level.sh bench [--level=<id>] [--ticks=N] [--fixture=NAME[,NAME...]]`
+`tools/level.sh bench [--level=<id>] [--ticks=N] [--fixture=NAME[,NAME...]] [--lead-in=N]`
 (`tools/bench_level.gd`): the tick cost of a whole level, headless, the
 measure level rule 16's `manual:` line asks for (piles mostly still). Each
 case runs `Simulation.step` as the game does (off-screen simulation on),
 no input, and times `ticks` ticks (600 by default) after an untimed
-lead-in; it prints a `RESULT` line per case (median, p95 and mean ms per
-tick, base slimes, bodies, parked and resting slimes, whether the camera
-held still) and a table. On the test level, by default, the three cases
+lead-in; it prints a `RESULT` line per case (median, p95, max and mean ms
+per tick, base slimes, bodies, the lead-in, the slime counts as the debug
+overlay shows them, on screen, simulated and off screen, the resting
+slimes, whether the camera held still, and the mean active bodies and
+candidate pairs; the fields in order: `docs/dev/README.md`, "Chunk 22:
+performance") and a table. On the test level, by default, the three cases
 the numbers in `docs/dev/README.md` come from (`start`, `stress-still`,
 `stress-moving`); on another level (`--level`, chunk LD3), `start` (the
 level as new) and every fixture of its folder with a save, each after a
 60-tick lead-in. `--fixture` picks the cases by name (`fresh` is `start`).
-A fixture's camera may be a stable ID. Exit 0; 2 on a bad argument, an
-unknown level or a fixture that doesn't load.
+`--lead-in=N` (chunk 22) replaces every case's lead-in, to time a later
+moment of a fixture. On the test level `stress-still` is timed from the
+tick its pile rests, detected (`rested_at=`). A fixture's camera may be a
+stable ID. Exit 0; 2 on a bad argument, an unknown level or a fixture that
+doesn't load; 3 when `stress-still`'s pile doesn't rest within 900 ticks.
+
+`tools/level.sh rest` (`tools/bench_rest.gd`, chunk 22) measures the
+resting-pile rule on the test level only: how long a bedtime pile on open
+ground takes to rest, and how often hoppers wake a resting pile. Its
+usage and results: `docs/dev/README.md`, "Resting piles (D107)".
 
 ### Playing and looking at a level
 

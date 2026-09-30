@@ -30,8 +30,9 @@ extends CanvasLayer
 ##   (DebugCounts.count_slimes(), in slimes, every state): centre in the
 ##   visible view; off it but fully simulated (Offscreen hasn't parked it:
 ##   within its near margin, or between its margins and not parked yet);
-##   parked, moved by Offscreen's proxies. They and the fps refresh at most
-##   every STATS_MS (the counts loop over every slime);
+##   parked, moved by Offscreen's proxies. They, the "woken / available"
+##   counter and the fps refresh at most every STATS_MS (the counts loop
+##   over every slime);
 ## - the last action's result.
 ##
 ## Input: the controls are Buttons (mouse_filter STOP) and consume their
@@ -139,19 +140,19 @@ func _process(_delta: float) -> void:
 		labels.simulation = sim
 	if sim != null:
 		_place_bar(sim.view)
-		var counts := DebugCounts.count(sim)
-		counter_label.text = "Woken %d / available %d" % [counts["woken"], counts["available"]]
 		update_stats(sim, Engine.get_frames_per_second(), now)
 	status_label.text = status
 
 
-## Shows `fps` and `sim`'s slime counts when STATS_MS have passed since the
-## last refresh at real time `now_ms` (or on the first call). Returns whether
-## it refreshed.
+## Shows `fps`, `sim`'s "woken / available" counter and its slime counts
+## when STATS_MS have passed since the last refresh at real time `now_ms` (or
+## on the first call). Returns whether it refreshed.
 func update_stats(sim: Simulation, fps: float, now_ms: int) -> bool:
 	if _stats_due_ms >= 0 and now_ms < _stats_due_ms:
 		return false
 	_stats_due_ms = now_ms + STATS_MS
+	var counts := DebugCounts.count(sim)
+	counter_label.text = "Woken %d / available %d" % [counts["woken"], counts["available"]]
 	fps_label.text = DebugCounts.fps_text(fps)
 	slimes_label.text = DebugCounts.slimes_text(DebugCounts.count_slimes(sim))
 	return true

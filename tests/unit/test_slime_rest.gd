@@ -215,6 +215,33 @@ func test_low_detail_resamples_the_ring_and_back() -> void:
 		assert_eq(Support.layout_problems(bodies), PackedStringArray())
 
 
+## Every ring at once (set_all_low_detail, what Offscreen does each tick)
+## leaves exactly the state one set_low_detail per id, ascending, leaves:
+## same points, same calm (a resampled resting slime wakes its pile), same
+## hash, the rings already at that detail untouched.
+func test_setting_every_rings_detail_matches_setting_each_by_id() -> void:
+	var by_id := _pile(12)
+	var at_once := _pile(12)
+	assert_gt(_ticks_to_rest(by_id, 900), 0)
+	assert_gt(_ticks_to_rest(at_once, 900), 0)
+	for bodies in [by_id, at_once]:
+		bodies.set_low_detail(bodies.id[3], true)
+	for on in [true, false]:
+		var changed := 0
+		for slime_id in by_id.ids():
+			changed += 1 if by_id.set_low_detail(slime_id, on) else 0
+		assert_eq(at_once.set_all_low_detail(on), changed, "as many rings changed")
+		assert_eq(at_once.pos, by_id.pos)
+		assert_eq(at_once.prev, by_id.prev)
+		assert_eq(at_once.calm, by_id.calm)
+		assert_eq(StateHash.of(at_once.dump()), StateHash.of(by_id.dump()))
+		assert_eq(at_once.set_all_low_detail(on), 0, "nothing left to change")
+		_run(by_id, 30)
+		_run(at_once, 30)
+		assert_eq(at_once.pos, by_id.pos, "and they move on alike")
+	assert_eq(Support.layout_problems(at_once), PackedStringArray())
+
+
 func test_a_low_detail_slime_merges_and_splits_at_low_detail() -> void:
 	var bodies := Support.bodies_on_floor()
 	var a := bodies.create(0, 1, Vector2(0, -30))

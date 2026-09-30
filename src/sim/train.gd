@@ -390,6 +390,12 @@ func laps_of(slime_id: int) -> int:
 	return _records[slime_id]["laps"] if _records.has(slime_id) else 0
 
 
+## The tick of the slime's last stall mark (see advance()), -1 when it has
+## none or isn't followed.
+func marked_at_of(slime_id: int) -> int:
+	return _records[slime_id]["marked_at"] if _records.has(slime_id) else -1
+
+
 ## The slime's progress, laps included: it never goes back.
 func progress_of(slime_id: int) -> float:
 	if not _records.has(slime_id):

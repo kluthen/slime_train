@@ -31,7 +31,7 @@ extends RefCounted
 ##            and two walls are never paired. Piles rest whole: a group of
 ##            touching pile slimes rests together once every one of them
 ##            has been supported and still (its centre within REST_DRIFT of
-##            where it was) for REST_TICKS, velocities dropped; it keeps
+##            the anchor fixed where its count started) for REST_TICKS, velocities dropped; it keeps
 ##            its `pile` (the group's lowest id) and wakes whole. Something
 ##            disturbing it makes it ACTIVE again: a touching slime moving
 ##            faster than WAKE_SPEED (a hop, a landing, a neighbour
@@ -105,9 +105,11 @@ const PARKED := 2
 const CALM_NAMES: PackedStringArray = ["active", "resting", "parked"]
 ## Ring points per size when zoomed out (index 0 unused).
 const LOW_POINTS_BY_SIZE: Array[int] = [0, 8, 10, 12]
-## A supported slime whose centre stays within REST_DRIFT px of where it was
-## REST_TICKS ticks ago is still (a distance, not a speed: a settled pile
-## jitters by a fraction of a pixel, now and then at 10-20 px/s for a tick).
+## A supported slime is still when its centre stays within REST_DRIFT px of an
+## anchor fixed where its count started, for REST_TICKS ticks in a row; a
+## step beyond REST_DRIFT (or losing support) moves the anchor to the centre
+## and starts the count again (the anchor never slides along). A distance, not a speed: a settled pile
+## jitters by a fraction of a pixel, now and then at 10-20 px/s for a tick.
 const REST_DRIFT := 1.0
 const REST_TICKS := 30
 ## A touching slime moving faster than this (px/s) wakes a resting one.
@@ -236,6 +238,16 @@ var _slime_cell := PackedInt32Array()
 var _pairs := PackedInt32Array()
 var _pair_touch := PackedByteArray()
 var _touching: Array = []
+# Per slime, a box holding all its points during the terrain contacts (see
+# _solve_terrain): the shut doors skip the slimes whose box is outside their
+# grid.
+var _box_lo := PackedVector2Array()
+var _box_hi := PackedVector2Array()
+# centre_of()'s cache, per slime: the exact _centre_at() of its points, valid
+# while _centre_ok is 1. Every write to a slime's points clears its flag (a
+# tick clears them all), so a centre is summed at most once between moves.
+var _centre_cache := PackedVector2Array()
+var _centre_ok := PackedByteArray()
 
 
 ## `master`: the simulation's master Rng. Each slime draws from its own
@@ -316,6 +328,8 @@ func create(slime_species: int, slime_size: int, at: Vector2, slime_state := STA
 	heading.append(0.0)
 	hop_aim.append(Vector2.ZERO)
 	centre.append(at)
+	_centre_cache.append(Vector2.ZERO)
+	_centre_ok.append(0)
 	angle0.append(0.0)
 	_drift.append(Vector2.ZERO)
 	calm.append(ACTIVE)
@@ -397,10 +411,10 @@ func points_of(slime_id: int) -> PackedVector2Array:
 	return pos.slice(first[s], first[s] + npts[s])
 
 
-## The mean of the slime's points.
+## The mean of the slime's points (cached until they move).
 func centre_of(slime_id: int) -> Vector2:
 	var s := index_of(slime_id)
-	return _centre_at(s) if s >= 0 else Vector2.ZERO
+	return _centre_cached(s) if s >= 0 else Vector2.ZERO
 
 
 ## The mean velocity of the slime's points, px/s.
@@ -432,6 +446,12 @@ func touching(a: int, b: int) -> bool:
 ## Vector2i(lower id, higher id), in order.
 func touching_pairs() -> Array:
 	return _touching.duplicate()
+
+
+## How many candidate pairs the last tick's contacts checked (the pair grid,
+## built on its first substep): the solver's work, for measuring it. Read only.
+func candidate_pair_count() -> int:
+	return _pairs.size() / 2
 
 
 # --- Changing ---------------------------------------------------------------
@@ -497,7 +517,7 @@ func brake(slime_id: int, share: float) -> void:
 		return
 	var f := first[s]
 	var n := npts[s]
-	var c := _centre_at(s)
+	var c := _centre_cached(s)
 	var v := _velocity_at(s)
 	var turn := 0.0
 	var inertia := 0.0
@@ -655,6 +675,7 @@ func set_body(slime_id: int, body: Dictionary) -> bool:
 	for k in n:
 		pos[f + k] = points[k]
 		prev[f + k] = previous[k]
+	_centre_ok[s] = 0
 	centre[s] = body["centre"]
 	hop_timer[s] = body["hop_timer"]
 	heading[s] = body["heading"]
@@ -724,6 +745,7 @@ func translate(slime_id: int, delta: Vector2) -> void:
 	for i in range(first[s], first[s] + npts[s]):
 		pos[i] += delta
 		prev[i] += delta
+	_centre_ok[s] = 0
 	centre[s] += delta
 
 
@@ -761,6 +783,24 @@ func set_low_detail(slime_id: int, on: bool) -> bool:
 	return true
 
 
+## set_low_detail(`on`) on every slime, by index: ascending, like ids(), so
+## the same state as one call per id (Offscreen's zoom, every tick). Returns
+## how many rings changed.
+# @spec-link [[req_offscreen_simulation]]
+func set_all_low_detail(on: bool) -> int:
+	var flag := 1 if on else 0
+	# Most ticks every ring already has it: one native count, no loop.
+	if low_detail.count(flag) == slime_count:
+		return 0
+	var changed := 0
+	for s in slime_count:
+		if low_detail[s] != flag:
+			low_detail[s] = flag
+			_resample(s, _detail_points(s, size[s]))
+			changed += 1
+	return changed
+
+
 # --- Ticking ----------------------------------------------------------------
 
 ## Advances every body by `dt` seconds (the simulation's fixed tick).
@@ -781,6 +821,7 @@ func tick(dt: float) -> void:
 			_solve_contacts()
 			_solve_rings()
 			_solve_terrain()
+	_centre_ok.fill(0)
 	_touching.clear()
 	for k in _pair_touch.size():
 		if _pair_touch[k] != 0:
@@ -983,6 +1024,7 @@ func _resample(s: int, n: int) -> void:
 	pos = pos.slice(0, f) + ring + pos.slice(f + old)
 	prev = prev.slice(0, f) + back + prev.slice(f + old)
 	rest_off = rest_off.slice(0, f) + offs + rest_off.slice(f + old)
+	_centre_ok[s] = 0
 	for t in range(s + 1, slime_count):
 		first[t] += n - old
 	npts[s] = n
@@ -993,6 +1035,16 @@ func _resample(s: int, n: int) -> void:
 	topology_version += 1
 
 
+## The mean of slime index `s`'s points: _centre_at() from the cache when its
+## points haven't moved since it was last summed (so bit for bit the same).
+func _centre_cached(s: int) -> Vector2:
+	if _centre_ok[s] == 0:
+		_centre_cache[s] = _centre_at(s)
+		_centre_ok[s] = 1
+	return _centre_cache[s]
+
+
+## The mean of slime index `s`'s points, summed in point order.
 func _centre_at(s: int) -> Vector2:
 	var c := Vector2.ZERO
 	var f := first[s]
@@ -1082,6 +1134,7 @@ func _reshape(s: int, slime_size: int, at: Vector2, velocity: Vector2) -> void:
 	pos = pos.slice(0, f) + ring + pos.slice(f + old)
 	prev = prev.slice(0, f) + back + prev.slice(f + old)
 	rest_off = rest_off.slice(0, f) + offs + rest_off.slice(f + old)
+	_centre_ok[s] = 0
 	for t in range(s + 1, slime_count):
 		first[t] += n - old
 	npts[s] = n
@@ -1119,6 +1172,8 @@ func _remove_at(s: int) -> void:
 	heading.remove_at(s)
 	hop_aim.remove_at(s)
 	centre.remove_at(s)
+	_centre_cache.remove_at(s)
+	_centre_ok.remove_at(s)
 	angle0.remove_at(s)
 	_drift.remove_at(s)
 	calm.remove_at(s)
@@ -1210,12 +1265,17 @@ func _build_pairs() -> void:
 	var placed := 0
 	var low := Vector2.INF
 	var high := -Vector2.INF
+	# The highest index of a slime in the grid that isn't a wall (-1: none).
+	var last_mover := -1
 	for s in slime_count:
 		if calm[s] == PARKED:
 			continue
 		placed += 1
 		low = low.min(centre[s])
 		high = high.max(centre[s])
+		# Not _is_wall(s), inlined (calm is ACTIVE or RESTING here).
+		if state[s] != STATE_SLEEPER and calm[s] == ACTIVE:
+			last_mover = s
 	if placed < 2:
 		_pair_touch.resize(0)
 		return
@@ -1246,7 +1306,10 @@ func _build_pairs() -> void:
 			continue
 		_cell_items[fill[cell]] = s
 		fill[cell] += 1
-	for s in slime_count:
+	# A pair (s, t) has s < t and at most one wall. A slime after the last
+	# mover is a wall with only walls after it: it pairs with nothing, so
+	# the scan stops at the last mover (none: no pairs).
+	for s in last_mover + 1:
 		var cell: int = _slime_cell[s]
 		if cell < 0:
 			continue
@@ -1448,16 +1511,32 @@ func _solve_rings() -> void:
 ## surface point; its velocity loses the part going into the surface and
 ## `terrain_friction` of the part along it. A point pushed out by a surface
 ## facing up supports its slime. The shut doors are solved the same way,
-## after the terrain.
+## after the terrain. The first pass (the terrain's, else the first door's)
+## also measures a box around each slime's points, and the door passes after
+## it skip a slime whose box lies outside the door's grid, where every one of
+## its points would have been skipped anyway.
 func _solve_terrain() -> void:
-	if terrain != null and not terrain.is_empty():
-		_solve_against(terrain)
+	var door_shut := false
 	for door in doors:
 		if door != null and not door.is_empty():
-			_solve_against(door)
+			door_shut = true
+			break
+	var measured := false
+	if terrain != null and not terrain.is_empty():
+		_solve_against(terrain, door_shut, false)
+		measured = door_shut
+	for door in doors:
+		if door != null and not door.is_empty():
+			_solve_against(door, not measured, measured)
+			measured = true
 
 
-func _solve_against(tf: TerrainSegments) -> void:
+## One pass of ring points against `tf` (see _solve_terrain). `measure`:
+## sets each simulated slime's box (_box_lo, _box_hi) to hold its points
+## before and after the pass. `by_box`: skips the slimes whose box (set by an
+## earlier pass) is outside tf's grid, and grows the box by every point it
+## moves, so it still holds all the slime's points for the next door.
+func _solve_against(tf: TerrainSegments, measure: bool, by_box: bool) -> void:
 	var p := pos
 	var o := prev
 	var sa := tf.seg_a
@@ -1476,13 +1555,30 @@ func _solve_against(tf: TerrainSegments) -> void:
 	var keep := 1.0 - terrain_friction
 	var skin := terrain_skin
 	var skin2 := skin * skin
+	var track := measure or by_box
+	if measure and _box_lo.size() != slime_count:
+		_box_lo.resize(slime_count)
+		_box_hi.resize(slime_count)
 	for s in slime_count:
 		if state[s] == STATE_SLEEPER or calm[s] != ACTIVE:
 			continue
+		var lo := Vector2.INF
+		var hi := -Vector2.INF
+		if by_box:
+			lo = _box_lo[s]
+			hi = _box_hi[s]
+			# The per-point grid test below is monotonic in x and y: when the
+			# box's far corner is off one side of the grid, so is every point.
+			if (int(floor((hi.x - ox) * inv)) < 0 or int(floor((hi.y - oy) * inv)) < 0
+					or int(floor((lo.x - ox) * inv)) >= gw or int(floor((lo.y - oy) * inv)) >= gh):
+				continue
 		var f: int = first[s]
 		var carried := false
 		for i in range(f, f + npts[s]):
 			var c: Vector2 = p[i]
+			if measure:
+				lo = lo.min(c)
+				hi = hi.max(c)
 			var cx := int(floor((c.x - ox) * inv))
 			var cy := int(floor((c.y - oy) * inv))
 			if cx < 0 or cy < 0 or cx >= gw or cy >= gh:
@@ -1524,6 +1620,9 @@ func _solve_against(tf: TerrainSegments) -> void:
 					n = off / sqrt(best_d2)
 			var target := best_q + n * skin
 			p[i] = target
+			if track:
+				lo = lo.min(target)
+				hi = hi.max(target)
 			var v: Vector2 = target - o[i]
 			var vn := v.dot(n)
 			var vt := v - n * vn
@@ -1532,3 +1631,6 @@ func _solve_against(tf: TerrainSegments) -> void:
 				carried = true
 		if carried:
 			supported[s] = 1
+		if track:
+			_box_lo[s] = lo
+			_box_hi[s] = hi

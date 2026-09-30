@@ -58,8 +58,9 @@ Four editor-only files are left out there; the script lists them.
   printed, a measurement only); `midair`'s slimes land and play on;
   `old-version`'s migrated slime travels the loop and nothing is wiped or
   newly lost; from `s1-optout` a tap on the switch empties the basket;
-  `stress-still` keeps its 60 in the basket and its pile asleep. About
-  40 s.
+  `stress-still` keeps its 60 in the basket and its pile asleep;
+  `s3-basket-59of60` fills basket 3 with the train through the bowl, fires
+  it and plays the celebration (about 18 s). About 60 s.
 - `test_fusion_e2e.gd` checks fusion and bumping on the Meadow's fusion
   dip [DoD 6]: from `bump` the size 3 and size 2 meet and never fuse in
   10 s; two base slimes put on the dip's rim fuse within 20 s (the dip
@@ -79,7 +80,10 @@ Four editor-only files are left out there; the script lists them.
   off screen waits until it comes into view; from `s1-optout` flipping the
   switch back empties the basket (no tilt); once the gate is open the
   switch and the basket do nothing; the celebration plays once and a
-  reload doesn't replay it; the run has the same hash in a child process.
+  reload doesn't replay it; from `s3-basket-59of60` (chunk 22) the train
+  through section 3's bowl brings basket 3's 60th slime, the basket fires
+  in view and the celebration plays; the run has the same hash in a child
+  process.
 - `test_frontier_bedtime_e2e.gd` (chunk 23D, item 23.5) checks baskets at
   bedtime: from `bedtime` a releasing basket 1 lets nothing go until
   sunrise, and its slimes stay in it through sunrise; from
@@ -148,6 +152,17 @@ Four editor-only files are left out there; the script lists them.
 - `test_level_tools_e2e.gd` (chunk LD1) checks `tools/make_fixture.gd
   --level` on a throwaway level (fresh and gate fixtures that load) and
   `tools/level_report.gd` on the test level.
+- `test_bench_pile_rest_e2e.gd` (chunk 22, D131) checks the level
+  bench's start: `stress-still` loaded and stepped as
+  `tools/bench_level.gd` does, its pile rest detection
+  (`tools/bench_level/pile_rest.gd`) finds the pile resting within the
+  bench's bound, every member RESTING at the tick found; with too small a
+  bound it answers "never".
+- `test_bench_rest_e2e.gd` (chunk 22, D107) pins the resting-pile
+  measurement of `tools/bench_rest.gd`: a heap of 20 size-1 slimes asleep
+  at bedtime on the parade (section 2's flat floor), seed 1, rests as one
+  pile between 600 and 2400 ticks (measured: 1329), every member RESTING,
+  none parked.
 - `levels/test_level_<id>.gd`: each level's own test, written by the
   scaffolder (the level loads, passes the checker, runs 2 minutes with no
   input losing nothing, and its fixtures load).

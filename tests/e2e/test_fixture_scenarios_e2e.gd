@@ -19,6 +19,10 @@ extends GutTest
 ##   flips it back and the basket lets its slime go.
 ## - `stress-still` (60 in basket 3, a bedtime pile of 140 in the bowl): the
 ##   population stays as loaded, in the basket and asleep.
+## - `s3-basket-59of60` (basket 3 at 59 of 60, 141 train slimes in the bowl,
+##   not at bedtime; chunk 22): with the camera held on basket 3 the train
+##   brings the 60th slime, the basket fills, fires and the celebration
+##   plays; the population's mass stays 200, none above size 3.
 ##
 ## Nothing here saves: no store, no file written.
 
@@ -70,6 +74,15 @@ const RELEASED_WITHIN := 5 * TICK_RATE
 ## stress-still: how long it runs (ticks), and its population as loaded.
 const STRESS_STILL_TICKS := 300
 const STILL_IN_BASKET := 60
+## s3-basket-59of60: frontier set 3 and the camera where the fixture puts it
+## (basket 3's framing zone); how long it runs (ticks: the basket is full
+## after about 550, fires 2 s later, the celebration plays 4 s; the rest is
+## margin), and the basket's slimes as loaded.
+const SWITCH_3 := "s3.switch"
+const BASKET_3 := "s3.basket"
+const BASKET_3_VIEW := Vector2(15.875 * 1152.0, -150.0)
+const ENDGAME_TICKS := 1100
+const ENDGAME_IN_BASKET := 59
 
 
 ## A game in test mode on SEED with `fixture`, added to the tree; no store.
@@ -354,4 +367,53 @@ func _run_stress_still(label: String) -> Node:
 func test_stress_still_keeps_its_population_the_same_twice() -> void:
 	var first := _run_stress_still("first run")
 	var second := _run_stress_still("second run")
+	assert_eq(first.simulation.state_hash(), second.simulation.state_hash(), "same seed, same state")
+
+
+# --- s3-basket-59of60 --------------------------------------------------------------
+
+## Runs s3-basket-59of60 ENDGAME_TICKS with the camera held on basket 3 and
+## checks it: the basket fills, fires, and the celebration plays and ends;
+## returns the game.
+func _run_endgame(label: String) -> Node:
+	var game := _boot("s3-basket-59of60")
+	var sim: Simulation = game.simulation
+	var basket: Dictionary = sim.object_states[BASKET_3]
+	assert_eq(sim.slimes.slime_count, POPULATION, label + ": the whole population, awake")
+	assert_eq(_count(sim, SlimeBodies.IN_BASKET), ENDGAME_IN_BASKET, label + ": 59 in basket 3")
+	assert_eq(basket["weight"], ENDGAME_IN_BASKET, label + ": basket 3 at 59 of 60")
+	assert_ne(sim.session.phase, Session.BEDTIME, label + ": not at bedtime")
+	var biggest := _biggest(sim)
+	var most := sim.slimes.slime_count
+	var full_at := -1
+	var fired_at := -1
+	for i in ENDGAME_TICKS:
+		_aim(game, BASKET_3_VIEW)
+		game.test_mode.run_ticks(1)
+		biggest = maxi(biggest, _biggest(sim))
+		most = maxi(most, sim.slimes.slime_count)
+		if full_at < 0 and basket["phase"] != FrontierSets.FILLING:
+			full_at = i + 1
+		if fired_at < 0 and basket["phase"] == FrontierSets.FIRED:
+			fired_at = i + 1
+	gut.p("%s: basket 3 full at tick %d, fired at tick %d" % [label, full_at, fired_at])
+	assert_gt(full_at, 0, label + ": basket 3 fills")
+	assert_gt(fired_at, full_at, label + ": then fires")
+	assert_true(sim.frontier.celebration_done, label + ": the celebration played")
+	assert_false(sim.frontier.celebration_playing(sim.tick), label + ": and ended")
+	assert_true(sim.gate_states["s1.gate"]["open"] and sim.gate_states["s2.gate"]["open"],
+			label + ": gates 1 and 2 still open")
+	assert_true(sim.object_states[SWITCH_3]["flipped"], label + ": switch 3 still flipped")
+	assert_lte(most, POPULATION, label + ": never more than 200 slimes")
+	assert_lte(biggest, MAX_SIZE, label + ": none above size 3")
+	assert_eq(_weight(sim), POPULATION, label + ": the mass kept")
+	return game
+
+
+# @test-link [[req_switch_basket_gate_set]]
+# @test-link [[req_level_completion_celebration]]
+# @test-link [[req_test_level_and_test_mode]]
+func test_s3_basket_59of60_fills_the_last_basket_and_celebrates_the_same_twice() -> void:
+	var first := _run_endgame("first run")
+	var second := _run_endgame("second run")
 	assert_eq(first.simulation.state_hash(), second.simulation.state_hash(), "same seed, same state")

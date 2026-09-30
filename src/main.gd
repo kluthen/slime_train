@@ -60,15 +60,29 @@ extends Node2D
 
 const TEST_MODE_SCRIPT := "res://src/test_mode/test_mode.gd"
 const TEST_MODE_REFUSED := "Test mode is not available in this build (release builds never run it)."
-## The most ticks one frame runs at normal speed (8 ticks: a 133 ms hitch).
-## Beyond that the game slows down rather than catching up.
-const MAX_TICKS_PER_FRAME := 8
+## The most ticks one frame runs at normal speed (proposed, chunk 22): 2
+## ticks, a 33 ms frame (30 fps) still plays at full speed. Beyond that the
+## game plays in slow motion rather than catching up: a tick costing more
+## than a frame's time no longer multiplies the next frame (it was 8, and on
+## the reference phone an overloaded frame then ran 8 ticks, 4-5 fps). A
+## faster debug speed scales it (FixedStep.max_ticks_for).
+const MAX_TICKS_PER_FRAME := 2
 ## The export feature tag that swaps the game for spike 1's benchmark.
 const SPIKE_SOFT_SLIMES_FEATURE := "spike_soft_slimes"
 const SPIKE_SOFT_SLIMES_SCENE := "res://spikes/soft-slimes/spike.tscn"
 ## The debug overlay (speed, reset, labels, kill, counter). Debug builds only,
 ## named by path like test mode (see add_debug_overlay()).
 const DEBUG_OVERLAY_SCRIPT := "res://src/debug/debug_overlay.gd"
+## The perf log (a PERF line every few seconds, for measuring on a phone).
+## Debug builds only, named by path like the overlay (see add_perf_log()).
+const PERF_LOG_SCRIPT := "res://src/debug/perf_log.gd"
+## The user argument that asks for it: --perf-log[=SECONDS].
+const PERF_LOG_FLAG := "--perf-log"
+## The measurement's other user argument, --max-ticks-per-frame=N: the cap
+## at 1x for this run (max_ticks_per_frame), read with the perf log's.
+const MAX_TICKS_FLAG := "--max-ticks-per-frame"
+const PERF_LOG_REFUSED := ("The perf log and its measurement flags are not available in this build"
+		+ " (release builds never run them).")
 
 var simulation: Simulation
 ## The loaded level, or null (a release build has none yet).
@@ -130,6 +144,17 @@ var tilt_feed := TiltFeed.new()
 ## The debug overlay, or null (a release build, or a game a test adds).
 ## Loosely typed: src/debug/ is named by path only.
 var debug_overlay: Node = null
+## The perf log, or null (not asked for, a release build, or a game a test
+## adds). Loosely typed: src/debug/ is named by path only.
+var perf_log: Node = null
+## The most ticks a frame runs at 1x (FixedStep.max_ticks_for scales it with
+## the speed): MAX_TICKS_PER_FRAME, unless a debug measurement set another
+## (--max-ticks-per-frame, read by add_perf_log()).
+var max_ticks_per_frame := MAX_TICKS_PER_FRAME
+## The ticks the last frame ran, and the real time they took (microseconds,
+## around the step_simulation() calls): the perf log reads them.
+var frame_ticks := 0
+var frame_tick_usec := 0
 
 var _clock := FixedStep.new()
 ## The level's collision terrain for the slimes, or null without a level.
@@ -186,6 +211,15 @@ func _ready() -> void:
 	if get_tree().current_scene == self:
 		add_debug_overlay()
 	_use_simulation(_new_simulation(Rng.random_seed()))
+	if get_tree().current_scene == self:
+		var perf_errors := add_perf_log(user_args)
+		for error in perf_errors:
+			printerr("Perf log: ", error)
+		# A measurement asked for with a bad flag must not run as if unmeasured,
+		# but in a release build the flag is simply ignored.
+		if not perf_errors.is_empty() and test_mode_guard.allows():
+			get_tree().quit(1)
+			return
 	if TestModeGuard.requested(user_args):
 		var errors := start_test_mode_from_args(user_args)
 		for error in errors:
@@ -200,13 +234,19 @@ func _ready() -> void:
 		simulation.session.open(simulation)
 
 
+## Runs the ticks this frame's time is worth at the current speed (FixedStep,
+## at most FixedStep.max_ticks_for per frame), recording how many and how
+## long they took (frame_ticks, frame_tick_usec), then autosaves when due.
 func _process(delta: float) -> void:
 	var scale: float = test_mode.time_scale if test_mode != null else 1.0
 	if debug_overlay != null:
 		scale *= debug_overlay.speed
-	var max_ticks := MAX_TICKS_PER_FRAME * maxi(1, ceili(scale))
-	for i in _clock.advance(delta * scale, max_ticks):
+	var ticks := _clock.advance(delta * scale, FixedStep.max_ticks_for(scale, max_ticks_per_frame))
+	var start_usec := Time.get_ticks_usec()
+	for i in ticks:
 		step_simulation()
+	frame_ticks = ticks
+	frame_tick_usec = Time.get_ticks_usec() - start_usec
 	if autosave.due(_now()):
 		var error := save_now()
 		if error != "":
@@ -580,6 +620,33 @@ func add_debug_overlay() -> void:
 		return
 	debug_overlay = load(DEBUG_OVERLAY_SCRIPT).new()
 	add_child(debug_overlay)
+
+
+## Adds the perf log (src/debug/perf_log.gd) when `user_args` hold
+## --perf-log[=SECONDS] and this build is a debug build (TestModeGuard), in
+## normal play or test mode alike, and it has none yet; with
+## --max-ticks-per-frame=N (a measurement, with or without the log) sets
+## max_ticks_per_frame to N. Returns the errors: the refusal in a release
+## build, or a malformed flag (nothing added or set). The main scene calls it
+## in _ready; tests may.
+func add_perf_log(user_args: PackedStringArray) -> PackedStringArray:
+	var asked := false
+	for arg in user_args:
+		asked = asked or arg.get_slice("=", 0) in [PERF_LOG_FLAG, MAX_TICKS_FLAG]
+	if not asked or perf_log != null:
+		return PackedStringArray()
+	if not test_mode_guard.allows():
+		return PackedStringArray([PERF_LOG_REFUSED])
+	var script: GDScript = load(PERF_LOG_SCRIPT)
+	var parsed: Dictionary = script.parse_args(user_args)
+	if not parsed["errors"].is_empty():
+		return parsed["errors"]
+	if parsed["max_ticks"] > 0:
+		max_ticks_per_frame = parsed["max_ticks"]
+	if parsed["requested"]:
+		perf_log = script.new(parsed["seconds"])
+		add_child(perf_log)
+	return PackedStringArray()
 
 
 ## Starts the level over as on a first launch: a fresh simulation (a new

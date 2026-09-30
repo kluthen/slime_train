@@ -126,6 +126,16 @@ var proxies := {}
 ## The last LOST_LOG_SIZE lost slimes, oldest first: {"id", "tick", "reason"}.
 var lost: Array[Dictionary] = []
 
+# The switches a parked train slime may drop through (_basket_below), read
+# once per level (_read_trapdoors): the level `_trapdoor_level`'s switches
+# with a trapdoor into a basket of the level, by id ascending; their ids,
+# their trapdoors grown ENTRY_REACH upward, their baskets. Not state: read
+# off the level again after a load.
+var _trapdoor_level: LevelData = null
+var _trapdoor_ids := PackedStringArray()
+var _trapdoor_reach: Array[Rect2] = []
+var _trapdoor_baskets := PackedStringArray()
+
 
 ## The deterministic pace of a slime of `size` off screen, px/s: one hop
 ## reach per mean hop interval, scaled by the bodies' hop rate.
@@ -167,8 +177,16 @@ func step(sim: Simulation) -> void:
 	var shown := Fusion.view_rect(sim.view)
 	var near := shown.grow(NEAR_MARGIN)
 	var far := shown.grow(PARK_MARGIN)
-	for slime_id in bodies.ids():
+	# Each slime's centre, read once: nothing below moves a slime before its
+	# own proxy does (parking only drops its velocity), so the proxies take it
+	# from here.
+	var ids := bodies.ids()
+	var centres := PackedVector2Array()
+	centres.resize(ids.size())
+	for k in ids.size():
+		var slime_id := ids[k]
 		var centre := bodies.centre_of(slime_id)
+		centres[k] = centre
 		if near.has_point(centre):
 			bodies.unpark(slime_id)
 		elif not far.has_point(centre):
@@ -177,14 +195,15 @@ func step(sim: Simulation) -> void:
 		if not bodies.is_parked(slime_id) or bodies.state_of(slime_id) != SlimeBodies.FREE:
 			proxies.erase(slime_id)
 	var room := _train_room(sim)
-	for slime_id in bodies.ids():
+	for k in ids.size():
+		var slime_id := ids[k]
 		if not bodies.is_parked(slime_id):
 			continue
 		match bodies.state_of(slime_id):
 			SlimeBodies.TRAIN:
-				_train_proxy(sim, slime_id, room)
+				_train_proxy(sim, slime_id, room, centres[k])
 			SlimeBodies.FREE:
-				_free_proxy(sim, slime_id)
+				_free_proxy(sim, slime_id, centres[k])
 	_count_away(sim, shown)
 
 
@@ -236,15 +255,14 @@ func _detail(sim: Simulation) -> void:
 		zoomed_out = true
 	elif sim.view.zoom >= FULL_ZOOM:
 		zoomed_out = false
-	for slime_id in sim.slimes.ids():
-		sim.slimes.set_low_detail(slime_id, zoomed_out)
+	sim.slimes.set_all_low_detail(zoomed_out)
 
 
 ## Moves parked train slime `slime_id` on along the loop (see the class doc):
 ## its progress first, from the loop point itself, then its centre, lifted
 ## along the loop's normal. It moves at most `room[slime_id]` px when `room`
-## (_train_room()) has it: single file.
-func _train_proxy(sim: Simulation, slime_id: int, room: Dictionary) -> void:
+## (_train_room()) has it: single file. `centre`: its centre now.
+func _train_proxy(sim: Simulation, slime_id: int, room: Dictionary, centre: Vector2) -> void:
 	var train := sim.train
 	if train == null or not train.tracks(slime_id) or train.length() <= 0.0:
 		return
@@ -265,7 +283,7 @@ func _train_proxy(sim: Simulation, slime_id: int, room: Dictionary) -> void:
 	var basket := _basket_below(sim, at)
 	if not basket.is_empty():
 		at = _slot(sim, basket, size)
-	bodies.translate(slime_id, at - bodies.centre_of(slime_id))
+	bodies.translate(slime_id, at - centre)
 
 
 ## Single file for the parked train slimes (see the class doc): parked
@@ -310,10 +328,10 @@ func _train_room(sim: Simulation) -> Dictionary:
 
 
 ## Moves parked free slime `slime_id` along its way back (see the class
-## doc), and puts it back on the train at the way's end.
-func _free_proxy(sim: Simulation, slime_id: int) -> void:
+## doc), and puts it back on the train at the way's end. `centre`: its
+## centre now.
+func _free_proxy(sim: Simulation, slime_id: int, centre: Vector2) -> void:
 	var bodies := sim.slimes
-	var centre := bodies.centre_of(slime_id)
 	var size := bodies.size_of(slime_id)
 	if not proxies.has(slime_id):
 		var way := _way_for(sim, centre)
@@ -420,23 +438,39 @@ func lose(sim: Simulation, slime_id: int) -> void:
 
 ## The basket whose switch's open trapdoor lies under `at`, or "": off
 ## screen, the train still fills the baskets (FrontierSets weighs them).
+## Only with a level loaded (a train rides a level's loop).
 # @spec-link [[req_switch_basket_gate_set]]
 func _basket_below(sim: Simulation, at: Vector2) -> String:
 	var level := sim.level
-	if level == null:
-		return ""
+	assert(level != null, "Offscreen._basket_below: no level loaded")
+	if level != _trapdoor_level:
+		_read_trapdoors(level)
+	for k in _trapdoor_ids.size():
+		if not _trapdoor_reach[k].has_point(at):
+			continue
+		var state: Dictionary = sim.object_states.get(_trapdoor_ids[k], {})
+		if not state.is_empty() and not state["trapdoor_shut"]:
+			return _trapdoor_baskets[k]
+	return ""
+
+
+## Reads `level`'s switches with a trapdoor into one of its baskets, by id
+## ascending, into the `_trapdoor_*` arrays (see them).
+func _read_trapdoors(level: LevelData) -> void:
+	_trapdoor_level = level
+	_trapdoor_ids = PackedStringArray()
+	_trapdoor_reach = []
+	_trapdoor_baskets = PackedStringArray()
 	var ids := PackedStringArray(level.switches.keys())
 	ids.sort()
 	for id in ids:
-		var state: Dictionary = sim.object_states.get(id, {})
 		var trapdoor: Rect2 = level.switches[id]["trapdoor"]
-		if state.is_empty() or state["trapdoor_shut"] or not trapdoor.has_area():
+		var basket := str(level.switches[id]["basket"])
+		if not trapdoor.has_area() or not level.baskets.has(basket):
 			continue
-		if trapdoor.grow_individual(0.0, ENTRY_REACH, 0.0, 0.0).has_point(at):
-			var basket := str(level.switches[id]["basket"])
-			if level.baskets.has(basket):
-				return basket
-	return ""
+		_trapdoor_ids.append(id)
+		_trapdoor_reach.append(trapdoor.grow_individual(0.0, ENTRY_REACH, 0.0, 0.0))
+		_trapdoor_baskets.append(basket)
 
 
 ## The first free slot of basket `id`'s box for a slime of `size`: on a

@@ -13,8 +13,10 @@ extends GutTest
 ## `s1-basket-5of6` nor basket 2 from `s2-basket-offscreen` plays it; basket
 ## 3, full in `stress-still`, does once sunrise ends that fixture's bedtime),
 ## plays once, is saved, and a reload
-## doesn't play it again [DoD 14]. The run is the same in this process and in
-## a child process (same seed, same hash).
+## doesn't play it again [DoD 14]. From `s3-basket-59of60` (chunk 22, not
+## at bedtime) the train through section 3's bowl brings the 60th slime:
+## basket 3 fills, fires in view and the celebration plays. The run is the
+## same in this process and in a child process (same seed, same hash).
 
 # @test-link [[req_switch_basket_gate_set]]
 # @test-link [[req_interactive_objects_general]]
@@ -41,6 +43,21 @@ const BASKET_2 := "s2.basket"
 ## centre is at (16.01 screens, -10).
 const BASKET_3_VIEW := Vector2(16.01 * 1152.0, -10.0)
 const BASKET_3 := "s3.basket"
+const SWITCH_3 := "s3.switch"
+## s3-basket-59of60 (chunk 22): the camera where the fixture puts it, at the
+## centre of basket 3's framing zone (switch 3 and the basket in view); the
+## basket's slimes and quota as loaded; the train slimes in the bowl.
+const BASKET_3_FRAME_VIEW := Vector2(15.875 * 1152.0, -150.0)
+const BASKET_3_AT := 59
+const BASKET_3_QUOTA := 60
+const BOWL_TRAIN := 141
+## From s3-basket-59of60 basket 3 is full within this (seconds). Probes: the
+## bowl's front slimes climb to switch 3 and one drops in after about 9 s.
+const FULL_3_WITHIN := 30
+## After the celebration, how long the run goes on before the basket's
+## slimes are counted (seconds): a report only (item 24.3, open: a fired
+## basket keeps its slimes), never asserted.
+const AFTER_CELEBRATION := 10
 ## From s1-basket-5of6 the basket fires within this (seconds). Probes: the
 ## first slime drops in about 5 s after the start, the reward plays 2 s.
 const FIRE_WITHIN := 30
@@ -274,6 +291,46 @@ func test_the_celebration_plays_once_and_a_reload_does_not_replay_it() -> void:
 	assert_false(again.frontier.celebration_playing(again.tick), "not replayed")
 	assert_eq(again.frontier.celebration_since, since)
 	assert_eq(again.object_states[BASKET_3]["phase"], FrontierSets.FIRED, "the world keeps running")
+
+
+# --- Section 3's endgame: the last basket fills (chunk 22) --------------------------
+
+# @test-link [[req_switch_basket_gate_set]]
+# @test-link [[req_level_completion_celebration]]
+func test_basket_3_at_59_of_60_fills_fires_and_plays_the_celebration() -> void:
+	var game := _boot({"fixture": "s3-basket-59of60"})
+	var sim: Simulation = game.simulation
+	var basket: Dictionary = sim.object_states[BASKET_3]
+	assert_ne(sim.session.phase, Session.BEDTIME, "not at bedtime")
+	assert_true(sim.gate_states[GATE]["open"], "gate 1 open")
+	assert_true(sim.gate_states["s2.gate"]["open"], "gate 2 open")
+	assert_true(sim.object_states[SWITCH_3]["flipped"], "switch 3 flipped")
+	assert_false(sim.object_states[SWITCH_3]["trapdoor_shut"], "its trapdoor open")
+	assert_eq(basket["phase"], FrontierSets.FILLING, "filling")
+	assert_eq(basket["weight"], BASKET_3_AT, "59 of")
+	assert_eq(int(sim.level.baskets[BASKET_3]["quota"]), BASKET_3_QUOTA, "60")
+	assert_eq(_count(game, SlimeBodies.IN_BASKET), BASKET_3_AT, "59 size-1 slimes in it")
+	assert_eq(_count(game, SlimeBodies.TRAIN), BOWL_TRAIN, "the rest on the train")
+	assert_eq(_count(game, SlimeBodies.SLEEPER), 0, "no sleeper left")
+	assert_false(sim.frontier.celebration_done, "no celebration yet")
+	var full := _run_until_phase(game, FrontierSets.FULL, FULL_3_WITHIN * TICK_RATE, BASKET_3_FRAME_VIEW, BASKET_3)
+	gut.p("s3-basket-59of60: basket 3 full after %d ticks, weight %d" % [full, basket["weight"]])
+	assert_gt(full, 0, "full within %d s" % FULL_3_WITHIN)
+	assert_gte(basket["weight"], BASKET_3_QUOTA, "filled to its quota")
+	var fired := _run_until_phase(game, FrontierSets.FIRED, 5 * TICK_RATE, BASKET_3_FRAME_VIEW, BASKET_3)
+	assert_between(fired, 1, int(FrontierSets.REWARD_SECONDS * TICK_RATE) + 2, "in view: the reward, then fires")
+	assert_true(sim.frontier.celebration_done, "the last basket fired: the celebration")
+	assert_true(sim.frontier.celebration_playing(sim.tick), "it plays")
+	for i in int(FrontierSets.CELEBRATION_SECONDS * TICK_RATE) + 1:
+		_aim(game, BASKET_3_FRAME_VIEW)
+		game.test_mode.run_ticks(1)
+	assert_false(sim.frontier.celebration_playing(sim.tick), "it ends")
+	assert_true(sim.frontier.mark_showing(sim.tick), "the level's lasting mark shows")
+	for i in AFTER_CELEBRATION * TICK_RATE:
+		_aim(game, BASKET_3_FRAME_VIEW)
+		game.test_mode.run_ticks(1)
+	gut.p("s3-basket-59of60: %d s after the celebration basket 3 is %s, weight %d, %d slimes in it"
+			% [AFTER_CELEBRATION, basket["phase"], basket["weight"], _count(game, SlimeBodies.IN_BASKET)])
 
 
 # --- Same seed, same hash -------------------------------------------------------------

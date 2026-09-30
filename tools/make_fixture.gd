@@ -54,6 +54,12 @@ extends SceneTree
 ## slimes saved in mid-air; old-version is a save of the test level's
 ## version 1 (its FIXTURES entry's "version": the save's header names it,
 ## below the level's), with a sleeper where version 1 had it.
+##
+## Chunk 22: s3-basket-59of60 is section 3's endgame, not at bedtime: basket
+## 3 one short of its quota (laid out as stress-still's, _into_basket_3) and
+## the rest of the population on the train through the bowl (as
+## stress-moving's), so playing on fills the last basket and plays the
+## celebration.
 # @spec-link [[req_test_level_and_test_mode]]
 # @spec-link [[req_persistence_and_saves]]
 
@@ -126,6 +132,9 @@ const BOWL_BOTTOM := 200.0
 const SPOT_PITCH := 50.0
 const IN_BASKET_3 := 60
 const BOWL_CAMERA := Vector2(14.375 * S, -150.0)
+## s3-basket-59of60 (chunk 22): the camera at the centre of basket 3's
+## framing zone (s3.frame.basket, zoom 0.8), switch 3 and the basket in view.
+const BASKET_3_CAMERA := Vector2(15.875 * S, -150.0)
 ## stress-still's settling time, at most, ticks (2 minutes): the bowl's pile
 ## of size-1 slimes spreads slowly (they don't stack) before it comes to rest
 ## (about 64 s); the fixture waits until every slime rests, or fails.
@@ -221,6 +230,16 @@ const FIXTURES := {
 			+ "on the bowl. The worst moving case: a measurement, not a target (chunk 16; "
 			+ "tools/bench_level.gd)."),
 			"camera": [BOWL_CAMERA.x, BOWL_CAMERA.y], "build": "_stress_moving"},
+	"s3-basket-59of60": {"description": ("Gates 1 and 2 open as after baskets 1 and 2 fired, all "
+			+ "200 base slimes woken (no sleeper left), not at bedtime (no session). Switch 3 "
+			+ "flipped (its trapdoor open) and basket 3 at 59 of 60: 59 size-1 slimes in it, laid "
+			+ "out as stress-still's (section 3's last 59 sleepers, in stable ID order). The other "
+			+ "141, size-1 train slimes, spread through section 3's bowl from its bottom up, each "
+			+ "following the loop toward switch 3. The camera on basket 3's framing zone (switch 3 "
+			+ "and the basket in view). Played on, the first slime over the trapdoor drops in: the "
+			+ "basket fills (60), plays its reward, fires, and the level's celebration plays. For "
+			+ "the section-3 endgame (chunk 22, D128 item 24.1)."),
+			"camera": [BASKET_3_CAMERA.x, BASKET_3_CAMERA.y], "build": "_basket_3_59of60"},
 	"midair": {"description": PersistenceFixtures.MIDAIR_DESCRIPTION, "camera": PersistenceFixtures.MIDAIR_CAMERA,
 			"build": "_midair"},
 	"old-version": {"description": PersistenceFixtures.OLD_VERSION_DESCRIPTION, "camera": null,
@@ -608,26 +627,8 @@ func _stress_still() -> Simulation:
 	if not _open_gates_before(sim, 3):
 		return null
 	var population := _whole_population(sim)
-	var box: Rect2 = _level.data.baskets[BASKET_3]["box"]
-	var reach := SlimeBodies.ring_radius_for(1) + SlimeBodies.EDGE
-	var per_row := int((box.size.x - 2.0 * reach - 4.0) / SPOT_PITCH) + 1
 	var pile := population.slice(population.size() - IN_BASKET_3)
-	var row := 0
-	var column := 0
-	for member in pile:
-		var shift := SPOT_PITCH * 0.5 if row % 2 == 1 else 0.0
-		if column >= per_row - row % 2:
-			row += 1
-			column = 0
-			shift = SPOT_PITCH * 0.5 if row % 2 == 1 else 0.0
-		var at := Vector2(box.position.x + reach + 2.0 + shift + column * SPOT_PITCH,
-				box.end.y - reach - 2.0 - row * (SPOT_PITCH - 6.0))
-		var slime := sim.slimes.create(member[1], 1, at, SlimeBodies.IN_BASKET)
-		sim.identities.assign(slime, PackedStringArray([member[0]]))
-		column += 1
-	sim.frontier.tap_switch(sim, SWITCH_3)
-	sim.object_states[SWITCH_3]["trapdoor_shut"] = false
-	sim.object_states[BASKET_3]["weight"] = pile.size()
+	_into_basket_3(sim, pile)
 	# Full already: since chunk 23D the sets stand still at bedtime (no phase
 	# changes), so a basket still `filling` when bedtime starts would stay so,
 	# its trapdoor open. Full at this tick, as the first step turned it before
@@ -660,6 +661,52 @@ func _stress_still() -> Simulation:
 		return null
 	print("make_fixture: stress-still's pile rests %d ticks after loading" % best_ticks)
 	return best
+
+
+## Makes a size-1 slime resting in basket 3 (state "in_basket") for each
+## [stable ID, species] of `pile`, in staggered rows SPOT_PITCH px apart from
+## the basket's floor up, then flips switch 3 with its trapdoor open and
+## gives the basket its weight (its phase is left as it is: filling).
+func _into_basket_3(sim: Simulation, pile: Array) -> void:
+	var box: Rect2 = _level.data.baskets[BASKET_3]["box"]
+	var reach := SlimeBodies.ring_radius_for(1) + SlimeBodies.EDGE
+	var per_row := int((box.size.x - 2.0 * reach - 4.0) / SPOT_PITCH) + 1
+	var row := 0
+	var column := 0
+	for member in pile:
+		var shift := SPOT_PITCH * 0.5 if row % 2 == 1 else 0.0
+		if column >= per_row - row % 2:
+			row += 1
+			column = 0
+			shift = SPOT_PITCH * 0.5 if row % 2 == 1 else 0.0
+		var at := Vector2(box.position.x + reach + 2.0 + shift + column * SPOT_PITCH,
+				box.end.y - reach - 2.0 - row * (SPOT_PITCH - 6.0))
+		var slime := sim.slimes.create(member[1], 1, at, SlimeBodies.IN_BASKET)
+		sim.identities.assign(slime, PackedStringArray([member[0]]))
+		column += 1
+	sim.frontier.tap_switch(sim, SWITCH_3)
+	sim.object_states[SWITCH_3]["trapdoor_shut"] = false
+	sim.object_states[BASKET_3]["weight"] = pile.size()
+
+
+## s3-basket-59of60: gates 1 and 2 open, the whole population woken: the
+## last IN_BASKET_3 - 1 (in stable ID order, section 3's) resting in basket
+## 3, switch 3 flipped, the basket filling at one short of its quota; the
+## others size-1 train slimes through the bowl from its bottom up, each
+## following the loop from its nearest point, toward switch 3. No session:
+## not at bedtime, so the sets play on.
+# @spec-link [[req_switch_basket_gate_set]]
+# @spec-link [[req_level_completion_celebration]]
+func _basket_3_59of60() -> Simulation:
+	var sim := _fresh_level()
+	if not _open_gates_before(sim, 3):
+		return null
+	var population := _whole_population(sim)
+	var in_basket := IN_BASKET_3 - 1
+	_into_basket_3(sim, population.slice(population.size() - in_basket))
+	if not _into_bowl(sim, population.slice(0, population.size() - in_basket), SlimeBodies.TRAIN):
+		return null
+	return sim
 
 
 ## Steps `sim` until every slime rests, at most SETTLE_MAX_TICKS, and returns

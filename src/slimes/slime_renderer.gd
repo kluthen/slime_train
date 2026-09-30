@@ -6,9 +6,12 @@ extends Node2D
 ##
 ## Each ring becomes a triangle fan (ring points around a centre vertex) plus
 ## a skirt: a strip out to SKIRT px beyond the ring, where the field falls
-## from 1 to 0. The vertex array (ring points, skirt points, centres) is
-## rebuilt every frame; the index and colour arrays only when the slimes
-## change (SlimeBodies.topology_version).
+## from 1 to 0. Only the slimes that can be seen are drawn (is_seen(): not
+## parked, and on the part of the world the viewport shows, give or take
+## their reach). The vertex array (ring points, skirt points, centres) is
+## refreshed every frame for those slimes only; the colour array and each
+## slime's own indices when the slimes change (SlimeBodies.topology_version),
+## the painters' index arrays when the seen slimes change.
 ##
 ## BLEND (the spike's technique, the default): the fields are painted into two
 ##   SubViewports at `field_scale` of the screen's resolution, one species per
@@ -29,6 +32,10 @@ const DIRECT_SHADER := preload("res://src/slimes/slime_direct.gdshader")
 ## the ring.
 const SKIRT := SlimeBodies.EDGE * 2.0
 const ONE_HOT: Array[Color] = [Color(1, 0, 0), Color(0, 1, 0), Color(0, 0, 1)]
+## How far a slime's centre may be off the shown rect and the slime still be
+## drawn, in shares of its ring radius, plus the skirt: a ring point is never
+## that far from its centre, however squashed, so nothing pops at the edges.
+const CULL_REACH := 2.0
 
 var draw_mode := BLEND:
 	set(value):
@@ -54,6 +61,11 @@ var _field_views: Array[SubViewport] = []
 var _colors := PackedColorArray()
 var _verts := PackedVector2Array()
 var _vertex_count := 0
+var _drawn_count := 0
+## Each slime's fan and skirt indices (by slime index), rebuilt with the topology.
+var _slime_indices: Array[PackedInt32Array] = []
+## Which slimes were drawn last frame (1 per slime index, is_seen()).
+var _seen := PackedByteArray()
 
 
 ## BLEND on a display, DIRECT when headless (nothing is seen, so the cheapest).
@@ -61,9 +73,31 @@ static func default_mode() -> int:
 	return DIRECT if DisplayServer.get_name() == "headless" else BLEND
 
 
-## Vertices drawn last frame: ring points, skirt points and one centre per slime.
+## Vertices drawn last frame: ring points, skirt points and one centre per
+## slime drawn.
 func vertex_count() -> int:
 	return _vertex_count
+
+
+## Slimes drawn last frame (the seen ones, is_seen()).
+func drawn_count() -> int:
+	return _drawn_count
+
+
+## The world rect `viewport` shows: its visible rect through its canvas
+## transform (the camera).
+static func shown_rect(viewport: Viewport) -> Rect2:
+	return viewport.get_canvas_transform().affine_inverse() * viewport.get_visible_rect()
+
+
+## Whether slime index `s` of `slimes` can be seen on world rect `shown`: not
+## parked (Offscreen: off screen, not simulated), and its centre within
+## CULL_REACH of its ring radius plus the skirt of `shown`, so a slime
+## straddling the edge is drawn.
+static func is_seen(slimes: SlimeBodies, s: int, shown: Rect2) -> bool:
+	if slimes.calm[s] == SlimeBodies.PARKED:
+		return false
+	return shown.grow(slimes.ring_radius[s] * CULL_REACH + SKIRT).has_point(slimes.centre[s])
 
 
 ## The field viewports (two in BLEND, none in DIRECT).
@@ -77,10 +111,15 @@ func _process(_delta: float) -> void:
 	if bodies == null:
 		_clear()
 		return
-	if bodies.topology_version != _topology:
+	var topology_changed := bodies.topology_version != _topology
+	if topology_changed:
 		_rebuild_topology()
 	if draw_mode == BLEND:
 		_follow_screen()
+	var seen := _seen_mask(shown_rect(get_viewport()))
+	if topology_changed or seen != _seen:
+		_seen = seen
+		_rebuild_indices()
 	_draw_bodies()
 
 
@@ -159,7 +198,8 @@ func _follow_screen() -> void:
 		composite.size = viewport.get_visible_rect().size * to_world.get_scale()
 
 
-## Index and colour arrays, rebuilt when slimes appear, go or change size.
+## The colour array and each slime's indices, rebuilt when slimes appear, go
+## or change size; the painters' indices follow (_rebuild_indices()).
 func _rebuild_topology() -> void:
 	_topology = bodies.topology_version
 	var n := bodies.pos.size()
@@ -172,38 +212,67 @@ func _rebuild_topology() -> void:
 			_colors[j] = Color(c, 1.0)
 			_colors[n + j] = Color(c, 0.0)
 		_colors[2 * n + s] = Color(c, 1.0)
-	_painter_indices.clear()
-	if draw_mode == DIRECT:
-		_painter_indices.append(_indices_for(-1))
-	else:
-		_painter_indices.append(_indices_for(0))
-		_painter_indices.append(_indices_for(1))
-
-
-## A fan inside each ring and a quad strip for its skirt, for the slimes of
-## species group `group` (0: A-C, 1: D-F), or all of them for -1.
-func _indices_for(group: int) -> PackedInt32Array:
-	var indices := PackedInt32Array()
-	var n := bodies.pos.size()
+	_slime_indices.clear()
 	for s in bodies.slime_count:
-		if group >= 0 and bodies.species[s] / 3 != group:
-			continue
-		var f: int = bodies.first[s]
-		var count: int = bodies.npts[s]
-		var c: int = 2 * n + s
-		for i in count:
-			var a := f + i
-			var b := f + (i + 1) % count
-			indices.append_array([c, a, b, a, n + a, n + b, a, n + b, b])
+		_slime_indices.append(_indices_of(s, n))
+
+
+## A fan inside slime index `s`'s ring and a quad strip for its skirt, for a
+## vertex array of `n` ring points (then n skirt points, then the centres).
+func _indices_of(s: int, n: int) -> PackedInt32Array:
+	var indices := PackedInt32Array()
+	var f: int = bodies.first[s]
+	var count: int = bodies.npts[s]
+	var c: int = 2 * n + s
+	for i in count:
+		var a := f + i
+		var b := f + (i + 1) % count
+		indices.append_array([c, a, b, a, n + a, n + b, a, n + b, b])
 	return indices
 
 
+## 1 for each slime index that can be seen on world rect `shown` (is_seen()), else 0.
+func _seen_mask(shown: Rect2) -> PackedByteArray:
+	var mask := PackedByteArray()
+	mask.resize(bodies.slime_count)
+	for s in bodies.slime_count:
+		mask[s] = 1 if is_seen(bodies, s, shown) else 0
+	return mask
+
+
+## The painters' index arrays for the seen slimes (_seen): one for every
+## species in DIRECT, species group A-C then D-F in BLEND.
+func _rebuild_indices() -> void:
+	var group_a := PackedInt32Array()
+	var group_b := PackedInt32Array()
+	_drawn_count = 0
+	_vertex_count = 0
+	for s in bodies.slime_count:
+		if _seen[s] == 0:
+			continue
+		if draw_mode == DIRECT or bodies.species[s] / 3 == 0:
+			group_a.append_array(_slime_indices[s])
+		else:
+			group_b.append_array(_slime_indices[s])
+		_drawn_count += 1
+		_vertex_count += bodies.npts[s] * 2 + 1
+	_painter_indices.clear()
+	_painter_indices.append(group_a)
+	if draw_mode == BLEND:
+		_painter_indices.append(group_b)
+
+
+## Refreshes the seen slimes' vertices (the others' skirt and centre
+## vertices are left stale: no index points at them) and hands each
+## painter its triangles.
 func _draw_bodies() -> void:
 	var pos: PackedVector2Array = bodies.pos
 	var n := pos.size()
 	_verts = pos.duplicate()
 	_verts.resize(n * 2 + bodies.slime_count)
 	for s in bodies.slime_count:
+		if _seen[s] == 0:
+			continue
 		var f: int = bodies.first[s]
 		var last: int = f + bodies.npts[s] - 1
 		var pp: Vector2 = pos[last]
@@ -217,7 +286,6 @@ func _draw_bodies() -> void:
 			pp = cur
 			cur = nx
 		_verts[2 * n + s] = c / bodies.npts[s]
-	_vertex_count = _verts.size()
 	for i in _painters.size():
 		var item := _painters[i].get_canvas_item()
 		RenderingServer.canvas_item_clear(item)
@@ -227,5 +295,6 @@ func _draw_bodies() -> void:
 
 func _clear() -> void:
 	_vertex_count = 0
+	_drawn_count = 0
 	for painter in _painters:
 		RenderingServer.canvas_item_clear(painter.get_canvas_item())

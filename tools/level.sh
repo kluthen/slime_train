@@ -13,6 +13,7 @@
 #   new       tools/new_level.gd     the new-level scaffolder
 #   fixture   tools/make_fixture.gd  a level's fixtures
 #   bench     tools/bench_level.gd   a level's tick cost
+#   rest      tools/bench_rest.gd    the resting-pile rule measured (test level)
 #
 # The arguments go to the tool (for example: tools/level.sh check
 # --level=01 --fast). Exit code: the tool's; 2 when the import fails or the
@@ -22,7 +23,7 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.."
 GODOT="${GODOT:-godot}"
-USAGE="usage: tools/level.sh check|report|new|fixture|bench [arguments...]"
+USAGE="usage: tools/level.sh check|report|new|fixture|bench|rest [arguments...]"
 
 case "${1:-}" in
 	check) script=check_level ;;
@@ -30,6 +31,7 @@ case "${1:-}" in
 	new) script=new_level ;;
 	fixture) script=make_fixture ;;
 	bench) script=bench_level ;;
+	rest) script=bench_rest ;;
 	*)
 		echo "tools/level.sh: unknown tool '${1:-}'" >&2
 		echo "$USAGE" >&2

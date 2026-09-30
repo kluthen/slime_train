@@ -26,6 +26,14 @@ func advance(delta_seconds: float, max_ticks: int) -> int:
 	return ticks
 
 
+## The most ticks one frame may run at speed `scale` (a time scale: test
+## mode's times the debug overlay's): `cap_at_1x` (> 0) at 1x or below,
+## times the speed rounded up above it, so a debug speed keeps its pace.
+static func max_ticks_for(scale: float, cap_at_1x: int) -> int:
+	assert(cap_at_1x > 0, "FixedStep.max_ticks_for: the cap must be > 0")
+	return cap_at_1x * maxi(1, ceili(scale))
+
+
 ## Forgets any leftover time (when a new simulation starts).
 func reset() -> void:
 	_remainder = 0.0

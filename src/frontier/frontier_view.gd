@@ -41,6 +41,13 @@ const MARK_POST_COLOR := Color(0.95, 0.95, 0.9)
 ## The simulation drawn.
 var simulation: Simulation = null
 
+## The way on along the loop at each switch (id -> unit Vector2, see
+## way_of()), worked out for level _ways_level with gates _ways_gates open:
+## the loop doesn't move, so only a new level or a gate opening changes it.
+var _ways := {}
+var _ways_level: LevelData = null
+var _ways_gates: Array = []
+
 
 func _init() -> void:
 	z_index = 5
@@ -61,10 +68,10 @@ func _draw() -> void:
 		var trapdoor: Rect2 = switch["trapdoor"]
 		if trapdoor.has_area() and state.get("trapdoor_shut", true):
 			draw_rect(trapdoor, DOOR_COLOR)
-		_arrow((switch["box"] as Rect2).get_center(), _way(id))
+		_arrow((switch["box"] as Rect2).get_center(), way_of(id))
 	for id in level.signposts:
 		var signpost: Dictionary = level.signposts[id]
-		_arrow(signpost["position"] + Vector2(0.0, -74.0), _way(signpost["switch"]))
+		_arrow(signpost["position"] + Vector2(0.0, -74.0), way_of(signpost["switch"]))
 	for id in level.gates:
 		var gate: Dictionary = level.gates[id]
 		var state: Dictionary = simulation.gate_states.get(id, {})
@@ -94,16 +101,41 @@ func mark_at() -> Variant:
 
 
 ## The way switch `id` sends the flow: down into its basket when flipped,
-## else on along the loop.
-func _way(id: String) -> Vector2:
+## else on along the loop (cached, _refresh_ways()).
+func way_of(id: String) -> Vector2:
 	var state: Dictionary = simulation.object_states.get(id, {})
 	if state.get("flipped", false):
 		return Vector2.DOWN
-	var switch: Dictionary = simulation.level.switches.get(id, {})
-	var loop := simulation.level.loop
+	_refresh_ways()
+	return _ways[id]
+
+
+## Works out the way on along the loop at every switch, and for every
+## signpost's switch, when the level or its open gates changed since the
+## last time (see _ways).
+func _refresh_ways() -> void:
+	var level := simulation.level
+	var gates: Array = simulation.train.open_gates if simulation.train != null else []
+	if level == _ways_level and gates == _ways_gates:
+		return
+	_ways.clear()
+	for id in level.switches:
+		_ways[id] = _way_along_loop(level, id, gates)
+	for id in level.signposts:
+		var switch_id: String = level.signposts[id]["switch"]
+		if not _ways.has(switch_id):
+			_ways[switch_id] = _way_along_loop(level, switch_id, gates)
+	_ways_level = level
+	_ways_gates = gates.duplicate()
+
+
+## The way on along `level`'s loop with `gates` open at switch `id`, a unit
+## vector: right when the level has no such switch or no loop.
+func _way_along_loop(level: LevelData, id: String, gates: Array) -> Vector2:
+	var switch: Dictionary = level.switches.get(id, {})
+	var loop := level.loop
 	if switch.is_empty() or loop == null:
 		return Vector2.RIGHT
-	var gates: Array = simulation.train.open_gates if simulation.train != null else []
 	var at: float = loop.closest((switch["box"] as Rect2).get_center(), gates)["distance"]
 	var ahead := loop.position_at(at + 40.0, gates) - loop.position_at(at, gates)
 	return ahead.normalized() if ahead.length() > 0.001 else Vector2.RIGHT

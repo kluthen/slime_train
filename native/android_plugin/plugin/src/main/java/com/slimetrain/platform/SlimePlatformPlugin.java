@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.KeyguardManager;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.graphics.Rect;
 import android.hardware.biometrics.BiometricManager;
 import android.hardware.biometrics.BiometricPrompt;
@@ -41,6 +42,14 @@ public class SlimePlatformPlugin extends GodotPlugin {
 	/** Request code of the API 24-29 confirm-credential activity (fits 16 bits). */
 	private static final int CONFIRM_CREDENTIAL_REQUEST = 5207;
 	private static final int[] NO_RECTS = new int[0];
+	/**
+	 * The launch intent's string-array extra holding extra user arguments for
+	 * a debuggable build ({@link #getCommandLineParams}), for example
+	 * {@code am start ... --esa slime_args --test-mode,--perf-log=5}.
+	 */
+	static final String LAUNCH_ARGS_EXTRA = "slime_args";
+	/** Godot's separator: every argument after the first one is a user argument. */
+	private static final String USER_ARGS_SEPARATOR = "--";
 
 	/** True between onMainResume and onMainPause (UI thread only). */
 	private boolean resumed = false;
@@ -69,6 +78,50 @@ public class SlimePlatformPlugin extends GodotPlugin {
 	@Override
 	public String getPluginName() {
 		return PLUGIN_NAME;
+	}
+
+	/**
+	 * Hands Godot extra user arguments from the launch intent, in a
+	 * debuggable build only (the debug export; ApplicationInfo.FLAG_DEBUGGABLE):
+	 * a release build returns none, whatever the intent holds. Godot 4.7
+	 * strips its own {@code command_line_params} extra from an intent to the
+	 * exported launcher, and adb can't start the non-exported GodotApp, so a
+	 * measurement run (tools/android/perf.sh) passes its arguments in the
+	 * {@link #LAUNCH_ARGS_EXTRA} string-array extra instead. Godot calls this
+	 * once, while it initialises the engine, and appends the result to its
+	 * command line; a "--" goes first unless the command line already has
+	 * one, so they arrive as user arguments (OS.get_cmdline_user_args()).
+	 *
+	 * @param current the command line so far
+	 * @return the arguments to append (empty when there are none to add)
+	 */
+	@Override
+	public List<String> getCommandLineParams(List<String> current) {
+		Activity activity = getActivity();
+		if (activity == null) {
+			Log.w(TAG, "getCommandLineParams: no host activity yet, no launch arguments read");
+			return Collections.emptyList();
+		}
+		if (!isDebuggable(activity)) {
+			return Collections.emptyList();
+		}
+		Intent intent = activity.getIntent();
+		String[] extra = intent == null ? null : intent.getStringArrayExtra(LAUNCH_ARGS_EXTRA);
+		if (extra == null || extra.length == 0) {
+			return Collections.emptyList();
+		}
+		List<String> params = new ArrayList<>(extra.length + 1);
+		if (!current.contains(USER_ARGS_SEPARATOR)) {
+			params.add(USER_ARGS_SEPARATOR);
+		}
+		Collections.addAll(params, extra);
+		Log.i(TAG, "launch arguments from the intent: " + params);
+		return params;
+	}
+
+	/** Whether this is a debuggable build (the debug export, never the release one). */
+	private static boolean isDebuggable(Activity activity) {
+		return (activity.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
 	}
 
 	/** Declares the plugin's only signal, {@code credential_finished(ok: bool)}. */

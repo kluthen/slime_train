@@ -262,7 +262,10 @@ func _bump(bodies: SlimeBodies, a: int, b: int) -> void:
 	bodies.set_velocity(b, bodies.velocity_of(b) + direction * BUMP_SPEED * wa / (wa + wb) + lift)
 
 
-## The dip nudge (see the class doc).
+## The dip nudge (see the class doc). Each train slime's distance is read
+## once, and the touching partners are gathered once per tick, only when
+## some slime is on a dip's floor: with ~150 slimes in view, asking the
+## train and the bodies pair by pair cost most of the tick.
 # @spec-link [[rule_dip_may_nudge_fusion]]
 func _nudge(sim: Simulation) -> void:
 	var train := sim.train
@@ -275,57 +278,86 @@ func _nudge(sim: Simulation) -> void:
 	if _floors.is_empty():
 		return
 	var bodies := sim.slimes
-	# The train slimes, and those of them on screen.
+	# The train slimes (in id order), their distances along the loop, which
+	# of them are on screen, and which of those are on a dip's floor.
 	var all: Array[int] = []
-	var ids: Array[int] = []
+	var distances := PackedFloat64Array()
+	var shown := PackedByteArray()
+	var on_floor := PackedInt32Array()
 	for slime_id in train.tracked_ids():
 		if bodies.state_of(slime_id) != SlimeBodies.TRAIN:
 			continue
+		var distance := train.distance_of(slime_id)
+		var visible := on_screen(sim.view, bodies.centre_of(slime_id))
+		if visible and on_dip_floor(distance):
+			on_floor.append(all.size())
 		all.append(slime_id)
-		if on_screen(sim.view, bodies.centre_of(slime_id)):
-			ids.append(slime_id)
-	for slime_id in ids:
-		if on_dip_floor(train.distance_of(slime_id)) and (_holding(sim, ids, slime_id) or _gathering(sim, all, ids, slime_id)):
+		distances.append(distance)
+		shown.append(1 if visible else 0)
+	if on_floor.is_empty():
+		return
+	var partners := _floor_partners(bodies, all, on_floor)
+	for k in on_floor:
+		var slime_id := all[k]
+		if _holding(bodies, partners, slime_id) or _gathering(sim, all, distances, shown, k):
 			bodies.set_hop_timer(slime_id, maxf(bodies.hop_timer_of(slime_id), DIP_HOLD_SECONDS))
 
 
-## Holding (the dip nudge): whether train slime `slime_id`, on a dip's floor,
-## touches a slime of `ids` (the train slimes on screen) that is on a dip's
-## floor too and that it may fuse with.
-func _holding(sim: Simulation, ids: Array[int], slime_id: int) -> bool:
-	var bodies := sim.slimes
-	for other in ids:
-		if other != slime_id and bodies.can_merge(slime_id, other) and bodies.touching(slime_id, other) \
-				and on_dip_floor(sim.train.distance_of(other)):
+## The touching pairs of `on_floor` (indices into `all`: the train slimes on
+## screen and on a dip's floor), as id -> [ids it touches], both ways.
+func _floor_partners(bodies: SlimeBodies, all: Array[int], on_floor: PackedInt32Array) -> Dictionary:
+	var floor_ids := {}
+	for k in on_floor:
+		floor_ids[all[k]] = true
+	var partners := {}
+	for pair: Vector2i in bodies.touching_pairs():
+		if floor_ids.has(pair.x) and floor_ids.has(pair.y):
+			partners.get_or_add(pair.x, []).append(pair.y)
+			partners.get_or_add(pair.y, []).append(pair.x)
+	return partners
+
+
+## Holding (the dip nudge): whether train slime `slime_id`, on screen on a
+## dip's floor, touches a slime it may fuse with that is on screen on a
+## dip's floor too (`partners`, from _floor_partners).
+func _holding(bodies: SlimeBodies, partners: Dictionary, slime_id: int) -> bool:
+	for other: int in partners.get(slime_id, []):
+		if bodies.can_merge(slime_id, other):
 			return true
 	return false
 
 
-## Gathering (the dip nudge): whether `slime_id` waits for a slime it may
-## fuse with, on screen (in `ids`) and less than DIP_GATHER px behind it
-## along the loop: as long as it likes for the train slime directly behind
-## it (among `all`, every train slime), and until it has not advanced for
-## DIP_WAIT_TICKS for one with other slimes between them.
-func _gathering(sim: Simulation, all: Array[int], ids: Array[int], slime_id: int) -> bool:
+## Gathering (the dip nudge): whether `all[k]` waits for a slime it may
+## fuse with, on screen (`shown`) and less than DIP_GATHER px behind it
+## along the loop (`distances`, of `all`): as long as it likes for the train
+## slime directly behind it (among `all`, every train slime), and until it
+## has not advanced for DIP_WAIT_TICKS for one with other slimes between
+## them.
+func _gathering(sim: Simulation, all: Array[int], distances: PackedFloat64Array, shown: PackedByteArray,
+		k: int) -> bool:
 	var train := sim.train
-	var at := train.distance_of(slime_id)
+	var slime_id := all[k]
+	var at := distances[k]
+	var length := train.length()
 	var next := -1
 	var nearest := INF
-	for other in all:
-		var behind := fposmod(at - train.distance_of(other), train.length())
-		if other != slime_id and behind > 0.0 and behind < nearest:
-			next = other
+	for j in all.size():
+		var behind := fposmod(at - distances[j], length)
+		if j != k and behind > 0.0 and behind < nearest:
+			next = j
 			nearest = behind
 	if nearest >= DIP_GATHER:
 		return false
-	if ids.has(next) and sim.slimes.can_merge(slime_id, next):
+	if shown[next] != 0 and sim.slimes.can_merge(slime_id, all[next]):
 		return true
-	var marked_at: int = train.record_of(slime_id)["marked_at"]
+	var marked_at := train.marked_at_of(slime_id)
 	if marked_at >= 0 and sim.tick - marked_at >= DIP_WAIT_TICKS:
 		return false
-	for other in ids:
-		var behind := fposmod(at - train.distance_of(other), train.length())
-		if other != slime_id and behind > 0.0 and behind < DIP_GATHER and sim.slimes.can_merge(slime_id, other):
+	for j in all.size():
+		if shown[j] == 0 or j == k:
+			continue
+		var behind := fposmod(at - distances[j], length)
+		if behind > 0.0 and behind < DIP_GATHER and sim.slimes.can_merge(slime_id, all[j]):
 			return true
 	return false
 

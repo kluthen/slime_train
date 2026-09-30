@@ -3,8 +3,10 @@ extends Node2D
 ## Draws what the simulation says about taps, above the slimes: every tap's
 ## ripple, an expanding ring where the finger touched (D65), and each slime's
 ## facing, a placeholder eye dot on the side it looks at (slimes in range
-## turn toward a tap). Also the first-play hint (Hint), while it shows: a
-## wordless touch mark pulsing around the first sleeper (D65). It only reads
+## turn toward a tap), for the slimes that can be seen only
+## (SlimeRenderer.is_seen: not parked, on the shown part of the world). Also
+## the first-play hint (Hint), while it shows: a wordless touch mark pulsing
+## around the first sleeper (D65). It only reads
 ## the simulation. Placeholder art until the ui_ux tree settles the look.
 ## Place it at the world origin.
 # @spec-link [[req_controls_tap_zones]]
@@ -59,8 +61,18 @@ func _draw() -> void:
 		draw_arc(hint.position, swell, 0.0, TAU, 48, Color(HINT_COLOR, HINT_COLOR.a * (1.0 - pulse)),
 				HINT_WIDTH / zoom, true)
 	var slimes := simulation.slimes
-	for slime_id in slimes.ids():
+	for slime_id in eyed_slimes(slimes, SlimeRenderer.shown_rect(get_viewport())):
 		var r := slimes.radius_of(slime_id)
 		var look: Vector2 = simulation.facing.get(slime_id, Vector2.RIGHT)
 		var at := slimes.centre_of(slime_id) + look * r * EYE_OUT + Vector2(0.0, -r * 0.2)
 		draw_circle(at, r * EYE_SIZE, EYE_COLOR)
+
+
+## The slimes of `slimes` whose eye is drawn: those that can be seen on world
+## rect `shown` (SlimeRenderer.is_seen), in slime index order.
+static func eyed_slimes(slimes: SlimeBodies, shown: Rect2) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	for s in slimes.slime_count:
+		if SlimeRenderer.is_seen(slimes, s, shown):
+			out.append(slimes.id[s])
+	return out
