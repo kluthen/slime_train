@@ -6,7 +6,8 @@ test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
 playtest issues, last before the health review, proposed, D128; TL1 done,
 D129; chunk 18 done, D130; chunk 19 done, D131; chunk 20 done on the
-emulator, D132; chunk L01, the first real level, proposed, O99)
+emulator, D132; chunk L01, the first real level, proposed, O99; chunk 21
+done, D133)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -136,7 +137,12 @@ technology, not business behaviour:
   the emulator. The checks on the user's S20 FE (tilt feel among them)
   are pending. Its choices where the spec was silent are proposed in
   D132, with its open risks.
-- **Next: 21** onward. (5N is a contingency, run only if chunk 22 fails,
+- **Chunk 21** done (D133; ec518a0, suite 1198/1198): the end-to-end
+  suite; every fixture has a scripted scenario and a same-seed hash test,
+  and `tests/e2e/` passes in the exported Linux build [DoD 31]. Its
+  choices where the spec was silent are proposed in D133, with its open
+  risks.
+- **Next: 22** onward. (5N is a contingency, run only if chunk 22 fails,
   D96.)
 - **Chunk L01** (the first real level; proposed, O99): the release build
   ships no level until it exists.
@@ -492,6 +498,9 @@ instead).
   end-to-end test, and the suite runs headless on the Linux build.
 - **Done when:** [DoD 31] passes, and the suite is repeatable (same seed, same
   result).
+- **Built** (D133): DoD 31 passes on the Linux build; four tool-driven
+  test files run only in the editor suite, and repeatability is proved per
+  fixture (proposed, D133).
 
 ### 22. Performance pass on phones (M)
 

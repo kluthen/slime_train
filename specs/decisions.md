@@ -1956,3 +1956,42 @@ toolkit; see O99.
 
 **6. The build order.** Chunk 20 is done on the emulator; its phone checks
 (3) are pending. Next, chunk 21.
+
+## D133 — Chunk 21 as built: end-to-end suite (2026-09-30)
+**Built** (ec518a0, editor suite 1198/1198); DoD 31 passes. **The points
+in 2 wait for the user's approval** (with D126 to D132). Detail:
+`docs/dev/README.md`, "Chunk 21: end-to-end suite" (with its fixture to
+test table).
+
+**1. As built.**
+- **Every fixture has a scripted scenario and a same-seed hash test.** A
+  new file adds the five that lacked one (`stress-moving`, `midair`,
+  `old-version`, `s1-optout`, `stress-still`), each booted twice on seed
+  21 with equal state hashes.
+- **A guard test** fails when a fixture has no end-to-end test loading it.
+- **The suite runs on the Linux build (DoD 31):** a new "Linux debug"
+  preset; `tools/linux/e2e.sh` exports it and runs `tests/e2e/` inside
+  the exported binary (354/354 in 47 scripts, about 13.5 min). It refuses
+  to run on a release build.
+- **A build-guarantees test** reads the build files: the Android presets
+  ask no permission, the plugin asks only the fingerprint/face one, no
+  billing library, no network class in `src/` (DoD 27's no network, and
+  no in-app purchases).
+
+**2. Proposed: the build's choices where the spec was silent.**
+- **Four tool-driven test files stay out of the Linux-build run** (the
+  level checker, level selection, the level tools and new-level tests:
+  they launch Godot or write into the project, read-only in an export).
+  They still run in the editor suite.
+- **"Repeatable" is proved per fixture** by the same-seed hash tests, not
+  by running the whole suite twice.
+- **The Linux build exports scripts as text** (the test runner needs
+  them); Android keeps binary tokens.
+
+**3. Open risks, carried forward.**
+- The coverage guard matches text, not an actual load.
+- Child processes share the saves folder and `parent.json`; nothing
+  writes there today (autosave is off in test mode).
+- The exported test runner hard-codes the main scene's path.
+
+**4. The build order.** Chunk 21 is done. Next, chunk 22.
