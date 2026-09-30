@@ -7,7 +7,8 @@ TL1 before 18, proposed, D127; chunk 24, the user's second round of
 playtest issues, last before the health review, proposed, D128; TL1 done,
 D129; chunk 18 done, D130; chunk 19 done, D131; chunk 20 done on the
 emulator, D132; chunk 21 done, D133; v1 is the test level only, and
-chunk L01, the first real level, moves to v2, D134)
+chunk L01, the first real level, moves to v2, D134; v1 is the full MVP,
+never in a store, DoD 32 deferred, D135)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -146,7 +147,7 @@ technology, not business behaviour:
   D96.)
 - **Chunk L01** (the first real level) is **v2**, not this plan (D134):
   v1 is the test level only. The release preset stays as built, with the
-  test level left out (publishing a v1 release build: O100).
+  test level left out; v1 (full MVP) is never published (D135).
 - **Chunk 24** (the user's second round of playtest issues, an open list;
   proposed, D128): after chunk 22 (and 5N if it runs), the last chunk
   before the closing step, as the user asked. The user's next play
@@ -964,8 +965,8 @@ while another chunk edits the slime body code.
   test level only.
 - **The interface design** of the parent screens, setup and the celebration:
   the UX track. The placeholder UI from chunk 18 is replaced then.
-- **Playtesting with children** [DoD 32]: after chunks 20 and 22, on the
-  test level (D134).
+- **Playtesting with children** [DoD 32]: deferred, not an objective of
+  the full MVP; it may first need some graphics work (D135).
 - **The basket's own design** (where it releases its slimes): a later
   spec session. Chunk 14 keeps it swappable.
 

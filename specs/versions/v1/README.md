@@ -1,4 +1,4 @@
-# v1 — First release
+# v1 (full MVP)
 
 Status: master spec consolidated (early, D76)
 
@@ -9,7 +9,9 @@ v2's chunk L01 (`../../levels/01/`, D134).
 
 **v1 is the test level only**, played end to end on the phones, with the
 platform, parent, save and performance work of the build plan (D134).
-Whether a v1 release build is published to a store is O100.
+**The full MVP** (D135): all the bare mechanics are validated, the gameplay
+loop is there, and it can be tried. Never published to a store. The folder
+and the "v1" IDs keep their name, since atoms, code and briefs use them.
 Items are settled. The decision IDs point to
 `../../decisions.md`.
 
@@ -95,7 +97,7 @@ Items are settled. The decision IDs point to
 - 60 fps on the reference phone in normal play; at least 30 fps on the floor
   phone with the level's largest realistic pile on one screen, a full basket
   plus the train, mostly still (D82, amended by D96).
-- A paid app, about $3–5 (D31).
+- A paid app, about $3–5 (D31): for the first store release, not v1 (D135, O103).
 
 ## Explicitly not in v1
 
@@ -106,6 +108,6 @@ Items are settled. The decision IDs point to
 
 ## Open for v1
 
-O14, O65, O91, O100 and O101 (O22 and O62 now serve the first real level, v2) (see `../../open-questions.md`). The UX
+O14, O65, O91, O101 and O103 (O22 and O62 now serve the first real level, v2) (see `../../open-questions.md`). The UX
 review's interaction details (O67–O77) are settled (D102), and so are the
 build's points O79–O87 (D103–D107).

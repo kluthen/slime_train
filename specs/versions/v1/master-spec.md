@@ -1,8 +1,11 @@
-# Slime Train v1 — Master spec
+# Slime Train v1 (full MVP) — Master spec
 
 Status: consolidated early, at the user's request. Everything here is
 settled except the gaps listed in "Known gaps". v1 is the test level only;
-the real first level is v2 (D134). Companions: `access-model.md` (who may do what) and
+the real first level is v2 (D134). v1 is **the full MVP**: all the bare
+mechanics are validated, the gameplay loop is there, and it can be tried;
+it is never published to a store (D135). The "v1" name stays in folders
+and IDs. Companions: `access-model.md` (who may do what) and
 `../../personas.md` (who the game is for). The test level used to build and
 check v1 is in `../../levels/test/README.md`.
 
@@ -106,9 +109,10 @@ would add to P1.G1 and P1.G2) comes in a later version.
   code. Parent-facing text in English and French.
 - Persistence: one save per level, autosave, deleting a level's save.
 - The test level plus a test mode for end-to-end tests; the release build
-  leaves both out (whether it is published: O100).
+  leaves both out. v1 is never published (D135).
 - Platform: Godot 4, Android; a Linux desktop build for development and tests.
-  A paid app at about $3–5, with no purchases inside the app.
+  No purchases inside the app. The price (about $3–5) is for the first
+  store release, not v1 (D135, O103).
 
 ### Not in v1
 
@@ -802,7 +806,8 @@ Starting values, to be tuned in prototypes and playtests.
 
 v1 is done when every criterion below holds on the release build, on the
 reference phone unless stated otherwise, and the test level passes the
-level-rules check. Which build now that the release build has no level: O101.
+level-rules check. Which build, since the release build has no level and
+never ships: O101.
 
 **World and slimes**
 
@@ -927,8 +932,10 @@ level-rules check. Which build now that the release build has no level: O101.
     5 minutes of play.
 31. The automated end-to-end suite on the test level passes on the Linux
     build.
-32. A playtest with the primary persona shows her finding the call on her
-    own, with no adult explaining it (goal P1.G3).
+32. *Deferred, not an objective of the full MVP (D135):* a playtest with
+    the primary persona shows her finding the call on her own, with no
+    adult explaining it (goal P1.G3). Putting it in children's hands may
+    first need some graphics work.
 
 ## 10. Deferred
 
@@ -977,7 +984,7 @@ Still undecided.
    stuck slimes are. Whether 24 px of progress in 60 s is the right
    measure once the real level's return routes exist is to recheck with
    the first level's design.
-8. **Publishing and the release build** (D134). v1 is the test level only,
-   and the release build leaves the test level out. Whether a v1 release
-   build is ever published to a store is not settled (O100), nor which build
-   the Definition of done is checked on (O101).
+8. **The release build** (D134, D135). v1 is the test level only and is
+   never published; the release build leaves the test level out. Which build
+   the Definition of done is checked on is O101; which version is the first
+   store release is O103.

@@ -2022,3 +2022,24 @@ paramount for this kind of game. Proper gfx won't probably come before v3."
 - **v3 theme:** proper graphics. Placeholder art until then.
 - Only themes: no v2 or v3 spec is written yet (`versions/v2/README.md`,
   `versions/v3/README.md`).
+
+## D135 — v1 is the full MVP, never in a store (2026-09-30)
+Resolves O100. Refines D134. The user's decision, verbatim: "v1 won't ever
+be in a store. v1 is probably not the most accurate version number for
+this. let's call it a full MVP: all bare mechanics are validated, gameplay
+loop is there. It can be tried. We may have somebody work on gfx a bit if
+we truly want to put it in kid hands for handson testing. but that's not
+our objective right now."
+
+- **v1 is never published to a store.**
+- **v1 is called "the full MVP"**: all the bare mechanics are validated, the
+  gameplay loop is there, and it can be tried. The text says "v1 (full
+  MVP)". The folder `versions/v1/` and the "v1" IDs stay as they are, since
+  atoms, code and briefs reference them.
+- **The children's playtest [DoD 32] is deferred:** not an objective of the
+  full MVP. Putting it in children's hands may first need some graphics
+  work ("not our objective right now"). DoD 32 stays in the list, marked
+  deferred. D134's "the playtest runs on the test level" is superseded.
+- O101 stays open; its proposed default now drops the release build as a
+  target (a build that never ships). Which version is the first store
+  release, and so carries D31's price, is O103.
