@@ -118,12 +118,19 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | Lost (`LOST_TICKS`) | 3600 ticks (1 min) after left alone, so 70 s off screen in all | D10 |
 | A train slime stalls (`Train.LOST_STALL_SECONDS`, `LOST_STALL_ADVANCE`, `BOUNDS_MARGIN`, `BOUNDS_TOP_MARGIN`; chunk 6's placeholder) | its progress along the loop hasn't advanced 24 px in 60 s, on screen or off; or its centre is out of the level's bounds (the terrain and the loop, plus 64 px, plus 2000 px above); it is then moved to the loop start (D121). To recheck on the first level, once real return routes exist | D118, D121 |
 | Dropping into a basket off screen (`ENTRY_REACH`, `SLOT_GAP`) | a parked train slime whose centre is within 64 px above an open trapdoor drops in, into the first clear slot of a grid its own width plus 4 px apart, bottom row first | D70 |
-| A slime is still (`REST_DRIFT`, `REST_TICKS`) | supported and within 1 px of its anchor for 30 ticks; the anchor is where the count started; kept for v1, revisited in chunk 22 | D96, D107 |
+| A slime is still (`REST_DRIFT`, `REST_TICKS`) | supported and within 1 px of its anchor for 30 ticks; the anchor is where the count started; kept for v1; measured in chunk 22 (open piles of 40 or more rest in minutes or never), revisiting it is O105 | D96, D107, D138 |
 | A pile rests | when every slime of a touching group of pile slimes (in a basket, or asleep at bedtime) is still at once; awake slimes out of a basket hop and never rest | D96 |
 | A resting pile wakes (`WAKE_SPEED`) | a touching slime faster than 30 px/s (a hop, a landing, a neighbour moving), a state change (bedtime, sunrise, a basket catching or releasing), a slime removed, fused or split next to it; a call wakes the resting slimes within its radius, a tilt change wakes them all | D96 |
 | A door wakes nearby piles (`DOOR_WAKE_REACH`) | a trapdoor, gate or lid opening or shutting wakes the piles within 80 px of it | D96 |
 | Zoomed-out detail (`LOW_ZOOM`, `FULL_ZOOM`, `LOW_POINTS_BY_SIZE`) | below zoom 0.8, 8, 10 and 12 ring points for sizes 1, 2 and 3 (full detail: 12, 15, 18); back to full from 0.85 | D94, D96 |
 | Test level, basket 2 quota | 15 (weight) | test level |
+
+### Performance (chunk 22)
+
+| Value | Start at | Source |
+|---|---|---|
+| Ticks per frame at most (`MAX_TICKS_PER_FRAME`) (proposed) | 2 at 1x speed (was 8); times the debug speed, rounded up; beyond it the game plays in slow motion | D138 |
+| Frame budget on the reference phone (proposed) | per 16.7 ms frame: simulation at most 8 ms, drawing at most 4 ms, at least 4.7 ms left for later animation, music and the system | D138 |
 
 ### Test level sections 2 and 3 (chunks 15, 16)
 

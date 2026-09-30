@@ -2073,3 +2073,141 @@ roadmap. so probably v4."
   reusable mechanics) builds toward the fully implemented level the first
   store release ships. Whether that level is L01 itself, finished later, is
   O104.
+
+## D138 — Chunk 22 as built: the performance pass (2026-09-30)
+**Built** (1e98c7a, suite 1267/1267). **DoD 30 is not met and not
+closed.** The points in 2 wait for the user's approval (with D126 to
+D133). Detail: `docs/dev/README.md`, "Chunk 22: performance"; the phone
+evidence: `docs/perf/2026-09-30-s20fe-session.md` and
+`docs/perf/2026-09-30-independent-review.md`.
+
+**1. As built.** Every fix left the behaviour exactly as it was: on all 17
+fixtures of the test level, the same seed gives the same state hash before
+and after.
+- **The fusion nudge** (the dip's nudge toward a partner) computes its
+  distances once, stops early when no slime is on a dip's floor, and finds
+  partners through maps rather than searches. Most of `stress-moving`'s
+  gain.
+- **Door passes:** the terrain pass for each shut door skips the slimes
+  whose bounding box lies outside the door.
+- **The pair loop** stops at the last slime that isn't a wall.
+- **Off screen:** detail is set for every slime in one call, the level's
+  trapdoors are cached, and each centre is read once.
+- **The centre cache:** a slime's centre is computed once per tick, not at
+  each of about 1000 calls.
+- **Drawing culled to near-view:** only the slimes that can be seen are
+  drawn (parked slimes and slimes far off screen are skipped), and the
+  same goes for their eyes and the debug labels. The debug overlay counts
+  every 250 ms. The switches' and signposts' ways are cached.
+- **Desktop, median ms per tick (headless):** `stress-moving` 27.6 →
+  10.35 (10.3 to 10.9 across runs, −61 %); `s3-basket-59of60` 9.5 → about
+  7.9. Lighter scenes (`fresh`,
+  `gate2-open`, `stress-still`) tick in about 0.9 to 1.3 ms. The culling
+  cut the rest of the frame by about 1.4 to 2.3 ms on the desktop.
+- **Tools:**
+  - the **perf log** (`--perf-log[=SECONDS]`, debug builds only): one
+    line per window with fps, frame times, ticks per frame, ms per tick,
+    the rest of the frame, the slime counts, and the active bodies and
+    pairs;
+  - **`--max-ticks-per-frame=N`** (debug builds only), to measure with
+    another cap;
+  - **`tools/android/perf.sh`**, in fixture mode (cold and warm windows)
+    or `--free-play` (normal play from the phone's own save). It records
+    logcat and the thermal status, and `perf_summary.py` summarises the
+    session from the log. It installs with `adb install -r` only, and
+    never clears the app's data;
+  - **the bench's rest detection** (D131): `stress-still` is timed from the
+    tick its pile actually rests (about 407), not from a fixed tick; a pile
+    that never rests is not timed;
+  - **`tools/level.sh rest`** (D107): the time a bedtime pile in the open
+    takes to rest, and how often hoppers wake a resting pile.
+  - `REST_DRIFT`'s code comment now says what D107 keeps: the anchor is
+    fixed where the count started.
+
+**2. Proposed** (the user reviews):
+- **a. The cap on ticks per frame: 2 at 1× speed** (`MAX_TICKS_PER_FRAME`,
+  was 8) (proposed). With 8, a tick costing more than a frame made every
+  frame run 8 ticks: the game collapsed to a few fps (the catch-up spiral).
+  With 2, a 33 ms frame (30 fps) still plays at full speed, and an
+  overloaded scene plays in slow motion instead of collapsing (in the
+  slowed desktop run, 15.6 fps instead of 5.4). The cap scales with the
+  debug speed (2 × the speed, rounded up), so the overlay's and test mode's
+  speeds keep their pace. Built so; the hash is unchanged.
+- **b. A frame budget on the reference phone** (proposed). The user's goal
+  (2026-09-30), verbatim: "we must reach the maximum performance now,
+  because this version is the raw one. I fully intent to have other
+  objects on screen that will be animated, and music, etc... which will
+  require bits of processing power as well." Per 16.7 ms frame:
+  - simulation at most 8 ms;
+  - drawing at most 4 ms;
+  - at least 4.7 ms left for later animation, music and the system.
+
+  **How it relates to DoD 30** (`req_platform_and_performance_targets`):
+  DoD 30 stays the target (60 fps on the reference phone in normal play,
+  30 fps on the floor phone with the largest realistic pile). The budget
+  splits the reference phone's frame so that meeting DoD 30 today leaves
+  room for v2's music and animated objects; it doesn't change DoD 30's
+  wording. The simulation's share is, on the desktop, a tick of at most
+  about 3.8 ms (phone cold, 2.1× the desktop) or 2.4 ms (throttled, 3.4×).
+  **A consequence to settle with it:** chunk 24.1's desktop target (at
+  most 8 ms per tick at p95, D128) is about 2 to 3 times looser than this
+  budget. If the budget is approved, 24.1's target follows it (proposed).
+- **c. The fixture `s3-basket-59of60`** (proposed): basket 3 at 59 of 60,
+  switch 3 flipped, not at bedtime; 141 train slimes in the bowl; the
+  camera on basket 3's framing zone at zoom 0.8. Played on, the basket
+  fills, fires in view and the celebration plays. It is the new fixture
+  item 24.1 asked for (shared with 24.3). Added to the test level's
+  fixture list.
+- **d. Phone test sessions capture numbers through logs** (the user's
+  rule, 2026-09-30; recorded as proposed until the user confirms this
+  wording): the perf log, logcat and `perf.sh` give the numbers;
+  screenshots are for visual bugs only.
+
+**3. Verdict: the tick is the bottleneck; chunk 5N is recommended.**
+- **DoD 30: not met, not closed.** The reference half fails on the only
+  phone evidence there is (the hand-played session of 2026-09-30: 3 to
+  20 fps in normal play, 4 fps at the section 3 endgame). That build
+  predates the cap, the culling and the centre cache; no perf-log run on
+  the phone yet. The floor-phone half stays open (the phone isn't bought,
+  O14).
+- **The section 3 endgame and `stress-moving` are bound by the physics
+  tick.** Estimated phone tick after the fixes: `s3-basket-59of60` 15 to
+  17 ms cold, 24 to 27 ms throttled; `stress-moving` about 22 / 36 ms.
+  That is more than the whole frame, before any drawing. Lighter scenes
+  are bound by drawing and the rest of the frame (2 to 5 ms phone tick),
+  which the culling cut.
+- **Chunk 5N (the native tick) is recommended**, and chunk 22 repeats
+  after it (D96). The cheap fixes are done; what is left is the GDScript
+  contacts, rings and terrain on 60 to 90 active slimes. 5N is not
+  started.
+
+**4. Findings, for the register and chunk 24.**
+- **a. Time to rest (D107; O105).** Open bedtime piles of size-1 slimes
+  rest slowly with the fixed anchor: 20 slimes in about 22 s, 40 in about
+  165 s, 80 or more never (within 4 to 10 minutes). One awake train slime
+  hopping against the resting bowl pile wakes it 10 to 23 times a minute,
+  so the pile is awake half to three quarters of the time (6.4 to 7.2 ms
+  per tick on the desktop, against 1.0 to 1.5 resting). A resting pile is
+  cheap (0.15 to 0.3 ms for 20 to 40 slimes). The rest rule is not changed.
+- **b. A fired basket's releases keep its pile awake (O106, with 24.3).**
+  A fired basket releases a slime every 18 ticks (0.3 s), and each release
+  wakes the whole pile. `REST_TICKS` is 30, so the pile never rests again
+  during the drain: bursts of about 89 active slimes, a tick 57 % dearer.
+  A design call for chunk 24, together with 24.3.
+- **c. Parked asleep slimes stack on one spot (likely bug; O91).**
+  Bedtime-asleep slimes that creep past the park margin are parked where
+  they are; a parked slime isn't a wall, so the next one slides into the
+  same spot: 28 to 31 slimes end up on one centre, and nothing spreads
+  them out when they unpark. The stuck safety net skips bedtime-asleep
+  slimes, and no test covers it. It also skews 4a's "never" for the
+  largest piles, so it is settled before the rest rule.
+
+**5. In progress, no decision:** "crowd detail", the user's idea: fewer
+ring points when many slimes are active (for size 1: 12, 10, 8 and 6
+points at fewer than 20, 30 and 40 active slimes, and at 40 or more), on
+branch `exp/crowd-detail`; if kept, it is its own decision, since it
+changes `req_offscreen_simulation`.
+
+**6. The build order.** Chunk 22 is done; DoD 30 open. Next, the user's
+call on 5N (recommended); then chunk 22 repeated (D96), then chunk 24
+(O97).

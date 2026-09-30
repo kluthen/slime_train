@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v18
+Status: draft v19
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -139,7 +139,8 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
     out); the test level with 110 slimes and the camera at the start,
     2.6 ms per tick with every slime simulated, 1.9 ms with off-screen
     parking (86 parked). A big pile of base slimes in the open rests slowly;
-    the rule is kept for v1 and looked at again in chunk 22 (D107).
+    the rule is kept for v1 and looked at again in chunk 22 (D107);
+    measured there, revisiting it is O105 (D138).
 - **The realistic worst case in play is a mostly still pile** (level rule
   16): a full basket plus the train, not 200 moving slimes. The
   `stress-moving` fixture stays as a measurement, not a target.
@@ -157,6 +158,23 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   realistic pile), chunk 5N moves the tick (ring solver, contacts, terrain
   contact) to native code behind the same GDScript interface, and chunk 22
   is repeated.
+- **Chunk 22 as built (D138):** the cheap fixes are done, each with the
+  same state hash (the fusion nudge, door passes, the pair loop, off
+  screen, the centre cache, drawing culled to near-view). Desktop tick:
+  `stress-moving` 27.6 -> 10.35 ms, `s3-basket-59of60` 9.5 -> about 7.9.
+  **The reference phone misses DoD 30** on the evidence of 2026-09-30
+  (a hand-played session, before the last fixes), and the section 3
+  endgame is bound by the tick: estimated 15 to 17 ms cold, 24 to 27 ms
+  throttled on the phone. **Chunk 5N is recommended** (not started);
+  chunk 22 repeats after it.
+- **The cap on ticks per frame: 2 at 1x** (proposed, D138; was 8): an
+  overloaded scene plays in slow motion instead of collapsing into the
+  catch-up spiral; the cap scales with the debug speed.
+- **A frame budget on the reference phone** (proposed, D138), so that
+  meeting DoD 30 now leaves room for v2's music and animated objects: per
+  16.7 ms frame, the simulation at most 8 ms, drawing at most 4 ms, and at
+  least 4.7 ms left. On the desktop, the simulation's share is a tick of
+  at most about 3.8 ms (phone cold) or 2.4 ms (throttled).
 - **Pending:** the floor phone, once it is bought (O14). The floor decision
   rests on its measurement (D71). The 200-slime cap stays (D67).
 - Not covered by the spike: game logic, the camera and the UI, which share
@@ -181,6 +199,9 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
 | Google Play pre-launch report (later) | automatic smoke tests on a range of real phones when uploading to a test track | detailed performance work |
   - Chunk 22 tests the realistic worst case on the floor phone: the largest
     pile on one screen (D96).
+  - **Phone sessions capture numbers through logs** (the user's rule,
+    2026-09-30; proposed, D138): the perf log (`--perf-log`, debug builds),
+    logcat and `tools/android/perf.sh`; screenshots only for visual bugs.
 
 ## Saving (D7, D12, D43)
 

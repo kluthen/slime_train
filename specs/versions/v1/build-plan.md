@@ -8,7 +8,8 @@ playtest issues, last before the health review, proposed, D128; TL1 done,
 D129; chunk 18 done, D130; chunk 19 done, D131; chunk 20 done on the
 emulator, D132; chunk 21 done, D133; v1 is the test level only, and
 chunk L01, the first real level, moves to v2, D134; v1 is the full MVP,
-never in a store, DoD 32 deferred, D135)
+never in a store, DoD 32 deferred, D135; chunk 22 done, DoD 30 not
+met, chunk 5N recommended, D138)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -526,6 +527,20 @@ instead).
   mostly still). **If either fails, chunk 5N runs and this chunk is
   repeated.** If the floor phone still can't hold it, the floor rises (D71).
   The 200 cap stays.
+- **Built** (D138; 1e98c7a, suite 1267/1267): the tick and drawing fixes
+  (the fusion nudge, door passes, the pair loop, off screen, the centre
+  cache, drawing culled to near-view), all with identical state hashes;
+  the perf log, `--max-ticks-per-frame`, `tools/android/perf.sh`, the
+  bench's rest detection and `tools/level.sh rest`; the new fixture
+  `s3-basket-59of60`. **DoD 30 is not met** on the reference phone's
+  evidence of 2026-09-30, and the floor phone is open: the section 3
+  endgame is bound by the GDScript tick (estimated 15 to 17 ms cold, 24 to
+  27 ms throttled on the phone), so **chunk 5N is recommended** (not
+  started), and this chunk repeats after it. Proposed, for the user: the
+  cap of 2 ticks per frame at 1x, the phone frame budget (simulation at
+  most 8 ms, drawing at most 4 ms, at least 4.7 ms left), numbers from
+  logs only. The rest rule's findings are O105; a fired basket's releases
+  waking its pile, O106 (with 24.3); parked asleep slimes stacking, O91.
 
 ### 23. Small issues (open list)
 
@@ -764,6 +779,10 @@ and slime counts (built 2026-09-29).
   left, that is chunk 5N's ground (D96): report it rather than start
   native code here. If chunk 22 (or 5N) has already brought section 3 to
   the target, 24.1 closes with the measurement alone.
+- **From chunk 22 (D138):** the fixture is `s3-basket-59of60`; the
+  endgame is bound by the tick, and 5N is recommended; if D138's phone
+  frame budget is approved, the desktop target below follows it (a tick
+  of about 2.4 to 3.8 ms, proposed).
 - **Target (proposed):** on the desktop (the Linux build at test mode's
   1152 × 648 window), a steady 60 fps on the overlay through section 3
   in normal play, and the section 3 bench cases at most 8 ms per tick at
@@ -825,7 +844,8 @@ basket" and 5.4; D86, D91, D105).
   stuck. Built in chunk 14; the end-to-end test only covers basket 1
   with 3 slimes.
 - **Reproduce first:** a test that fails today, from the fixture 24.1
-  adds (basket 3 at 59 of 60, not at bedtime) and from
+  adds (`s3-basket-59of60`, built in chunk 22: basket 3 at 59 of 60, not
+  at bedtime) and from
   `s2-basket-offscreen` (basket 2).
 - **A lead to check first** (unverified, read from the scene, not run):
   basket 3's outlet is a point over switch 3's trapdoor, and a trapdoor
@@ -833,6 +853,9 @@ basket" and 5.4; D86, D91, D105).
   released slime that lands on an open trapdoor falls back into the
   basket, which releases it again, so the basket may never empty. Basket
   2's pit, under its gate, may do the same.
+- **With O106 (D138):** each release wakes the basket's whole pile, which
+  then never rests during the drain; how releases and resting interact is
+  settled with this item.
 - **Proposed (D128):** a fired basket always empties: no released slime
   falls back into it (its trapdoor is shut, or its outlet is off the
   trapdoor, before the next release), and it is empty within its quota
@@ -935,6 +958,10 @@ Size M. Not in the ordered sequence: **chunk 22 is its trigger** (D96). It
 runs only if chunk 22's measurement of the real game fails on either phone,
 and chunk 22 is then repeated. Technical: no ATD steps. It must not run
 while another chunk edits the slime body code.
+
+**Recommended by chunk 22 (D138), not started:** after chunk 22's fixes,
+the section 3 endgame's phone tick is still estimated at more than a
+frame; the user decides when it starts.
 
 - **Already in place (the verified contingency):** the toolchain and a
   trivial extension under `native/`, documented in `docs/dev/native.md`,
