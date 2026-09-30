@@ -10,6 +10,7 @@ extends RefCounted
 ##                elsewhere, so it is displaced and lost when the save loads
 ##                (D72).
 ## The stable IDs are looked up in the level's data, never typed in.
+# @spec-link [[req_test_level_and_test_mode]]
 
 ## old-version's save is of this version of the test level (the level is at
 ## 2 since chunk 19, so that this save is a genuine older one).
@@ -46,6 +47,8 @@ const GROUND_BOTTOM := 1000.0
 ## order) woken as size-1 train slimes, in the air as MIDAIR and STACK_GAP
 ## say. False (and an error) when section 1 is short of sleepers or a column
 ## has no ground.
+# @spec-link [[req_test_level_and_test_mode]]
+# @spec-link [[req_persistence_and_saves]]
 static func midair(sim: Simulation, data: LevelData, terrain: TerrainSegments) -> bool:
 	var ids := _sleeper_ids(data, "s1.")
 	if ids.size() < MIDAIR.size() + 1:
@@ -70,6 +73,8 @@ static func midair(sim: Simulation, data: LevelData, terrain: TerrainSegments) -
 ## old-version: the level's sleeper nearest OLD_SPOT's ground sleeps there
 ## instead (its slime moved), and make_fixture says which. False (and an
 ## error) when the column has no ground.
+# @spec-link [[req_test_level_and_test_mode]]
+# @spec-link [[rule_released_level_stable_with_migration]]
 static func old_version(sim: Simulation, data: LevelData, terrain: TerrainSegments) -> bool:
 	var ground := _ground_below(terrain, OLD_SPOT_X)
 	if is_nan(ground):
