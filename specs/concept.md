@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v38
+Status: draft v39 (hold and jam, D145, proposed)
 
 ## One-liner
 
@@ -243,6 +243,8 @@ survives the app being killed.
 | quota outlines | how a basket shows its quota: one empty slime outline per unit of weight, filling in the colour of each slime caught (ux D4). Not "the slime counter" |
 | quota pie | *(proposed, D128)* how a basket with a quota above 10 shows it: one pie per 10 of weight, the last holding the rest, a slice filling per unit of weight |
 | debug overlay | developer tools over the game, in debug builds only: speed, reset, slime labels, the kill tool, the fps and the **slime counts**: Physics (the slimes that cost physics), On screen, In range (not parked) and Parked (D143, proposed, chunk 22d; before it: on screen : simulated off screen : parked) |
+| hold | *(proposed, D145)* a train slime staying where it is instead of hopping, because more than 30 awake slimes are near its landing point ahead of it, or because it would land right against a jam; it checks again every 0.5 s and hops anyway after 5 s. A holding slime may **rest** (stop being simulated). Not the dip nudge's short wait for a fusion partner |
+| jam | *(proposed, D145)* the holding train slimes ahead of a train slime on the loop; a slime arriving behind a jam stops short of it instead of landing on it, so a queue grows backwards and drains from the front |
 | awake cluster | *(proposed, D143)* a group of touching slimes that all cost physics (awake, not resting, not parked); the **largest awake cluster** is its biggest, in slimes, in the perf log and in level rule 23. Not a resting pile, which costs little |
 | crowd detail | *(proposed, D140, D141)* fewer ring points per slime when many slimes are active (20, 30, 40 or more) or when zoomed out; a size-1 slime goes from 12 points down to 10, 8 or 6. A detail level: 0 (full) to 3. In play, the crowd's part applies only when the device can't keep up: a **detail ceiling** set by the device's load caps it (a good device keeps full points); test mode applies it always |
 | frontier set | the signpost, switch, basket and gate that end a section: flip the switch, fill the basket, the gate opens (D14). Inert once its gate is open (D86) |

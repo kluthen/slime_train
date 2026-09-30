@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v21 (the train leans away from clusters, D143, approved in direction, D144; its numbers proposed, O107)
+Status: draft v22 (the train holds before a crowd or a jam, holding slimes may rest, D145, proposed, replacing D143's lean, approved in direction, D144; its numbers proposed, O107)
 
 ## States
 
@@ -86,13 +86,28 @@ Slimes move only by hopping.
 | unsure | small, lazy hops in random directions near the call point |
 | heading back | along its area's route back |
 | sleeper, bedtime-asleep, covered by other slimes, in a basket (any basket, filling or full; D106) | no hopping |
+| train slime holding (proposed, D145) | no hopping until its hold ends (at most 5 s) |
 
 - Bigger slimes hop a little less often, but further and higher.
 - During bedtime's wind-down, every slime hops more slowly.
-- *(D143, approved in direction, D144, item 24.8; its numbers proposed, O107):* a train slime whose landing spot is
-  crowded by slimes it can't fuse with waits a little before hopping (at
-  most 2 s), so crowds thin out instead of growing. Same-species crowds
-  don't delay it: they fuse.
+- **The hold** *(proposed, D145, item 24.8, amending D143's lean, which
+  was approved in direction, D144; its numbers proposed, O107)*: when its
+  hop is due, a train slime **holds** (stays where it is) while either
+  - more than 30 awake slimes out of a basket (not resting, not parked,
+    any species) are near its landing point, ahead of it, or
+  - its landing point would come right up against a **jam**: train slimes
+    ahead of it on the loop that are holding.
+
+  It looks again every 0.5 s and holds at most 5 s, then hops anyway. The
+  front of a queue, whose way is clear, goes first; the slimes behind
+  wait, and new ones stop short of the queue instead of landing on it, so
+  a crowd drains from the front. Calls, free slimes and celebration hops
+  are unchanged.
+- **A holding slime may rest** *(proposed, D145)*: once still on the
+  ground, it stops being simulated, like a resting pile, and wakes when its
+  hold ends or something disturbs it. It doesn't rest while it is fusing
+  with a neighbour. A wake is local (item 24.3, with O106): only the slimes
+  touched wake, not the whole pile.
 - The numbers are in `tuning.md`.
 
 ## Size and weight (D24, D16)

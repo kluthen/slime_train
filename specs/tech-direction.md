@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v23
+Status: draft v24 (the hold, D145, proposed)
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -194,7 +194,8 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   question (D140, O105, O106):* open piles rest slowly or never, and a
   fired basket's releases keep its pile awake. *Proposed (D143):* level
   rule 23 keeps levels free of spots where many slimes gather awake, and
-  the train leans away from clusters (chunk 24, items 24.7 and 24.8); a
+  the train holds before a crowd or a jam, holding slimes resting, with a
+  local wake (chunk 24, items 24.3, 24.7 and 24.8; D145, proposed); a
   cluster the player builds stays possible, covered by crowd detail and
   the tick cap.
 - **Native code was the documented, verified contingency; it is now
