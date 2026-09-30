@@ -1808,3 +1808,69 @@ action, never on the parent buttons the child reveals. DoD 24 now says
   the reference phone in chunk 20 or 22.
 
 **5. The build order.** Chunk 18 is done. Next, chunk 19.
+
+## D131 — Chunk 19 as built: persistence hardening (2026-09-30)
+**Built** (c39ebc0, suite 1097/1097); **the points in 2 marked proposed
+wait for the user's approval** (with D126 to D130). Detail:
+`docs/dev/README.md`, "Files and autosave" and "Chunk 19: persistence
+hardening".
+
+**1. As built.**
+- **A level save's write:** the new text goes to `L.json.new` and is read
+  back; if the old save reads, it is copied to `L.json.bak` through
+  `.bak.new` (checked, then renamed); then `.new` is renamed onto
+  `L.json`, which is never missing. A kill at any point leaves a whole save
+  and a whole older backup. **Read:** the save, else the backup, else
+  fresh (tech-direction, "Saving").
+- **Delete (DoD 29)** removes `.json`, `.new`, `.bak` and `.bak.new`.
+  Lints: files are removed only inside `SaveStore.delete`, renamed only in
+  the two stores.
+- **The kill test is simulated**, deterministically: the tests lay out the
+  files a kill would leave at each step of the write, then open the game on
+  them.
+
+**2. Proposed: the build's choices where the spec was silent.**
+- **Unreadable files are set aside** as `L.json.unreadable[.n]` instead of
+  blocking the level's writes: nothing is deleted or written over, and only
+  a failed rename blocks. Delete leaves the `.unreadable*` and `.v<N>`
+  files (they aren't the save).
+- **Mid-air on load: grounded** (5.10's "whichever is easier"). A slime
+  saved in the air moves straight down onto the first surface below
+  (ground or another slime), at rest; with nothing below, it is lost.
+  Sleepers, slimes in a basket and parked slimes are left as they are.
+- **Migration by level version, keyed by stable IDs.** An older save
+  migrates; a newer one (from a newer game) is blocked. Displaced slimes (a
+  sleeper moved, removed or of another species; an awake slime inside the
+  ground or outside the level) are lost (moved to the loop start, in the
+  lost log) but kept in the save, so the 200 stay. Sleepers added to the
+  level are added; removed objects' states are dropped; new objects start
+  in their initial state. Before the first write, the original is kept as
+  `L.json.v<old>` (the write is blocked if that copy fails).
+- **`parent.json`** (D130's risk): a mirror, `parent.json.bak`, is written
+  after it through side files (salt and hash, tries, the wait's end; never
+  the code); load falls back to it. **Both unreadable: LOCKED.** A code is
+  said to exist, so setup never shows again (DoD 23), but none matches; the
+  tries count in memory only; the files are kept until a new code is set.
+  The way out is "Forgot the code?" (chunk 20); until then, clearing the
+  app's data.
+- **The test level is at `level_version` 2** (no content change), so the
+  `old-version` fixture is a real version-1 save. New fixtures: `midair`,
+  `old-version`.
+
+**3. Flagged for documentalist** (the chunk 19 preflight, on D118 and
+D121): `rule_left_alone_and_lost` covers free slimes only, and chunk 19
+adds two more kinds of lost slime, a mid-air slime with nothing below and
+one displaced by migration. The lost rule can be widened once the user
+approves 2.
+
+**4. Open risks, carried forward.**
+- The parent mirror can lag one write behind after a kill: one wrong try
+  off after a fallback.
+- Migration doesn't cover slimes on a route back that no longer exists, nor
+  tap or proxy entries pointing at removed IDs.
+- `save_data.gd` is about 505 effective lines and `make_fixture.gd` 599 of
+  600: for the health review.
+- `tools/bench_level.gd` times from `REST_TICK` 670, but the stress pile
+  now rests at about 410: chunk 22 should fix the bench's start.
+
+**5. The build order.** Chunk 19 is done. Next, chunk 20.

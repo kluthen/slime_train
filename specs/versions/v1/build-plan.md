@@ -5,7 +5,7 @@ before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
 playtest issues, last before the health review, proposed, D128; TL1 done,
-D129; chunk 18 done, D130)
+D129; chunk 18 done, D130; chunk 19 done, D131)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -125,7 +125,12 @@ technology, not business behaviour:
 - **Chunk 18** done (D130; 54873c1, suite 1041/1041): the parent gate and
   settings with a placeholder UI. Its choices where the spec was silent
   are proposed in D130, with its open risks.
-- **Next: 19** onward. (5N is a contingency, run only if chunk 22 fails,
+- **Chunk 19** done (D131; c39ebc0, suite 1097/1097): persistence
+  hardening (the level save's checked backup and read fallback, mid-air
+  slimes grounded on load, migration by level version, `parent.json`'s
+  mirror). Its choices where the spec was silent are proposed in D131,
+  with its open risks.
+- **Next: 20** onward. (5N is a contingency, run only if chunk 22 fails,
   D96.)
 - **Chunk 24** (the user's second round of playtest issues, an open list;
   proposed, D128): after chunk 22 (and 5N if it runs), the last chunk
@@ -444,6 +449,8 @@ instead).
 - **Done when:** [DoD 28] passes, including a kill during a write, with
   `midair` and `old-version`, and a damaged `parent.json` keeps the code
   from its backup (proposed, D130).
+- **Built** (D131): done; the choices marked proposed there wait for the
+  user.
 
 ### 20. Android build and platform integration (L)
 
@@ -487,6 +494,9 @@ instead).
   hopping against a pile wakes it; revisit the rest rule if either costs
   the targets. Bring the code comment on `REST_DRIFT` in line with the rule
   (the anchor is fixed where the count started, not a sliding window).
+- **The level bench's start (D131):** `tools/bench_level.gd` times from
+  `REST_TICK` 670, but the stress pile now rests at about tick 410; fix
+  the start before measuring.
 - **Atoms (preflight start):** `req_platform_and_performance_targets`, `rule_max_200_slimes_per_level`.
 - **Done when:** [DoD 30] holds: 60 fps on the reference phone in normal
   play, and at least 30 fps on the floor phone in the realistic worst case
