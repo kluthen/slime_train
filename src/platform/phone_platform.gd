@@ -73,6 +73,7 @@ func is_pinned() -> bool:
 
 
 ## Whether the device has a secure lock screen (PIN, pattern or password).
+# @spec-link [[req_parent_gate_and_access]]
 func is_device_secure() -> bool:
 	return _singleton != null and _singleton.isDeviceSecure()
 
@@ -81,6 +82,7 @@ func is_device_secure() -> bool:
 ## biometric) with `title` and `subtitle`; the answer comes as
 ## credential_finished. The desktop stub answers false, deferred, as a phone
 ## answers after its prompt.
+# @spec-link [[req_parent_gate_and_access]]
 func confirm_credential(title: String, subtitle: String) -> void:
 	if _singleton != null:
 		_singleton.confirmCredential(title, subtitle)
