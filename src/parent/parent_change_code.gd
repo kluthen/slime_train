@@ -107,21 +107,22 @@ func back_rect() -> Rect2:
 	return ParentSettings.rect_of(back)
 
 
-## The pad with its top-left corner at `pad_at`; in `column` (left of it):
-## the title, the slots, the message, and the back button level with the
-## pad's last row.
+## The pad with its top-left corner at `pad_at`, fitting down to the
+## bottom of `column` (ParentPad.lay_out); in `column` (left of it): the
+## title, the slots, the message, and the back button level with the pad's
+## last row, as tall as its keys.
+# @spec-link [[req_parent_gate_and_access]]
 func lay_out(column: Rect2, pad_at: Vector2, view: ScreenView) -> void:
-	pad.lay_out(pad_at, view)
+	pad.lay_out(pad_at, view, column.end.y - pad_at.y)
 	var y := column.position.y
 	ParentSettings.place(title, Rect2(column.position.x, y, column.size.x, view.mm_to_px(TITLE_MM)), view)
 	y += view.mm_to_px(TITLE_MM)
 	_slots.lay_out(Vector2(column.position.x, y), Vector2(column.size.x, view.mm_to_px(SLOTS_ROW_MM)), view)
 	y += view.mm_to_px(SLOTS_ROW_MM)
 	ParentSettings.place(message, Rect2(column.position.x, y, column.size.x, view.mm_to_px(MESSAGE_MM)), view)
-	var key := view.mm_to_px(ParentPad.KEY_MM)
-	var bottom := pad_at.y + ParentPad.size_px(view).y
+	var bottom := pad_at.y + pad.size.y
 	var width := minf(view.mm_to_px(BACK_WIDTH_MM), column.size.x)
-	ParentSettings.place(back, Rect2(column.position.x, bottom - key, width, key), view)
+	ParentSettings.place(back, Rect2(column.position.x, bottom - pad.key_px, width, pad.key_px), view)
 
 
 ## Ends an entry: the first is kept and the second asked; a second that

@@ -5,8 +5,9 @@ extends GutTest
 ## without the code; a wrong code shakes and clears the entry and counts one
 ## try; 5 wrong in a row start the 30 s wait, which refuses even the right
 ## code and survives closing the prompt and a kill (a new game on the same
-## store); one count for every button; "Forgot the code?" is a stub; the
-## prompt closes after 15 s idle, a press on it restarts the 15 s; a tap
+## store); one count for every button; "Forgot the code?" on the desktop
+## (no screen lock) explains that clearing the app's data is the only way,
+## counting no try (the full route: test_forgot_code_e2e); the prompt closes after 15 s idle, a press on it restarts the 15 s; a tap
 ## outside closes it and does its normal job (DoD 24); the right code runs
 ## the one action (wake early: sunrise on the next step; leave: the app quits;
 ## settings: settings open) and the next action asks again; the wake-early
@@ -255,15 +256,20 @@ func test_one_count_for_every_parent_button() -> void:
 	assert_true(prompt.waiting(), "3 via leave + 2 via settings: the wait")
 
 
-func test_forgot_the_code_shows_the_stub_changes_nothing_and_counts_no_try() -> void:
+## Chunk 20 replaced chunk 18's stub note: the desktop stub platform has no
+## screen lock, so the explanation shows (the full route, on a fake phone:
+## test_forgot_code_e2e).
+func test_forgot_the_code_on_the_desktop_explains_clearing_the_data_and_counts_no_try() -> void:
 	var game := _game()
 	var prompt := _open(game, ParentGate.LEAVE)
-	var stub := ParentText.text("forgot_code_stub", ParentText.language())
+	var explanation := ParentText.text("forgot_no_lock", ParentText.language())
+	assert_false(game.platform.is_device_secure(), "the desktop stub: no screen lock")
 	assert_eq(prompt.forgot.text, ParentText.text("forgot_code", ParentText.language()))
 	assert_eq(prompt.note.text, "")
 	_enter(game, "12")
 	_tap(game, prompt.forgot_rect().get_center())
-	assert_eq(prompt.note.text, stub)
+	assert_eq(prompt.note.text, explanation)
+	assert_false(prompt.awaiting_credential, "no Android prompt asked")
 	assert_eq(prompt.entry, "12", "the entry is untouched")
 	assert_eq(game.parent_store.wrong_tries(), 0, "no try counted")
 	assert_eq(game.parent_gate.state, ParentGate.State.PROMPT)
@@ -274,7 +280,7 @@ func test_forgot_the_code_shows_the_stub_changes_nothing_and_counts_no_try() -> 
 	prompt = _open(game, ParentGate.LEAVE)
 	assert_eq(prompt.note.text, "", "a fresh prompt")
 	_tap(game, prompt.forgot_rect().get_center())
-	assert_eq(prompt.note.text, stub, "it works during the wait too")
+	assert_eq(prompt.note.text, explanation, "it works during the wait too")
 	assert_true(prompt.waiting(), "the wait goes on")
 	assert_eq(game.parent_store.wrong_tries(), 5)
 

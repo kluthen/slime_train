@@ -180,20 +180,28 @@ func level_rect(id: String) -> Rect2:
 	return ParentSettings.rect_of(level_button(id))
 
 
-## The header row (the time left, the close button at the top-right), the
-## warning and note lines under it on the left, then the shown screen's
-## body; on the change of code, the pad on the right under the close button.
+## The background fills the screen; in the safe area
+## (ParentLayout.surface_rect), the header row (the time left, the close
+## button at the top-right), the warning and note lines under it on the
+## left, then the shown screen's body; on the change of code, the pad on the
+## right under the close button. On a short screen the header row and the
+## gap under it give the pad room (ParentLayout.rows_over_pad: the close
+## button stays at least 9 mm tall).
+# @spec-link [[req_parent_gate_and_access]]
 func lay_out(view: ScreenView) -> void:
-	var screen_size := view.screen_size
-	_background.size = screen_size
+	_background.size = view.screen_size
+	var area := ParentLayout.surface_rect(view)
 	var margin := view.mm_to_px(ParentLayout.PROMPT_MARGIN_MM)
-	var target := view.mm_to_px(TARGET_MM)
-	var top := view.mm_to_px(TOP_MM)
+	var top := area.position.y + view.mm_to_px(TOP_MM)
+	var bottom := area.end.y - margin
+	var rows := ParentLayout.rows_over_pad(top, bottom, ParentPad.MIN_KEY_MM, view)
 	var close_width := view.mm_to_px(CLOSE_WIDTH_MM)
-	ParentSettings.place(close, Rect2(screen_size.x - margin - close_width, top, close_width, target), view)
-	ParentSettings.place(header, Rect2(margin, top, screen_size.x - 3.0 * margin - close_width, target), view)
-	var pad_at := Vector2(screen_size.x - margin - ParentPad.size_px(view).x, top + target + view.mm_to_px(GAP_MM))
-	var column := Rect2(margin, pad_at.y, pad_at.x - 2.0 * margin, screen_size.y - margin - pad_at.y)
+	var left := area.position.x + margin
+	ParentSettings.place(close, Rect2(area.end.x - margin - close_width, top, close_width, rows.x), view)
+	ParentSettings.place(header, Rect2(left, top, area.size.x - 3.0 * margin - close_width, rows.x), view)
+	var pad_top := top + rows.x + rows.y
+	var pad_at := Vector2(area.end.x - margin - ParentPad.size_px(view, bottom - pad_top).x, pad_top)
+	var column := Rect2(left, pad_at.y, pad_at.x - margin - left, bottom - pad_at.y)
 	var line := view.mm_to_px(LINE_MM)
 	ParentSettings.place(warning, Rect2(column.position, Vector2(column.size.x, line)), view)
 	ParentSettings.place(note, Rect2(column.position + Vector2(0.0, line), Vector2(column.size.x, line)), view)

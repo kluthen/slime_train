@@ -50,6 +50,12 @@ extends Node2D
 ## game, since the official Android templates ignore a scene given on the
 ## command line (see docs/dev/README.md "Android export (debug)"). The spike
 ## is named by path only, like the test level.
+##
+## The phone (chunk 20): `platform` (PhonePlatform) reaches the Android
+## plugin; ScreenPinning asks for screen pinning at launch and handles Back
+## and the back gesture's excluded edge strips; the parent's leave stops the
+## pinning (ParentGate.act). In normal play, `tilt_feed` (TiltFeed) hands the
+## simulation the phone's tilt sensor before every tick.
 # @spec-link [[req_test_level_and_test_mode]]
 
 const TEST_MODE_SCRIPT := "res://src/test_mode/test_mode.gd"
@@ -107,6 +113,20 @@ var parent_gate: ParentGate = null
 ## Closes the app: the parent's leave (ParentGate.act). The tree's quit unless
 ## a test put its own first.
 var quit_app := Callable()
+## The phone's services (screen pinning, the back gesture, the lock screen):
+## the Android plugin's in an Android build, else the desktop stub, whose
+## calls do nothing. Tests put a fake first, before the game enters the tree.
+# @spec-link [[req_screen_pinning]]
+var platform: PhonePlatform = PhonePlatform.for_this_build()
+## Screen pinning at launch and the back gesture, through `platform`.
+var screen_pinning: ScreenPinning = null
+## The display's safe area through `platform`, handed to the view (sync_view()).
+# @spec-link [[req_parent_gate_and_access]]
+var safe_area: SafeArea = null
+## The phone's tilt sensor, fed to the simulation in normal play only (test
+## mode's script is its only tilt). Tests replace its `sensor`.
+# @spec-link [[req_tilt_input]]
+var tilt_feed := TiltFeed.new()
 ## The debug overlay, or null (a release build, or a game a test adds).
 ## Loosely typed: src/debug/ is named by path only.
 var debug_overlay: Node = null
@@ -156,6 +176,13 @@ func _ready() -> void:
 		add_child(parent_gate)
 	if not quit_app.is_valid():
 		quit_app = func() -> void: get_tree().quit()
+	# Pinning is asked at launch, before the world takes a tap (after setup on
+	# first launch); test mode's runs too, through the same platform.
+	screen_pinning = ScreenPinning.new(platform)
+	add_child(screen_pinning)
+	screen_pinning.launch(parent_gate)
+	safe_area = SafeArea.new(platform)
+	add_child(safe_area)
 	if get_tree().current_scene == self:
 		add_debug_overlay()
 	_use_simulation(_new_simulation(Rng.random_seed()))
@@ -234,7 +261,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## Runs one simulation tick, first giving it the view, the clocks (test
 ## mode's, else the real ones) and the input test mode scripted for that
-## tick. When bedtime begins the game saves (if it autosaves). Then the
+## tick (in normal play, the tilt sensor's reading instead). When bedtime begins the game saves (if it autosaves). Then the
 ## parent layer's timers count the step (in normal play and test mode alike).
 # @spec-link [[req_session_lifecycle]]
 func step_simulation() -> void:
@@ -245,6 +272,7 @@ func step_simulation() -> void:
 			simulation.push_input(event)
 	else:
 		simulation.session.read_clock(session_clock.now())
+		tilt_feed.feed(simulation)
 	simulation.step()
 	if simulation.session.save_due:
 		simulation.session.save_due = false
@@ -261,13 +289,15 @@ func step_simulation() -> void:
 ## dispatched through the view), and the scene's Camera2D show the view. The
 ## screen's size is test mode's "screen_size" in test mode (a headless window
 ## reports a wrong size), else the viewport's; its density is
-## screen_px_per_mm().
+## screen_px_per_mm(); its safe area, `safe_area`'s insets.
 # @spec-link [[req_controls_tap_zones]]
 # @spec-link [[req_camera_rails_and_framing]]
 func sync_view() -> void:
 	var size: Vector2 = test_mode.screen_size if test_mode != null else get_viewport_rect().size
 	simulation.camera.apply_to(simulation.view, size)
 	simulation.view.px_per_mm = screen_px_per_mm()
+	if safe_area != null:
+		safe_area.apply_to(simulation.view)
 	if camera != null:
 		camera.position = simulation.view.centre
 		camera.zoom = Vector2(simulation.view.zoom, simulation.view.zoom)
@@ -275,19 +305,20 @@ func sync_view() -> void:
 
 ## Viewport px per millimetre on this screen, for the sizes measured on the
 ## screen (the parent zone's 7 mm). On a phone: the display's density
-## (DisplayServer.screen_get_dpi()) over the stretch's physical px per
-## viewport px. In test mode and on the desktop: the reference phone's, so
+## (platform.screen_dpi(): the panel's physical one when plausible, else
+## DisplayServer's logical one) over the stretch's physical px per viewport
+## px. In test mode and on the desktop: the reference phone's, so
 ## runs are the same everywhere and the desktop shows the phone's layout. A
 ## phone reading of 0 or less is reported and the reference phone's used.
 # @spec-link [[req_controls_tap_zones]]
 func screen_px_per_mm() -> float:
 	if test_mode != null or not OS.has_feature("mobile"):
 		return ScreenView.REFERENCE_PX_PER_MM
-	var dpi := DisplayServer.screen_get_dpi()
+	var dpi := platform.screen_dpi()
 	var shown := get_viewport_rect().size.x
 	var physical := float(DisplayServer.window_get_size().x)
-	if dpi <= 0 or shown <= 0.0 or physical <= 0.0:
-		push_error("Screen density unreadable (dpi %d, %s physical px for %s viewport px): using the reference phone's"
+	if dpi <= 0.0 or shown <= 0.0 or physical <= 0.0:
+		push_error("Screen density unreadable (dpi %s, %s physical px for %s viewport px): using the reference phone's"
 				% [dpi, physical, shown])
 		return ScreenView.REFERENCE_PX_PER_MM
 	return ScreenView.px_per_mm_for(dpi, physical / shown)

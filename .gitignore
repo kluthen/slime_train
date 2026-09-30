@@ -30,6 +30,15 @@ docs/.atd_audit.db
 /native/slime_native/.sconsign*.dblite
 /native/slime_native/compile_commands.json
 
+# SlimePlatform Android plugin (native/android_plugin/, tools/android/): Gradle
+# state and outputs, and the AARs build_plugin.sh copies into the addon.
+/native/android_plugin/.gradle/
+/native/android_plugin/.kotlin/
+/native/android_plugin/build/
+/native/android_plugin/plugin/build/
+/native/android_plugin/local.properties
+/addons/slime_platform/bin/
+
 # Claude Code: local settings and agent worktrees (project skills in .claude/skills/ are tracked)
 .claude/settings.local.json
 .claude/worktrees/

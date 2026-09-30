@@ -12,7 +12,8 @@ extends RefCounted
 ## - NOTIFICATION_APPLICATION_FOCUS_OUT: the window loses focus (desktop,
 ##   and on phones before a pause);
 ## - NOTIFICATION_WM_CLOSE_REQUEST: the window is being closed (desktop);
-## - NOTIFICATION_WM_GO_BACK_REQUEST: Android's back button, which quits.
+## - NOTIFICATION_WM_GO_BACK_REQUEST: Android's Back (it never quits the app:
+##   ScreenPinning sends it to the background unless the screen is pinned).
 ## The game also saves when its root leaves the tree (quitting).
 ##
 ## Test mode turns it off unless the run configuration says "autosave": true.

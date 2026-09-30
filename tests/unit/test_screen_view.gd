@@ -3,7 +3,9 @@ extends GutTest
 ## player sees. Screen to level and back follow Camera2D's mapping; the
 ## screen size defaults to the project's 1152 x 648 and test mode is the one
 ## place a run sets it. Millimetres on the screen convert at the view's
-## density, the reference phone's by default (chunk 23B).
+## density, the reference phone's by default (chunk 23B). On a phone that
+## density is the panel's physical one when it is plausible against the
+## logical one Android reports, else the logical one (chunk 20).
 
 # @test-link [[req_controls_tap_zones]]
 
@@ -78,3 +80,36 @@ func test_the_density_comes_from_the_screens_ppi_and_scale() -> void:
 	assert_almost_eq(ScreenView.px_per_mm_for(405.0, 1080.0 / 648.0), ScreenView.REFERENCE_PX_PER_MM, 1e-6)
 	assert_almost_eq(ScreenView.px_per_mm_for(96.0, 1.0), 96.0 / 25.4, 1e-6, "a desktop monitor at scale 1")
 	assert_almost_eq(ScreenView.px_per_mm_for(254.0, 2.0), 5.0, 1e-6, "more physical px per viewport px, fewer viewport px per mm")
+
+
+# --- Physical density on the phone (chunk 20) ------------------------------------
+
+# @test-link [[req_parent_gate_and_access]]
+func test_a_plausible_physical_density_wins_over_the_logical_one() -> void:
+	# The reference phone: about 405 physical ppi, a logical density of 480.
+	assert_eq(ScreenView.dpi_for_mm(405.0, 480.0), 405.0, "the panel's own ppi")
+	assert_eq(ScreenView.dpi_for_mm(264.0, 320.0), 264.0, "a tablet")
+	assert_eq(ScreenView.dpi_for_mm(294.0, 240.0), 294.0, "logical below physical")
+
+
+# @test-link [[req_parent_gate_and_access]]
+func test_a_bogus_physical_density_falls_back_to_the_logical_one() -> void:
+	assert_eq(ScreenView.dpi_for_mm(160.0, 480.0), 480.0, "a default 160 on a dense screen")
+	assert_eq(ScreenView.dpi_for_mm(1000.0, 480.0), 480.0, "far above")
+	assert_false(ScreenView.physical_dpi_plausible(160.0, 480.0))
+
+
+# @test-link [[req_parent_gate_and_access]]
+func test_an_unknown_physical_density_is_the_logical_one() -> void:
+	assert_eq(ScreenView.dpi_for_mm(0.0, 480.0), 480.0, "0: unknown (the desktop stub)")
+	assert_eq(ScreenView.dpi_for_mm(-3.0, 480.0), 480.0)
+	assert_eq(ScreenView.dpi_for_mm(405.0, 0.0), 0.0, "no logical reading: nothing to check against, the caller refuses it")
+
+
+# @test-link [[req_parent_gate_and_access]]
+func test_the_plausibility_bounds_are_inclusive() -> void:
+	var logical := 400.0
+	assert_true(ScreenView.physical_dpi_plausible(logical * ScreenView.PHYSICAL_DPI_MIN_SHARE, logical))
+	assert_true(ScreenView.physical_dpi_plausible(logical * ScreenView.PHYSICAL_DPI_MAX_SHARE, logical))
+	assert_false(ScreenView.physical_dpi_plausible(logical * ScreenView.PHYSICAL_DPI_MIN_SHARE - 1.0, logical))
+	assert_false(ScreenView.physical_dpi_plausible(logical * ScreenView.PHYSICAL_DPI_MAX_SHARE + 1.0, logical))

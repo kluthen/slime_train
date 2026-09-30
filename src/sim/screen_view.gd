@@ -18,6 +18,21 @@ extends RefCounted
 ## (px_per_mm_for()), tests set it directly. It is a property of the display,
 ## like the window, not of the game: it is neither in dump() nor in saves
 ## (what it decided is, in the taps).
+##
+## The phone's density (chunk 20): Android's densityDpi (what Godot's
+## screen_get_dpi() reports) is a logical bucket that the user's "display
+## size" setting moves, not the panel's pixels per inch (the reference phone
+## reports 480 for its 405 ppi, so millimetres came out 18 % too big). The
+## panel's own density (PhonePlatform.physical_dpi()) is used instead when it
+## is plausible against the logical one (dpi_for_mm(): some devices report
+## bogus physical values), else the logical one.
+##
+## The safe area (chunk 20): the part of the screen clear of the display's
+## cut-outs and rounded corners, kept as insets from the screen's edges
+## (set_safe_insets(), from SafeArea; none by default and on the desktop), so
+## safe_rect() follows the screen's size. What the parent reads or taps is
+## laid out inside it (ParentLayout); the tap zones stay on the screen's
+## edges. A property of the display too: neither in dump() nor in saves.
 # @spec-link [[req_controls_tap_zones]]
 
 ## The project's viewport (canvas_items stretch): 1152 x 648 logical pixels.
@@ -34,6 +49,13 @@ const REFERENCE_PHONE_SCALE := 1080.0 / 648.0
 const REFERENCE_PHONE_SIZE := Vector2(1440, 648)
 ## Viewport px per millimetre on the reference phone: about 9.57.
 const REFERENCE_PX_PER_MM := REFERENCE_PHONE_PPI / MM_PER_INCH / REFERENCE_PHONE_SCALE
+## A physical density is plausible from this share to this share of the
+## logical one, both included (proposed): the "display size" setting moves
+## the logical one by about 0.85x to 1.3x around a default that is itself
+## 0.8x to 1.25x the panel's (the reference phone: 405 / 480 = 0.84), while a
+## bogus reading (a default 160, a wrong unit) lands far outside.
+const PHYSICAL_DPI_MIN_SHARE := 0.6
+const PHYSICAL_DPI_MAX_SHARE := 1.6
 
 ## The level point at the middle of the screen, level pixels.
 var centre := DEFAULT_SIZE * 0.5
@@ -49,6 +71,10 @@ var px_per_mm := REFERENCE_PX_PER_MM:
 			push_error("ScreenView: px_per_mm must be above 0, got %s" % value)
 			return
 		px_per_mm = value
+## The safe area's insets from the screen's left and top edges, and from its
+## right and bottom edges, viewport pixels (see the class doc).
+var safe_inset_start := Vector2.ZERO
+var safe_inset_end := Vector2.ZERO
 
 
 func _init(view_centre := DEFAULT_SIZE * 0.5, view_zoom := 1.0, size := DEFAULT_SIZE) -> void:
@@ -83,6 +109,45 @@ func mm_to_px(millimetres: float) -> float:
 static func px_per_mm_for(ppi: float, physical_per_viewport: float) -> float:
 	assert(ppi > 0.0 and physical_per_viewport > 0.0, "ScreenView.px_per_mm_for: readings must be above 0")
 	return ppi / MM_PER_INCH / physical_per_viewport
+
+
+## Whether `physical_dpi`, the panel's reported pixels per inch, is
+## plausible against `logical_dpi`, the density bucket Android reports:
+## both above 0 and physical within PHYSICAL_DPI_MIN_SHARE to
+## PHYSICAL_DPI_MAX_SHARE of logical.
+# @spec-link [[req_parent_gate_and_access]]
+static func physical_dpi_plausible(physical_dpi: float, logical_dpi: float) -> bool:
+	if physical_dpi <= 0.0 or logical_dpi <= 0.0:
+		return false
+	var share := physical_dpi / logical_dpi
+	return share >= PHYSICAL_DPI_MIN_SHARE and share <= PHYSICAL_DPI_MAX_SHARE
+
+
+## The density to measure millimetres with, px per inch: `physical_dpi` when
+## it is plausible (physical_dpi_plausible()), else `logical_dpi` (a
+## physical reading of 0 or less means unknown). The caller refuses a
+## logical reading of 0 or less.
+# @spec-link [[req_parent_gate_and_access]]
+static func dpi_for_mm(physical_dpi: float, logical_dpi: float) -> float:
+	return physical_dpi if physical_dpi_plausible(physical_dpi, logical_dpi) else logical_dpi
+
+
+## Sets the safe area's insets: `start` from the left and top edges, `end`
+## from the right and bottom ones, viewport pixels, none negative.
+func set_safe_insets(start: Vector2, end: Vector2) -> void:
+	assert(start.x >= 0.0 and start.y >= 0.0 and end.x >= 0.0 and end.y >= 0.0,
+			"ScreenView.set_safe_insets: insets can't be negative (%s, %s)" % [start, end])
+	safe_inset_start = start
+	safe_inset_end = end
+
+
+## The safe area on this screen, viewport pixels: the screen less the insets,
+## never past the screen (empty when the insets meet).
+# @spec-link [[req_parent_gate_and_access]]
+func safe_rect() -> Rect2:
+	var start := safe_inset_start.min(screen_size)
+	var end := (screen_size - safe_inset_end).max(start)
+	return Rect2(start, end - start)
 
 
 ## How wide the view is, level pixels.

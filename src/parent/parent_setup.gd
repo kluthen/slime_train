@@ -15,8 +15,9 @@ extends ParentSurface
 ##   moves on by itself (proposed), the code held in memory only; a mismatch
 ##   shakes, clears and starts the step's entry again. Back.
 ## - FORGOTTEN: what happens if the code is forgotten. Back, Next.
-## - PINNING: screen pinning explained (pinning itself is chunk 20) and how
-##   the parent zone shows the parent buttons. Back, Finish.
+## - PINNING: screen pinning explained (Android asks for it right after
+##   Finish: ParentGate.setup_finished) and how the parent zone shows the
+##   parent buttons. Back, Finish.
 ## Back (proposed) goes to the previous step; back on CODE, the code is chosen
 ## anew. Finish saves the code (ParentStore.set_code: its salted hash only)
 ## and closes setup to the game: the store has a code, so setup never shows
@@ -127,28 +128,35 @@ func next_rect() -> Rect2:
 	return ParentSettings.rect_of(next)
 
 
-## The heading row (the heading, the counter at the right), the step's text
-## under it, Back at the bottom-left and Next at the bottom-right; on the
-## code step, the pad on the right under the heading row and the entry left
-## of it.
+## The background fills the screen; in the safe area
+## (ParentLayout.surface_rect), the heading row (the heading, the counter at
+## the right), the step's text under it, Back at the bottom-left and Next at
+## the bottom-right; on the code step, the pad on the right under the heading
+## row and the entry left of it. On a short screen the heading row (text
+## only) and the gap under it give the pad room (ParentLayout.rows_over_pad,
+## down to a line of text).
+# @spec-link [[req_parent_gate_and_access]]
 func lay_out(view: ScreenView) -> void:
-	var screen_size := view.screen_size
-	_background.size = screen_size
+	_background.size = view.screen_size
+	var area := ParentLayout.surface_rect(view)
 	var margin := view.mm_to_px(ParentLayout.PROMPT_MARGIN_MM)
 	var target := view.mm_to_px(ParentSettings.TARGET_MM)
-	var gap := view.mm_to_px(ParentSettings.GAP_MM)
-	var top := view.mm_to_px(ParentSettings.TOP_MM)
+	var top := area.position.y + view.mm_to_px(ParentSettings.TOP_MM)
+	var bottom := area.end.y - margin
+	var rows := ParentLayout.rows_over_pad(top, bottom, ParentSettings.LINE_MM, view)
 	var counter_width := view.mm_to_px(COUNTER_WIDTH_MM)
-	ParentSettings.place(counter, Rect2(screen_size.x - margin - counter_width, top, counter_width, target), view)
-	ParentSettings.place(heading, Rect2(margin, top, screen_size.x - 3.0 * margin - counter_width, target), view)
+	var left := area.position.x + margin
+	var right := area.end.x - margin
+	ParentSettings.place(counter, Rect2(right - counter_width, top, counter_width, rows.x), view)
+	ParentSettings.place(heading, Rect2(left, top, area.size.x - 3.0 * margin - counter_width, rows.x), view)
 	var width := view.mm_to_px(BUTTON_WIDTH_MM)
-	var row := screen_size.y - margin - target
-	ParentSettings.place(back, Rect2(margin, row, width, target), view)
-	ParentSettings.place(next, Rect2(screen_size.x - margin - width, row, width, target), view)
-	var text_top := top + target + gap
-	ParentSettings.place(body, Rect2(margin, text_top, screen_size.x - 2.0 * margin, row - gap - text_top), view)
-	var pad_at := Vector2(screen_size.x - margin - ParentPad.size_px(view).x, text_top)
-	code_entry.lay_out(Rect2(margin, text_top, pad_at.x - 2.0 * margin, screen_size.y - margin - text_top), pad_at, view)
+	var row := bottom - target
+	ParentSettings.place(back, Rect2(left, row, width, target), view)
+	ParentSettings.place(next, Rect2(right - width, row, width, target), view)
+	var text_top := top + rows.x + rows.y
+	ParentSettings.place(body, Rect2(left, text_top, right - left, row - rows.y - text_top), view)
+	var pad_at := Vector2(right - ParentPad.size_px(view, bottom - text_top).x, text_top)
+	code_entry.lay_out(Rect2(left, text_top, pad_at.x - margin - left, bottom - text_top), pad_at, view)
 
 
 ## The app going to the background interrupts setup: it starts over, the
@@ -175,15 +183,18 @@ func _code_chosen(code: String) -> void:
 
 
 ## Setup finishes: now, and only now, the code is saved (the store keeps its
-## salted hash only), and setup closes to the game for good.
+## salted hash only), setup closes to the game for good, and the gate says
+## so (setup_finished: the first launch's screen pinning).
 # @spec-link [[req_parent_gate_and_access]]
 # @spec-link [[req_actor_roles_and_permissions]]
 # @spec-link [[rule_parent_code_not_stored_plaintext]]
+# @spec-link [[req_screen_pinning]]
 func _finish() -> void:
 	assert(ParentStore.is_valid_code(_code), "ParentSetup: finishing without a chosen code")
 	gate.store.set_code(_code)
 	_code = ""
 	gate.close()
+	gate.setup_finished.emit()
 
 
 ## Shows step `to` in the parent's language, laid out; entering the code

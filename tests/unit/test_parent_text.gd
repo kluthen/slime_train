@@ -20,8 +20,26 @@ func test_the_starter_keys() -> void:
 	assert_eq(ParentText.text("enter_code", "fr"), "Saisissez le code parent")
 	assert_eq(ParentText.text("wait", "en").format({"s": 30}), "Too many tries. Wait 30 s.")
 	assert_eq(ParentText.text("time_left_session", "fr").format({"t": "12:34"}), "Temps restant : 12:34")
-	for key in ["leave", "settings", "forgot_code", "forgot_code_stub", "time_left_bedtime", "no_session"]:
+	for key in ["leave", "settings", "forgot_code", "time_left_bedtime", "no_session"]:
 		assert_true(ParentText.TABLE.has(key), key)
+
+
+func test_the_forgotten_code_keys() -> void:
+	assert_false(ParentText.TABLE.has("forgot_code_stub"), "chunk 18's stub is gone")
+	assert_eq(ParentText.text("forgot_confirm_title", "en"), "Confirm it's you")
+	assert_eq(ParentText.text("forgot_confirm_title", "fr"), "Confirmez votre identité")
+	assert_eq(ParentText.text("forgot_new_code_title", "fr"), "Choisissez un nouveau code parent")
+	for key in ["forgot_no_lock", "forgot_confirm_subtitle", "forgot_code_changed"]:
+		assert_true(ParentText.TABLE.has(key), key)
+	var no_lock_en := ParentText.text("forgot_no_lock", "en")
+	assert_true("clear the app's data in Android settings" in no_lock_en, "the only way")
+	assert_true("erases all progress" in no_lock_en)
+	var no_lock_fr := ParentText.text("forgot_no_lock", "fr")
+	assert_true("effacer les données de l'application" in no_lock_fr)
+	assert_true("efface toute la progression" in no_lock_fr)
+	assert_true("vous" in no_lock_fr, "French says vous")
+	assert_true("screen lock" in ParentText.text("forgot_confirm_subtitle", "en"))
+	assert_true("votre" in ParentText.text("forgot_confirm_subtitle", "fr"))
 
 
 func test_the_settings_keys() -> void:

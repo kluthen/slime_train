@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The only permission of the app (normal, granted at install): needed by
+         BiometricPrompt.authenticate(), which the parent gate uses to ask for
+         the device's screen lock. Nothing network, nothing billing. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+
+    <application>
+        <!-- Godot v2 plugin registration: the name after the
+             org.godotengine.plugin.v2 prefix is the singleton name, the value
+             is the plugin class. -->
+        <meta-data
+            android:name="org.godotengine.plugin.v2.${godotPluginName}"
+            android:value="${godotPluginPackageName}.SlimePlatformPlugin" />
+    </application>
+
+</manifest>

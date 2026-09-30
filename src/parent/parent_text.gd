@@ -20,7 +20,17 @@ const TABLE := {
 	"enter_code": {"en": "Enter the parent code", "fr": "Saisissez le code parent"},
 	"delete": {"en": "Delete", "fr": "Effacer"},
 	"forgot_code": {"en": "Forgot the code?", "fr": "Code oublié ?"},
-	"forgot_code_stub": {"en": "Available in a later version.", "fr": "Disponible dans une prochaine version."},
+	"forgot_no_lock": {"en": "This phone has no screen lock, so you can't set a new code here. The only way out is "
+			+ "to clear the app's data in Android settings, and that erases all progress.",
+			"fr": "Ce téléphone n'a pas de verrouillage de l'écran : vous ne pouvez donc pas choisir un nouveau "
+			+ "code ici. La seule solution est d'effacer les données de l'application dans les paramètres "
+			+ "d'Android, ce qui efface toute la progression."},
+	"forgot_confirm_title": {"en": "Confirm it's you", "fr": "Confirmez votre identité"},
+	"forgot_confirm_subtitle": {"en": "Use your phone's screen lock to set a new parent code",
+			"fr": "Utilisez le verrouillage de l'écran de votre téléphone pour choisir un nouveau code parent"},
+	"forgot_new_code_title": {"en": "Set a new parent code", "fr": "Choisissez un nouveau code parent"},
+	"forgot_code_changed": {"en": "The code is changed. Enter the new code to go on.",
+			"fr": "Le code est modifié. Saisissez le nouveau code pour continuer."},
 	"wait": {"en": "Too many tries. Wait {s} s.", "fr": "Trop d'essais. Patientez {s} s."},
 	"time_left_session": {"en": "Time left: {t}", "fr": "Temps restant : {t}"},
 	"time_left_bedtime": {"en": "Slimes wake in {t}", "fr": "Réveil des slimes dans {t}"},

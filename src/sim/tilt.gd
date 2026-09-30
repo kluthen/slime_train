@@ -13,8 +13,8 @@ extends RefCounted
 ## also say the phone lies **flat**: the screen faces up, gravity has next to
 ## no part in its plane and the angle means nothing. Lying flat counts as
 ## neutral. Deciding "flat" from the sensor (a threshold on the gravity
-## vector's part in the screen's plane) is the sensor's job (chunk 20); on
-## desktop, test mode's `tilt` step says it (`"flat": true`).
+## vector's part in the screen's plane) is the sensor's job (TiltSensor,
+## chunk 20); on desktop, test mode's `tilt` step says it (`"flat": true`).
 ##
 ## Neutral is how the phone was held when the session started: take_neutral_now()
 ## (placeholder until sessions, chunk 17: Simulation.load_level takes it, so

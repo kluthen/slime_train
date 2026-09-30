@@ -8,6 +8,8 @@ choices made while building v1, with their reasons. Business behaviour is in
 
 - Godot 4.7.2 on the `PATH` as `godot`. `tools/test.sh` uses another binary
   if you set `GODOT`, for example `GODOT=/opt/godot/godot tools/test.sh`.
+- Android builds only: the Android SDK and JDK 21, see "How to build,
+  install and run (chunk 20)".
 
 ## Running the tests
 
@@ -76,6 +78,11 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `.claude/skills/` | Project skills for Claude: `new-level`, `level-content`, `level-review` (same section) |
 | `spikes/` | Throwaway prototypes. Nothing else depends on them |
 | `export_presets.cfg` | The Android export presets (see "Android export (debug)"); `build/` (gitignored) receives the APKs |
+| `src/platform/` | The phone: `PhonePlatform` (the plugin's wrapper, a desktop stub otherwise), screen pinning, the safe area, the tilt sensor (see "Chunk 20: Android") |
+| `native/android_plugin/` | The SlimePlatform Android plugin's Java and its Gradle project (see "How to build, install and run (chunk 20)") |
+| `addons/slime_platform/` | The editor plugin that adds the SlimePlatform AAR (`bin/`, gitignored) to Gradle exports |
+| `tools/android/` | `build_plugin.sh`, `export.sh` (debug or release APK), `check_emulator.sh` |
+| `android/build/` | Godot's Android build template, installed by `tools/android/export.sh` (gitignored) |
 | `addons/gut/` | The GUT test framework, vendored |
 
 Dependencies go one way: levels use components, components use the
@@ -316,10 +323,16 @@ a debug build, a game with that guard refuses `enable_test_mode()` and the
 command-line flags, and no script outside `src/test_mode/` names a
 test-mode class.
 
-When export presets exist (chunk 20), the release presets must exclude
-`src/test_mode/*`, `src/debug/*` (the debug overlay, same guard, see "Debug
-overlay"), `tests/*`, `addons/gut/*`, `levels/test/*` and `spikes/*`, and a
-CI check must confirm it:
+The `Android release` preset (chunk 20, see "Android export (debug)")
+excludes `src/test_mode/*`, `src/debug/*` (the debug overlay, same guard,
+see "Debug overlay"), `tests/*`, `addons/gut/*`, `levels/test/*` and
+`spikes/*`, plus `tools/*` and `addons/slime_platform/*`. Chunk 20 checked
+it by hand on `build/slime-train-release.apk`: its `assets/` folder and the
+`assets.sparsepck` index hold 177 `src/` entries and nothing under
+`src/test_mode/`, `src/debug/`, `tests/`, `levels/test/`, `tools/` or
+`addons/` (`src/test_mode_guard.gd` itself ships, as it should). The CI check that
+should confirm it on every build is not built yet (there is no CI and no Linux release
+preset). It would:
 
 1. Export the release build.
 2. List the files in its pack and check that none is under
@@ -1307,8 +1320,9 @@ screen-right** (the phone's right edge dips, like a steering wheel turned
 right). `flat` says the phone lies flat (screen up): its angle means nothing
 and it counts as neutral. On desktop the event comes from test mode's
 script: `{"tick": 60, "do": "tilt", "degrees": 20}`, with an optional
-`"flat": true`. Turning the sensor into readings (the angle, and the
-threshold under which the phone is flat) is chunk 20's.
+`"flat": true`. On a phone, in normal play, the accelerometer feeds it: see
+"Tilt from the sensor (chunk 20)" for the axes, the sign and the flat
+threshold.
 
 **Neutral.** Readings count from `neutral`, the hold when the session
 started: `take_neutral_now()` takes the last reading (0°, the screen's down,
@@ -2898,7 +2912,8 @@ for `now_wall_ms()` and to run an action. Its controls all ignore the
 mouse: `intercept()` hit-tests its own rects on touches and real (not
 emulated) left clicks, and a press it takes is swallowed with its release.
 
-**Surfaces.** The prompt, settings and setup are `ParentSurface`s
+**Surfaces.** The prompt, settings and setup (and, since chunk 20, the
+forgotten code's new-code screen, `NEW_CODE`) are `ParentSurface`s
 (`src/parent/parent_surface.gd`): the gate owns the input and the timing, a
 surface answers `opened()`, `covers(at)` (the press is the surface's; false
 means outside), `press(at)`, `step()` (once per simulation step while open)
@@ -2932,8 +2947,9 @@ action asks again); a wrong one shakes the slots (0.4 s, visual only),
 clears the entry and counts one try. The tries are the store's, one count
 for every button: the 5th wrong in a row starts a 30 s wait during which
 the pad refuses digits and the message counts down; the wait survives
-closing the prompt and a kill. "Forgot the code?" shows a stub note
-(nothing changes, no try counts) until chunk 20 brings the reset. A press
+closing the prompt and a kill. "Forgot the code?" was a stub note in
+chunk 18; chunk 20 brings the reset (see "Forgot the code? (chunk 20)"
+under "Chunk 20: Android"). A press
 on the panel restarts the 15 s. The wake-early prompt shows the time until
 sunrise, live, and closes once bedtime ends on its own.
 
@@ -2943,8 +2959,8 @@ bedtime, `session.sunrise()` runs (with its cue) and screensaver mode
 follows; outside bedtime it does nothing (a press can race the natural
 sunrise). Being an input, it lands on a fixed tick and a run stays
 repeatable. Leave calls `game.quit_app`, the tree's `quit()` unless a test
-put its own Callable first; stopping screen pinning before quitting is
-chunk 20's.
+put its own Callable first; screen pinning stops just before
+(`platform.stop_pinning()`, chunk 20).
 
 **Settings** (`parent_settings.gd`) fill the screen, so every press is
 theirs. The header shows `Session.time_left_ms()` as m:ss
@@ -2969,8 +2985,8 @@ Closing settings ends the parent's authority.
 at once, before the world takes a tap. It fills the screen (no call, no
 session start, no reveal) and has no idle timeout. Four steps, "Step n of
 4": welcome, the code typed twice (`ParentChangeCode`; a match moves on by
-itself), a forgotten code, screen pinning (the text only: pinning is chunk
-20). Back on steps 2 to 4. The code is held in memory and saved
+itself), a forgotten code, screen pinning (explained; Android asks for it right
+after Finish, chunk 20). Back on steps 2 to 4. The code is held in memory and saved
 (`set_code`) only by Finish, which closes setup for good. An interruption
 drops it and starts over from step 1: the app killed (nothing was saved,
 so the next launch shows setup again), `NOTIFICATION_APPLICATION_PAUSED`,
@@ -3016,9 +3032,9 @@ holds the tries and the wait's end exactly. Loading (`ParentStore._load`):
   (`has_code()` true, so setup never shows again, DoD 23) but no code
   matches: every try is wrong and counts, the 5 tries and the 30 s wait
   apply as usual, in memory only. Both files are left untouched until a
-  new `set_code`, which writes them and unlocks the store. Only chunk 20's
-  "Forgot the code?" route can set one; until then clearing the app's data
-  is the only way out.
+  new `set_code`, which writes them and unlocks the store. The "Forgot the
+  code?" route (chunk 20) sets one on a phone with a screen lock; without
+  one, clearing the app's data is the only way out.
 
 Before chunk 19 an unreadable file was read as "no code", so setup ran
 again and whoever held the phone chose a new code.
@@ -3622,17 +3638,51 @@ Tests: `tests/e2e/test_level_progress.gd` (new), `test_new_level_e2e.gd`,
 
 ## Android export (debug)
 
-`export_presets.cfg` holds two Android presets, both debug-signed APKs with
-no Gradle build, arm64-v8a only, landscape (from `project.godot`),
-minimum SDK 24 (Godot's default):
+`export_presets.cfg` holds three Android presets (no credentials in it).
+All are landscape (the project's `display/window/handheld/orientation`, 0),
+minimum SDK 24 (Godot's default), sticky immersive (`screen/immersive_mode`),
+and need `rendering/textures/vram_compression/import_etc2_astc`, which
+`project.godot` enables. Building, signing and installing them: "How to
+build, install and run (chunk 20)" under "Chunk 20: Android".
 
-| Preset | Package | Output | What it runs |
-|---|---|---|---|
-| `Android debug` | `com.slimetrain.dev` | `build/slime-train-debug.apk` | the game (`src/main.tscn`); `spikes/` is left out |
-| `Android spike: soft slimes` | `com.slimetrain.spike` | `build/spike-debug.apk` | spike 1's phone benchmark (feature tag `spike_soft_slimes`) |
+| Preset | Package, version | Build | ABIs | Edge to edge | Leaves out | Output |
+|---|---|---|---|---|---|---|
+| `Android debug` | `com.slimetrain.dev`, 0.1-dev | Gradle, with the SlimePlatform plugin | arm64-v8a (phone), x86_64 (emulator) | yes | `spikes/*` | `build/slime-train-debug.apk` |
+| `Android release` | `com.slimetrain`, 0.1 | Gradle, with the SlimePlatform plugin | arm64-v8a | yes | `src/test_mode/*`, `src/debug/*`, `tests/*`, `addons/gut/*`, `addons/slime_platform/*`, `levels/test/*`, `spikes/*`, `tools/*` | `build/slime-train-release.apk` |
+| `Android spike: soft slimes` | `com.slimetrain.spike`, 0.1-spike | Godot's prebuilt template, no Gradle, no plugin | arm64-v8a | no | nothing | `build/spike-debug.apk` |
 
-The preset file holds no credentials. The debug keystore comes from the
-editor settings (`~/.config/godot/editor_settings-4.7.tres`), which need:
+- **The release APK has no level yet:** `levels/test/` is left out and no
+  real level exists, so it opens on an empty world (see "Choices proposed
+  for spec-writer (chunk 20)").
+- **The spike's feature tag.** The official Android templates are built
+  without path overrides, so a scene given on the command line
+  (`command_line/extra_args`) aborts the engine. The spike preset uses a
+  **feature tag** instead: `src/main.gd` checks
+  `OS.has_feature("spike_soft_slimes")` first thing and changes to
+  `res://spikes/soft-slimes/spike.tscn`. Options after `--` in
+  `command_line/extra_args` do reach the spike (for example
+  `-- --draw-only`); intent extras from `adb shell am start` are stripped for
+  an exported activity, so they don't. `tools/android/export.sh` doesn't
+  build it: `godot --headless --path . --export-debug "Android spike: soft
+  slimes" build/spike-debug.apk`.
+- On the phone, the spike runs its whole bench matrix and then a 10-minute
+  soak, prints one `RESULT` line per case and quits (see
+  `docs/dev/spike-soft-slimes.md`).
+
+## Chunk 20: Android
+
+### How to build, install and run (chunk 20)
+
+**Machine prerequisites** (checked on Debian 13):
+
+| What | Where | Notes |
+|---|---|---|
+| Godot 4.7.2 and its export templates | `godot` on the `PATH` (or `GODOT=`) | the Android build template comes from the export templates |
+| Android SDK | `~/Android/Sdk` (`ANDROID_HOME`) | `sdkmanager "platforms;android-36" "build-tools;36.1.0" "ndk;29.0.14206865" "platform-tools" "emulator"` |
+| JDK 21 | `/usr/lib/jvm/java-21-openjdk-amd64` (`JAVA_HOME_21`) | Gradle 8.11 (Godot's build template) and 8.14 (the plugin) can't run on JDK 25, Debian 13's default `java` |
+
+The Godot editor settings (`~/.config/godot/editor_settings-4.7.tres`) give
+the Gradle export its JDK, SDK and debug keystore:
 
 ```
 export/android/android_sdk_path = "/home/<you>/Android/Sdk"
@@ -3641,45 +3691,514 @@ export/android/debug_keystore = "/home/<you>/.local/share/godot/keystores/debug.
 export/android/debug_keystore_pass = "android"
 ```
 
-The user defaults to `androiddebugkey`. Create the keystore once if it is missing:
+The debug key's user defaults to `androiddebugkey`. Create the debug
+keystore once if it is missing:
 
 ```sh
-keytool -genkeypair -keystore ~/.local/share/godot/keystores/debug.keystore \
+/usr/lib/jvm/java-21-openjdk-amd64/bin/keytool -genkeypair \
+  -keystore ~/.local/share/godot/keystores/debug.keystore \
   -storepass android -alias androiddebugkey -keypass android -keyalg RSA \
   -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
 ```
 
-Godot 4.7 asks for JDK 17; the JDK 21 of Debian 13 signs and exports
-without complaint (no Gradle build). `project.godot` enables
-`rendering/textures/vram_compression/import_etc2_astc`, which every Android
-export requires.
-
-Export, install, run and read the output (Godot's `print()` goes to the
-logcat tag `godot`):
+**Build and export:**
 
 ```sh
-mkdir -p build
-godot --headless --path . --export-debug "Android debug" build/slime-train-debug.apk
-adb install -r build/slime-train-debug.apk
-adb shell am start -n com.slimetrain.dev/com.godot.game.GodotAppLauncher
-adb logcat -v time -s godot:*
+tools/android/build_plugin.sh     # the plugin's AARs into addons/slime_platform/bin/
+tools/android/export.sh debug     # build/slime-train-debug.apk
+tools/android/export.sh release   # build/slime-train-release.apk (release keystore below)
 ```
 
-- The launcher activity is `com.godot.game.GodotAppLauncher`: starting
-  `GodotApp` directly is refused (not exported).
+- `export.sh` rebuilds the plugin first (a stale AAR can't ship), installs
+  Godot's Android build template into `res://android/build/` when it is
+  missing (`--install-android-build-template`; `/android/` is gitignored),
+  exports headless (`--export-debug` / `--export-release`) and stops the
+  Gradle daemons (`KEEP_GRADLE_DAEMON=1` keeps them for faster repeats).
+  After a Godot upgrade, delete `android/` so the matching template is
+  installed.
 - A headless export restarts the adb server, which kills a running
-  `adb logcat`; start the capture after exporting.
-- The official Android templates are built without path overrides, so
-  a scene given on the command line (`command_line/extra_args`) aborts the
-  engine. That is why the spike preset uses a **feature tag** instead:
-  `src/main.gd` checks `OS.has_feature("spike_soft_slimes")` first thing and
-  changes to `res://spikes/soft-slimes/spike.tscn`. Options after `--` in
-  `command_line/extra_args` do reach the spike (for example
-  `-- --draw-only`); intent extras from `adb shell am start` are stripped for
-  an exported activity, so they don't.
-- On the phone, the spike runs its whole bench matrix and then a 10-minute
-  soak, prints one `RESULT` line per case and quits (see
-  `docs/dev/spike-soft-slimes.md`).
+  `adb logcat`: start the capture after exporting.
+
+**Install and run.** On the emulator: `tools/android/check_emulator.sh boot`,
+`install` (exports first; `--no-build` reuses the APK), `launch` (see
+"Checking on the emulator (chunk 20)"). On the reference phone (USB
+debugging on; always pass `-s`, since `adb` refuses to choose when the
+emulator runs too):
+
+```sh
+adb -s RFCNA0WV2AR install -r build/slime-train-debug.apk
+adb -s RFCNA0WV2AR shell am start -n com.slimetrain.dev/com.godot.game.GodotAppLauncher
+adb -s RFCNA0WV2AR logcat -v time -s godot:*    # Godot's print() goes to the tag godot
+```
+
+The launcher activity is `com.godot.game.GodotAppLauncher`: starting
+`GodotApp` directly is refused (not exported). The release build is
+`com.slimetrain`, so it installs beside the debug one.
+
+**Release keystore.** `export.sh release` refuses to start without
+`GODOT_ANDROID_KEYSTORE_RELEASE_PATH`, `GODOT_ANDROID_KEYSTORE_RELEASE_USER`
+(the key's alias) and `GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD`. Godot takes
+one password for the store and the key, so they must be the same; PKCS12,
+keytool's default format, does that by itself. Create it once, outside the
+repository, with JDK 21's keytool (it asks for the password):
+
+```sh
+/usr/lib/jvm/java-21-openjdk-amd64/bin/keytool -genkeypair \
+  -keystore ~/keys/slime-train-release.keystore -alias slimetrain \
+  -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Slime Train"
+export GODOT_ANDROID_KEYSTORE_RELEASE_PATH=~/keys/slime-train-release.keystore
+export GODOT_ANDROID_KEYSTORE_RELEASE_USER=slimetrain
+read -rs GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD && export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD
+tools/android/export.sh release
+```
+
+Never commit a keystore or its password. Keep a backup: an update signed
+with another key doesn't install over the app, and uninstalling it erases
+the saves.
+
+**The plugin (SlimePlatform).** A Godot v2 Android plugin, Java only (no
+Kotlin, so nothing clashes with the build template's Kotlin):
+
+- **Where:** `native/android_plugin/`, a Gradle project (wrapper 8.14.3,
+  Android Gradle plugin 8.13.2, compile SDK 36, min SDK 24), compiled against
+  `org.godotengine:godot:4.7.2.stable` from Maven Central (`compileOnly`: the
+  app provides it). The class is
+  `plugin/src/main/java/com/slimetrain/platform/SlimePlatformPlugin.java`;
+  its manifest (`plugin/src/main/AndroidManifest.xml`) holds the app's one
+  permission, `USE_BIOMETRIC`, and the v2 registration
+  `org.godotengine.plugin.v2.SlimePlatform`, which names the engine
+  singleton.
+- **API** (`@UsedByGodot`): `startPinning()`, `stopPinning()`,
+  `isPinned()`, `isDeviceSecure()`, `confirmCredential(title, subtitle)`
+  then the signal `credential_finished(ok)` exactly once,
+  `setGestureExclusion(int[])` (flattened `[x, y, w, h, ...]`, window
+  pixels, re-applied on every layout change), `getPhysicalDpi()`,
+  `moveToBackground()`. The game reaches them only through `PhonePlatform`
+  (see "Platform wrapper (chunk 20)").
+- **Into the APK:** `build_plugin.sh` copies the AARs to
+  `addons/slime_platform/bin/{debug,release}/SlimePlatform-{debug,release}.aar`
+  (gitignored). The editor plugin `addons/slime_platform/` (enabled in
+  `project.godot`, headless exports included) registers an export plugin
+  whose `_get_android_libraries()` hands the Gradle build the AAR for the
+  build type; the manifest merge brings `USE_BIOMETRIC`. Gradle builds only:
+  the spike preset has no plugin, so there `PhonePlatform` is the desktop
+  stub.
+- **Rebuilding:** after any Java change run `tools/android/build_plugin.sh`
+  (`export.sh` always does); it stops its Gradle daemon unless
+  `KEEP_GRADLE_DAEMON=1`.
+
+### Platform wrapper (chunk 20)
+
+`src/platform/phone_platform.gd` (`PhonePlatform`) is the game's one door to
+the phone. `PhonePlatform.for_this_build()` wraps the Android plugin's
+`SlimePlatform` singleton when the build has it, and is otherwise the
+**desktop stub** (the same class with no singleton): every call does
+nothing, `is_pinned()` and `is_device_secure()` are false,
+`confirm_credential()` answers `credential_finished(false)` on the next idle
+frame, and `safe_area()` is the window's rect.
+
+| Call | Phone (plugin) |
+|---|---|
+| `request_pinning()`, `stop_pinning()`, `is_pinned()` | `startPinning()`, `stopPinning()`, `isPinned()` |
+| `is_device_secure()` | `isDeviceSecure()` |
+| `confirm_credential(title, subtitle)` then `credential_finished(ok)` | `confirmCredential()`, its `credential_finished` signal passed on |
+| `set_back_gesture_exclusion(rects: Array[Rect2i])` (window pixels) | `setGestureExclusion()`, flattened `[x, y, w, h, ...]` |
+| `move_to_background()` | `moveToBackground()` |
+| `safe_area()` | `DisplayServer.get_display_safe_area()` |
+| `physical_dpi()`, `screen_dpi()` (see "Millimetres on the phone (chunk 20)") | `getPhysicalDpi()`, checked against `DisplayServer.screen_get_dpi()` |
+
+`src/main.gd` owns it as `platform`. Tests replace it before the game enters
+the tree (like `session_clock` and `quit_app`) with an inline
+`class FakePlatform extends PhonePlatform` that records the calls (see
+`tests/e2e/test_screen_pinning_e2e.gd`).
+
+`src/platform/screen_pinning.gd` (`ScreenPinning`, a child of the game root)
+does the rest:
+
+- **Pinning timing.** At each launch, in the game root's `_ready()`: a later
+  launch (a parent code exists, a locked `parent.json` included) asks at
+  once, before the world takes a tap; a first launch asks right after setup
+  finishes (`ParentGate.setup_finished`, emitted by `ParentSetup._finish()`),
+  so an interrupted setup, which starts over, asks only once it is finished.
+  Coming back from the background never asks. A game with no parent layer
+  (no `ParentStore`, tests only) asks nothing, since nothing could leave the
+  pinning (proposed). Test-mode runs ask through the platform like normal
+  play (a no-op on the desktop) (proposed).
+- **Leave.** `ParentGate.act(LEAVE)` calls `platform.stop_pinning()`, then
+  the game's `quit_app`.
+- **Back.** `project.godot` sets `application/config/quit_on_go_back=false`,
+  so Back never quits. On `NOTIFICATION_WM_GO_BACK_REQUEST` the autosave
+  saves (as before); while the screen is pinned nothing else happens, and
+  when it isn't (the parent declined or unpinned) `move_to_background()`
+  sends the app to the background, as Android normally does: the session
+  keeps counting and reopening resumes.
+- **Exclusion rects.** `ScreenPinning.edge_strip_exclusions(view_size,
+  to_window, window_size)` turns the edge strips (`EDGE_STRIP_SHARE` of the
+  viewport's width) into window pixels through the viewport's final
+  transform (the `canvas_items` + `expand` stretch: a scale, no offset) and
+  makes them full-height bands against the window's edges, rounded outward.
+  Full height, not from the parent zone down like the strips' tap zone,
+  because the parent zone is a touch area too (proposed). They are handed
+  over at start and on every `size_changed` of the viewport. Android honours
+  more than 200 dp of exclusion per edge only while the navigation bar is
+  stickily hidden, so the game needs sticky immersive mode.
+
+`project.godot` also sets `display/window/energy_saving/keep_screen_on=false`
+(Godot's default is on): the phone's usual screen timeout applies in
+screensaver mode and at bedtime, and `SessionScreen` keeps the screen on
+during a session and the wind-down only. `input_devices/sensors/enable_accelerometer=true`
+is on for the tilt.
+
+### Tilt from the sensor (chunk 20)
+
+`src/platform/tilt_sensor.gd` (`TiltSensor`, pure static functions) turns
+`Input.get_accelerometer()` into a tilt reading; `src/platform/tilt_feed.gd`
+(`TiltFeed`, the game root's `tilt_feed`) hands it to the simulation.
+
+- **Axes.** Godot 4.7.2 on Android (`GodotInputHandler.onSensorChanged`,
+  checked in the export template's bytecode) rotates the sensor's axes to the
+  display's rotation, then passes `GodotLib.accelerometer(-x, -y, -z)`: the
+  vector is in screen axes (x to the screen's right, y to its top, z out of
+  the screen), m/s², and at rest it points **down, along gravity**, not up
+  like Android's own reading. Held upright in landscape it reads
+  `(0, -9.81, 0)`; flat, screen up, `(0, 0, -9.81)`.
+- **Sign.** `degrees = atan2(x, -y)`: the angle of gravity in the screen's
+  plane from the screen's down, positive when the phone's right edge dips
+  (gravity leans toward screen-right, x > 0), as `Tilt` wants. How far the
+  screen leans back doesn't change it.
+- **Flat.** The phone is flat when gravity's part in the screen's plane,
+  `sqrt(x² + y²)`, is under `sin(FLAT_DEGREES)` of its length: the screen
+  within 20° of horizontal, face up or down (proposed; `specs/tuning.md` has
+  no value). A reading shorter than `MIN_MAGNITUDE` (1 m/s²: no sensor, free
+  fall) is flat too (proposed). A flat reading goes with 0°.
+- **Feeding.** In normal play only, `step_simulation()` calls
+  `tilt_feed.feed(simulation)` before every tick, and it pushes
+  `Simulation.tilt(degrees, flat)` when the reading is new: the first for a
+  simulation, flat or not changed, or the angle moved by `CHANGE_DEGREES`
+  (1°, proposed) or more. Every input is logged (`input_log`, 64 events), so
+  a steady phone must not push every tick. Test mode never reads the sensor:
+  its script's `tilt` steps stay its only tilt and runs stay repeatable.
+  `TiltFeed.sensor` is a Callable (default `Input.get_accelerometer`); tests
+  put a fake first (`tests/e2e/test_tilt_sensor_e2e.gd`).
+- **Desktop.** A reading of exactly `Vector3.ZERO` (desktop, or a phone
+  before its first sensor event) pushes nothing, so desktop play is as before
+  (proposed).
+- **Neutral.** The reading is pushed before the tick, so a resumed session
+  (`Session.reopened()`, taken in the next tick's `advance`) takes the latest
+  reading as neutral. A tap that starts a session is queued before that
+  tick's reading, so the session's neutral is the reading pushed before: at
+  most `CHANGE_DEGREES` and one tick off, far inside the 10° dead zone.
+- **Idle camera.** A tilt input never counts as a touch: it doesn't restart
+  the idle clock (`Camera.watch()`).
+- **Orientation.** The game stays in Godot's default fixed landscape
+  (`display/window/handheld/orientation` 0), not sensor landscape (proposed;
+  the spec is silent): turning the phone 180° never flips the axes under the
+  player.
+- **Rough check on the emulator.** `adb -s emulator-5554 emu sensor set
+  acceleration x:y:z` sets the raw sensor in the device's natural (portrait)
+  axes, pointing up. With the game in landscape (display rotation 90°), Godot
+  reads `(y, -x, -z)`: `9.81:0:0` is upright (0°), `8.5:4.9:0` the right edge
+  dipped 30° (+30°), `8.5:-4.9:0` the left edge (-30°), `0:0:9.81` flat. If
+  the emulator shows the landscape the other way round, x and y change sign.
+  The feel needs a real phone.
+- **Tests.** `tests/unit/test_tilt_sensor.gd` (the angle and its sign, flat,
+  no sensor, the feed's pushes); `tests/e2e/test_tilt_sensor_e2e.gd` (normal
+  play feeds free slimes only, a steady phone is one input, the desktop
+  pushes nothing, test mode ignores the sensor, neutral at a session's start
+  and on resume, the idle clock runs on).
+
+### Forgot the code? (chunk 20)
+
+Master spec §5.8 "Forgotten code", O73. "Forgot the code?" on the code
+prompt (`ParentCodePrompt.forgot_code()`) asks the game's `platform`:
+
+- **No screen lock** (`is_device_secure()` false, the desktop stub
+  included): the prompt's note explains that clearing the app's data in
+  Android settings is the only way and that it erases all progress
+  (`forgot_no_lock`). Nothing else happens: no try counted, the store
+  untouched, the entry kept. The note takes the left column above the
+  button, in place of the header, title, slots and wait message, until the
+  next key (proposed; the column is too narrow for it in one row).
+- **A screen lock:** `confirm_credential(title, subtitle)` with
+  `forgot_confirm_title` / `forgot_confirm_subtitle` ("Confirm it's you" /
+  "Use your phone's screen lock to set a new parent code", proposed). While
+  Android's prompt is pending (`awaiting_credential`) the code prompt's 15 s
+  idle stops, and the app losing the focus or pausing changes nothing (the
+  gate and the prompt don't react to those notifications; only setup
+  does), so the pending action is kept. A second tap does nothing.
+- **`credential_finished(false)`** (cancelled or failed): the prompt as it
+  was (entry, tries, wait), no try counted, the 15 s from the answer.
+- **`credential_finished(true)`:** the gate's new `NEW_CODE` state, the
+  new-code screen (`src/parent/parent_new_code.gd`, `ParentNewCode`): full
+  screen, a heading (`forgot_new_code_title`) and `ParentChangeCode` (the
+  new code typed twice, as at setup and in settings). A match calls
+  `ParentStore.set_code()` (salted hash only; tries and wait cleared; a
+  locked store unlocked, `parent.json` and `parent.json.bak` rewritten) and
+  returns to the code prompt for the pending action, with the note "The code
+  is changed. Enter the new code to go on." (`forgot_code_changed`,
+  proposed): passing the screen lock gives no parent authority. Back, or
+  30 s with no press (settings' rule, no warning line; proposed), returns to
+  the code prompt with nothing changed.
+- An answer that comes once the prompt has closed or been reopened is
+  dropped (proposed). It works during the 30 s wait and on a locked store.
+- No parent-facing text for the locked state (the spec doesn't settle it).
+
+Tests: `tests/e2e/test_forgot_code_e2e.gd` (a `FakePlatform` with
+`secure` and a recorded `confirm_credential()`; the test emits
+`credential_finished`), and the desktop case in `test_parent_prompt_e2e`.
+
+### Safe area (chunk 20)
+
+D112: the world is drawn edge to edge (the Android export's
+`screen/edge_to_edge`, sticky immersive), the controls inside the display's
+safe area, clear of the punch-hole camera (on a short edge: left or right in
+landscape) and the rounded corners.
+
+- **Where it comes from:** `SafeArea` (`src/platform/safe_area.gd`, a child
+  of the game root) reads `platform.safe_area()` (screen pixels;
+  `DisplayServer.get_display_safe_area()` on the phone, the window on the
+  desktop) and maps it through the stretch (`get_final_transform()`,
+  viewport to window pixels) with the pure `SafeArea.in_viewport()`, clipped
+  to the viewport. A safe area with no part on the window (headless runs
+  report none) is the whole viewport. It reads it at start, on every
+  viewport `size_changed` and on `NOTIFICATION_APPLICATION_RESUMED`
+  (proposed: the project is fixed landscape, so the cut-out moves only with
+  a resize). `sync_view()` hands the insets to the view
+  (`ScreenView.set_safe_insets()`); `ScreenView.safe_rect()` is the safe area
+  in viewport pixels, kept as insets so it follows test mode's
+  `screen_size`. Not in `dump()` nor in saves, like `px_per_mm`.
+- **What moves** (`ParentLayout`): the parent buttons' row hangs from the
+  safe area's top-right corner (`EDGE_MM` from it); the code prompt's panel
+  is two thirds of the safe area's width, centred in it below the parent
+  zone (proposed: two thirds of the safe width, not of the screen's);
+  settings, setup and the new-code screen lay their content out in
+  `ParentLayout.surface_rect()` (the safe area, with their usual margins
+  inside it) while their background, like the prompt's scrim, fills the
+  whole screen.
+- **What stays on the screen's edges** (proposed, as the atom
+  `req_controls_tap_zones` measures them on the screen): the parent zone (7 mm
+  band, full width, over a cut-out too), the edge strips (a tenth of the
+  screen's width, `TapDispatcher.edge_button_rect()`) and their arrows
+  (`EdgeButtons`, in the middle of each strip; a punch hole at mid-height may
+  overlap part of an arrow), and the back gesture's exclusion.
+- **Desktop:** the safe area is the window, so nothing moves.
+
+Tests: `tests/unit/test_safe_area.gd` (the mapping on the reference phone's
+2400 x 1080 window with a cut-out on the left and on the right, the view's
+insets), `tests/e2e/test_safe_area_e2e.gd` (the root window resized to
+2400 x 1080, a `FakePlatform` with a 100 px cut-out on either side: every
+parent button, prompt, settings, setup and new-code target inside the safe
+area with the 9 x 9 mm / 2 mm rules, the backgrounds full screen, the
+parent zone and the edge strips on the edges, a resize read again).
+
+### Millimetres on the phone (chunk 20)
+
+The parent's targets are sized in millimetres (keys and buttons at least
+9 x 9 mm, 2 mm apart: `req_parent_gate_and_access`, D109), converted at the
+screen's density (`ScreenView.px_per_mm`, from `main.screen_px_per_mm()`).
+
+- **Physical, not logical, dpi.** Godot's `DisplayServer.screen_get_dpi()`
+  is Android's `densityDpi`: a logical bucket that the user's "display size"
+  setting moves, not the panel's pixels per inch. The reference phone (S20
+  FE, about 405 ppi) is believed to report 480, so the game took its 68 mm
+  tall screen for 57 mm and every "9 mm" key came out about 10.7 mm. The
+  plugin's `getPhysicalDpi()` (the mean of `DisplayMetrics.xdpi` and
+  `ydpi`: the activity's resources on API 30+, the default display's real
+  metrics below) is `PhonePlatform.physical_dpi()` (0: unknown, the desktop
+  stub); `PhonePlatform.screen_dpi()` picks the density used, and
+  `main.screen_px_per_mm()` divides it by the stretch as before.
+- **Plausibility** (proposed; some devices report bogus `xdpi` / `ydpi`):
+  the physical reading is used when it lies within
+  `ScreenView.PHYSICAL_DPI_MIN_SHARE` (0.6) to `PHYSICAL_DPI_MAX_SHARE` (1.6)
+  of the logical one, both included (the pure `ScreenView.dpi_for_mm()` and
+  `physical_dpi_plausible()`); otherwise the logical one, with one warning
+  per run. A logical reading of 0 or less still falls back to the reference
+  phone's density (an error, as before). Test mode and the desktop keep the
+  reference phone's density.
+- **Pads that fit** (proposed): the code pad (`ParentPad`) gets the height
+  it has from its owner (`lay_out(origin, view, height_px)`); when the
+  preferred 10 mm keys and 2.5 mm gaps don't fit, both shrink together, the
+  same share of the way to their floors (9 mm, 2 mm), so the pad is exactly
+  as tall as its room (`ParentPad.sizes_mm()`); never below the floors. The
+  code prompt's pad fits its panel (below the 7 mm parent zone). Settings,
+  setup and the new-code screen have a heading row over the pad: when even
+  the pad at its floors doesn't fit under it, `ParentLayout.rows_over_pad()`
+  shrinks the gap under the row (3 mm, down to 2 mm) and then the row (10 mm,
+  down to 9 mm for settings' row, which holds the close button, and to a
+  5 mm line of text for setup's and the new code's headings). "Forgot the
+  code?" and the entry's Back stay as tall as the keys, level with the last
+  row. On a 57 mm tall, 127 mm wide screen (2400 x 1080 at 480 dpi) the
+  prompt's keys are about 9.6 mm; settings', setup's and the new code's pads
+  are at their floors under a 9.65 mm heading row (settings' close button
+  9.65 mm) and a 2 mm gap. At the reference density nothing moves.
+- **Still to check:** the emulator's AVD reports its `xdpi` as its density
+  (480), so it stays a 57 mm screen to the game: the short-screen layout.
+  Settings' main screen (the change-code entry and one button per level
+  listed) is not fitted: with the running level only, as today, it fits a
+  57 mm screen; a second level listed would run past its bottom.
+
+Tests: `tests/unit/test_screen_view.gd` (the dpi choice),
+`tests/unit/test_phone_platform.gd` (the stub's unknown density, a fake
+plugin's), `tests/unit/test_parent_pad_fit.gd` (the pad's fit and the rows
+over it), `tests/e2e/test_short_screen_e2e.gd` (the reference phone's window
+at 480 dpi, with and without a cut-out: every target of the code prompt,
+setup's code step, settings' change of code and the new-code screen inside
+the safe area, at least 9 x 9 mm and 2 mm apart; at the reference density
+the preferred sizes).
+
+### Checking on the emulator (chunk 20)
+
+`tools/android/check_emulator.sh` holds the repeatable parts of a check on
+the AVD `S20FE_API_34` (a Pixel 6 clone, API 34, 2400 x 1080, density 480,
+gesture navigation); its header lists the subcommands: `boot`, `install
+[--no-build]`, `launch`, `pinned`, `focus`, `immersive`, `exclusion`, `perms`,
+`ui`, `shot <name>`, `tilt <x> <y> <z>`, `stop`. It always talks to
+`emulator-5554` (`SERIAL`): a phone plugged in is never touched by mistake.
+
+```sh
+tools/android/check_emulator.sh boot        # headless, host GPU
+tools/android/check_emulator.sh install     # exports the debug APK first
+tools/android/check_emulator.sh launch
+tools/android/check_emulator.sh pinned      # mLockTaskModeState=NONE | PINNED
+```
+
+- **GPU.** `boot` passes `-gpu host`. With the AVD's default software
+  renderer (SwiftShader) Godot's canvas shaders fail to link
+  (`GL_MAX_FRAGMENT_UNIFORM_VECTORS`) and the game draws a blank grey screen.
+- **What each check reads.** `pinned`: `dumpsys activity activities`'s
+  `mLockTaskModeState`. `focus`: `mCurrentFocus` / `mFocusedApp` (the app
+  stays in front when it keeps the focus). `immersive`: the status and
+  navigation bars' insets sources, `visible=false` while hidden.
+  `exclusion`: `mSystemGestureExclusion`, the region Android actually keeps
+  after its limits (full height, `(0,0,240,1080)(2160,0,2400,1080)`, while the
+  bars are hidden). `perms`: `aapt dump permissions` of `build/slime-train-*.apk`
+  and the installed app's requested permissions (only `USE_BIOMETRIC`).
+- **System dialogs.** `uiautomator dump` sees only the focused window; `ui`
+  dumps every window (`--windows`), so Android's pinning confirmation
+  ("Got it" / "No thanks") and the credential prompt show with their bounds.
+  The credential prompt is a secure window: its screenshot is empty.
+- **Driving the game.** Screen pixels are viewport pixels x 1080 / 648. The
+  parent buttons hide after 5 s and the code prompt after 15 s idle, so chain
+  the taps in one command (parent zone, the button, the six digits) rather
+  than one tap per look at a screenshot. On a fresh install Android shows its
+  "Viewing full screen" notice once, over the game.
+- **Density.** Godot reads the AVD's density, 480, as the screen's dpi: to
+  the game its screen is 57 mm tall (the reference phone's, at 405 ppi,
+  68 mm), so millimetre-sized surfaces are larger on it than on the phone.
+- **App files.** `user://` is `files/`:
+  `adb -s emulator-5554 shell run-as com.slimetrain.dev ls -l files/ files/saves/`.
+- **Screen lock** for "Forgot the code?":
+  `adb -s emulator-5554 shell locksettings set-pin 1234`, and afterwards
+  `locksettings clear --old 1234`.
+
+### What was checked on the emulator (chunk 20)
+
+The debug APK on the AVD `S20FE_API_34` (API 34, gesture navigation), with
+`tools/android/check_emulator.sh`:
+
+| Check | Found |
+|---|---|
+| DoD 27: permissions | `aapt dump permissions`: the debug and release APKs request only `android.permission.USE_BIOMETRIC`; `dumpsys package` on the device: only `USE_BIOMETRIC`; no billing classes in the dex. Godot adds `INTERNET` only for one-click deploy with remote debug, never with the command line's `--export-debug` / `--export-release`, so no debug-only exception is needed. |
+| DoD 25: pinning | Asked right after setup and at each later launch, not on return from the background. While pinned, HOME, BACK, edge swipes and recents keep the app in front. Leave with the code: `NONE` and the process gone. |
+| DoD 25: pinning declined | Edge swipes (10, both edges, several heights) stay in the app. BACK sends the app to the background: same process, the session resumes, no pinning prompt. |
+| Immersive and exclusion | Rects `(0,0,240,1080)(2160,0,2400,1080)`: Android keeps the strips' whole height despite its 200 dp cap (600 px here), because the cap doesn't apply while the navigation bar is stickily hidden. While the bars show briefly after a swipe up, it keeps `(0,72,240,1080)` (the status bar taken out) for about 4 s. |
+| DoD 26: forgotten code | The credential prompt (framework BiometricPrompt, `DEVICE_CREDENTIAL`) shows while pinned and the pinning stays. Cancel: nothing changed, no try counted. PIN, then the new code typed twice: back at the code prompt for the started action. Works during the 30 s wait and from the locked state (both files rewritten). No plain-text code in `parent.json` / `.bak`. No screen lock: the clearing-app-data explanation. |
+| Lifecycle | HOME: the save rewritten at once. In the background 65 s, killed and 30 s, a reboot: the session's time left matches the wall clock. `KEEP_SCREEN_ON` set during a session only (not at bedtime, not in screensaver mode). |
+| Tilt | Display at `ROTATION_90`: injected `8.5:4.9:0` gives +29.96° (the right edge dips), `8.5:-4.9:0` gives −29.96°, `0:0:9.81` flat. The neutral holds through a session's start, a resume and a reboot. The feel needs the phone. |
+| Emulator limits | SwiftShader can't link Godot's shaders (grey screen): boot with `-gpu host`. 9 to 13 fps on the emulator says nothing about the phone. The AVD's physical dpi is 480, so to the game it is a 57 mm tall screen (the pads fitted at their floors). |
+
+### Manual checklist on the reference phone (Samsung S20 FE, One UI)
+
+For the user; `adb -s RFCNA0WV2AR ...` from the repository's root.
+
+1. **Install.** `tools/android/export.sh debug`, then
+   `adb -s RFCNA0WV2AR install -r build/slime-train-debug.apk` and start
+   "Slime Train". Expect: first launch opens setup.
+2. **Pinning confirmation.** Finish setup. Expect: Android's pin-app
+   confirmation right after setup; accept it. Close and relaunch the app:
+   asked again at once, before the world takes a tap; back from the
+   background: not asked. Also try with One UI's "Ask for PIN before
+   unpinning" on (Settings, Security and privacy, More security settings,
+   Pin app) and note what leaving with the parent code does (unpinned, the
+   app closes; does the phone ask for its PIN?). If no confirmation shows at
+   all, check that "Pin app" is on and note it.
+3. **Pinning declined, the back gesture.** Relaunch and decline the
+   pinning. In gesture navigation: a tap on an edge strip that slides off
+   the screen's edge, and a real back swipe starting on a strip, at several
+   heights on both sides. Expect: the app stays in front, the strip takes the
+   tap. A back swipe elsewhere (or Back): the app goes to the background and
+   reopens where it was. Note whether One UI's navigation setting ("Swipe
+   gestures" or "Buttons") changes anything.
+4. **Tilt.** In normal play, with free slimes, hold the phone in landscape
+   and dip its right edge. Expect: free slimes go right; nothing within about
+   10° of the neutral, the full turn by 45°; lying flat is neutral. Say
+   whether it feels right.
+5. **French and English labels.** Phone language French: setup, the code
+   prompt, settings, the forgotten-code screens. Expect: nothing clipped or
+   overflowing. Again in English.
+6. **Pad sizes.** Open the code prompt and settings' change of code. Expect:
+   the pad's bottom row fully on screen; a key at least 9 mm wide and tall
+   with a ruler, gaps at least 2 mm. Note the game's dpi reading:
+   `adb -s RFCNA0WV2AR shell dumpsys display | grep -o "xDpi=[0-9.]*, yDpi=[0-9.]*"`
+   against `adb -s RFCNA0WV2AR shell wm density`; the game uses the physical
+   value when it lies within 0.6 to 1.6 times the logical one (otherwise
+   logcat shows a warning).
+7. **"Forgot the code?"** While pinned: the parent zone, a parent button,
+   "Forgot the code?". Expect: the phone's own PIN or fingerprint prompt over
+   the game, the pinning kept; after it, the new code typed twice, then the
+   code prompt again, and the new code works. Cancel: nothing changed.
+8. **Safe area.** The game is fixed landscape, so the punch-hole camera
+   stays on one side. Expect: no parent button or text under the camera
+   hole (parent buttons, code prompt, settings, setup, new code). Note how
+   much of the edge strip's arrow near the hole is covered (known risk).
+9. **Kill and restart.** During a session, note the time left; kill the app
+   (`adb -s RFCNA0WV2AR shell am force-stop com.slimetrain.dev`, or swipe it
+   away when not pinned), wait, relaunch; also after a reboot. Expect: the
+   timers resume, matching the wall clock.
+
+### Choices proposed for spec-writer (chunk 20)
+
+Every spec-silent choice chunk 20 made, for spec-writer to confirm or
+change. Details in the subsections named.
+
+- **Fixed landscape** (`display/window/handheld/orientation` 0), not sensor
+  landscape: turning the phone never flips the tilt ("Tilt from the
+  sensor").
+- **Back when not pinned** moves the app to the background, never quits
+  (`quit_on_go_back=false`) ("Platform wrapper").
+- **Exclusion:** full-height strips on the screen's edges, the parent
+  zone's rows included ("Platform wrapper").
+- **Screen edges vs safe area:** the edge strips' and parent zone's tap
+  zones stay on the screen's edges; the parent's controls go inside the safe
+  area; the code prompt's panel is two thirds of the safe width; the safe
+  area is read again on resume ("Safe area").
+- **Pinning:** a game with no parent layer (tests only) asks nothing;
+  test-mode runs on a phone ask like normal play ("Platform wrapper").
+- **Tilt values:** flat within 20° of horizontal (`FLAT_DEGREES`); a
+  reading under 1 m/s² is flat; a new push from 1° of change
+  (`CHANGE_DEGREES`); a zero reading (desktop) pushes nothing ("Tilt from
+  the sensor").
+- **"Forgot the code?":** the no-lock note in the prompt's left column; the
+  credential prompt's title and subtitle; passing the screen lock only sets
+  a new code, then the code prompt asks for it ("The code is changed...");
+  Back or 30 s with no press leaves the new-code screen with nothing
+  changed; an answer after the prompt closed is dropped ("Forgot the code?").
+- **Below API 30** the credential prompt is KeyguardManager's
+  confirm-credential intent (untested on a device).
+- **The locked state has no parent-facing text** (the spec doesn't settle
+  it) ("Forgot the code?").
+- **Millimetres:** the physical dpi when within 0.6 to 1.6 times the
+  logical one; the pads shrink toward their floors (9 mm keys, 2 mm gaps) to
+  fit, and the rows over them too ("Millimetres on the phone").
+- **`keep_screen_on` project setting false:** only sessions (and the
+  wind-down) keep the screen on ("Platform wrapper").
+- **The release preset ships no level yet:** `levels/test/` is left out and
+  no real level exists, so the release APK shows an empty world (for
+  spec-writer and the level chunk).
+- **Packages and version:** release `com.slimetrain`, debug
+  `com.slimetrain.dev`, version 0.1.
+- **The release filter also leaves out** `tools/*` and
+  `addons/slime_platform/*` (editor-side only).
 
 ## Technical choices
 
@@ -3708,9 +4227,9 @@ adb logcat -v time -s godot:*
 - **2D:** the main scene is a `Node2D` and the stretch mode is
   `canvas_items`. The 3D physics setting was removed before this chunk.
 - **Application name:** "Slime Train".
-- **Not done yet:** there are no export presets. When they arrive,
-  `addons/gut/`, `tests/` and `spikes/` must be left out of release exports
-  (chunk 3 checks that test mode is absent from them).
+- **Export presets** arrived in chunk 20 (see "Android export (debug)"):
+  the release preset leaves out `addons/gut/`, `tests/`, `spikes/` and the
+  rest listed in "The release guard".
 
 ### Chunk 3: test backbone
 
@@ -3819,8 +4338,9 @@ mirror backup, the mid-air rule on load, and migration by level version
 - **A locked parent file (proposed, D130).** `parent.json.bak` mirrors the
   file (tries and wait's end included). Both unreadable: a code is said to
   exist but none matches, the tries count in memory only, and the files
-  are untouched until a new code, which only chunk 20's "Forgot the code?"
-  can set; until then clearing the app's data is the only way out.
+  are untouched until a new code, which chunk 20's "Forgot the code?" sets
+  on a phone with a screen lock; without one, clearing the app's data is
+  the only way out.
 - **Grounded mid-air rule (proposed, D12 "whichever is easier").** On
   every load, a slime saved in the air goes straight down onto the first
   surface below it (terrain, a shut door, another slime), at rest; parked
@@ -3854,6 +4374,34 @@ version copy, delete, lints), `test_parent_store.gd`,
 `test_save_migration.gd`, `test_midair_load.gd`, `test_save_data.gd`;
 `tests/e2e/test_persistence_e2e.gd`, `test_parent_store_e2e.gd`,
 `test_save_e2e.gd` (the version tests).
+
+### Chunk 20: Android build and platform integration
+
+How it is built and used: "Android export (debug)" and "Chunk 20: Android".
+
+- **A Java v2 plugin and the Gradle build, not `JavaClassWrapper`.** The
+  credential prompt needs a `BiometricPrompt.AuthenticationCallback`, an
+  abstract class, not an interface, so GDScript can't proxy it. A plugin
+  also runs pinning, gesture exclusion and the prompt on the UI thread and
+  brings its own manifest entry. Godot's v2 plugins need the Gradle build.
+  Java only, so no Kotlin version clashes with the build template's.
+- **JDK 21.** Gradle 8.11 (Godot 4.7.2's build template) and 8.14 (the
+  plugin's wrapper) can't run on JDK 25, Debian 13's default. Godot asks for
+  JDK 17; 21 builds and signs without complaint.
+- **The framework's `BiometricPrompt`** (`android.hardware.biometrics`, API
+  30+, with `DEVICE_CREDENTIAL`), not an activity: its dialog runs in
+  SystemUI, so it shows over a pinned app and the pinning stays. No AndroidX
+  dependency either. Below API 30, KeyguardManager's confirm-credential
+  intent (untested on a device).
+- **Physical dpi.** `densityDpi` (Godot's `screen_get_dpi()`) is a logical
+  bucket that the user's display size setting moves; millimetre-sized
+  targets need the panel's pixels per inch (`DisplayMetrics.xdpi` /
+  `ydpi`), checked against the logical value because some devices report
+  bogus ones.
+- **The tilt's sign.** Godot rotates the sensor's axes to the display's
+  rotation and negates them, so `Input.get_accelerometer()` points along
+  gravity in screen axes (not up, like Android's own reading):
+  `atan2(x, -y)` is positive when the right edge dips.
 
 ### Chunk 7: taps and the call
 

@@ -17,7 +17,10 @@ extends CanvasLayer
 ## - SETUP: setup (ParentSetup: first launch, the store has no code; it
 ##   fills the screen and closes for good once it saves the code). A gate
 ##   made on a store with no code opens it at once, before the first tap.
-## PROMPT, SETTINGS and SETUP are ParentSurfaces registered with
+## - NEW_CODE: "Forgot the code?"'s new code (ParentNewCode), once the
+##   phone's screen lock was passed from the code prompt; it fills the screen
+##   and returns to the code prompt, `pending_action` kept.
+## PROMPT, SETTINGS, SETUP and NEW_CODE are ParentSurfaces registered with
 ## add_surface(); the gate routes the input and the steps to the open one.
 ## A later unit adds or replaces a surface with add_surface(State.X, its
 ## surface) in _build(), and enters it with open_state(State.X).
@@ -36,7 +39,12 @@ extends CanvasLayer
 ## a press it lets through reaches the simulation (and its release too).
 # @spec-link [[req_parent_gate_and_access]]
 
-enum State { HIDDEN, BUTTONS, PROMPT, SETTINGS, SETUP }
+## Setup finished (its code saved, the gate closed): the first launch's
+## screen pinning is asked now (ScreenPinning.launch).
+# @spec-link [[req_screen_pinning]]
+signal setup_finished
+
+enum State { HIDDEN, BUTTONS, PROMPT, SETTINGS, SETUP, NEW_CODE }
 
 ## Above the debug overlay (50), below test mode's layer (128).
 const LAYER := 60
@@ -162,8 +170,8 @@ func open_prompt(action: String) -> void:
 	_enter(State.PROMPT)
 
 
-## Enters the surface state `to` (PROMPT, SETTINGS, SETUP), which must have
-## a surface (add_surface).
+## Enters the surface state `to` (PROMPT, SETTINGS, SETUP, NEW_CODE), which
+## must have a surface (add_surface).
 func open_state(to: State) -> void:
 	assert(surfaces.has(to), "ParentGate.open_state: no surface for state %s" % State.keys()[to])
 	_enter(to)
@@ -172,10 +180,12 @@ func open_state(to: State) -> void:
 ## The right code was entered for `action`: it runs, and the parent's
 ## authority ends with it (the next action asks for the code again). Wake
 ## early: the game's wake_early() (sunrise, then screensaver mode, on the next
-## step). Leave: the prompt closes and the game's quit_app closes the app
-## (stopping screen pinning first is chunk 20). Settings: settings open.
+## step). Leave: the prompt closes, screen pinning stops (the game's
+## platform) and the game's quit_app closes the app, so the next open is a
+## launch and asks for pinning again. Settings: settings open.
 # @spec-link [[req_actor_roles_and_permissions]]
 # @spec-link [[req_session_lifecycle]]
+# @spec-link [[req_screen_pinning]]
 func act(action: String) -> void:
 	match action:
 		WAKE_EARLY:
@@ -183,6 +193,7 @@ func act(action: String) -> void:
 			game.wake_early()
 		LEAVE:
 			close()
+			game.platform.stop_pinning()
 			game.quit_app.call()
 		SETTINGS:
 			pending_action = ""
@@ -240,9 +251,9 @@ func menu_bottom() -> float:
 
 
 ## Whether a surface that covers the world is open (the prompt, settings,
-## setup). The debug overlay hides its bar meanwhile.
+## setup, the new code). The debug overlay hides its bar meanwhile.
 func covers_world() -> bool:
-	return state in [State.PROMPT, State.SETTINGS, State.SETUP]
+	return state in [State.PROMPT, State.SETTINGS, State.SETUP, State.NEW_CODE]
 
 
 ## A press at `at` by state: returns whether the gate takes it. Buttons open:
@@ -310,9 +321,10 @@ func _lay_out() -> void:
 		surface.lay_out(view)
 
 
-## The row of buttons and the surfaces: the code prompt, settings, setup. The
-## buttons never show a time left: a word each, from
-## ParentText (icon + word is the settled look; the word alone for now).
+## The row of buttons and the surfaces: the code prompt, settings, setup,
+## the forgotten code's new code. The buttons never show a time left: a word
+## each, from ParentText (icon + word is the settled look; the word alone for
+## now).
 # @spec-link [[rule_time_left_shown_only_behind_code]]
 func _build() -> void:
 	_row = Control.new()
@@ -334,3 +346,4 @@ func _build() -> void:
 	add_surface(State.PROMPT, ParentCodePrompt.new())
 	add_surface(State.SETTINGS, ParentSettings.new())
 	add_surface(State.SETUP, ParentSetup.new())
+	add_surface(State.NEW_CODE, ParentNewCode.new())
