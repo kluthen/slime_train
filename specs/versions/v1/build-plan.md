@@ -9,7 +9,8 @@ D129; chunk 18 done, D130; chunk 19 done, D131; chunk 20 done on the
 emulator, D132; chunk 21 done, D133; v1 is the test level only, and
 chunk L01, the first real level, moves to v2, D134; v1 is the full MVP,
 never in a store, DoD 32 deferred, D135; chunk 22 done, DoD 30 not
-met, chunk 5N recommended, D138)
+met, chunk 5N recommended, D138; chunk 24 gains 24.4 to 24.6, proposed,
+D139)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -747,7 +748,10 @@ run before chunk 22 instead). Each item is small (S) unless its
 investigation says otherwise, and can land on its own. All three items
 are **(proposed)** until the user approves D128. Items with business
 behaviour (24.2, 24.3) and the frame-rate target (24.1, like chunk 22)
-keep both ATD steps.
+keep both ATD steps. Items 24.4 to 24.6 come from the user's phone
+session on the S20 FE (2026-09-30, `docs/perf/2026-09-30-s20fe-session.md`;
+proposed, D139); 24.4 changes save behaviour and 24.5 the frame rate, so
+both keep both ATD steps; 24.6 is debug tooling only.
 
 **24.1 The frame rate drops in section 3** (reported 2026-09-29;
 proposed, D128; master spec 6 and 7, [DoD 30]). An investigation, then a
@@ -869,6 +873,59 @@ basket" and 5.4; D86, D91, D105).
   within 14.5 s; from `bedtime` with a releasing basket nothing leaves
   until sunrise (item 23.5's tests still pass); the same seed gives the
   same hash; [DoD 1] and [DoD 9] still pass.
+
+**24.4 A migration wakes sleepers** (reported 2026-09-30, the phone
+session; proposed, D139; master spec's saving rules, D72, D131). The
+phone's old test save (level version 1: 199 sleepers and 1 train slime)
+migrated to version 2 as 103 train slimes and 94 sleepers: about 100
+sleepers whose spots no longer exist were made lost and sent **awake** to
+the loop start.
+- **Proposed:** a sleeper displaced by a migration stays a sleeper, placed
+  by its stable ID where it still exists, otherwise at a surviving empty
+  sleeper spot. Only awake slimes are made lost.
+- **A spec change, not only a fix:** D72 and the master spec say that
+  slimes a migration displaces "are treated as lost", with no exception
+  for sleepers, and D131 built it so. The change is refined there once the
+  user approves.
+- **Evidence:** `docs/perf/2026-09-30-s20fe/saves/before-migration.test.json.v1`
+  (the phone's save before loading) and `after-migration.test.json` (the
+  migrated save with the awake pile). Turn them into a fixture or a test
+  when building.
+- **Done when:** a test migrating the before save fails today and then
+  passes: every sleeper of the old save is still a sleeper after the
+  migration, none awake at the loop start; awake slimes displaced by a
+  migration are still lost (D72); the `old-version` fixture's tests still
+  pass; the same seed gives the same hash.
+
+**24.5 A big awake pile at the loop start collapses the frame rate**
+(reported 2026-09-30, the phone session; proposed, D139; [DoD 30]). About
+100 awake slimes piled at the loop start ran at 3 fps on the reference
+phone (the debug bar: 12 on screen, 99 simulated, 86 off screen). Awake
+slimes out of a basket never rest, and the pile sits near the view, so it
+never parks either.
+- **Proposed:** that save plays without collapsing: in slow motion at
+  worst, thanks to the tick cap (D138's cap of 2 ticks per frame).
+- **It follows** 24.4 (which caused this pile) and the resting-pile rules
+  (O105); chunk 5N (recommended, D138) lowers the tick itself.
+- **Done when:** the after-migration save (as a fixture), played on the
+  reference phone with the perf log (`tools/android/perf.sh`, labels
+  off), never runs more than the cap's ticks per frame and stays at or
+  above the frame rate the cap gives (no catch-up spiral); the numbers are
+  recorded in the project documentation.
+
+**24.6 The debug labels are too expensive** (reported 2026-09-30, the
+phone session; proposed, D139; debug builds only). On the phone, turning
+them on took the game from 36–38 fps to 11–14 fps. Chunk 22 already
+redraws them only while shown and labels only the slimes seen near the
+screen (D138); they haven't been measured on the phone since.
+- **Proposed:** make them cheap: cached text, only near the view, or
+  updated less often (the implementer's choice, written down).
+- **Unchanged:** debug builds only; performance is always measured with
+  the labels off.
+- **Done when:** on the reference phone, turning the labels on in the same
+  scene costs at most a small share of the frame rate (a number measured
+  and recorded with the perf log); the labels still show what they show
+  today; the release build still has none.
 
 ### LD. Level-design toolkit (L, technical)
 

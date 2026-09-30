@@ -2211,3 +2211,21 @@ changes `req_offscreen_simulation`.
 **6. The build order.** Chunk 22 is done; DoD 30 open. Next, the user's
 call on 5N (recommended); then chunk 22 repeated (D96), then chunk 24
 (O97).
+
+## D139 — Chunk 24 gains 24.4 to 24.6, from the phone session (2026-09-30)
+Proposed; the user reviews. From the user's hand-played session on the
+S20 FE (`docs/perf/2026-09-30-s20fe-session.md`), relayed by the
+coordinator. The items and their done-whens are in the build plan, chunk 24.
+- **24.4 A migration wakes sleepers.** Proposed: a sleeper displaced by a
+  migration stays a sleeper, placed by its stable ID or at a surviving
+  sleeper spot; only awake slimes are made lost. This refines D72 (and
+  D131's migration), which make every displaced slime lost; the master
+  spec follows once approved.
+- **24.5 A big awake pile collapses the frame rate** (about 100 awake
+  slimes at the loop start, 3 fps). Proposed: it plays in slow motion at
+  worst, thanks to D138's tick cap; it follows 24.4 and O105.
+- **24.6 The debug labels are too expensive** (36–38 fps to 11–14 on the
+  phone). Proposed: cheap labels; debug builds only; measurements always
+  with labels off.
+- **24.1's target:** D138's proposal stands (it follows the phone budget
+  if approved); the user reviews it.
