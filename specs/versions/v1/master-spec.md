@@ -112,7 +112,7 @@ would add to P1.G1 and P1.G2) comes in a later version.
   leaves both out. v1 is never published (D135).
 - Platform: Godot 4, Android; a Linux desktop build for development and tests.
   No purchases inside the app. The price (about $3–5) is for the first
-  store release, not v1 (D135, O103).
+  store release, probably v4, not v1 (D135, D137).
 
 ### Not in v1
 
@@ -986,5 +986,5 @@ Still undecided.
    the first level's design.
 8. **The release build** (D134, D135). v1 is the test level only and is
    never published; the release build leaves the test level out. Which build
-   the Definition of done is checked on is O101; which version is the first
-   store release is O103.
+   the Definition of done is checked on is O101; the first store release,
+   probably v4, ships a fully implemented level (D137).

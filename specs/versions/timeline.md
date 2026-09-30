@@ -16,7 +16,7 @@ is assigned, it moves to that version's README (D52).
 | Maximum size 5 | D39 | v1 caps it at 3 |
 | Other frontier-gate patterns (for example switches hidden along forks, reachable only by certain species) | D35 | |
 | Cross-species fusion device | D25 | "not in the first few iterations" |
-| New levels sold as paid unlocks (about $2), through Play Billing and Play Asset Delivery | D31 | |
+| New levels sold as paid unlocks (about $2), through Play Billing and Play Asset Delivery | D31 | the base game's price goes with the first store release, probably v4 (D137) |
 | Theming (desert, forest, rivers…: palette and decoration only) | precursor | |
 | Music generator, ported from JS to Godot | D42, O12 | music is v2 (D134); whether it uses the generator is open |
 | Procedural world generation | O13 | |

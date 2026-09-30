@@ -15,7 +15,8 @@ Themes, set by the user (D134):
   among the species present in proportion (D68), and bedtime's softer
   sound (D28).
 - **The first real level(s):** chunk L01, `../../levels/01/`, moved from
-  v1 (O99, D134).
+  v1 (O99, D134). This level work builds toward the fully implemented
+  level of the first store release, probably v4 (D137, O104).
 
 Assigned so far (D50, D54):
 

@@ -1,8 +1,14 @@
-# v4
+# v4 — First store release (probably)
 
-Status: placeholder
+Status: themes only (D137); no spec yet
 
-Scope is not worked out yet. Assigned so far:
+- **The first store release, probably** (D137): it ships one true, fully
+  implemented level, and is probably the largest step on the roadmap.
+  D31's price (about $3–5, no in-app purchases) belongs to it.
+- v2's level work (chunk L01, the tools, the reusable mechanics) builds
+  toward that level; whether it is L01 itself is O104.
+
+Assigned so far:
 
 - Option to turn the parent code off (D58): the code is then never asked for,
   and waking early takes just a tap. It can be changed in the settings.

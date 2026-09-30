@@ -97,7 +97,7 @@ Items are settled. The decision IDs point to
 - 60 fps on the reference phone in normal play; at least 30 fps on the floor
   phone with the level's largest realistic pile on one screen, a full basket
   plus the train, mostly still (D82, amended by D96).
-- A paid app, about $3–5 (D31): for the first store release, not v1 (D135, O103).
+- A paid app, about $3–5 (D31): for the first store release, probably v4, not v1 (D135, D137).
 
 ## Explicitly not in v1
 
@@ -108,6 +108,6 @@ Items are settled. The decision IDs point to
 
 ## Open for v1
 
-O14, O65, O91, O101 and O103 (O22 and O62 now serve the first real level, v2) (see `../../open-questions.md`). The UX
+O14, O65, O91 and O101 (O22 and O62 now serve the first real level, v2) (see `../../open-questions.md`). The UX
 review's interaction details (O67–O77) are settled (D102), and so are the
 build's points O79–O87 (D103–D107).

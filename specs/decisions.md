@@ -2058,3 +2058,18 @@ scope."
   count as effects: v2 candidates, no longer pinned to v3.
 - Effects were never discussed in spec sessions; nothing more about them is
   specified.
+
+## D137 — The first store release ships a true, fully implemented level: probably v4 (2026-09-30)
+Resolves O103. The user's decision, verbatim: "first release mean a true
+fully implemented level. Which will probably be the largest step on our
+roadmap. so probably v4."
+
+- **The first store release** is the version that ships a true, fully
+  implemented level. It is **probably v4**, and probably the largest step
+  on the roadmap.
+- **D31's price** (about $3–5, no in-app purchases) belongs to that first
+  release.
+- **How it fits L01 (D134):** v2's level work (chunk L01, the tools, the
+  reusable mechanics) builds toward the fully implemented level the first
+  store release ships. Whether that level is L01 itself, finished later, is
+  O104.
