@@ -719,6 +719,7 @@ static func _rounded(v: Vector2) -> Array:
 ## not a whole number from 0 to SlimeBodies.MAX_DETAIL.
 # @spec-link [[req_offscreen_simulation]]
 # @spec-link [[req_persistence_and_saves]]
+# @spec-link [[rule_saves_never_wiped]]
 static func _detail_level(body: Dictionary) -> Variant:
 	if body.has("detail"):
 		var level: Variant = _whole(body["detail"])

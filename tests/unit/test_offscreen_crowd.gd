@@ -281,6 +281,7 @@ func test_a_save_keeps_the_crowd_level_and_the_rings() -> void:
 
 
 # @test-link [[req_persistence_and_saves]]
+# @test-link [[rule_saves_never_wiped]]
 func test_an_old_save_with_low_rings_still_loads() -> void:
 	var sim := _sim()
 	var few := _crowd(sim, 3)

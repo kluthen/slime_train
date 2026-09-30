@@ -6,7 +6,7 @@ tags: [performance,offscreen]
 parents:
   - [[req_loop_and_world]]
 dependents: []
-version: 1.1
+version: 1.2
 type: REQUIREMENT
 layer: BUSINESS
 priority: 4
@@ -22,6 +22,8 @@ Physics runs only for slimes on or near the screen. Off screen, a train slime is
 
 ## TECHNICAL INTERFACE
 Parented to req_loop_and_world. Interacts with rule_left_alone_and_lost (the lost timer) and req_switch_basket_gate_set (off-screen basket filling).
+
+Pending the user's sign-off (proposed, not settled; the rule above is what is settled): the build also gives slimes fewer ring points when many slimes are active, not only when zoomed out. The crowd count is the ACTIVE slimes that are not sleepers on a tick; resting and parked slimes don't count, and the count comes from the simulation's state only, never from the frame rate, so runs repeat. Detail levels 0 to 3 give 12, 10, 8, 6 points to a size-1 slime (15, 12, 10, 8 at size 2; 18, 15, 12, 9 at size 3). The level rises at 20, 30 and 40 active slimes and falls only at 15, 25 and 35, so rings never reshape back and forth. The level used is the higher of the crowd's and the zoom's; zoomed out gives at least level 2. Only ACTIVE rings are reshaped, so a reshape never wakes a resting pile, and a slime waking or unparking takes the current level on that tick. Pile slimes (in a basket, or asleep at bedtime) stop at level 2. Implemented in src/sim/offscreen.gd and src/sim/slime_bodies.gd; saved as described in req_persistence_and_saves.
 
 ## EXPECTATION
 A basket filled while off screen plays its reward and opens the gate when it comes into view (definition of done item 10). A pile stops simulating only once each of its slimes has stayed within about a pixel of where it started counting, and simulates again when something disturbs it.
