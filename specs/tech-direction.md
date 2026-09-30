@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v21
+Status: draft v22
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -180,7 +180,11 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   16): a full basket plus the train, not 200 moving slimes. The
   `stress-moving` fixture stays as a measurement, not a target. *Under
   question (D140, O105, O106):* open piles rest slowly or never, and a
-  fired basket's releases keep its pile awake.
+  fired basket's releases keep its pile awake. *Proposed (D143):* level
+  rule 23 keeps levels free of spots where many slimes gather awake, and
+  the train leans away from clusters (chunk 24, items 24.7 and 24.8); a
+  cluster the player builds stays possible, covered by crowd detail and
+  the tick cap.
 - **Native code was the documented, verified contingency; it now goes
   ahead as chunk 5N after chunk 22b (proposed order, D140; the user's
   conditional go, its condition met).** A
@@ -206,11 +210,13 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   endgame is bound by the tick: estimated 15 to 17 ms cold, 24 to 27 ms
   throttled on the phone. **Chunk 5N is recommended** (not started);
   chunk 22 repeats after it.
-- **Next (proposed order, D140):** chunk 22b, the drawing pass: on the
+- **Next (proposed order, D140, D143):** chunk 22b, the drawing pass: on the
   slowed desktop CPU the frame costs about 21 ms outside the tick (the
   blend's field viewports, the eyes, the lines, the frontier view, the
   debug overlay), so "drawing is not the problem" no longer holds once
-  the tick shrinks. Then chunk 5N: results deterministic within one build
+  the tick shrinks. Then chunk 22d, the debug counters (D143): Physics,
+  On screen, In range and Parked on the bar, and the same plus `resting`
+  and the largest awake cluster on the PERF line. Then chunk 5N: results deterministic within one build
   (not bit-equal to the GDScript tick); saves load under either tick; the
   GDScript tick stays as a fallback. Then chunk 22c, crowd detail only
   under load (D141). Then chunk 22 repeated on the reference phone with

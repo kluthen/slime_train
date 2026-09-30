@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v37
+Status: draft v38
 
 ## One-liner
 
@@ -242,7 +242,8 @@ survives the app being killed.
 | release | a basket letting its slimes go, one at a time at its outlet, back onto the train: after firing, and after an opt-out; paused at bedtime (D91, D105) |
 | quota outlines | how a basket shows its quota: one empty slime outline per unit of weight, filling in the colour of each slime caught (ux D4). Not "the slime counter" |
 | quota pie | *(proposed, D128)* how a basket with a quota above 10 shows it: one pie per 10 of weight, the last holding the rest, a slice filling per unit of weight |
-| debug overlay | developer tools over the game, in debug builds only: speed, reset, slime labels, the kill tool, the fps and the **slime counts** (on screen : simulated off screen : parked) |
+| debug overlay | developer tools over the game, in debug builds only: speed, reset, slime labels, the kill tool, the fps and the **slime counts**: Physics (the slimes that cost physics), On screen, In range (not parked) and Parked (D143, proposed, chunk 22d; before it: on screen : simulated off screen : parked) |
+| awake cluster | *(proposed, D143)* a group of touching slimes that all cost physics (awake, not resting, not parked); the **largest awake cluster** is its biggest, in slimes, in the perf log and in level rule 23. Not a resting pile, which costs little |
 | crowd detail | *(proposed, D140, D141)* fewer ring points per slime when many slimes are active (20, 30, 40 or more) or when zoomed out; a size-1 slime goes from 12 points down to 10, 8 or 6. A detail level: 0 (full) to 3. In play, the crowd's part applies only when the device can't keep up: a **detail ceiling** set by the device's load caps it (a good device keeps full points); test mode applies it always |
 | frontier set | the signpost, switch, basket and gate that end a section: flip the switch, fill the basket, the gate opens (D14). Inert once its gate is open (D86) |
 | trapdoor | the part of a frontier switch that covers its basket: solid while the switch sends the flow onward, open while it is flipped, dropping slimes into the basket |
@@ -258,10 +259,12 @@ survives the app being killed.
 | signpost | a sign at a fork showing which way the loop goes |
 | large signpost | a signpost that also lets the child pick which branch the camera follows |
 | filter | a fork that sends slimes down a branch by species or by size (D88); usually has a signpost next to it |
+| population fork | *(proposed, v2, D143)* a fork that sends the next slimes down its emptier branch, to break up crowds; not tapped, has a signpost like every fork |
 | screensaver mode | the world running with no session, after sunrise and before the first tap |
 | parent zone | the band along the top of the screen, 7 mm high, full width and unmarked; a tap there reveals the parent buttons and never calls (D57, D113). Also called "the top of the screen" or "the top band" |
 | edge button | the left or right control that moves the camera along the loop: a strip over the screen's whole height, 10% of its width from the edge, that never calls (D99) |
 | framing zone | an area of the level that sets the camera's zoom and position when the camera reaches it |
+| activity zone | *(proposed, D143)* where slimes are simulated with full physics while the camera is at a given spot: the view grown by the off-screen margins; parked beyond. A v2 level-design tool shows it |
 | camera rail | the path the camera runs along, following the loop; every part of the loop, return routes included, has one (D33, D79) |
 | sunrise | the end of bedtime: slimes wake up and screensaver mode begins |
 | species | a kind of slime; only the same species fuse (replaces the precursor's "type") |

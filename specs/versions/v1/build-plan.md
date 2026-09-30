@@ -12,7 +12,9 @@ never in a store, DoD 32 deferred, D135; chunk 22 done, DoD 30 not
 met, chunk 5N recommended, D138; chunk 24 gains 24.4 to 24.6, proposed,
 D139; crowd detail merged; the order 22b, 5N, 22 repeated, 24, the health
 review, proposed, D140; chunk 22c, crowd detail only under load, between
-5N and 22's repeat, proposed, D141)
+5N and 22's repeat, proposed, D141; chunk 22d, the debug counters,
+between 22b and 5N, and chunk 24 gains 24.7 and 24.8, cluster avoidance,
+proposed, D143)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -149,8 +151,8 @@ technology, not business behaviour:
   risks.
 - **Chunk 22** done (D138; DoD 30 not met). Crowd detail, the user's
   idea, merged after it (D140): helpful, not enough on its own.
-- **Next, in this order (proposed, D140):** chunk **22b** (the drawing
-  pass), chunk **5N** (the native tick, going ahead: the user's
+- **Next, in this order (proposed, D140, D143):** chunk **22b** (the
+  drawing pass), chunk **22d** (the debug counters, D143), chunk **5N** (the native tick, going ahead: the user's
   conditional go, its condition met), chunk **22c** (crowd detail only
   under load, proposed, D141), chunk **22 repeated** on the reference
   phone with the perf log, chunk **24**, then the closing health review.
@@ -175,7 +177,7 @@ technology, not business behaviour:
 | 3 | Test backbone | M | 0 | two identical scripted runs give identical state |
 | 4 | Level scaffolding and Meadow greybox | M | 3 | the loop, terrain and IDs load in a test |
 | 5 | Slime body | L | 1, 4 | unit tests on rings; a visual demo |
-| 5N | Native simulation tick (going ahead after 22b, D140) | M | 22b | the whole suite on the native tick; saves load under either tick; chunk 22 repeated |
+| 5N | Native simulation tick (going ahead after 22b and 22d, D140, D143) | M | 22d | the whole suite on the native tick; saves load under either tick; chunk 22 repeated |
 | 6 | Train and split zone | M | 5 | [DoD 1 partial, 7] |
 | 7 | Taps and the call | L | 6 | [DoD 3, 4, 15, 17] |
 | 8 | Save format and fixtures | M | 7 | kill-and-reload tests; the first fixtures load [DoD 28 partial] |
@@ -194,21 +196,22 @@ technology, not business behaviour:
 | 21 | End-to-end suite | M | 19 | [DoD 31] |
 | 22 | Performance pass on phones (repeated after 5N and 22c, D140, D141) | M | 20, 23 (repeat: 5N, 22c) | [DoD 30] |
 | 22b | Drawing pass (proposed, D140) | M | 22 | the frame's cost outside the tick measured per part and cut; same hash |
+| 22d | Debug counters and the largest awake cluster (proposed, D143) | S | 22b | unit tests of the four counts and the cluster; the PERF line and its summary carry them; same hashes |
 | 22c | Crowd detail only under load (proposed, D141) | S | 5N | the load meter's unit tests; same hashes in `always`; `auto` measured on the desktop |
 | 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
-| 24 | Playtest issues, round 2 (open list; proposed) | S per issue (24.1 may be M) | 22 repeated (after 22b and 5N, D140) | each issue's own done-when |
+| 24 | Playtest issues, round 2 (open list; proposed) | S per issue (24.1 may be M) | 22 repeated (after 22b, 22d and 5N, D140, D143) | each issue's own done-when |
 | LD | Level-design toolkit (technical) | L | 16 | the checker agrees with the level-rule tests on the test level; a scaffolded level loads, passes its generated tests and appears in test mode |
 | TL1 | Test level finishable from fresh (done, D129) | S | LD, R22 | the checker gives 0 warnings on the test level; a scripted play from `fresh` fills basket 1 |
 
 Chunks 1 and 2 can run in parallel with 3. Chunk 22 failed DoD 30, so
-chunk 5N now runs (D96, D140): after chunk 22b, before chunk 22's repeat. Chunks 9, 10
+chunk 5N now runs (D96, D140): after chunks 22b and 22d, before chunk 22's repeat. Chunks 9, 10
 and 11 are independent of each other. Chunk 17 can start as soon as 8 is done, in
 parallel with the camera and objects work. Chunk 23 runs first among the
 remaining chunks, before 18 (D123), and chunk LD runs in parallel with it.
 TL1 ran after both, before 18 (D127; done, D129). After chunk 22, the
-order is 22b, 5N, 22c, 22 repeated, then chunk 24, the last chunk before
-the closing health review (D128, D140, D141, proposed; O97 closed by
-D140).
+order is 22b, 22d, 5N, 22c, 22 repeated, then chunk 24, the last chunk
+before the closing health review (D128, D140, D141, D143, proposed; O97
+closed by D140).
 
 ## Chunks
 
@@ -583,6 +586,40 @@ frame on its own. Runs before chunk 5N. Keeps both ATD steps, like chunk
   reference phone, proposed); what is left above it is recorded, not
   chased into behaviour changes; the suite passes with identical hashes.
 
+### 22d. Debug counters and the largest awake cluster (S, proposed, D143)
+
+The user: "try to do these debug changes prior working on 5N", and
+"ensure these informations are also available regularily in the logs for
+your perusal". Today's bar ("on screen : simulated : off screen") misled:
+slimes in a basket count as on screen. Runs after chunk 22b, before 5N,
+so 5N and 22's repeat are read with the new counts. Debug tooling only
+(no atom pins the overlay): no ATD steps; it still goes test first. It
+must not run while another chunk edits the debug overlay or the perf log.
+- **The bar** (every 250 ms, as now), in slimes: **Physics** (calm ACTIVE,
+  not a sleeper: `SlimeBodies.crowd_count()`, the count crowd detail steps
+  on), **On screen** (centre in the view, any state), **In range** (not
+  parked, any state), **Parked**. On screen and In range overlap.
+- **The PERF line** carries `physics`, `on_screen`, `in_range`, `parked`
+  (taken at the line), `resting` and `largest_cluster`; `simulated` and
+  `off_screen` go; `active` (the window's mean) and `bodies` stay, and
+  `active` is aligned on `crowd_count()` (today it also leaves out slimes
+  asleep at bedtime, which still cost physics while settling).
+  `tools/android/perf_summary.py` reports each count (min, mean, max) and
+  the largest cluster's maximum.
+- **The largest awake cluster:** the biggest connected group of touching
+  Physics slimes, in slimes; touching as D143 defines it (in contact on
+  the last tick, or centres within the sum of their radii plus 2 px,
+  written down). Once per perf-log period, read only.
+- **Done when:** unit tests on a built state count each of the four right
+  (a sleeper, a resting pile, a slime in a basket, one parked, one off
+  the view but in range, one asleep at bedtime still settling); the
+  cluster's tests give 5 for touching groups of 3 and 5, count a chain as
+  one group, and leave resting and parked slimes out; the PERF line and
+  `perf_summary.py`'s report carry the fields (their tests updated); a
+  windowed run's PERF lines through section 3 are recorded in the project
+  documentation, the first numbers for O107; the suite passes with
+  identical hashes.
+
 ### 22c. Crowd detail only under load (S, proposed, D141)
 
 The user's amendment to crowd detail (D140): "if you've got a good
@@ -824,7 +861,7 @@ as chunk 23 did. The first three come from the user's own testing
 (2026-09-29): nothing major gameplay-wise, but a frame-rate drop in the
 last section, an unreadable basket display for a large quota, and a
 basket that keeps its slimes once it has fired. The chunk runs **after
-chunk 22b, 5N, 22c and chunk 22's repeat, the last chunk before the closing
+chunks 22b, 22d, 5N, 22c and chunk 22's repeat, the last chunk before the closing
 health review**, as the user asked (D128; the order is D140's, which
 closes O97). Each item is small (S) unless its
 investigation says otherwise, and can land on its own. All three items
@@ -833,7 +870,12 @@ behaviour (24.2, 24.3) and the frame-rate target (24.1, like chunk 22)
 keep both ATD steps. Items 24.4 to 24.6 come from the user's phone
 session on the S20 FE (2026-09-30, `docs/perf/2026-09-30-s20fe-session.md`;
 proposed, D139); 24.4 changes save behaviour and 24.5 the frame rate, so
-both keep both ATD steps; 24.6 is debug tooling only.
+both keep both ATD steps; 24.6 is debug tooling only. Items 24.7 and
+24.8 are cluster avoidance (the user, 2026-09-30; proposed, D143); they
+run after 24.3, which settles O106 first, since a draining basket is
+today's biggest awake cluster; 24.8 changes hopping behaviour, so it
+keeps both ATD steps, and 24.7's rule goes to documentalist once
+approved.
 
 **24.1 The frame rate drops in section 3** (reported 2026-09-29;
 proposed, D128; master spec 6 and 7, [DoD 30]). An investigation, then a
@@ -841,8 +883,8 @@ fix. The user asked for hard data first, hence the debug overlay's fps
 and slime counts (built 2026-09-29).
 - **Measure first.** Two sources, recorded before and after the fix in
   the project documentation (`docs/dev/`), at the same camera spots:
-  - the **debug overlay** in a windowed run (fps, and the slimes on
-    screen : simulated off screen : parked), through section 3 in normal
+  - the **debug overlay** in a windowed run (fps, and the slime counts,
+    chunk 22d's names since D143), through section 3 in normal
     play: the bowl with the train and called slimes, and basket 3
     filling, full and releasing;
   - the **level bench** (`tools/level.sh bench --level=test`) on the
@@ -1009,6 +1051,59 @@ screen (D138); they haven't been measured on the phone since.
   and recorded with the perf log); the labels still show what they show
   today; the release build still has none.
 
+**24.7 Level rule 23: no spot where many slimes gather awake** (the
+user, 2026-09-30; proposed, D143; `../../level-design.md` rule 23; O107).
+The user saw "piles of active slimes" next to basket 3, "legit slow fps".
+- **The measure:** the level bench's RESULT line takes chunk 22d's count
+  names, `largest_cluster` (its maximum over the case) and the seconds
+  above the limit; each level's played test (from fresh, filling every
+  basket, with each basket's fire-and-drain) checks the rule; the
+  level-rules checker's rule 23 line points at both (it can't run the
+  simulation), as rule 12's played test is its proof. The `stress-*`
+  fixtures are excepted.
+- **The limit:** calibrated first from 22d's logs and the bench on the
+  test level (is a dense train queue one long cluster? O107), then set in
+  `tuning.md`; proposed until then: above 20 slimes for more than 5 s in a
+  row fails.
+- **The tutorial and the skill:** `docs/level-design/06-population.md`
+  (the rule, the shapes to avoid) and `09-check-the-rules.md` (where rule
+  23's result comes from), and the `level-review` skill's rule list.
+- **The test level:** measured and recorded, not edited (section 3 is the
+  stress area, D143); if section 3 still breaks the limit in normal play
+  once 24.3 and 24.8 have landed, the user decides on a level edit (O107).
+  Its test records rule 23's numbers and doesn't fail on them until then.
+- **Done when:** the bench reports `largest_cluster` and the seconds above
+  the limit on every case; a synthetic level with a bowl feeding a basket
+  fails rule 23 in its played test and the same level with them apart
+  passes; the checker's report lists rule 23 with where its result comes
+  from; the tutorial pages and the skill carry the rule; the test level's
+  numbers (each section, each basket's drain) are in the project
+  documentation; the suite passes.
+
+**24.8 The train leans away from clusters** (the user, 2026-09-30;
+proposed, D143; `req_hopping_behavior`, O107). "we could favor cluster
+reducing activity".
+- **Proposed:** when a train slime's hop timer runs out, it counts the
+  slimes that cost physics within 96 px (2 base-slime diameters) of its
+  hop's target that it can't fuse with (another species, or past the
+  maximum size); with 3 or more it waits 0.5 s and looks again, at most 4
+  times in a row, then hops anyway. Only train slimes; calls and free
+  slimes are unchanged. The values are rows in `tuning.md`.
+- **Deterministic:** the count comes from the simulation's state (the
+  pair grid or the same cells), the wait is a constant, never a draw.
+  Hashes change where a train slime lands near a crowd: the chunk lists
+  which changed and why, and regenerates the fixtures.
+- **Must still hold:** the dip nudge (rule 5, D119's limited wait: the
+  `bump` fixture's bumps), no train slime stalls ([DoD 1], D118), a hop
+  comes at most 2 s later than its timer.
+- **Done when:** a unit test with a crowd of another species at a train
+  slime's landing point sees the hop wait, then happen within 2 s; a
+  same-species crowd doesn't delay it; the section 3 bench cases and the
+  played run of section 3 show the largest awake cluster and the time
+  above the limit before and after, recorded in the project
+  documentation; [DoD 1] and the `bump` fixture's tests pass; the same
+  seed gives the same hash within the new behaviour.
+
 ### LD. Level-design toolkit (L, technical)
 
 Asked for by the user (D123). Tooling for whoever designs a level: no
@@ -1091,12 +1186,12 @@ behaviour, so no ATD steps; it still goes test first.
   `gate1-open` and `gate2-open` baskets 2 and 3; the fixtures are
   regenerated and the whole suite passes (DoD 1 included).
 
-### 5N. Native simulation tick (going ahead after 22b, D140)
+### 5N. Native simulation tick (going ahead after 22b and 22d, D140, D143)
 
 Size M. **Chunk 22 was its trigger** (D96): it failed DoD 30 (D138), and
 crowd detail was not enough on its own, which meets the user's
 conditional go ("Should it prove unsufficient, we will see how it goes
-with 5N"). It runs after chunk 22b; chunk 22c follows (D141), and chunk
+with 5N"). It runs after chunks 22b and 22d (D143); chunk 22c follows (D141), and chunk
 22 is then repeated (D140, proposed order). Technical: no ATD steps. It must not run while another
 chunk edits the slime body code.
 

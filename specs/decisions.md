@@ -2419,3 +2419,181 @@ spec and the code showed a better fit (each refinement says why).
   `tuning.md`.
 - O105 is unchanged: this doesn't touch the rest rule or "a big crowd is
   mostly a still pile".
+
+## D143 — Debug counters before 5N; cluster avoidance; two v2 level-design aids (2026-09-30)
+Proposed; the user reviews. Four requests from the user (2026-09-30),
+relayed by the coordinator. D142 is reserved for chunk 22b as built,
+recorded once 22b closes. Refinements of the coordinator's defaults say
+why.
+
+**1. The debug counters, reworked before chunk 5N (chunk 22d).** The
+user: "try to do these debug changes prior working on 5N", and "ensure
+these informations are also available regularily in the logs for your
+perusal". Today's bar ("12 on screen : 5 simulated : 63 off screen")
+misled: slimes in a basket count as on screen, and looked outside the
+physics.
+- **The bar shows four counts,** in slimes, every state unless said:
+  - **Physics:** the slimes that cost physics this tick: calm ACTIVE,
+    not sleepers. *Refined:* this is `SlimeBodies.crowd_count()`, the count
+    crowd detail steps on (D140). The PERF line's `active` today comes
+    from `PerfLog.active_bodies()`, which also leaves out slimes asleep at
+    bedtime, though an asleep slime still settling is integrated and costs
+    physics. 22d aligns `active` on `crowd_count()`, so the bar, the log
+    and crowd detail count the same thing;
+  - **On screen:** centre in the visible view, any state;
+  - **In range:** not parked, any state (on screen or within Offscreen's
+    margins);
+  - **Parked.**
+  On screen and In range overlap, so the four don't add up to the total.
+- **The PERF line** carries the same names, `physics`, `on_screen`,
+  `in_range`, `parked`, taken at the line, plus `resting` and
+  `largest_cluster`. `simulated` and `off_screen` go: kept under a new
+  meaning they would mislead old readings. `active` (the per-frame mean
+  over the window) and `bodies` stay. `tools/android/perf_summary.py`
+  reports each count (min, mean, max over a run) and the largest cluster's
+  maximum.
+- **Largest awake cluster:** the biggest group of touching Physics slimes
+  (a connected group: A touches B, B touches C), counted in slimes.
+  Touching means the contact pass found their rings in contact on the last
+  tick; where the solver keeps no such list, centres closer than the sum
+  of their radii plus 2 px (the implementer's choice, written down).
+  Computed once per perf-log period, not every frame, and read only: it
+  never changes the state (same hash). Debug builds only.
+- Debug tooling only: no atom pins the overlay, so no ATD steps; the perf
+  log's existing tags stay.
+- **Where:** chunk 22d, after 22b and before 5N. It was headed for
+  chunk 24 (the coordinator's notes); the user moved it ahead.
+
+**2. Cluster avoidance** (proposed). The user (2026-09-30, verbatim):
+"beside i've seen another test on the 3rd section with piles of active
+slimes. This one is legit slow fps, and if i remember the structure of
+the section, it's right next to the basket, hence the problem. maybe we
+should add this as a level design rule: preventing large cluster to
+happen. It could be handled in multiples ways both in level design but
+also in train management currently movement is random, but we could
+favor cluster reducing activity. It doesn't change that if the player
+activelly build such a cluster the performance issue will appear."
+- **Grounding.** A train slime's hops are already aimed along the loop
+  (`Train`: at `hop_reach()` ahead of its progress); only their timing is
+  random, each slime on its own seeded timer (1.5 to 3 s, longer for
+  bigger slimes, `SlimeBodies`). Nothing today spaces train slimes apart.
+  Rule 16 already asks that a big pile on one screen stay mostly still;
+  an awake cluster is the case it doesn't cover. What a cluster costs:
+  its slimes keep waking each other (a pile touching an awake slime never
+  rests, O105), and its pairs load the contact pass.
+- **(a) A level-design rule, rule 23** (`level-design.md`): no spot where
+  many slimes gather awake. Known shapes: a bowl or dip next to a basket,
+  an outlet releasing into a crowd, a narrow ledge where the train queues,
+  a dead end on the train's path (rule 3 already bans dead ends on the
+  loop; this adds places where slimes pile up in practice).
+  - **The measure:** the largest awake cluster (§1) over a level's own
+    scripted runs: its played test (from fresh, filling every basket) and
+    each basket's fire-and-drain. The deliberate stress fixtures
+    (`stress-*`) are excepted, as in D96.
+  - **The limit** (proposed): the largest awake cluster above 20 slimes
+    for more than 5 s in a row fails. 20 is where crowd detail steps to
+    level 1 (D140). *Refined:* a limit held for a time, not an instant
+    peak: a basket filling, a dip nudging fusion (rule 5) and a release
+    make short clusters that rest or split. The number is calibrated from
+    22d's logs on the test level before chunk 24 fixes it (O107): a dense
+    train queue on the loop may read as one long cluster.
+  - **Checked by:** the level bench (its RESULT line gains 22d's names,
+    `largest_cluster` and the seconds above the limit) and the level's
+    own test on its played run. The level-rules checker can't run the
+    simulation, so its rule 23 line points at the bench and the played
+    test, as rule 12's played test is its proof.
+    `docs/level-design/06-population.md` and `09-check-the-rules.md` and
+    the `level-review` skill gain the rule (chunk 24's work, not the
+    spec's).
+- **(b) The train leans away from clusters** (proposed).
+  - When a train slime's hop timer runs out, it counts the Physics slimes
+    near its landing point (centres within 2 base-slime diameters, 96 px,
+    of the hop's target) that it can't fuse with (another species, or a
+    fusion past the maximum size, D49). With 3 or more, it waits 0.5 s
+    and looks again, at most 4 times in a row (2 s at most), then hops
+    anyway: the train never stalls on it.
+  - *Refined:* waiting, not aiming past the crowd: `Train.aim()` already
+    handles steps, drops and overhangs, and a longer hop past a crowd
+    would bypass that logic. Counting only slimes it can't fuse with
+    leaves the dip nudge (rule 5, D119) working: same-species bunching
+    fuses, which shrinks a crowd anyway.
+  - Deterministic: the count comes from the simulation's state (the pair
+    grid, or a read-only count over the same cells; the implementer
+    checks where the hop decision sits against the grid's build), and the
+    wait is a constant, never a draw, so the seeded streams stay aligned.
+    *Refined:* "no hash change in unrelated fixtures" can't be promised: any
+    fixture where a train slime lands near a crowd changes (the bowl,
+    basket 3, `stress-moving`, likely more). The chunk lists which hashes
+    changed and why, and regenerates them.
+  - Only train slimes. Calls, answering, unsure and heading-back slimes
+    are unchanged: the call stays the player's (c).
+  - It changes `req_hopping_behavior` (next to a crowd, a train slime's
+    hop may come up to 2 s later than its 1.5 to 3 s timer); flagged for
+    documentalist once approved.
+- **(c) A player-built cluster stays possible.** Accepted, as the user
+  says: a child calling slimes into one spot builds one. Crowd detail
+  (D140, D141), the tick cap (D138), chunk 5N and chunk 22c cover it.
+- **O106 goes with it.** A fired basket's drain is today's biggest awake
+  cluster (about 89 active slimes, D138): each release wakes the whole
+  pile, which never rests again. Rule 23 can't pass at any basket with a
+  quota above 20 until that changes. O106 stays with item 24.3, which runs
+  first; its proposed default: a release wakes only the slimes touching
+  the one released (the resting-pile wake rule, `tuning.md`), not the
+  whole pile.
+- **Section 3 of the test level:** no level edit now (proposed). It is
+  the declared stress area (rule 16, D67) and DoD 30's worst case, which
+  chunk 22's repeat measures; changing its layout mid-pass would move the
+  target. The pile the user saw sits between the bowl's far wall and
+  basket 3 (the train climbs out of the bowl, the plateau is short, the
+  low rim's 17 sleepers drop there, and the drain releases there). Chunk
+  24 measures it once 24.3 (with O106) and (b) have landed; if it still
+  breaks the limit in normal play, a small edit (an LD chunk) is the
+  user's call (O107).
+- **Where:** chunk 24, items 24.7 (the rule and its measure) and 24.8 (the
+  train's lean), after 24.3.
+
+**3. v2: an activity-zone tool** (proposed). The user (2026-09-30,
+verbatim): "add to the todo list for v2.0 a dev tool that will allow the
+level designer to have an idea given a point on the map, of the active
+physic computation zone (this would ensure we "space" things out enough
+to prevent cluster potential: area were activity and clustering are
+expected to be near one another)."
+- In the level tools or the editor, pick a point or a framing zone: the
+  tool shows the **activity zone** while the camera is there, the view at
+  that zoom grown by Offscreen's margins (surely simulated within the near
+  margin, 288 px; maybe simulated up to the park margin, 384 px; parked
+  beyond).
+- It overlays the spots where clusters are expected (baskets and their
+  outlets, dips, split zones, narrow ledges on the loop, the landing spots
+  of sleeper shelves), so a designer sees when two of them share one
+  activity zone.
+- It serves rule 23. `versions/v2/README.md`, under "Level design made as
+  easy as possible". No v1 work.
+
+**4. v2: a population fork, a cluster-breaking object** (proposed). The
+user (2026-09-30, verbatim): "then we can have in v2 cluster breaking
+objects: we have already planned for forks and similar objects. One such
+could simply switch path by population within a given fork."
+- **A fork that sends the next slimes down its emptier branch:** it counts
+  the slimes on each branch's first stretch and routes the flow to the
+  one with fewer. Activation: presence (it counts slimes, D15); it isn't
+  tapped. Deterministic: it counts, and reads no clock; a switch holds for
+  at least a set number of ticks, and a tie keeps the current way, so it
+  doesn't flicker.
+- **It sits beside the signposts; it replaces neither.** Like a filter
+  (D47, D88), it is a kind of fork, and like every fork it has a plain
+  signpost (rule 6), which here shows the way it currently sends slimes.
+  A large signpost (which branch the camera follows) is separate and may
+  stand at it too.
+- **It is the spring-back pathway's opposite** (D17): the pathway sends a
+  dense clump down one branch, the population fork spreads a crowd over
+  both. Both branches are loop (rules 1 and 3).
+- Open for v2's scoping: whether it counts slimes or weight (clusters cost
+  per slime; presence objects count weight, D16), which stretch it
+  counts, off screen (D70: it counts the proxies), and which branch the
+  camera follows.
+- Listed with v2's reusable interactive objects (`versions/v2/README.md`,
+  `interactive-objects.md`). It serves rule 23.
+
+**Terminology** (`concept.md`): the debug overlay's slime counts renamed;
+**awake cluster**, **activity zone** and **population fork** added.

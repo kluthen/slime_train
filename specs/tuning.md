@@ -106,7 +106,7 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | A fired basket empties within (proposed) | its quota × 0.3 s plus 10 s of firing, none of its slimes falling back in | D128, item 24.3 |
 | Section 3 frame budget on the desktop (proposed) | a steady 60 fps at test mode's 1152 × 648 window; at most 8 ms per tick at p95 on the section 3 bench cases, `stress-moving` excepted | D128, item 24.1 |
 
-### Off screen, resting piles and detail (chunk 15; crowd detail, D140, D141)
+### Off screen, resting piles and detail (chunk 15; crowd detail, D140, D141; clusters, D143)
 
 | Value | Start at | Source |
 |---|---|---|
@@ -131,6 +131,8 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | Load meter: calm (proposed) | busy share below 60 % and at most 1 frame that ran 2 ticks | D141 |
 | Detail ceiling steps (proposed) | starts at 0; up one step per pressed window (at most 3); down one step after 3 calm windows in a row (the count starts again after each step); held, and the calm count restarted, by a window in the band | D141 |
 | Pile detail cap (`PILE_MAX_DETAIL`) (proposed) | pile slimes (in a basket, asleep at bedtime) stop at level 2 (at 6 points the `stress-still` pile rested at about tick 1300 instead of 407) | D140 |
+| Largest awake cluster, level rule 23 (proposed; calibrated in chunk 24, O107) | above 20 slimes for more than 5 s in a row fails, over a level's played test and each basket's fire-and-drain (`stress-*` excepted); touching: in contact on the last tick, or centres within the sum of their radii plus 2 px | D143, item 24.7 |
+| The train leans away from clusters (proposed, O107) | a train slime whose hop is due waits 0.5 s while 3 or more slimes that cost physics and can't fuse with it sit within 96 px of its hop's target, at most 4 times in a row (2 s), then hops anyway | D143, item 24.8 |
 | Test level, basket 2 quota | 15 (weight) | test level |
 
 ### Performance (chunk 22)

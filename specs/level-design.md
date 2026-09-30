@@ -1,6 +1,6 @@
 # Level design requirements
 
-Status: draft v12
+Status: draft v13 (rule 23, clusters, proposed, D143)
 
 Rules every level must follow, whoever builds it. These rules make up the
 checklist for every level's design (see `levels/`). Levels are
@@ -59,7 +59,7 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
 
 16. **At most 200 slimes per level**, counted in base slimes (D67). Scenes
     where many slimes pile up on one screen should keep them mostly still,
-    such as a basket being filled.
+    such as a basket being filled. Where slimes gather awake is rule 23.
 17. **Sleepers never sit on the loop itself.** Waking always takes a call
     (D70).
 
@@ -116,3 +116,21 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     reach keeps its underside at least 130 px over any loop ground under
     it, wherever the slime reaches it from (stricter than the checker,
     which measures only ledges within reach of the loop beneath them).
+
+## Where slimes gather
+
+23. *(Proposed, D143.)* **No spot where many slimes gather awake.** Keep apart the places
+    where slimes pile up: a bowl or dip next to a basket, an outlet
+    releasing into a crowd, a narrow ledge where the train queues, the
+    landing spot of a sleeper shelf next to any of these. A pile that
+    rests costs little; an awake cluster keeps waking itself and costs
+    every tick.
+    *Measure (proposed):* the **largest awake cluster** (the biggest
+    group of touching slimes that cost physics, D143) over the level's
+    own scripted runs (its played test from fresh, and each basket's
+    fire-and-drain; the `stress-*` fixtures excepted) stays at or under
+    20 slimes, or goes above it for at most 5 s in a row. The level bench
+    and the level's played test measure it; the level-rules checker
+    points at them. The number is calibrated in chunk 24 (O107). A
+    cluster the player builds with calls is accepted: crowd detail and
+    the tick cap cover it.

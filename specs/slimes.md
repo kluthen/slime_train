@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v20
+Status: draft v21 (the train leans away from clusters, proposed, D143)
 
 ## States
 
@@ -89,6 +89,10 @@ Slimes move only by hopping.
 
 - Bigger slimes hop a little less often, but further and higher.
 - During bedtime's wind-down, every slime hops more slowly.
+- *(Proposed, D143, item 24.8):* a train slime whose landing spot is
+  crowded by slimes it can't fuse with waits a little before hopping (at
+  most 2 s), so crowds thin out instead of growing. Same-species crowds
+  don't delay it: they fuse.
 - The numbers are in `tuning.md`.
 
 ## Size and weight (D24, D16)

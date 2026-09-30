@@ -1,6 +1,6 @@
 # Interactive objects
 
-Status: draft v12
+Status: draft v13 (population fork, v2, proposed, D143)
 
 **Versions (D50, D54):** v1 has only the frontier-gate set (switch, basket,
 gate) and the split zone at the start of the loop. Every other object comes in
@@ -101,6 +101,17 @@ A larger signpost. Tapping it chooses which branch the camera follows. v2, since
 A kind of fork that sends slimes down a branch by **species** ("all blue
 slimes go this way") or by **size** ("size 3 goes up here"). It usually has a
 signpost next to it. It isn't tapped. Both filters are v2 (D89).
+
+### Population fork (v2, proposed, D143)
+A kind of fork that breaks up crowds: it sends the next slimes down
+whichever of its branches holds fewer slimes on its first stretch.
+Activation: presence (it counts slimes); it isn't tapped. It reads no
+clock: a tie keeps the current way, and it holds a way for a set number
+of ticks, so it doesn't flicker. Like every fork it has a plain signpost
+showing where it sends slimes now; a large signpost may stand at it too.
+The opposite of the spring-back pathway (D17). It serves level rule 23.
+Open for v2's scoping: slimes or weight, the stretch counted, off screen,
+the camera's branch.
 
 ### Species-fusion device (D25, later)
 Presence-activated. Fuses slimes of the right species inside its area into a
