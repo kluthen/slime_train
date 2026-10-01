@@ -2824,6 +2824,11 @@ replaced by the user's hop corridor (an occupancy above 0.5), with 15 as
 the fallback; a train
 slime touching a holder ahead may rest; only a slime on the ground rests;
 the celebration no longer wakes holders. Built in chunk 22f.
+**Built in chunk 22e** (4750f12, 2026-10-01; D146's as-built note): every
+rule and number above as written, the first calibration keeping 30,
+240 px and 24 px; 3's one-step fallback not built (not needed); the
+hold's save key `train.hold` approved by the user. The short-hop share
+didn't drop (7's motive): D147 reworks the hold.
 It amends D143's item 24.8 (approved in
 direction, D144): the hold **replaces** D143's lean (3 slimes it can't
 fuse with, within 96 px, a wait of at most 2 s), one rule instead of two.
@@ -3038,6 +3043,9 @@ chunk 22e, after 22d and before 5N, with the local wake taken out of 24.3
 ## D146 — Chunk 22e: the cluster fixes before 5N (2026-09-30)
 **Order amended by D147:** chunk 22f (the hold's second round) runs
 between 22e and 5N, and 5N ports its rest rules too.
+**Built** (4750f12, suite 1367/1367, 2026-10-01): see "As built" at the
+end; nothing deviates from D145 and this decision, and the choices made
+where they were silent are proposed there.
 Proposed where it goes beyond the user's words; the reorder itself is the
 user's. The user, verbatim (2026-09-30): "we should probably try these
 fixes before working on 5N". "These fixes" are the local wake (O106's
@@ -3122,6 +3130,60 @@ fixture) stays with it in 22e.
 22e; 24.3 and 24.8 point at 22e); D143's and D145's "where" notes; O106
 and O107; `tuning.md`'s rows; `slimes.md`; `tech-direction.md`; the
 index.
+
+**As built (chunk 22e, 4750f12, 2026-10-01).** Detail:
+`docs/dev/README.md`, "Chunk 22e: the local wake and the hold"; numbers:
+`docs/perf/2026-10-01-chunk-22e.md`. Recorded in the build plan's "22e",
+Built.
+- **Built as specified:** the `hops` and `short_hops` counters first;
+  the local wake (a release, the end of a hold, a touch faster than
+  `WAKE_SPEED` wake only the slimes touched); the hold with D145's
+  numbers (`HOLD_CROWD` 30 within 240 px ahead, `JAM_GAP` 24 px, a
+  re-check every 30 ticks, the cap at 300 ticks); holders resting through
+  a "may rest" input the Train sets each tick, kept apart from the pile
+  states so a holder isn't capped at the pile detail; the celebration
+  waking the resting train slimes on screen it picks. **The
+  one-step-neighbour fallback (1) was not built:** basket 3's drain shows
+  0 whole-pile wakes against 6 (a median of 3, at most 9 pile slimes
+  woken in a tick; Physics during the drain 84 -> 48), so the piles don't
+  churn. **The calibration sweep kept every number.**
+- **The save key** (approved by the user):
+  `save["slimes"][i]["train"]["hold"]`, an integer, the tick the hold
+  began, written only while the slime holds; format 1, additive; a value
+  that isn't a whole number >= 0 makes the save invalid. In the dump only
+  while a slime holds.
+- **Choices where the spec was silent** (proposed): the jam's radius is
+  the rest ring's (`SlimeBodies.radius_of`); split parts inherit the hold;
+  jam ties go to the bigger slime; a holder's hop timer is kept at 0.25 s
+  at least with no draw; a LoopStart move wakes the moved slime and the
+  resting slimes touching where it was (a resting holder would otherwise
+  hang at the start as a wall).
+- **Done-when (6):** the Physics count drops (`s3-basket-59of60` 79.9 ->
+  51.2, `stress-moving` 134.3 -> 123.4): **met**; the drain no longer
+  keeps the whole pile awake: **met**; the share of short hops drops
+  (`stress-moving` 96.1 -> 95.2 %, `s3-basket-59of60` 76.2 -> 76.7 %):
+  **not met**; the tests and the suite: met; the changed hashes listed:
+  done. Why the share didn't drop (the queue probe): the crowd check
+  counts the train queue itself (about 24 at its back, under 30) and
+  almost never fires; the jam check starts 331 of 361 holds and spreads
+  the hold backwards; 288 of the 292 holds reaching the cap are still
+  jammed; the front never holds. D147 (chunk 22f) answers it.
+- **Hashes:** only `stress-moving` and `s3-basket-59of60` changed; the
+  basket-drain, resting-pile and section 3 bench fixtures D145 (5)
+  expected to change kept theirs (no slime holds in them, and no wake
+  there differs between the whole-pile and the local wake within the
+  hashed ticks).
+- **D138's budget** (an estimate): the simulation still misses its 8 ms
+  on both bowl fixtures (about 21 and 14 ms on the phone, cold); drawing
+  within 4 ms cold, over it throttled. **Rule 23 (O107):** both bowl
+  fixtures still keep a cluster above 20 for more than 5 s.
+- **Handed on:** to 22f (its step 0, D147 (7)), the end of a hold zeroing
+  the hop timer over a dip-nudge pin set the tick before, and `train.gd`
+  at 417 effective lines; to 22c and 5N, `_rest()` rewriting the still
+  count and the rest anchor of every active slime that may not rest,
+  each tick (a cost for 22c to watch; 5N ports it).
+- **Order from here:** 19w, 22f, 5N, 22c, 22 repeated on the S20 FE, the
+  rest of 24, the health review.
 
 ## D147 — The hold, second round: no hop through a crowd, a guard, rest by contact, chunk 22f (2026-10-01)
 Proposed where it goes beyond the user's words; the user reviews. It

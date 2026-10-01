@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v28 (the save format may break until the first store release, a save a build can't use set aside then, the save wipe for automated testing only, D149, proposed where beyond the user's words; a save wipe flag for development builds, chunk 19w, D148, approved in direction; chunk 22f, the hold's second round, before 5N, which ports its rest rules, D147, proposed; the hold and the local wake in chunk 22e, before 5N, which ports them, D146, proposed; the hold, D145, proposed)
+Status: draft v29 (chunk 22e built: the local wake, the hold with D145's numbers, the save key `train.hold`, user-approved, format 1, D145, D146's as-built notes; the save format may break until the first store release, a save a build can't use set aside then, the save wipe for automated testing only, D149, proposed where beyond the user's words; a save wipe flag for development builds, chunk 19w, D148, approved in direction; chunk 22f, the hold's second round, before 5N, which ports its rest rules, D147, proposed; the hold and the local wake in chunk 22e, before 5N, which ports them, D146, proposed; the hold, D145, proposed)
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -248,9 +248,21 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   throttled (the GDScript tick's factors; the engine's C++ and the phone
   driver may scale otherwise). The phone's perf log settles every number
   (D138).
-- **Next (proposed order, D140, D143, D142):** chunk 22d, the debug counters (D143): Physics,
-  On screen, In range and Parked on the bar, and the same plus `resting`
-  and the largest awake cluster on the PERF line. Then chunk 5N: results deterministic within one build
+- **Chunk 22e as built (4750f12; D146's as-built note):** the local wake
+  and the hold, with D145's numbers (the first calibration kept them).
+  Basket 3's drain no longer wakes its pile whole (0 whole-pile wakes
+  against 6; Physics during the drain 84 -> 48); Physics on the desktop
+  `s3-basket-59of60` 79.9 -> 51.2, `stress-moving` 134 -> 123; tick
+  7.27 -> 6.68 ms and 9.68 -> 10.17 ms (the hold's checks cost about
+  0.8 ms a tick in that crowd). The short-hop share didn't drop (95 %,
+  77 %): chunk 22f reworks the hold (D147). Estimated on the reference
+  phone, the simulation still misses its 8 ms on both bowl fixtures
+  (about 21 and 14 ms cold). As built, the rest pass rewrites the still
+  count and the rest anchor of every active slime that may not rest,
+  each tick: a cost for 22c to watch, and 5N ports it.
+- **Next (proposed order, D140, D143, D142, D146, D147, D148):** chunks
+  22d (the debug counters, D143) and 22e are done; then 19w, 22f, then
+  chunk 5N: results deterministic within one build
   (not bit-equal to the GDScript tick); saves load under either tick; the
   GDScript tick stays as a fallback. Then chunk 22c, crowd detail only
   under load (D141). Then chunk 22 repeated on the reference phone with
@@ -299,6 +311,12 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   slimes count as lost and reappear at the start of the loop (D72).
 - The save records the level's version, and slimes, objects and
   gates keep stable IDs across versions.
+- **What a train slime's record adds** (chunk 22e, D145, D146; the key
+  approved by the user): `save["slimes"][i]["train"]["hold"]`, an
+  integer, the tick the slime's hold began, written only while it holds
+  (absent: it doesn't hold). Additive, format 1: an older save loads with
+  no hold. A value that isn't a whole number >= 0 makes the save invalid.
+  The full key list is `docs/dev/README.md`, "What a save holds".
 - Saves are written atomically (write a new file, then swap it in),
   and the previous save is kept as one backup. A save that can't be read falls
   back to the backup, and only then to a fresh start for that level.
