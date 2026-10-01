@@ -364,6 +364,7 @@ func _saved_hold(save: Dictionary, runtime_id: int) -> int:
 
 
 # @test-link [[req_persistence_and_saves]]
+# @test-link [[rule_saves_never_wiped]]
 func test_a_save_without_a_hold_loads_with_none_and_a_run_without_holders_writes_none() -> void:
 	var save := _played_on_the_ground().to_save()
 	for slime in save["slimes"]:

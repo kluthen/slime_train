@@ -543,6 +543,7 @@ func inherit(parts: PackedInt32Array) -> void:
 ## counts toward fusion in `fusion` (fusion first). A parked slime, or one
 ## no longer a train slime, ends its hold.
 # @spec-link [[req_hopping_behavior]]
+# @spec-link [[req_offscreen_simulation]]
 func steer(bodies: SlimeBodies, dt: float, tick: int, fusion: Fusion) -> void:
 	for slime_id in tracked_ids():
 		var s := bodies.index_of(slime_id)

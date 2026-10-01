@@ -389,6 +389,7 @@ func _holder() -> Array:
 
 
 # @test-link [[req_hopping_behavior]]
+# @test-link [[rule_stalled_train_slime_moved_to_start]]
 func test_a_stall_or_stuck_move_ends_the_hold() -> void:
 	var run := _holder()
 	var sim: Simulation = run[0]

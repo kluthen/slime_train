@@ -589,6 +589,7 @@ static func _save_hold(record: Dictionary, saved: Dictionary) -> void:
 ## `record` as a whole number (Train.restore_record wants an int); without
 ## one (an older save) the slime doesn't hold.
 # @spec-link [[req_persistence_and_saves]]
+# @spec-link [[rule_saves_never_wiped]]
 static func _restore_hold(saved: Dictionary, record: Dictionary) -> void:
 	if saved.has("hold"):
 		record["hold"] = _whole(saved["hold"])

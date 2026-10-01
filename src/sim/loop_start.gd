@@ -29,6 +29,7 @@ const SPOTS := 8
 
 ## Moves slime `slime_id` to the start of the loop of `train`, back on the
 ## train (see the class doc). Returns the distance along the loop it is put at.
+# @spec-link [[req_offscreen_simulation]]
 static func move(bodies: SlimeBodies, train: Train, slime_id: int) -> float:
 	assert(bodies.has(slime_id), "LoopStart.move: no slime %d" % slime_id)
 	var size := bodies.size_of(slime_id)
