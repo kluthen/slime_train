@@ -3140,7 +3140,10 @@ A slime not on the ground can't rest. Celebration may trigger the
 animation but shouldn't wake on hold slimes." And a follow-up, verbatim:
 "the 5+s mandatory hop shouldn't occur if the crowd test comes back
 crowded though." And, verbatim: "slimes on hold should also prevent
-jumping i guess ?"
+jumping i guess ?" And, verbatim: "add a guard zone on the corridor (the
+slimes directly / almost directly above or below: if they're on hold they
+don't force the hold this should help prevent ordering of the slime
+decision to matter too much)".
 
 **The measured state (chunk 22e as built, uncommitted; its sweep, seed 1,
 2400 ticks headless):** 86 to 96 % of holds end at the 5 s cap (at
@@ -3253,6 +3256,11 @@ ahead of a queue's front.
   clear while the whole train waits on it. A guard release is the one hop
   allowed through a crowd; it is counted in `guard_releases`, not in
   `crowded_hops`.
+- **The stack zone (4) and the guard:** the guard's rule is unchanged.
+  The stack zone removes a source of mutual holds (stacked holders
+  waiting on each other), so the guard should fire less. Stacked holders
+  have almost the same loop distance; the front-most pick still settles
+  it by the gap ahead, then the lower id.
 - **Which net fires first:** the guard, a few seconds after a freeze
   starts (at most the longest hop interval, for the last slime to come
   due and hold, plus 4 s). The **stall net**
@@ -3326,6 +3334,31 @@ user expected only the front of the bowl to move.
     100 px past the landing point. *Proposed:* a train slime resting by
     contact (5 (a)) counts as a holder here. It queues behind a holder
     and would otherwise be passed over.
+  - **The stack zone** (the user's "guard zone"; renamed, proposed, so it
+    isn't confused with the **hold guard**, 3). A holder directly or
+    almost directly above or below the hopping slime, beside it rather
+    than ahead of it along the hop, **doesn't trigger the holder rule**.
+    - *Shape* (proposed): the part of the corridor near its start, where
+      the holder's centre projects onto the hop line, measured from the
+      hopper's centre, less than the two slimes' radii apart (`radius_of`
+      each). That is, it overlaps the hopper's own column across the hop.
+      *The alternative:* a cone of about ±30° from the vertical through
+      the hopper's centre, whatever the hop's direction. The projection
+      is the default because it follows the hop: on a steep climb, a
+      slime above is ahead of the hop, and still blocks it.
+    - **Holders in the stack zone still count toward the occupancy**,
+      like any slime (proposed). Only the holder rule ignores them.
+    - *Why* (the user's): two stacked train slimes then treat each other
+      the same way. Neither holds because of the other, so stacked
+      holders can't lock each other, and the order in which the slimes
+      are evaluated within a tick matters less.
+    - *What it leaves:* order still matters for a holder **ahead** that
+      starts its hold on the same tick. Evaluated first, it holds the
+      slime behind; evaluated second, it doesn't. *Proposed, a
+      complement:* the holder rule reads the holders as they were at the
+      start of the tick, a snapshot, so no same-tick decision depends on
+      array order. The chunk may build it if cheap and say so; otherwise
+      it stays noted.
   - **The jam check goes** (proposed): the holder rule replaces it, one
     corridor check instead of two. The queue releases front-first. The
     front slime's corridor has no holder, so the occupancy alone decides
@@ -3369,7 +3402,12 @@ user expected only the front of the bowl to move.
 **5. Resting.**
 - **(a) Rest by contact with a holder** (the user's point; details
   proposed). A train slime that isn't holding may rest while it touches
-  one or more holders that are **ahead of it along the loop**. "Touches":
+  one or more holders that are **ahead of it along the loop**, **or in
+  its stack zone** (a slime on or under a holder; proposed with the stack
+  zone). Resting beside a holder can't make that holder hold, since the
+  holder rule ignores its stack zone, so it builds no deadlock. Standing
+  on a resting holder is "on the ground" (b), and when the holder below
+  wakes, the wake up the stack wakes it. "Touches":
   D143's touching (in contact on the last tick, or centres within the sum
   of their radii plus 2 px). Two resting slimes aren't paired in the
   contacts, so the geometric test is what reads it.
@@ -3473,6 +3511,11 @@ build):
   - a holder in the corridor, even in the 100 px past the landing point,
     makes a slime hold at any occupancy; in a queue, the front hops first
     and each slime behind goes only after the one ahead has gone;
+  - the stack zone: a holder directly above or below the hopper doesn't
+    make it hold (though it still counts toward the occupancy), and one
+    just ahead of the hopper's column does. Two stacked train slimes
+    whose hops are due on the same tick get the same outcome whatever
+    their order in the arrays;
   - a holder-only hold at the cap keeps holding (or hops, if the user
     picks O109's literal reading);
   - the extra and the phase repeat per seed, and survive a save and
@@ -3512,6 +3555,206 @@ guard stay in GDScript (the Train).
   way.
 - 22f keeps both ATD steps.
 
-**Terminology** (`concept.md`): **holder**, **hold guard** and **hop
-corridor** added; **hold** amended; **jam** marked as replaced by the
+**Terminology** (`concept.md`): **holder**, **hold guard**, **hop
+corridor** and **stack zone** (the user's "guard zone", renamed so it
+doesn't clash with the hold guard; proposed) added; **hold** amended; **jam** marked as replaced by the
 holder rule (proposed), kept while 22f measures.
+
+## D148 — A save wipe flag for development builds, chunk 19w (2026-10-01)
+Proposed where it goes beyond the user's words; the user reviews. It
+amends D147's order (item 9). The user's words, verbatim (2026-10-01):
+"Currently we aren't in production, so we may relax save file deletion in
+testing. Ensure that a flag can be set so that if set, the save file is
+automatically deleted at the begining of a test session. Of course, when
+testing save/restore state we need to remove this flag."
+
+**Reading.** "A test session" is read as **one launch of the app for
+testing**. In our terms a *session* is the 15 min play period; the wipe
+acts once per launch, not at each session's start inside a run (a session
+started by the first tap after sunrise doesn't wipe). Relaxed is the
+deletion of saves on a developer's own build, nothing else: the save
+**format** stays a hard contract (format 1, additive keys, older saves
+load), and whether format compatibility is also relaxed in development is
+open (O111). Nothing here changes what a player's build can do.
+
+**Grounded in the code (read 2026-10-01):** the level saves live in
+`user://saves/` (`SaveStore.DEFAULT_DIRECTORY`): per level
+`<level id>.json`, its backup `.bak`, a write's side files `.new`, files
+set aside as `.unreadable` (`.2`, `.3`...) and version copies `.v<n>`.
+`read()` falls back to the backup when the save is missing, so a save
+deleted alone would come back from its backup. The parent code is
+`user://parent.json` (and its `.bak`). `main.gd` reads the user arguments
+(`OS.get_cmdline_user_args()`) in `_ready`, creates the stores, loads the
+level, then resumes from the save in `_resume_play()` only when test mode
+is off: **a fixture run never reads the player's save**. `--load=PATH`
+and the run configuration's `"load"` key are test mode's (start from the
+save at PATH). The check for debug-only tools is `TestModeGuard.allows()`
+(`OS.is_debug_build()`); the release preset excludes `src/test_mode/*` and
+`src/debug/*`. On Android, `tools/android/perf.sh` passes flags through
+the launch intent's `slime_args` extra, which the SlimePlatform plugin
+reads in a debuggable build only; the debug app is its own package
+(`com.slimetrain.dev`), the release one `com.slimetrain`.
+`tools/perf_slow.sh` always runs a fixture in test mode and forwards its
+extra arguments to the game.
+
+**1. The flag** (name proposed): **`--wipe-save`**, a user argument after
+`--` (on Android, in `slime_args`). Never on by default, in any build.
+Command line only: not a test-mode run configuration key, not a setting
+(whether a persistent toggle is also wanted is O112).
+
+**2. What it wipes** (proposed): **every file in `user://saves/`**, every
+level's save with its backup, side files, set-aside files and version
+copies. The backup has to go (the read would bring it back); the others
+go so that the start is a true fresh install for the level saves. The
+directory itself may stay. Every level is then as on a fresh install: the
+first-play hint is due, the celebration can play again, and v1's session,
+which lives in the level's save (D104), starts afresh. Unlike the
+parent's delete (D43, D104), which keeps a running session so deleting
+can't dodge bedtime, the wipe doesn't keep one: it acts at launch, on a
+developer's build, before any session is read.
+- **`user://parent.json` is kept** (proposed), and with it the parent
+  code and setup: a wipe doesn't send the next launch through setup. No
+  `--wipe-parent` in this chunk (proposed): the user asked for the save
+  file only, and a fresh setup is a different test (clearing the app's
+  data does it). If wanted later, it is a second flag beside this
+  one, never part of `--wipe-save`.
+
+**3. When and where** (proposed):
+- **At startup, before anything reads a save:** in the main scene's
+  `_ready`, after the stores are made and before the level loads and
+  `_resume_play()` reads the save. Once per launch.
+- **Only the main scene's default directory** (`user://saves/`). A store
+  a test gives (`SaveStore.new(DIR)`, as every save test does) is never
+  wiped by the flag. The wipe's function takes its directory as an
+  argument so its unit tests run on a scratch directory.
+- **Not a `SaveStore` path.** The store keeps its rule: it never deletes
+  a save except on the parent's explicit delete
+  (`rule_saves_never_wiped`). The wipe lives in a debug-only file, for
+  example `src/debug/save_wipe.gd`, named by path only after the guard
+  allows it (as test mode is), so the release preset leaves it out with
+  `src/debug/*`. `SaveStore`'s header gains a one-line pointer to it.
+
+**4. The guard** (the user's and the coordinator's constraint; the rest
+proposed): **debug builds only**, through the same check as test mode
+(`TestModeGuard.allows()`). In a release build the flag is **ignored**:
+nothing is deleted and one line is logged (`Save wipe: --wipe-save
+ignored, not a debug build.`). On Android a release build doesn't receive
+`slime_args` at all, and a debug install is a different package, so the
+flag can never reach a release install's saves, even on the same phone.
+
+**5. With a save to load: refused** (proposed). When the launch also
+names a save to start from (`--load=PATH`, or a test script whose run
+configuration has `"load"`), the wipe doesn't run, an error is printed,
+and in a debug build the app quits with exit code 1, as a bad test-mode
+or perf-log flag does today (in a release build both flags are already
+ignored). A save/restore run that carries the flag by mistake fails
+loudly instead of silently testing a fresh start, and a `--load` path
+inside `user://saves/` can't be deleted before it is read. The other way
+(ignore the wipe with a log line, load anyway) is the user's call.
+`--fixture` is not a conflict: fixtures are `res://` files. With test
+mode and no load, the wipe runs as asked (harmless: a fixture run doesn't
+read the player's save; it matters only if the run autosaves).
+
+**6. The log line** (proposed): on every wipe, one line on standard
+output (logcat's `godot` tag on Android): `Save wipe (--wipe-save):
+deleted N files from user://saves/; parent.json kept.`, N possibly 0. A
+file that can't be deleted is named in an error line, and the launch
+carries on (a dev aid must not block play).
+
+**7. The tools** (proposed):
+- **`tools/android/perf.sh` gains `--wipe-save`, off by default.**
+  Accepted with `--fixture=none` and `--free-play` (normal play, which
+  reads the device's save); refused with a fixture (exit 2, a bad
+  argument: a fixture run never reads the player's save). It adds
+  `--wipe-save` to `slime_args`; the session's `perf.log` header already
+  records the launch line, so a wiped session shows in its record. Its
+  header's "the player's data is never at risk" paragraph is amended:
+  with `--wipe-save`, the debug app's level saves are deleted at launch,
+  the parent code kept; it still never uninstalls or clears the app's
+  data. **Why off by default:** the user's "a flag can be set" reads as
+  an opt-in per test session, and `--fixture=none` exists to measure the
+  device's own (often late-game) save, which a default wipe would destroy.
+- **`tools/perf_slow.sh`: no new option** (proposed, against the
+  coordinator's suggestion): it always runs a fixture in test mode, which
+  never reads the player's save, so the flag would do nothing there; its
+  extra arguments already pass any flag through.
+- **`docs/dev/README.md`** (the coding chunk writes it): what the flag
+  does and doesn't wipe, how to pass it on the desktop (`godot --path .
+  -- --wipe-save`), on the phone (`perf.sh --free-play --wipe-save`, or
+  by hand: `adb shell am start -S -n
+  com.slimetrain.dev/com.godot.game.GodotAppLauncher --esa slime_args
+  --wipe-save`), and the rule in 8.
+
+**8. Save and restore tests never pass it** (the user's: "when testing
+save/restore state we need to remove this flag"). The kill-and-reload
+tests, the delete-save tests, the persistence fixtures (`midair`,
+`old-version`), every fixture and its sidecar, the test scripts and the
+end-to-end suite never carry `--wipe-save`. A guard test (proposed)
+checks that no file under `tests/`, `levels/*/fixtures/` or the test
+scripts names it, the flag's own tests apart. A manual save and restore
+check on the phone or the desktop is run without it; `docs/dev/README.md`
+says so.
+
+**9. What doesn't change:** the save format (format 1, additive only; a
+hard contract); `rule_saves_never_wiped` and the contract's guarantee ("a
+level's save is never wiped by an app update"): a release build can't
+wipe, and no update, migration or load-failure path gains a delete; the
+parent's delete (D43, D104); the simulation (same hashes).
+
+**10. Chunk 19w** (name proposed: a small add-on to chunk 19's
+persistence, S). **Order** (amends D147 (9)): 22d, 22e, **19w**, 22f, 5N,
+22c, 22 repeated on the S20 FE, the rest of chunk 24, the health review.
+It runs after 22e is committed (it shares `main.gd`'s startup and
+`docs/dev/README.md` with the chunks around it) and before 22f. It
+**keeps both ATD steps**: documentalist preflights it against
+`rule_saves_never_wiped` (STABLE, on the contract's surface) before any
+code, with `req_persistence_and_saves`, `domain_saves_per_level`,
+`rule_released_level_stable_with_migration`,
+`req_test_level_and_test_mode` and `domain_testability`.
+- **Done when:**
+  - **unit tests** (on a scratch directory and an explicit guard):
+    - *the flag wipes:* with two levels' saves, their backups, a side
+      file, a set-aside file and a version copy, the wipe leaves the
+      directory empty, leaves a `parent.json` (and its `.bak`) beside it
+      untouched, and logs one line with the count;
+    - *no flag keeps:* a launch without it leaves every file
+      byte-identical;
+    - *a release build ignores it:* a guard answering "not a debug
+      build" deletes nothing and logs the ignored line;
+    - *with a load, refused:* `--wipe-save` with `--load=PATH`, and with
+      a test script holding `"load"`, deletes nothing and returns the
+      error that makes a debug launch exit 1;
+    - *before any read:* a game started with the flag on a directory
+      holding a save starts fresh (the first-play hint due);
+    - *only the default directory:* a store a test gives is never wiped
+      by the flag;
+    - the guard test of 8, and the release preset's exclude filter
+      covering the wipe's file (as `test_test_mode_guard.gd` checks
+      `src/test_mode/`);
+  - **perf.sh**, checked by hand on the emulator or the phone:
+    `--free-play --wipe-save` starts fresh and its log line is in
+    `logcat.txt`; `--fixture=<name> --wipe-save` is refused with exit 2;
+    without the flag, the device's save is resumed as before;
+  - **same hashes:** every fixture's hash unchanged; the full suite
+    green;
+  - `docs/dev/README.md` and `SaveStore`'s header carry their notes.
+
+**For documentalist (preflight, before coding).** No conflict found with
+the contract or `rule_saves_never_wiped`'s intent and expectation (an app
+update never wipes a parent's save): the flag is no update path, exists
+only in debug builds, and acts on the debug package's own data. One
+wording point to judge: the rule's logic opens with the bare "Saves are
+never wiped". If a clarifying line is wanted ("a debug build may wipe its
+own saves on an explicit developer flag; a release build never can"), the
+atom is STABLE and on the contract's surface, so it needs the user's
+confirmation. `req_persistence_and_saves` may gain a technical-interface
+line (a third way saves go, debug only), and the wipe's file is tagged to
+`req_test_level_and_test_mode` or a new ARCHITECTURE atom, documentalist's
+call.
+
+**Open:** O111 (is save-format compatibility also relaxed in
+development?), O112 (a per-launch flag, or also a toggle that stays set
+across launches?).
+
+**Terminology** (`concept.md`): **save wipe** added (proposed), kept apart
+from the parent's *delete* of one level's save.

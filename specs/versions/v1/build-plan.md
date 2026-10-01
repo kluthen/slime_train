@@ -20,7 +20,8 @@ D142 approved, and 24.7 and 24.8 approved in direction, D144; 24.8
 rewritten as the hold, with a local wake joined to 24.3, proposed, D145;
 chunk 22e, the local wake and the hold out of 24.3 and 24.8, between 22d
 and 5N, the user's reorder, D146; chunk 22f, the hold's second round,
-between 22e and 5N, proposed, D147)
+between 22e and 5N, proposed, D147; chunk 19w, a save wipe flag for
+development builds, between 22e and 22f, proposed, D148)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -162,10 +163,13 @@ technology, not business behaviour:
   cold, over it throttled (4.2 to 5.3 ms); only chunk 22's repeat closes
   it. Item 24.6 (the debug labels) done with it. The slowed-CPU method is
   now `tools/perf_slow.sh --pin=main`.
-- **Next, in this order (proposed, D140, D143, D142, D146, D147):** chunk
+- **Next, in this order (proposed, D140, D143, D142, D146, D147, D148):** chunk
   **22d** (the debug counters, D143), chunk **22e** (the cluster fixes:
   the local wake and the hold, out of 24.3 and 24.8; the user: "we should
-  probably try these fixes before working on 5N", D146), chunk **22f**
+  probably try these fixes before working on 5N", D146), chunk **19w**
+  (a `--wipe-save` launch flag that deletes the level saves in debug
+  builds only, the user's: "we may relax save file deletion in testing";
+  proposed, D148), chunk **22f**
   (the hold's second round: no hop through a crowd, the hold guard, the
   crowd detection, rest by contact and on the ground, the celebration
   sparing holders, the hold counter; proposed, D147), chunk **5N** (the
@@ -211,6 +215,7 @@ technology, not business behaviour:
 | 17 | Session, wind-down, bedtime, sunrise | M | 8 | [DoD 20, 21, 22]; `wind-down`, `bedtime`, `sunrise` |
 | 18 | Parent gate and settings (placeholder UI) | M | 17 | [DoD 23, 24, 29] |
 | 19 | Persistence hardening | M | 16, 18 | [DoD 28]; `midair`, `old-version` |
+| 19w | Save wipe flag for development builds (proposed, D148) | S | 19; runs after 22e, before 22f | unit tests: the flag wipes, no flag keeps, a release build ignores it, refused with a save to load; perf.sh's option checked by hand; same hashes |
 | 20 | Android build and platform integration | L | 18 | [DoD 25, 26, 27]; emulator |
 | 21 | End-to-end suite | M | 19 | [DoD 31] |
 | 22 | Performance pass on phones (repeated after 5N and 22c, D140, D141) | M | 20, 23 (repeat: 5N, 22c) | [DoD 30] |
@@ -231,9 +236,9 @@ and 11 are independent of each other. Chunk 17 can start as soon as 8 is done, i
 parallel with the camera and objects work. Chunk 23 runs first among the
 remaining chunks, before 18 (D123), and chunk LD runs in parallel with it.
 TL1 ran after both, before 18 (D127; done, D129). After chunk 22, the
-order is 22b, 22d, 22e, 22f, 5N, 22c, 22 repeated, then the rest of
+order is 22b, 22d, 22e, 19w, 22f, 5N, 22c, 22 repeated, then the rest of
 chunk 24, the last chunk before the closing health review (D128, D140,
-D141, D143, D146, D147, proposed; O97 closed by D140).
+D141, D143, D146, D147, D148, proposed; O97 closed by D140).
 
 ## Chunks
 
@@ -503,6 +508,84 @@ D141, D143, D146, D147, proposed; O97 closed by D140).
   from its backup (proposed, D130).
 - **Built** (D131): done; the choices marked proposed there wait for the
   user.
+
+### 19w. Save wipe flag for development builds (S, proposed, D148)
+
+The user (2026-10-01): "Currently we aren't in production, so we may
+relax save file deletion in testing. Ensure that a flag can be set so
+that if set, the save file is automatically deleted at the begining of a
+test session. Of course, when testing save/restore state we need to
+remove this flag." A developer's launch aid, never in a player's build.
+It runs after 22e is committed and before 22f (it shares `main.gd`'s
+startup and `docs/dev/README.md` with them). It touches the persistence
+contract's neighbourhood, so it **keeps both ATD steps**. Every rule
+below is D148's, proposed where it goes beyond the user's words.
+
+- **Atoms (preflight start, before any code):** `rule_saves_never_wiped`
+  (STABLE, on the contract's surface: documentalist checks it first),
+  `req_persistence_and_saves`, `domain_saves_per_level`,
+  `rule_released_level_stable_with_migration`,
+  `req_test_level_and_test_mode`, `domain_testability`.
+- **The flag:** `--wipe-save`, a user argument after `--` (on Android,
+  in `slime_args`). Never on by default. Command line only (O112 asks
+  whether a toggle that stays set is also wanted).
+- **What it wipes:** every file in `user://saves/` (each level's save,
+  its `.bak`, `.new` side files, `.unreadable` set-aside files, `.v<n>`
+  version copies). `user://parent.json` and its backup are kept. No
+  `--wipe-parent`.
+- **When:** once per launch, in the main scene's `_ready`, after the
+  stores are made and before the level loads and `_resume_play()` reads
+  the save. Only the default directory: a store a test gives is never
+  wiped by it.
+- **Where the code lives:** a debug-only file, for example
+  `src/debug/save_wipe.gd`, named by path after `TestModeGuard.allows()`,
+  so the release preset leaves it out with `src/debug/*`. Not a
+  `SaveStore` method: the store still deletes only on the parent's
+  delete; its header gains a pointer to the wipe.
+- **Release builds:** the flag is ignored, nothing deleted, one log line
+  (`Save wipe: --wipe-save ignored, not a debug build.`).
+- **With a save to load** (`--load=PATH`, or a test script's `"load"`):
+  refused. Nothing deleted, an error printed, and a debug launch quits
+  with exit code 1, like a bad test-mode flag. `--fixture` is no
+  conflict.
+- **The log line**, on every wipe: `Save wipe (--wipe-save): deleted N
+  files from user://saves/; parent.json kept.` A file that can't be
+  deleted gets an error line; the launch carries on.
+- **`tools/android/perf.sh`:** a `--wipe-save` option, off by default,
+  accepted with `--fixture=none` and `--free-play` only (refused with a
+  fixture, exit 2); it adds the flag to `slime_args`. Its header's "the
+  player's data is never at risk" paragraph is amended for it.
+  `tools/perf_slow.sh` gets no option: it only runs fixtures, which never
+  read the player's save, and its extra arguments already pass flags
+  through.
+- **`docs/dev/README.md`:** what the flag wipes and keeps, how to pass it
+  on the desktop and the phone, and that save and restore checks run
+  without it.
+- **Save and restore tests never pass it:** the kill-and-reload and
+  delete-save tests, `midair`, `old-version`, every fixture, sidecar and
+  test script, the end-to-end suite. A guard test checks that no file
+  under `tests/`, `levels/*/fixtures/` or the test scripts names the
+  flag, its own tests apart.
+- **Unchanged:** the save format (format 1, a hard contract; O111 asks
+  whether development relaxes it, not assumed), the parent's delete, the
+  simulation.
+- **Done when:**
+  - **unit tests** (a scratch directory, an explicit guard): the flag
+    wipes every kind of file in the directory and leaves `parent.json`
+    and its backup, logging one line with the count; no flag keeps every
+    file byte-identical; a guard answering "not a debug build" deletes
+    nothing and logs the ignored line; with `--load=PATH`, or a test
+    script holding `"load"`, nothing is deleted and the error that makes
+    a debug launch exit 1 is returned; a game started with the flag on a
+    directory holding a save starts fresh (the first-play hint due); a
+    store a test gives is never wiped; the guard test above; the release
+    preset's exclude filter covers the wipe's file;
+  - **perf.sh**, by hand on the emulator or the phone: `--free-play
+    --wipe-save` starts fresh with the log line in `logcat.txt`;
+    `--fixture=<name> --wipe-save` exits 2; without the flag the device's
+    save resumes as before;
+  - **same hashes** for every fixture; the full suite green;
+  - `docs/dev/README.md` and `SaveStore`'s header carry their notes.
 
 ### 20. Android build and platform integration (L)
 
@@ -862,6 +945,14 @@ body code or the Train. Every rule and number below is D147's, proposed.
     It **replaces the jam check** (proposed), so the queue releases
     front-first. `holder_holds` counts the holds it starts below the
     threshold;
+  - **the stack zone** (the user's "guard zone", renamed so it isn't
+    confused with the hold guard; proposed): a holder directly or almost
+    directly above or below the hopper doesn't trigger the holder rule.
+    Its centre projects onto the hop line, from the hopper's centre, less
+    than the two radii apart. The alternative is a cone of ±30° from the
+    vertical. It still counts toward the occupancy. *Proposed
+    complement:* the holder rule reads the holders as of the tick's start
+    (a snapshot), so no same-tick decision depends on array order;
   - **a debug overlay,** off by default: the corridor of the slime under
     the debug label, coloured held or free. The scan is O(n) per check,
     as today, and may use the pair grid's cells near the corridor;
@@ -893,7 +984,7 @@ body code or the Train. Every rule and number below is D147's, proposed.
     last resort; hold time counts toward it (O110's default).
 - **5. Resting:**
   - (a) a train slime touching one or more holders **ahead of it along
-    the loop** may rest (D143's touching, read geometrically); its timer
+    the loop, or in its stack zone** (on or under it), may rest (D143's touching, read geometrically); its timer
     stands still; it wakes when a touching slime moves off fast, or when
     it no longer touches a holder ahead (the Train wakes it). It counts
     as a holder for the holder rule;
@@ -933,7 +1024,9 @@ body code or the Train. Every rule and number below is D147's, proposed.
     it is listed with its reason and fails); [DoD 1] and the `bump`
     fixture's tests pass;
   - **unit tests:** D147 (8)'s list (the hop corridor's box and who it
-    counts; the holder rule and the front-first queue; the period renewed
+    counts; the holder rule and the front-first queue; the stack zone,
+    with two stacked slimes due on the same tick giving the same outcome
+    in either array order; the period renewed
     while crowded; the holder-only cap; the draws repeating per seed and
     across a reload;
     the guard on a deadlocked ring; rest by contact ahead but not behind,

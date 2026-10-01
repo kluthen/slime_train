@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v26 (chunk 22f, the hold's second round, before 5N, which ports its rest rules, D147, proposed; the hold and the local wake in chunk 22e, before 5N, which ports them, D146, proposed; the hold, D145, proposed)
+Status: draft v27 (a save wipe flag for development builds, chunk 19w, D148, proposed; chunk 22f, the hold's second round, before 5N, which ports its rest rules, D147, proposed; the hold and the local wake in chunk 22e, before 5N, which ports them, D146, proposed; the hold, D145, proposed)
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -317,6 +317,16 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   timer, cooldown, phase timers), and inject taps and tilt from a script.
   End-to-end tests drive the test level (`levels/test/`) this way.
 - Fixture saves for the test level are listed in `levels/test/README.md`.
+- **Save wipe** *(proposed, D148, chunk 19w; the user: "we may relax save
+  file deletion in testing")*: in a debug build only, the launch flag
+  `--wipe-save` deletes every file in `user://saves/` at startup, before
+  any save is read; `user://parent.json` is kept. Ignored with a log line
+  in a release build, refused with a save to load (`--load`), never on by
+  default, never passed by save and restore tests. It is not a save store
+  path and no update path: saves are still never wiped in a player's
+  build, and the save format doesn't change (O111 asks whether
+  development relaxes it). A per-launch flag; O112 asks whether a toggle
+  that stays set is wanted.
 
 ## Camera (D33, D60)
 

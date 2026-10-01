@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v40 (holder, hold guard and hop corridor added, hold and jam amended, D147, proposed; hold and jam, D145, proposed)
+Status: draft v41 (save wipe added, D148, proposed; holder, hold guard and hop corridor added, hold and jam amended, D147, proposed; hold and jam, D145, proposed)
 
 ## One-liner
 
@@ -246,6 +246,7 @@ survives the app being killed.
 | hold | *(proposed, D145, D147)* a train slime staying where it is instead of hopping, because its **hop corridor** is crowded or has a **holder** in it. It checks again about every 0.5 s; at 5 s plus a seeded extra it checks once more and, still crowded, keeps holding (no hop through a crowd). Only the **hold guard** forces a hop. A holding slime may **rest** (stop being simulated). Not the dip nudge's short wait for a fusion partner. *Before D147:* more than 30 awake slimes near its landing point, or a jam, and a hop anyway after 5 s |
 | holder | *(proposed, D147)* a train slime that is holding. A holder in another slime's hop corridor makes that slime hold too, so a queue releases from its front. A train slime touching a holder ahead of it may rest, and then counts as a holder |
 | hop corridor | *(proposed, D147, the user's)* the box a train slime checks before hopping: from its centre to its landing point plus 100 px, 75 px either side. Crowded when the slimes in it (resting and holding ones included; not parked, in a basket or sleepers) fill more than half of it, by area |
+| stack zone | *(proposed, D147, the user's "guard zone", renamed so it isn't confused with the hold guard)* the start of a hop corridor, beside the hopping slime: just above or below it. A holder there doesn't make the slime hold (it still counts toward the crowd), so stacked slimes don't hold each other and the order they're checked in matters less |
 | hold guard | *(proposed, D147)* the train's safety catch: when no train slime has hopped for 4 s while one holds, the front-most holder hops, crowd or not, so the train never freezes. Not the stalled-train net (a slime with no progress in 60 s moved to the loop start) |
 | jam | *(proposed, D145; replaced by the holder rule, proposed, D147)* the holding train slimes ahead of a train slime on the loop; a slime arriving behind a jam stops short of it instead of landing on it. Kept while chunk 22f measures; the holder in the hop corridor does its job |
 | awake cluster | *(proposed, D143)* a group of touching slimes that all cost physics (awake, not resting, not parked); the **largest awake cluster** is its biggest, in slimes, in the perf log and in level rule 23. Not a resting pile, which costs little |
@@ -291,4 +292,5 @@ survives the app being killed.
 | stable ID | the name a save uses to find a placed thing, `<place>.<kind>.<name>` (for example `s1.sleeper.01`); kept once a level is released (D72, level rule 20) |
 | test mode | a mode of the Linux and debug Android builds only, never the release: loads a fixture, speeds up or skips time, and injects taps and tilt from a script (D91) |
 | fixture | a named starting state for test mode, stored with its level (a save and a sidecar); test tooling, not a player's save |
+| save wipe | *(proposed, D148)* a developer's launch flag, `--wipe-save`, in debug builds only: every level's save is deleted at launch, the parent code kept. Never in a release build, never passed by save and restore tests. Not the parent's **delete** of one level's save (D43), and not a wiped save in the sense of "saves are never wiped", which is about a player's build |
 | skeleton | a level just made by the new-level scaffolder: minimal, playable and passing the level rules, for a designer to build on |
