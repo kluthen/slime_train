@@ -2,7 +2,8 @@ extends GutTest
 ## The perf log (src/debug/perf_log.gd), the phone measurement's PERF line:
 ## its window statistics (frame times to fps, p50, p95, max), its tick
 ## statistics (ticks per frame, ms per tick, the frame's rest), the active
-## bodies and candidate pairs, its --perf-log[=SECONDS] and
+## slimes (the crowd count) and candidate pairs, the slime counts and the
+## largest awake cluster, its --perf-log[=SECONDS] and
 ## --max-ticks-per-frame=N arguments, the line's fields, and the game root
 ## adding it only in a debug build (after TestModeGuard, by path) and only
 ## when asked. tools/android/perf.sh reads the line on a phone.
@@ -111,8 +112,8 @@ func test_line_holds_every_field() -> void:
 	assert_true(text.begins_with("PERF t=12.3 frames=20 fps=95.2 "), text)
 	for field in ["frame_ms_p50=10.00", "frame_ms_p95=19.00", "frame_ms_max=20.00", "process_ms_mean=4.50",
 			"ticks=300", "ticks_per_frame_mean=2.00", "ticks_per_frame_max=3", "tick_ms_mean=10.00",
-			"tick_ms_frame_mean=20.00", "rest_ms_mean=30.00", "on_screen=0", "simulated=0", "off_screen=0",
-			"parked=0", "bodies=0", "active=55.5", "pairs=120.5", "section=0", "zoom=",
+			"tick_ms_frame_mean=20.00", "rest_ms_mean=30.00", "physics=0", "on_screen=0", "in_range=0",
+			"parked=0", "resting=0", "largest_cluster=0", "bodies=0", "active=55.5", "pairs=120.5", "section=0", "zoom=",
 			"slimes_ms=0.50", "main_ms=5.50", "field_gpu_ms=10.50", "draw_calls=12", "primitives=14"]:
 		assert_string_contains(text, " " + field)
 	assert_false("\n" in text, "one line")
@@ -133,8 +134,8 @@ func test_line_is_key_value_numbers_in_the_documented_order() -> void:
 		keys.append(field.get_slice("=", 0))
 	assert_eq(keys, PackedStringArray(["t", "frames", "fps", "frame_ms_p50", "frame_ms_p95", "frame_ms_max",
 			"process_ms_mean", "ticks", "ticks_per_frame_mean", "ticks_per_frame_max", "tick_ms_mean",
-			"tick_ms_frame_mean", "rest_ms_mean", "on_screen", "simulated", "off_screen", "parked", "bodies",
-			"active", "pairs", "section", "zoom", "slimes_ms", "eyes_ms", "frontier_ms", "hud_ms", "debug_ms",
+			"tick_ms_frame_mean", "rest_ms_mean", "physics", "on_screen", "in_range", "parked", "resting",
+			"largest_cluster", "bodies", "active", "pairs", "section", "zoom", "slimes_ms", "eyes_ms", "frontier_ms", "hud_ms", "debug_ms",
 			"main_ms", "setup_ms", "render_cpu_ms", "render_gpu_ms", "field_cpu_ms", "field_gpu_ms", "draw_calls",
 			"objects", "primitives"]))
 
@@ -152,9 +153,11 @@ func test_part_means_are_sums_over_frames() -> void:
 	assert_eq(means[1], 0.0)
 
 
-## Parked counts every parked slime, on screen or not; off_screen only those
-## off the view, so parked >= off_screen.
-func test_parked_counts_every_parked_slime() -> void:
+## The line's slime counts are the debug bar's (DebugCounts.count_slimes()):
+## parked counts every parked slime, on screen or not; on screen any slime
+## whose centre is in the view, parked or not; in range every slime not
+## parked; resting the calm RESTING ones; bodies every slime.
+func test_the_line_counts_the_slimes_as_the_bar() -> void:
 	var sim := Simulation.new(7)
 	var bodies := sim.slimes
 	var in_view := sim.view.centre
@@ -162,12 +165,37 @@ func test_parked_counts_every_parked_slime() -> void:
 	bodies.park(bodies.create(0, 1, in_view, SlimeBodies.TRAIN))
 	bodies.park(bodies.create(0, 1, far, SlimeBodies.TRAIN))
 	bodies.create(0, 1, far + Vector2(200, 0), SlimeBodies.TRAIN)
-	assert_eq(PerfLog.parked_bodies(sim), 2)
+	var resting := bodies.create(0, 1, far + Vector2(400, 0), SlimeBodies.IN_BASKET)
+	bodies.calm[bodies.index_of(resting)] = SlimeBodies.RESTING
 	var ticking := PerfLog.tick_stats(PackedFloat64Array([0.02]), PackedInt32Array([0]), PackedInt64Array([0]),
 			PackedInt32Array([0]), PackedInt32Array([0]))
 	var text := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 1.0, 0, sim, _parts())
-	for field in ["on_screen=1", "simulated=1", "off_screen=1", "parked=2", "bodies=3"]:
+	for field in ["physics=1", "on_screen=1", "in_range=2", "parked=2", "resting=1", "largest_cluster=1",
+			"bodies=4"]:
 		assert_string_contains(text, " " + field)
+
+
+## The line's largest cluster is DebugCounts.largest_cluster() of the last
+## tick's contacts (a row of 3 touching and a pair: 3), and taking the line
+## changes nothing in the simulation.
+func test_the_line_holds_the_largest_cluster_and_reads_only() -> void:
+	var sim := Simulation.new(7)
+	var bodies := sim.slimes
+	bodies.terrain = TerrainSegments.new([Support.floor_polygon()])
+	bodies.auto_hops = false
+	for i in 3:
+		bodies.create(i % Species.COUNT, 1, Vector2(40.0 * i, -24), SlimeBodies.TRAIN)
+	for i in 2:
+		bodies.create(i % Species.COUNT, 1, Vector2(600.0 + 40.0 * i, -24), SlimeBodies.TRAIN)
+	bodies.tick(1.0 / 60.0)
+	assert_eq(DebugCounts.largest_cluster(bodies), 3, "the row touches")
+	var hash_before := sim.state_hash()
+	var ticking := PerfLog.tick_stats(PackedFloat64Array([0.02]), PackedInt32Array([1]), PackedInt64Array([0]),
+			PackedInt32Array([5]), PackedInt32Array([0]))
+	var text := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 1.0, 1, sim, _parts())
+	assert_string_contains(text, " largest_cluster=3 ")
+	assert_string_contains(text, " physics=5 ")
+	assert_eq(sim.state_hash(), hash_before, "read only")
 
 
 ## The camera's section: that of the current loop's segment nearest the
@@ -213,12 +241,17 @@ func test_tick_stats_without_a_tick() -> void:
 	assert_almost_eq(ticking["rest_ms_mean"], 20.0, 0.0001)
 
 
-## Active: the bodies the solver simulates, a slime in a basket included;
-## not a sleeper, a bedtime sleeper, a resting or a parked slime.
-func test_active_bodies_count_what_the_solver_simulates() -> void:
-	var sim := Simulation.new(7)
+## Active, per frame: the slimes that cost physics (SlimeBodies.crowd_count(),
+## the bar's Physics): a slime in a basket and one asleep at bedtime still
+## settling included; not a sleeper, a resting or a parked slime.
+func test_active_is_the_crowd_count_per_frame() -> void:
+	var game := _game_with_guard(true)
+	assert_eq(game.enable_test_mode({"seed": 1}), PackedStringArray())
+	assert_eq(game.add_perf_log(PackedStringArray(["--perf-log=100"])), PackedStringArray())
+	var sim: Simulation = game.simulation
 	var bodies := sim.slimes
-	var at := Vector2(0, -2000)
+	var before := bodies.crowd_count()
+	var at := Vector2(0, -20_000)
 	bodies.create(0, 1, at, SlimeBodies.TRAIN)
 	bodies.create(0, 1, at + Vector2(100, 0), SlimeBodies.IN_BASKET)
 	bodies.create(0, 1, at + Vector2(200, 0), SlimeBodies.SLEEPER)
@@ -226,7 +259,12 @@ func test_active_bodies_count_what_the_solver_simulates() -> void:
 	bodies.park(bodies.create(0, 1, at + Vector2(400, 0), SlimeBodies.TRAIN))
 	var resting := bodies.create(0, 1, at + Vector2(500, 0), SlimeBodies.IN_BASKET)
 	bodies.calm[bodies.index_of(resting)] = SlimeBodies.RESTING
-	assert_eq(PerfLog.active_bodies(sim), 2)
+	assert_eq(bodies.crowd_count(), before + 3, "train, basket and bedtime-asleep")
+	var perf_log: PerfLog = game.perf_log
+	for i in 2:
+		perf_log._on_process_frame()
+		perf_log._process(0.0)
+	assert_eq(perf_log._frame_active, PackedInt32Array([before + 3]), "the frame's active: the crowd count")
 
 
 ## The solver's candidate pairs of the last tick: neighbours in reach, never

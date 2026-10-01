@@ -26,13 +26,13 @@ extends CanvasLayer
 ##   control disarms it;
 ## - the frame rate ("60 fps", Engine.get_frames_per_second(), rounded);
 ## - the "woken / available" counter (DebugCounts, in base slimes);
-## - the slime counts, "Slimes 12 on screen : 5 simulated : 63 off screen"
-##   (DebugCounts.count_slimes(), in slimes, every state): centre in the
-##   visible view; off it but fully simulated (Offscreen hasn't parked it:
-##   within its near margin, or between its margins and not parked yet);
-##   parked, moved by Offscreen's proxies. They, the "woken / available"
-##   counter and the fps refresh at most every STATS_MS (the counts loop
-##   over every slime);
+## - the slime counts, "Physics 18 : on screen 12 : in range 30 : parked 63"
+##   (DebugCounts.count_slimes(), in slimes; they overlap): the slimes that
+##   cost physics (calm active, not a sleeper: SlimeBodies.crowd_count());
+##   centre in the visible view, any state; not parked, any state; parked,
+##   moved by Offscreen's proxies. They, the "woken / available" counter and
+##   the fps refresh at most every STATS_MS (the counts loop over every
+##   slime), each label's text assigned only when it changes;
 ## - the last action's result.
 ##
 ## Input: the controls are Buttons (mouse_filter STOP) and consume their
@@ -157,16 +157,25 @@ func _process(_delta: float) -> void:
 
 ## Shows `fps`, `sim`'s "woken / available" counter and its slime counts
 ## when STATS_MS have passed since the last refresh at real time `now_ms` (or
-## on the first call). Returns whether it refreshed.
+## on the first call), assigning only the texts that changed. Returns whether
+## it refreshed.
 func update_stats(sim: Simulation, fps: float, now_ms: int) -> bool:
 	if _stats_due_ms >= 0 and now_ms < _stats_due_ms:
 		return false
 	_stats_due_ms = now_ms + STATS_MS
 	var counts := DebugCounts.count(sim)
-	counter_label.text = "Woken %d / available %d" % [counts["woken"], counts["available"]]
-	fps_label.text = DebugCounts.fps_text(fps)
-	slimes_label.text = DebugCounts.slimes_text(DebugCounts.count_slimes(sim))
+	_set_text(counter_label, "Woken %d / available %d" % [counts["woken"], counts["available"]])
+	_set_text(fps_label, DebugCounts.fps_text(fps))
+	_set_text(slimes_label, DebugCounts.slimes_text(DebugCounts.count_slimes(sim)))
 	return true
+
+
+## Sets `label`'s text to `text` only when it differs (an assignment redraws
+## the bar even with the same text).
+# @spec-link [[req_platform_and_performance_targets]]
+static func _set_text(label: Label, text: String) -> void:
+	if label.text != text:
+		label.text = text
 
 
 ## The game root asks this first for every input event: true means the
