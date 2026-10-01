@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v39 (hold and jam, D145, proposed)
+Status: draft v40 (holder, hold guard and hop corridor added, hold and jam amended, D147, proposed; hold and jam, D145, proposed)
 
 ## One-liner
 
@@ -243,8 +243,11 @@ survives the app being killed.
 | quota outlines | how a basket shows its quota: one empty slime outline per unit of weight, filling in the colour of each slime caught (ux D4). Not "the slime counter" |
 | quota pie | *(proposed, D128)* how a basket with a quota above 10 shows it: one pie per 10 of weight, the last holding the rest, a slice filling per unit of weight |
 | debug overlay | developer tools over the game, in debug builds only: speed, reset, slime labels, the kill tool, the fps and the **slime counts**: Physics (the slimes that cost physics), On screen, In range (not parked) and Parked (D143, proposed, chunk 22d; before it: on screen : simulated off screen : parked) |
-| hold | *(proposed, D145)* a train slime staying where it is instead of hopping, because more than 30 awake slimes are near its landing point ahead of it, or because it would land right against a jam; it checks again every 0.5 s and hops anyway after 5 s. A holding slime may **rest** (stop being simulated). Not the dip nudge's short wait for a fusion partner |
-| jam | *(proposed, D145)* the holding train slimes ahead of a train slime on the loop; a slime arriving behind a jam stops short of it instead of landing on it, so a queue grows backwards and drains from the front |
+| hold | *(proposed, D145, D147)* a train slime staying where it is instead of hopping, because its **hop corridor** is crowded or has a **holder** in it. It checks again about every 0.5 s; at 5 s plus a seeded extra it checks once more and, still crowded, keeps holding (no hop through a crowd). Only the **hold guard** forces a hop. A holding slime may **rest** (stop being simulated). Not the dip nudge's short wait for a fusion partner. *Before D147:* more than 30 awake slimes near its landing point, or a jam, and a hop anyway after 5 s |
+| holder | *(proposed, D147)* a train slime that is holding. A holder in another slime's hop corridor makes that slime hold too, so a queue releases from its front. A train slime touching a holder ahead of it may rest, and then counts as a holder |
+| hop corridor | *(proposed, D147, the user's)* the box a train slime checks before hopping: from its centre to its landing point plus 100 px, 75 px either side. Crowded when the slimes in it (resting and holding ones included; not parked, in a basket or sleepers) fill more than half of it, by area |
+| hold guard | *(proposed, D147)* the train's safety catch: when no train slime has hopped for 4 s while one holds, the front-most holder hops, crowd or not, so the train never freezes. Not the stalled-train net (a slime with no progress in 60 s moved to the loop start) |
+| jam | *(proposed, D145; replaced by the holder rule, proposed, D147)* the holding train slimes ahead of a train slime on the loop; a slime arriving behind a jam stops short of it instead of landing on it. Kept while chunk 22f measures; the holder in the hop corridor does its job |
 | awake cluster | *(proposed, D143)* a group of touching slimes that all cost physics (awake, not resting, not parked); the **largest awake cluster** is its biggest, in slimes, in the perf log and in level rule 23. Not a resting pile, which costs little |
 | crowd detail | *(proposed, D140, D141)* fewer ring points per slime when many slimes are active (20, 30, 40 or more) or when zoomed out; a size-1 slime goes from 12 points down to 10, 8 or 6. A detail level: 0 (full) to 3. In play, the crowd's part applies only when the device can't keep up: a **detail ceiling** set by the device's load caps it (a good device keeps full points); test mode applies it always |
 | frontier set | the signpost, switch, basket and gate that end a section: flip the switch, fill the basket, the gate opens (D14). Inert once its gate is open (D86) |

@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v25 (the hold and the local wake in chunk 22e, before 5N, which ports them, D146, proposed; the hold, D145, proposed)
+Status: draft v26 (chunk 22f, the hold's second round, before 5N, which ports its rest rules, D147, proposed; the hold and the local wake in chunk 22e, before 5N, which ports them, D146, proposed; the hold, D145, proposed)
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -196,7 +196,10 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   rule 23 keeps levels free of spots where many slimes gather awake, and
   the train holds before a crowd or a jam, holding slimes resting, with a
   local wake (chunk 22e, before 5N, D146; rule 23 in chunk 24, item 24.7;
-  D145, proposed); a
+  D145, proposed); chunk 22f, before 5N, reworks the hold (the hop
+  corridor, the holder rule, no hop through a crowd, the hold guard, rest
+  by contact and on the ground; D147, proposed), and 5N ports its rest
+  rules; a
   cluster the player builds stays possible, covered by crowd detail and
   the tick cap.
 - **Native code was the documented, verified contingency; it is now
