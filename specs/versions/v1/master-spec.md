@@ -21,7 +21,9 @@ user approves them, as are the basket's quota pies and its always
 emptying once fired, from the user's second round of playtest reports
 (5.4, D128). Definition of done 24's line on the time left now matches
 5.8 (never on the parent buttons): a wording fix, not a behaviour change
-(D130).
+(D130). The save format may change without a migration until the first
+store release (5.10, the user's, D149); how a build sets aside a save it
+can't use is tagged (proposed).
 
 ## 1. Concept and objective
 
@@ -625,6 +627,13 @@ reopening the app → the state the stored timers give
 - Saves are written atomically, and the previous one is kept as a
   backup that is used if the latest can't be read. If neither can be read,
   that level starts fresh.
+- **The save format before the first store release** (D149). v1 is never
+  in a store, so in v1 the save format may change from one build to the
+  next without a migration. A save a build can't use is set aside with
+  its backup, that level starts fresh and saves again, and one log line
+  says so (proposed). Migrations for every format change are owed from
+  the first store release on. Level-version migration (above) is
+  unchanged.
 
 ### 5.11 Level rules
 

@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v27 (a save wipe flag for development builds, chunk 19w, D148, proposed; chunk 22f, the hold's second round, before 5N, which ports its rest rules, D147, proposed; the hold and the local wake in chunk 22e, before 5N, which ports them, D146, proposed; the hold, D145, proposed)
+Status: draft v28 (the save format may break until the first store release, a save a build can't use set aside then, the save wipe for automated testing only, D149, proposed where beyond the user's words; a save wipe flag for development builds, chunk 19w, D148, approved in direction; chunk 22f, the hold's second round, before 5N, which ports its rest rules, D147, proposed; the hold and the local wake in chunk 22e, before 5N, which ports them, D146, proposed; the hold, D145, proposed)
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -302,6 +302,21 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
 - Saves are written atomically (write a new file, then swap it in),
   and the previous save is kept as one backup. A save that can't be read falls
   back to the backup, and only then to a fresh start for that level.
+- **The save format before the first store release** (D149; the user's:
+  "save format may break between version ... if the app has been shipped,
+  otherwise, we just wipe"). Until the app has shipped, a save-format
+  change may break older saves: no migration, no special approval. From
+  the first store release on, the format is a hard contract and every
+  change ships with its migration. *(Proposed:)* a breaking change bumps
+  the format number; before shipping, a save a build refuses (another
+  format, or any other reason `SaveData` gives) is set aside with its
+  backup as `.unreadable`, the level starts fresh with autosave on, and
+  one log line says so. After shipping, such a save is left untouched and
+  that level's writes are blocked, as today. Whether the app has shipped
+  is one switch in the code, turned on at the first store release. An
+  older level version is still migrated (above). Fixture and test-mode
+  script formats are unchanged (still hard contracts); a breaking save
+  change also has to convert the fixtures, which are saves.
 
 ## Testability (D76, D91)
 
@@ -317,16 +332,18 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   timer, cooldown, phase timers), and inject taps and tilt from a script.
   End-to-end tests drive the test level (`levels/test/`) this way.
 - Fixture saves for the test level are listed in `levels/test/README.md`.
-- **Save wipe** *(proposed, D148, chunk 19w; the user: "we may relax save
-  file deletion in testing")*: in a debug build only, the launch flag
-  `--wipe-save` deletes every file in `user://saves/` at startup, before
-  any save is read; `user://parent.json` is kept. Ignored with a log line
-  in a release build, refused with a save to load (`--load`), never on by
+- **Save wipe** *(D148, chunk 19w, approved in direction, D149; its
+  details proposed; the user: "the flag is only for automated testing")*:
+  in a debug build only, the launch flag `--wipe-save` deletes every file
+  in `user://saves/` at startup, before any save is read;
+  `user://parent.json` is kept. **For automated test runs only**
+  (`perf.sh --wipe-save`, a scripted desktop launch); in manual play, a
+  level is started over with the parent's delete of its save. A
+  per-launch flag, nothing that stays set. Ignored with a log line in a
+  release build, refused with a save to load (`--load`), never on by
   default, never passed by save and restore tests. It is not a save store
   path and no update path: saves are still never wiped in a player's
-  build, and the save format doesn't change (O111 asks whether
-  development relaxes it). A per-launch flag; O112 asks whether a toggle
-  that stays set is wanted.
+  build. The format rule is above (D149).
 
 ## Camera (D33, D60)
 

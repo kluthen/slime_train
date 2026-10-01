@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v41 (save wipe added, D148, proposed; holder, hold guard and hop corridor added, hold and jam amended, D147, proposed; hold and jam, D145, proposed)
+Status: draft v42 (shipped added, save wipe amended to automated testing only, the save format before the first store release, D149, proposed; save wipe added, D148, approved in direction; holder, hold guard and hop corridor added, hold and jam amended, D147, proposed; hold and jam, D145, proposed)
 
 ## One-liner
 
@@ -105,7 +105,10 @@ saved every 15 s and whenever the app goes to the background. On load, a slime
 saved in mid-air is placed on the ground or at its jump start, or declared lost
 (D12). Each level has its own save file, and the user can delete one level's
 save (D43). Saves are never wiped. A released level isn't meant to change,
-and any minor update ships with its migration (D72).
+and any minor update ships with its migration (D72). Until the app has
+shipped (its first store release), the save format may change without a
+migration: a build sets aside a save it can't use and starts that level
+fresh (D149; the setting aside proposed).
 
 ## Controls
 
@@ -292,5 +295,6 @@ survives the app being killed.
 | stable ID | the name a save uses to find a placed thing, `<place>.<kind>.<name>` (for example `s1.sleeper.01`); kept once a level is released (D72, level rule 20) |
 | test mode | a mode of the Linux and debug Android builds only, never the release: loads a fixture, speeds up or skips time, and injects taps and tilt from a script (D91) |
 | fixture | a named starting state for test mode, stored with its level (a save and a sidecar); test tooling, not a player's save |
-| save wipe | *(proposed, D148)* a developer's launch flag, `--wipe-save`, in debug builds only: every level's save is deleted at launch, the parent code kept. Never in a release build, never passed by save and restore tests. Not the parent's **delete** of one level's save (D43), and not a wiped save in the sense of "saves are never wiped", which is about a player's build |
+| save wipe | *(D148, approved in direction, D149; its details proposed)* a launch flag for **automated test runs only**, `--wipe-save`, in debug builds only: every level's save is deleted at launch, the parent code kept. Never in a release build, never passed by save and restore tests, never used in manual play (there, a level is started over with the parent's **delete**). Not the parent's **delete** of one level's save (D43), and not a wiped save in the sense of "saves are never wiped", which is about a player's build |
+| shipped | *(proposed, D149)* the app from its **first store release** on (probably v4; v1 never ships). Before it there is no player's build: the save format may change without a migration, and a save a build can't use is set aside. After it, every save-format change ships with its migration. Not the basket's **release** |
 | skeleton | a level just made by the new-level scaffolder: minimal, playable and passing the level rules, for a designer to build on |

@@ -21,7 +21,9 @@ rewritten as the hold, with a local wake joined to 24.3, proposed, D145;
 chunk 22e, the local wake and the hold out of 24.3 and 24.8, between 22d
 and 5N, the user's reorder, D146; chunk 22f, the hold's second round,
 between 22e and 5N, proposed, D147; chunk 19w, a save wipe flag for
-development builds, between 22e and 22f, proposed, D148)
+development builds, between 22e and 22f, proposed, D148; 19w's flag for
+automated testing only, approved in direction, and 19w also setting aside
+a save a build can't use before the first store release, proposed, D149)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -168,8 +170,10 @@ technology, not business behaviour:
   the local wake and the hold, out of 24.3 and 24.8; the user: "we should
   probably try these fixes before working on 5N", D146), chunk **19w**
   (a `--wipe-save` launch flag that deletes the level saves in debug
-  builds only, the user's: "we may relax save file deletion in testing";
-  proposed, D148), chunk **22f**
+  builds only, for automated testing only, the user's: "we may relax save
+  file deletion in testing"; approved in direction, D149; and a save a
+  build can't use set aside before the first store release, proposed,
+  D149), chunk **22f**
   (the hold's second round: no hop through a crowd, the hold guard, the
   crowd detection, rest by contact and on the ground, the celebration
   sparing holders, the hold counter; proposed, D147), chunk **5N** (the
@@ -215,7 +219,7 @@ technology, not business behaviour:
 | 17 | Session, wind-down, bedtime, sunrise | M | 8 | [DoD 20, 21, 22]; `wind-down`, `bedtime`, `sunrise` |
 | 18 | Parent gate and settings (placeholder UI) | M | 17 | [DoD 23, 24, 29] |
 | 19 | Persistence hardening | M | 16, 18 | [DoD 28]; `midair`, `old-version` |
-| 19w | Save wipe flag for development builds (proposed, D148) | S | 19; runs after 22e, before 22f | unit tests: the flag wipes, no flag keeps, a release build ignores it, refused with a save to load; perf.sh's option checked by hand; same hashes |
+| 19w | Save wipe flag for development builds, for automated testing (D148, approved in direction, D149), and a save a build can't use set aside before the first store release (proposed, D149) | S | 19; runs after 22e, before 22f | unit tests: the flag wipes, no flag keeps, a release build ignores it, refused with a save to load; before shipping a refused save is set aside and the level saves again, after shipping it is kept and writes blocked; perf.sh's option checked by hand; same hashes |
 | 20 | Android build and platform integration | L | 18 | [DoD 25, 26, 27]; emulator |
 | 21 | End-to-end suite | M | 19 | [DoD 31] |
 | 22 | Performance pass on phones (repeated after 5N and 22c, D140, D141) | M | 20, 23 (repeat: 5N, 22c) | [DoD 30] |
@@ -509,26 +513,34 @@ D141, D143, D146, D147, D148, proposed; O97 closed by D140).
 - **Built** (D131): done; the choices marked proposed there wait for the
   user.
 
-### 19w. Save wipe flag for development builds (S, proposed, D148)
+### 19w. Save wipe flag for development builds (S, D148, approved in direction, D149)
 
 The user (2026-10-01): "Currently we aren't in production, so we may
 relax save file deletion in testing. Ensure that a flag can be set so
 that if set, the save file is automatically deleted at the begining of a
 test session. Of course, when testing save/restore state we need to
-remove this flag." A developer's launch aid, never in a player's build.
-It runs after 22e is committed and before 22f (it shares `main.gd`'s
+remove this flag." And (2026-10-01, D149): "the flag is only for
+automated testing. i've the reset button. save format may break between
+version. That's our prerogative to ensure migration (if the app has been
+shipped, otherwise, we just wipe)." A launch aid for automated test runs
+(`perf.sh`, scripted desktop launches), never in a player's build and
+never used in manual play: by hand, a level is started over with the
+parent's delete of its save. It runs after 22e is committed and before 22f (it shares `main.gd`'s
 startup and `docs/dev/README.md` with them). It touches the persistence
 contract's neighbourhood, so it **keeps both ATD steps**. Every rule
-below is D148's, proposed where it goes beyond the user's words.
+below is D148's (approved in direction, D149) or D149's, proposed where
+it goes beyond the user's words.
 
 - **Atoms (preflight start, before any code):** `rule_saves_never_wiped`
   (STABLE, on the contract's surface: documentalist checks it first),
   `req_persistence_and_saves`, `domain_saves_per_level`,
   `rule_released_level_stable_with_migration`,
-  `req_test_level_and_test_mode`, `domain_testability`.
+  `req_test_level_and_test_mode`, `domain_testability`, and
+  `contract_atd` for D149 (6 (b)). `rule_saves_never_wiped`'s LOGIC
+  takes the wording the user approved (D148's head).
 - **The flag:** `--wipe-save`, a user argument after `--` (on Android,
-  in `slime_args`). Never on by default. Command line only (O112 asks
-  whether a toggle that stays set is also wanted).
+  in `slime_args`). Never on by default. Per launch, command line only:
+  no toggle that stays set (D149, O112 closed).
 - **What it wipes:** every file in `user://saves/` (each level's save,
   its `.bak`, `.new` side files, `.unreadable` set-aside files, `.v<n>`
   version copies). `user://parent.json` and its backup are kept. No
@@ -558,17 +570,31 @@ below is D148's, proposed where it goes beyond the user's words.
   `tools/perf_slow.sh` gets no option: it only runs fixtures, which never
   read the player's save, and its extra arguments already pass flags
   through.
-- **`docs/dev/README.md`:** what the flag wipes and keeps, how to pass it
-  on the desktop and the phone, and that save and restore checks run
-  without it.
+- **`docs/dev/README.md`:** what the flag wipes and keeps, that it is
+  for automated test runs only, how a test run passes it on the desktop
+  and through `perf.sh` (no hand-typed adb launch), that manual play
+  starts a level over with the parent's delete, and that save and
+  restore checks run without it. Its save section also states D149's
+  format rule.
 - **Save and restore tests never pass it:** the kill-and-reload and
   delete-save tests, `midair`, `old-version`, every fixture, sidecar and
   test script, the end-to-end suite. A guard test checks that no file
   under `tests/`, `levels/*/fixtures/` or the test scripts names the
   flag, its own tests apart.
-- **Unchanged:** the save format (format 1, a hard contract; O111 asks
-  whether development relaxes it, not assumed), the parent's delete, the
-  simulation.
+- **A save a build can't use, before the first store release** (D149,
+  proposed): a save `SaveData` refuses (another format number, older or
+  newer, or any other reason it gives) is set aside with its backup as
+  `.unreadable` (`.2`, `.3`... if taken), the level starts fresh with
+  autosave on (no write block), and one log line says so. One switch in
+  the code says whether the app has shipped (for example
+  `SaveData.SHIPPED`, false until the first store release); with it on,
+  today's behaviour stays: the save is left untouched and writes are
+  blocked. A file that isn't JSON is set aside as today; an older level
+  version still migrates.
+- **Unchanged:** the save format itself (still format 1; it may change
+  without a migration until the first store release, D149, but this
+  chunk doesn't change it), the fixture and test-mode script formats,
+  the parent's delete, the simulation.
 - **Done when:**
   - **unit tests** (a scratch directory, an explicit guard): the flag
     wipes every kind of file in the directory and leaves `parent.json`
@@ -580,6 +606,14 @@ below is D148's, proposed where it goes beyond the user's words.
     directory holding a save starts fresh (the first-play hint due); a
     store a test gives is never wiped; the guard test above; the release
     preset's exclude filter covers the wipe's file;
+  - **unit tests for a save a build can't use** (D149): with the switch
+    off, a save of another format number (newer, and older with a
+    test-only number) and a format-1 save failing the shape check are
+    each set aside with their backup, the level starts fresh, the next
+    autosave writes a new save, one log line; with the switch on, the
+    same saves are left untouched and writes blocked (today's tests,
+    kept); a file that isn't JSON behaves as today; `old-version` still
+    migrates;
   - **perf.sh**, by hand on the emulator or the phone: `--free-play
     --wipe-save` starts fresh with the log line in `logcat.txt`;
     `--fixture=<name> --wipe-save` exits 2; without the flag the device's
@@ -972,8 +1006,9 @@ body code or the Train. Every rule and number below is D147's, proposed.
   - The extra and the phase come from streams derived from the master
     seed, the slime's id and the period's start tick (no existing stream
     shifts). They are rebuilt on load from the saved `train.hold`, so the
-    save format doesn't change. A fallback key needs the user's OK first
-    (D147 (2)).
+    save format doesn't change. A fallback key no longer needs the
+    user's OK (D149: until the first store release the format may
+    change); no new field is still preferred (D147 (2)).
   - **The hold guard (required):** when no simulated train slime has
     hopped for 4 s while one holds, the front-most holder hops. Front-most
     is the longest gap along the loop to the next train slime ahead; a tie

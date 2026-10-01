@@ -3125,7 +3125,11 @@ index.
 
 ## D147 — The hold, second round: no hop through a crowd, a guard, rest by contact, chunk 22f (2026-10-01)
 Proposed where it goes beyond the user's words; the user reviews. It
-amends D145 (the hold) and D146 (the order). The user's words, verbatim
+amends D145 (the hold) and D146 (the order). **Amended by D149 (2026-10-01):**
+item 2's fallback `hold_until` key no longer needs the user's special OK:
+before the first store release the save format may change without a
+migration. No new field is still preferred (the derived-stream rebuild
+first). The user's words, verbatim
 (2026-10-01): "can we add a counter in debug zone that indicate the
 number of slime on hold (don't forget to add it to your logs). The tests
 i've seen showed slimes in the back of the bowl to be attempting to move
@@ -3230,7 +3234,9 @@ no atom pins the overlay).
   next to `hold` (for example `hold_until`, the tick the current period
   ends), written only while holding. **That shape needs the user's OK
   before it is built:** the user approved only "add the hold key if
-  needed", and save formats are a hard contract.
+  needed", and save formats are a hard contract. *(D149: no longer; until
+  the first store release a format change needs no special OK. Still
+  preferred: no new field.)*
 
 **3. The hold guard: the train never freezes** (proposed). With no forced
 hop through a crowd, a queue could wait for ever. Two cases: a ring of
@@ -3562,7 +3568,26 @@ holder rule (proposed), kept while 22f measures.
 
 ## D148 — A save wipe flag for development builds, chunk 19w (2026-10-01)
 Proposed where it goes beyond the user's words; the user reviews. It
-amends D147's order (item 9). The user's words, verbatim (2026-10-01):
+amends D147's order (item 9).
+
+**Approved in direction, amended by D149 (the user, 2026-10-01).** The
+user approved the direction: the per-launch flag, for **automated testing
+only** ("the flag is only for automated testing. i've the reset button");
+by hand, a level is started over with the parent's delete of its save.
+O112 is closed (no toggle that stays set) and O111 is answered (the save
+format may break before the first store release; see D149). The details
+below marked proposed still wait for the user. The user also approved
+documentalist's wording for `rule_saves_never_wiped`'s LOGIC ("i agree
+with the wording"), verbatim: "No player's build ever wipes a save: no
+update, migration or load-failure path deletes an existing level save;
+only a parent's explicit delete of one level's save removes it. A
+development aid that exists only in debug builds, is ignored by a release
+build and never reaches a release install, is outside this rule." It
+replaces the bare "Saves are never wiped" this entry's documentalist note
+asked about; how it squares with D149's pre-store-release rule is checked
+in D149 (6).
+
+The user's words, verbatim (2026-10-01):
 "Currently we aren't in production, so we may relax save file deletion in
 testing. Ensure that a flag can be set so that if set, the save file is
 automatically deleted at the begining of a test session. Of course, when
@@ -3575,7 +3600,10 @@ started by the first tap after sunrise doesn't wipe). Relaxed is the
 deletion of saves on a developer's own build, nothing else: the save
 **format** stays a hard contract (format 1, additive keys, older saves
 load), and whether format compatibility is also relaxed in development is
-open (O111). Nothing here changes what a player's build can do.
+open (O111). Nothing here changes what a player's build can do. *(D149:
+O111 answered: the format is a hard contract only from the first store
+release; before it, a format change may break older saves, and a save a
+build can't use is set aside and the level starts fresh.)*
 
 **Grounded in the code (read 2026-10-01):** the level saves live in
 `user://saves/` (`SaveStore.DEFAULT_DIRECTORY`): per level
@@ -3599,8 +3627,10 @@ extra arguments to the game.
 
 **1. The flag** (name proposed): **`--wipe-save`**, a user argument after
 `--` (on Android, in `slime_args`). Never on by default, in any build.
-Command line only: not a test-mode run configuration key, not a setting
-(whether a persistent toggle is also wanted is O112).
+Command line only: not a test-mode run configuration key, not a setting,
+and no toggle that stays set across launches (D149, O112 closed: the
+flag is for automated testing only; manual play starts a level over with
+the parent's delete).
 
 **2. What it wipes** (proposed): **every file in `user://saves/`**, every
 level's save with its backup, side files, set-aside files and version
@@ -3679,11 +3709,12 @@ carries on (a dev aid must not block play).
   never reads the player's save, so the flag would do nothing there; its
   extra arguments already pass any flag through.
 - **`docs/dev/README.md`** (the coding chunk writes it): what the flag
-  does and doesn't wipe, how to pass it on the desktop (`godot --path .
-  -- --wipe-save`), on the phone (`perf.sh --free-play --wipe-save`, or
-  by hand: `adb shell am start -S -n
-  com.slimetrain.dev/com.godot.game.GodotAppLauncher --esa slime_args
-  --wipe-save`), and the rule in 8.
+  does and doesn't wipe, that it is for automated test runs only (D149),
+  how a test run passes it on the desktop (`godot --path . --
+  --wipe-save`) and on the phone (`perf.sh --free-play --wipe-save`),
+  that manual play starts a level over with the parent's delete instead,
+  and the rule in 8. *(D149: the hand-typed adb launch line first planned
+  here is dropped.)*
 
 **8. Save and restore tests never pass it** (the user's: "when testing
 save/restore state we need to remove this flag"). The kill-and-reload
@@ -3696,7 +3727,7 @@ check on the phone or the desktop is run without it; `docs/dev/README.md`
 says so.
 
 **9. What doesn't change:** the save format (format 1, additive only; a
-hard contract); `rule_saves_never_wiped` and the contract's guarantee ("a
+hard contract *until the first store release, D149*); `rule_saves_never_wiped` and the contract's guarantee ("a
 level's save is never wiped by an app update"): a release build can't
 wipe, and no update, migration or load-failure path gains a delete; the
 parent's delete (D43, D104); the simulation (same hashes).
@@ -3754,7 +3785,164 @@ call.
 
 **Open:** O111 (is save-format compatibility also relaxed in
 development?), O112 (a per-launch flag, or also a toggle that stays set
-across launches?).
+across launches?). *Both resolved in D149.*
 
 **Terminology** (`concept.md`): **save wipe** added (proposed), kept apart
 from the parent's *delete* of one level's save.
+
+## D149 — The save format before the first store release; the save wipe for automated testing only (2026-10-01)
+The user's answers to D148's open questions, verbatim (2026-10-01): "the
+flag is only for automated testing. i've the reset button. save format may
+break between version. That's our prerogative to ensure migration (if the
+app has been shipped, otherwise, we just wipe). i agree with the wording."
+Resolves **O111** and **O112**. Approves D148 in direction (the flag, for
+automated testing only) and documentalist's wording for
+`rule_saves_never_wiped` (quoted in D148's head). Proposed where it goes
+beyond the user's words; the user reviews.
+
+**1. The save wipe is for automated testing only (O112; the user's).**
+The per-launch `--wipe-save` is enough: no toggle that stays set across
+launches, no marker file, no debug-overlay switch. It is passed by the
+test tools (`tools/android/perf.sh --wipe-save`, a scripted desktop
+launch), not used in manual play. To start a level over by hand, the user
+uses the parent's **delete** of that level's save (D43, D104; the user's
+"reset button"). D148's items 1 and 7 are amended: `docs/dev/README.md`
+presents the flag as an option of automated test runs and points manual
+play to the parent's delete; the hand-typed adb launch line is dropped.
+Everything else in D148 stands as written.
+
+**2. The save format may break before the first store release (O111; the
+user's).** Keeping a player's save across a save-format change, with a
+migration, is owed only once the app has **shipped**: once a build has
+gone out in a store, at the first store release (probably v4, D137; v1 is
+never in a store, D135). Until then, a save a build can't use because of
+a format change is discarded ("we just wipe"), not migrated. So, until
+the first store release:
+- A save-format change may be additive or breaking. It needs **no
+  migration and no special approval**; it is recorded like any other
+  choice (the chunk's record, `docs/dev/README.md`'s save section, the
+  atoms).
+- *(proposed)* A breaking change **bumps the format number** (`format`
+  2, 3...), so an old save is refused plainly rather than misread. An
+  additive change with safe defaults may keep the number, as chunk 23's
+  three did (D125): cheaper, and it keeps the developer's own saves.
+- No format migration code is kept before shipping.
+- From the first store release on, every save-format change ships with
+  its migration, and the format is a hard contract again (what the spec
+  said before this entry, now dated).
+
+**3. A save a build can't use, before the first store release**
+(proposed). *Today* (`main.gd`'s `_resume_play`, chunks 8 and 19, D131):
+a file that isn't JSON is set aside as `.unreadable` and the backup is
+tried; a save that parses but `SaveData.problems()` refuses (a format
+newer than the build's, a newer level version, another level, a bad
+shape) is **left untouched, the level starts fresh, and the store blocks
+writes for that level**. That keeps the file, but it isn't "we just wipe":
+the level would start fresh at every launch and never save again until
+someone removes the file. Proposed instead, before the first store
+release:
+- The refused save is **set aside** with the store's existing suffix
+  (`.unreadable`, then `.2`, `.3`... if taken), its backup with it, and
+  the level **starts fresh with autosave on** (no write block). Its
+  session starts afresh with it (v1's session lives in the level's save,
+  D104), as on a save wipe.
+- **One log line** on the error output, for example: `Save: <path> can't
+  be used (<reasons>); not shipped yet, so it is set aside as <set-aside
+  path> and the level starts fresh.`
+- **A format other than the build's own** is refused, older or newer.
+  (`problems()` today accepts any format from 1 up to the build's own;
+  with only format 1 there is nothing older yet.)
+- **Why set aside, not delete:** the same effect in play (the level
+  starts fresh, as the user asked); the file stays for a look when a
+  refusal is a bug rather than a planned change; `--wipe-save` and the
+  parent's delete already clear set-aside files; and the approved wording
+  of `rule_saves_never_wiped` holds as written (see 6). A real delete
+  instead is the user's call, and needs one more clause in that atom.
+- **Unchanged:** a file that isn't JSON is set aside as today; a save of
+  an **older level version** is still migrated as it loads, displaced
+  slimes lost (D72, D131, the `old-version` fixture, item 24.4). That is
+  a level change, not a format change, and it already works; this entry
+  doesn't touch it.
+- **One switch.** Whether the app has shipped is a single value in the
+  code (its name the implementer's, for example `SaveData.SHIPPED`),
+  false until the first store release. Turning it on is part of that
+  release (noted in `versions/v4/README.md`). From then on, a refused save
+  is handled as today (left untouched, the level starts fresh, writes
+  blocked), and format changes ship with their migrations.
+- **Where it is built** (proposed): in **chunk 19w**, beside the wipe. It
+  touches the same code (`main.gd`'s startup and `_resume_play`,
+  `SaveStore`, `SaveData`) and has the same preflight atoms. Order
+  unchanged: 22e, 19w, 22f, 5N, 22c, 22 repeated on the S20 FE, the rest
+  of chunk 24, the health review. Extra done-when items:
+  - before shipping (the switch off), a save with another format number
+    (newer, and older with a test-only number), and a format-1 save
+    that fails the shape check, are each set aside with their backup; the
+    level starts fresh; the next autosave writes a new save; one log line;
+  - with the switch on, the same saves are left untouched and writes are
+    blocked (today's tests, kept and run with the switch on);
+  - a file that isn't JSON behaves as today; an older level version still
+    migrates (`old-version`); every fixture's hash unchanged.
+
+**4. Fixtures and test-mode scripts: unchanged.** The user said nothing
+about them, so their formats stay hard contracts as they are
+(`CODING_RULE.md` §4). One consequence to keep in mind (flagged, not
+decided): fixtures *are* saves (build plan, principle 4), so a breaking
+save-format change can't land without converting every fixture in the
+same change. That conversion falls under the fixture format's own rule.
+In practice the relaxed rule frees the players' and developers' saves on
+devices, not the fixtures in the repository.
+
+**5. Qualified "until the first store release".** Passages that called
+the save format a hard contract or asked a migration for every format
+change now hold until the first store release: D147 (2) (the `hold_until`
+fallback needs no special OK; no new field still preferred), D148 (the
+reading and item 9), `tech-direction.md`'s Saving and Save wipe, the
+build plan's chunks 19w and 22f, `concept.md`'s Persistence, the master
+spec's 5.10, and `README.md`. **Not changed:** "saves are never wiped",
+which is about a player's build (see 6); level rule 20 and
+`rule_released_level_stable_with_migration`, since a released level is a
+shipped one and the rule already starts at release; D124 and D125, a
+record of what was done then. **Outside `specs/`, not edited:**
+`CODING_RULE.md` §4 says "the save format ... [is a] hard contract" and
+names "left untouched, the level starts fresh, writes are blocked" as the
+one sanctioned fallback; both need "until the first store release" (and 3's
+set-aside) if this is approved. That is the user's file, used by the
+health review.
+
+**6. Squared with `rule_saves_never_wiped`'s approved wording.** "No
+player's build ever wipes a save: no update, migration or load-failure
+path deletes an existing level save; only a parent's explicit delete of
+one level's save removes it." Before the first store release there is no
+player's build, and 3's set-aside deletes nothing: set-aside files are
+already part of this rule (D131). So the load-failure clause holds as
+written. Two points flagged, not resolved:
+- **(a) If the user wants a real delete before shipping**, the wording
+  conflicts: a release-preset build made before shipping would delete on
+  a load failure, and the development-aid exception covers only aids that
+  exist in debug builds alone. The fix would be one more clause, for
+  example: "Before the first store release there is no player's build,
+  and a build may discard a save it can't use."
+- **(b) The contract** (`contract_atd`) guarantees for v1 that "a level's
+  save is never wiped by an app update". Nothing is deleted, but before
+  shipping a format change starts the level fresh, which a parent would
+  see as a wipe, for example on the family phones where the children play
+  development builds. v1 never ships, and the user accepts it ("otherwise,
+  we just wipe"). The guarantee's wording may still want "once shipped".
+  It is on the contract's surface, so documentalist proposes and the user
+  confirms.
+
+**For documentalist** (with chunk 19w's preflight, before its code):
+`rule_saves_never_wiped` (the approved LOGIC; 6), `req_persistence_and_saves`
+("additions ... keep format 1, so older saves still load" holds until the
+first store release; the pre-store-release set-aside and the shipped
+switch; the wipe as a third, debug-only way saves go),
+`rule_released_level_stable_with_migration` (unchanged in substance;
+released means shipped), `domain_saves_per_level` ("level updates migrate
+saves rather than breaking them": still true of level versions; format
+changes before the first store release don't migrate), `contract_atd`
+(6 (b)), and `req_test_level_and_test_mode` or `domain_testability` (the
+wipe is for automated test runs only).
+
+**Terminology** (`concept.md`): **shipped** added (proposed): the app
+from its first store release on. **Save wipe** amended: for automated
+test runs only.

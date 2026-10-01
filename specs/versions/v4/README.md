@@ -10,5 +10,9 @@ Status: themes only (D137); no spec yet
 
 Assigned so far:
 
+- **The app ships** (D149): from this first store release on, every
+  save-format change ships with its migration, and a save a build can't
+  use is kept untouched rather than set aside. The code's "shipped"
+  switch is turned on as part of this release (proposed).
 - Option to turn the parent code off (D58): the code is then never asked for,
   and waking early takes just a tap. It can be changed in the settings.
