@@ -3,8 +3,19 @@ id: domain_architecture_rationale
 status: DRAFT
 tags: [architecture,rationale]
 parents: []
-dependents: []
-version: 1.3
+dependents:
+  - [[domain_authored_routes]]
+  - [[domain_camera_on_rails]]
+  - [[domain_drawing]]
+  - [[domain_engine_godot]]
+  - [[domain_level_authoring]]
+  - [[domain_parent_lock_offline]]
+  - [[domain_physics_near_screen]]
+  - [[domain_saves_per_level]]
+  - [[domain_simulation_tick]]
+  - [[domain_soft_slime_simulation]]
+  - [[domain_testability]]
+version: 2.0
 type: DOMAIN
 layer: BUSINESS
 priority: 2
@@ -14,13 +25,13 @@ human_name: Architecture rationale
 # Architecture rationale
 
 ## INTENT
-Record why v1's foundational technical decisions were made, as context for architecture atoms that will implement them.
+Record why v1's foundational technical decisions were made, as context for architecture atoms that will implement them; this atom is the index, and each decision with its reason lives in one child atom.
 
 ## THE RULE / LOGIC
-Slime Train started with no prior code base; the code base is now the one built for v1, and new work fits into it. Its architecture decisions and their reasons: Godot 4 was chosen for its open-source licence, strong 2D support, and exports to both Android and a Linux desktop build from the same project (Unity and Unreal were ruled out by the project owner). There is no custom level editor: levels are Godot scenes built in Godot's own editor, with curved terrain from paths and collision polygons, and every interactive element is a reusable, property-configured component with no per-level scripts, so that extra levels (possibly paid) stay content rather than code. Slimes are soft: each is a ring of points joined by springs in custom code, drawn with a shader that blends nearby shapes into smooth blobs, with fusion and splitting as operations on the ring; no engine provides this out of the box. Slimes meet the curved terrain through the simulation's own test against the baked terrain outlines, not the engine's collision shapes. The simulation tick was first kept in GDScript: in play a big crowd is mostly a still pile, and resting slimes, sleepers and a full basket's slimes stop being fully simulated (flagged, unresolved: measured, open piles of 40 or more slimes rest only after minutes or never, and an awake slime keeps waking a resting pile, which undercuts the still-pile expectation). A C++ version of the tick (rings, contacts, terrain) was prepared and verified as a contingency, to be adopted only if the whole game measured at the endgame missed its targets on either phone. The targets were missed, and fewer ring points in a crowd helped but was not enough on its own, so the user gave the go (2026-09-30) to build the native tick, scheduled after a pass on what drawing costs; how it ships (results deterministic within one build rather than bit-equal to the GDScript tick, saves loading under either tick, the GDScript tick kept as a fallback) is proposed, pending the user's review. The behaviour around the tick (hops, the call's phases, fusion timing) stays in GDScript either way. Drawing is kept cheap by design rather than assumed cheap: only the slimes near the view are drawn, each drawing redraws only when what it shows changes, and repeated shapes (eyes, a basket's slots) are drawn in one instanced draw. Before that work, drawing cost more of the frame than the simulation tick on light scenes. Its share of the reference phone's frame is at most 4 ms (proposed); estimated within it cold and slightly over it once the phone throttles, and the phone measurement decides (this account of drawing is proposed, pending the user's review); the renderer is Godot's Compatibility renderer, which reaches the most Android phones. Physics only runs near the screen, because simulating up to 200 slimes at once on a mid-range phone at all times is not feasible; off-screen slimes move along authored paths at a deterministic pace, which also makes their behaviour predictable and testable. Exploration routes back to the loop are authored level data (paths drawn in the editor), not general pathfinding. The loop itself is a drawn route, not physics, so the train always flows with no input regardless of what physics does; only free slimes are driven by physics alone. The camera runs on rails with automatic framing because a 3-year-old can press two edge buttons but can't manage a free camera or zoom. The parent lock is best-effort and fully offline: screen pinning, custom code, and stored clocks cover the real risk of a small child wandering out of the app, without requiring the parent to provision the phone as a managed device; code recovery goes through the phone's own screen lock, so no server, website or account exists, and there is no analytics, no ads and no network permission. Saves are one per level and never wiped, so a parent can reset one level without losing others, and level updates migrate saves rather than breaking them. Testability is built in: all gameplay randomness comes from one seeded generator so test runs repeat exactly within one build (a desktop and an Android build aren't promised identical results if the tick ever moves to native code), and a test mode (Linux build and debug Android builds only) loads fixture saves, speeds up or skips time, and injects taps and tilt from a script.
+Slime Train started with no prior code base; the code base is now the one built for v1, and new work fits into it. Its architecture decisions and their reasons are recorded one decision per child atom (this atom's dependents): the engine, level authoring, the soft slimes' simulation, where the simulation tick runs, drawing, physics only near the screen, authored routes, the camera, the parent lock, saves, and testability. This atom adds no decision of its own.
 
 ## TECHNICAL INTERFACE
-Narrative context only; no code tag. Read by whoever designs ARCHITECTURE-layer atoms for these subsystems, to understand why the constraint exists before proposing an alternative.
+Narrative context only; no code tag. Read, with its child atoms, by whoever designs ARCHITECTURE-layer atoms for these subsystems, to understand why a constraint exists before proposing an alternative. Specs and notes that cite this atom by id still land here, and the child atoms say the rest.
 
 ## EXPECTATION
-N/A (narrative atom, not independently testable). Its content is corroborated by the architecture ARCHITECTURE-layer atoms that eventually implement each decision, and by the REQUIREMENT/RULE atoms whose behaviour depends on it (e.g. req_offscreen_simulation, req_persistence_and_saves).
+N/A (narrative index atom, not independently testable). Every architecture decision and its reason sits in exactly one child atom, each parented to this one; this atom stays short.
