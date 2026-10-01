@@ -1,7 +1,8 @@
 extends GutTest
 ## The debug overlay's pure parts (src/debug/): the accessible-section rule
-## and the "woken / available" counter (DebugCounts), the slime counts (on
-## screen, simulated off screen, parked) and the fps text, the bar showing
+## and the "woken / available" counter (DebugCounts), the slime counts
+## (physics, on screen, in range, parked, resting), the largest awake cluster
+## and the fps text, the bar showing
 ## them at most every STATS_MS, the sped-up session clock (DebugClock), the
 ## kill tool's slime picking and its move to the start of the loop
 ## (DebugKill), speed stepping giving the same ticks, and the lint keeping
@@ -10,6 +11,7 @@ extends GutTest
 
 const DEBUG_DIR := "res://src/debug/"
 const SRC_ROOT := "res://src/"
+const Support := preload("res://tests/unit/slime_test_support.gd")
 
 
 ## A clock whose reading a test sets.
@@ -150,43 +152,78 @@ func _placed_sim() -> Simulation:
 	return sim
 
 
-func _slimes(on_screen: int, simulated: int, off_screen: int) -> Dictionary:
-	return {"on_screen": on_screen, "simulated": simulated, "off_screen": off_screen}
+func _slimes(physics: int, on_screen: int, in_range: int, parked: int, resting: int) -> Dictionary:
+	return {"physics": physics, "on_screen": on_screen, "in_range": in_range, "parked": parked,
+			"resting": resting}
 
 
-func test_slime_counts_split_on_screen_simulated_and_parked() -> void:
+## The sleepers cost no physics and never rest; On screen and In range
+## overlap, parking moves a slime from In range to Parked.
+func test_slime_counts_follow_the_view_and_the_parking() -> void:
 	var sim := _placed_sim()
-	assert_eq(DebugCounts.count_slimes(sim), _slimes(2, 3, 0), "nothing parked before a step")
+	assert_eq(DebugCounts.count_slimes(sim), _slimes(0, 2, 5, 0, 0), "nothing parked before a step")
 	sim.step()
-	assert_eq(DebugCounts.count_slimes(sim), _slimes(2, 2, 1),
-			"the near and the in-between one stay simulated, the far one parks")
+	assert_eq(DebugCounts.count_slimes(sim), _slimes(0, 2, 4, 1, 0),
+			"the near and the in-between one stay in range, the far one parks")
 	sim.view.set_to(Vector2(3000, 0), 1.0, ScreenView.DEFAULT_SIZE)
-	assert_eq(DebugCounts.count_slimes(sim), _slimes(1, 4, 0),
-			"a parked slime whose centre is in the view counts on screen (the next step unparks it)")
+	assert_eq(DebugCounts.count_slimes(sim), _slimes(0, 1, 4, 1, 0),
+			"a parked slime whose centre is in the view counts on screen and parked")
 	sim.step()
-	assert_eq(DebugCounts.count_slimes(sim), _slimes(1, 0, 4), "the four far from the new view park")
+	assert_eq(DebugCounts.count_slimes(sim), _slimes(0, 1, 1, 4, 0), "the four far from the new view park")
 	sim.view.set_to(Vector2.ZERO, 1.0, ScreenView.DEFAULT_SIZE)
 	sim.step()
-	assert_eq(DebugCounts.count_slimes(sim), _slimes(2, 1, 2),
-			"back: the near one simulates again, the in-between one stays parked")
+	assert_eq(DebugCounts.count_slimes(sim), _slimes(0, 2, 3, 2, 0),
+			"back: the near one is in range again, the in-between one stays parked")
 
 
 func test_slime_counts_with_the_offscreen_simulation_off_never_count_parked() -> void:
 	var sim := _placed_sim()
 	sim.offscreen.enabled = false
 	sim.step()
-	assert_eq(DebugCounts.count_slimes(sim), _slimes(2, 3, 0))
+	assert_eq(DebugCounts.count_slimes(sim), _slimes(0, 2, 5, 0, 0))
 
 
 func test_slime_counts_count_bodies_not_base_slimes() -> void:
 	var sim := _placed_sim()
 	var fused := sim.slimes.create(Species.from_letter("B"), 3, Vector2(-200, 0), SlimeBodies.TRAIN)
 	sim.identities.assign(fused, PackedStringArray(["s1.sleeper.07", "s1.sleeper.08", "s1.sleeper.09"]))
-	assert_eq(DebugCounts.count_slimes(sim), _slimes(3, 3, 0), "a size-3 slime counts once")
+	assert_eq(DebugCounts.count_slimes(sim), _slimes(1, 3, 6, 0, 0), "a size-3 slime counts once")
+
+
+## Physics is what the solver integrates (SlimeBodies.crowd_count()): calm
+## active and not a sleeper, so a slime in a basket and one asleep at bedtime
+## still settling count; a sleeper, a resting or a parked slime don't. On
+## screen and In range take every state; Resting every state too.
+# @test-link [[req_platform_and_performance_targets]]
+func test_slime_counts_physics_on_screen_in_range_parked_and_resting() -> void:
+	var sim := Simulation.new(7)
+	sim.view.set_to(Vector2.ZERO, 1.0, ScreenView.DEFAULT_SIZE)
+	var bodies := sim.slimes
+	bodies.create(0, 1, Vector2(0, 0), SlimeBodies.SLEEPER)
+	var pile := [bodies.create(1, 1, Vector2(100, 0), SlimeBodies.IN_BASKET),
+			bodies.create(1, 1, Vector2(140, 0), SlimeBodies.IN_BASKET)]
+	bodies.create(2, 1, Vector2(200, 0), SlimeBodies.IN_BASKET)
+	bodies.create(0, 1, Vector2(300, 0), SlimeBodies.BEDTIME_ASLEEP)
+	bodies.create(1, 1, Vector2(-200, 0), SlimeBodies.TRAIN)
+	bodies.create(2, 1, Vector2(1000, 0), SlimeBodies.TRAIN)
+	var parked_far := bodies.create(0, 1, Vector2(3000, 0), SlimeBodies.TRAIN)
+	var parked_shown := bodies.create(1, 1, Vector2(-300, 0), SlimeBodies.FREE)
+	for slime_id in pile:
+		bodies.calm[bodies.index_of(slime_id)] = SlimeBodies.RESTING
+	bodies.park(parked_far)
+	bodies.park(parked_shown)
+	var hash_before := sim.state_hash()
+	var counts := DebugCounts.count_slimes(sim)
+	assert_eq(counts, _slimes(4, 7, 7, 2, 2),
+			"physics: basket, bedtime, train, off-view train; on screen: all but the far two")
+	assert_eq(counts[DebugCounts.PHYSICS], bodies.crowd_count(), "the crowd detail's own count")
+	DebugCounts.largest_cluster(bodies)
+	assert_eq(sim.state_hash(), hash_before, "read only")
 
 
 func test_the_stats_texts() -> void:
-	assert_eq(DebugCounts.slimes_text(_slimes(12, 5, 63)), "Slimes 12 on screen : 5 simulated : 63 off screen")
+	assert_eq(DebugCounts.slimes_text(_slimes(18, 12, 30, 63, 9)),
+			"Physics 18 : on screen 12 : in range 30 : parked 63")
 	assert_eq(DebugCounts.fps_text(59.6), "60 fps", "a whole number")
 	assert_eq(DebugCounts.fps_text(0.0), "0 fps")
 
@@ -201,14 +238,162 @@ func test_the_bar_shows_the_fps_and_the_slime_counts_at_most_every_stats_ms() ->
 	var sim := _placed_sim()
 	assert_true(overlay.update_stats(sim, 58.7, 1000))
 	assert_eq(overlay.fps_label.text, "59 fps")
-	assert_eq(overlay.slimes_label.text, "Slimes 2 on screen : 3 simulated : 0 off screen")
+	assert_eq(overlay.slimes_label.text, "Physics 0 : on screen 2 : in range 5 : parked 0")
 	sim.step()
 	assert_false(overlay.update_stats(sim, 30.0, 1000 + DebugOverlay.STATS_MS - 1), "too soon")
 	assert_eq(overlay.fps_label.text, "59 fps")
-	assert_eq(overlay.slimes_label.text, "Slimes 2 on screen : 3 simulated : 0 off screen")
+	assert_eq(overlay.slimes_label.text, "Physics 0 : on screen 2 : in range 5 : parked 0")
 	assert_true(overlay.update_stats(sim, 30.0, 1000 + DebugOverlay.STATS_MS))
 	assert_eq(overlay.fps_label.text, "30 fps")
-	assert_eq(overlay.slimes_label.text, "Slimes 2 on screen : 2 simulated : 1 off screen")
+	assert_eq(overlay.slimes_label.text, "Physics 0 : on screen 2 : in range 4 : parked 1")
+	assert_true(overlay.update_stats(sim, 30.2, 1000 + 2 * DebugOverlay.STATS_MS))
+	assert_eq(overlay.fps_label.text, "30 fps", "unchanged")
+	assert_eq(overlay.slimes_label.text, "Physics 0 : on screen 2 : in range 4 : parked 1", "unchanged")
+
+
+# --- The largest awake cluster --------------------------------------------------
+
+func _cluster(pairs: Array, physics_ids: Array) -> int:
+	return DebugCounts.largest_cluster_in(pairs, PackedInt32Array(physics_ids))
+
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_largest_cluster_in_takes_the_biggest_touching_group() -> void:
+	var three := [Vector2i(1, 2), Vector2i(2, 3)]
+	var five := [Vector2i(10, 11), Vector2i(11, 12), Vector2i(12, 13), Vector2i(13, 14)]
+	assert_eq(_cluster(three + five, [1, 2, 3, 10, 11, 12, 13, 14]), 5)
+	assert_eq(_cluster(five + three, [1, 2, 3, 10, 11, 12, 13, 14]), 5, "whatever the order")
+
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_largest_cluster_in_joins_a_chain_given_in_any_order() -> void:
+	assert_eq(_cluster([Vector2i(3, 4), Vector2i(1, 2), Vector2i(2, 3)], [1, 2, 3, 4]), 4)
+	assert_eq(_cluster([Vector2i(2, 3), Vector2i(3, 4), Vector2i(1, 2)], [4, 3, 2, 1]), 4)
+
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_largest_cluster_in_keeps_only_pairs_of_physics_slimes() -> void:
+	assert_eq(_cluster([Vector2i(1, 2), Vector2i(2, 3)], [1, 3]), 1,
+			"a resting or parked slime between two physics slimes doesn't join them")
+	assert_eq(_cluster([Vector2i(1, 99), Vector2i(5, 6)], [1, 2]), 1, "an id not in physics is ignored")
+	assert_eq(_cluster([Vector2i(5, 6)], []), 0, "no physics slime")
+
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_largest_cluster_in_lone_and_empty() -> void:
+	assert_eq(_cluster([], [4, 7, 9]), 1, "a lone physics slime is a group of 1")
+	assert_eq(_cluster([], []), 0)
+
+
+## Three touching in a row and two touching elsewhere: 3 (before the first
+## tick by distance, then from the contact list). The middle one
+## resting breaks the chain (the pair left: 2); parking one of the pair
+## leaves it out (1). Read only.
+# @test-link [[req_platform_and_performance_targets]]
+func test_largest_cluster_reads_the_last_ticks_contacts() -> void:
+	var bodies := Support.bodies_on_floor()
+	bodies.auto_hops = false
+	var row: Array[int] = []
+	for i in 3:
+		row.append(bodies.create(i % Species.COUNT, 1, Vector2(40.0 * i, -24), SlimeBodies.TRAIN))
+	var pair: Array[int] = []
+	for i in 2:
+		pair.append(bodies.create(i % Species.COUNT, 1, Vector2(600.0 + 40.0 * i, -24), SlimeBodies.TRAIN))
+	assert_eq(DebugCounts.largest_cluster(bodies), 3, "before any tick: no contact list, by distance")
+	bodies.tick(1.0 / 60.0)
+	assert_true(bodies.touching(row[0], row[1]) and bodies.touching(row[1], row[2]), "the row touches")
+	assert_true(bodies.touching(pair[0], pair[1]), "the pair touches")
+	var hash_before := StateHash.of(bodies.dump())
+	assert_eq(DebugCounts.largest_cluster(bodies), 3)
+	assert_eq(StateHash.of(bodies.dump()), hash_before, "read only")
+	bodies.calm[bodies.index_of(row[1])] = SlimeBodies.RESTING
+	assert_eq(DebugCounts.largest_cluster(bodies), 2, "the resting middle one breaks the row")
+	bodies.park(pair[0])
+	assert_eq(DebugCounts.largest_cluster(bodies), 1, "a parked slime is left out")
+
+
+## A slime gone since the tick (a fusion) joins nothing: the removal wipes the
+## list, and by distance the row's two ends are too far apart to touch.
+# @test-link [[req_platform_and_performance_targets]]
+func test_largest_cluster_skips_slimes_gone_since_the_tick() -> void:
+	var bodies := Support.bodies_on_floor()
+	bodies.auto_hops = false
+	var row: Array[int] = []
+	for i in 3:
+		row.append(bodies.create(i % Species.COUNT, 1, Vector2(40.0 * i, -24), SlimeBodies.TRAIN))
+	bodies.tick(1.0 / 60.0)
+	bodies.remove(row[1])
+	var reach := bodies.radius_of(row[0]) + bodies.radius_of(row[2]) + DebugCounts.TOUCH_GAP
+	assert_gt(bodies.centre_of(row[0]).distance_to(bodies.centre_of(row[2])), reach, "the ends don't touch")
+	assert_eq(DebugCounts.largest_cluster(bodies), 1)
+
+
+## A removal since the tick (a fusion) wipes the contact list: the count then
+## measures by distance and still finds the row of 3. Read only.
+# @test-link [[req_platform_and_performance_targets]]
+func test_largest_cluster_measures_by_distance_once_a_removal_wiped_the_list() -> void:
+	var bodies := Support.bodies_on_floor()
+	bodies.auto_hops = false
+	for i in 3:
+		bodies.create(i % Species.COUNT, 1, Vector2(40.0 * i, -24), SlimeBodies.TRAIN)
+	for i in 2:
+		bodies.create(i % Species.COUNT, 1, Vector2(600.0 + 40.0 * i, -24), SlimeBodies.TRAIN)
+	var far := bodies.create(0, 1, Vector2(1500, -24), SlimeBodies.TRAIN)
+	bodies.tick(1.0 / 60.0)
+	assert_eq(DebugCounts.largest_cluster(bodies), 3, "from the contact list")
+	bodies.remove(far)
+	assert_eq(bodies.touching_pairs().size(), 0, "the removal wiped the contact list")
+	var hash_before := StateHash.of(bodies.dump())
+	assert_eq(DebugCounts.largest_cluster(bodies), 3, "by distance: the row is still there")
+	assert_eq(StateHash.of(bodies.dump()), hash_before, "read only")
+
+
+## Two Physics slimes touch when their centres are closer than the sum of
+## their ring radii + TOUCH_GAP; each pair once, (lower id, higher id).
+# @test-link [[req_platform_and_performance_targets]]
+func test_touching_by_distance_uses_the_radii_plus_the_gap() -> void:
+	var bodies := Support.bodies_on_floor()
+	var r := bodies.radius_of(bodies.create(0, 1, Vector2(-2000, -24), SlimeBodies.TRAIN))
+	var near_a := bodies.create(0, 1, Vector2(0, -24), SlimeBodies.TRAIN)
+	var near_b := bodies.create(1, 1, Vector2(2.0 * r + DebugCounts.TOUCH_GAP - 1.0, -24), SlimeBodies.TRAIN)
+	bodies.create(0, 1, Vector2(300, -24), SlimeBodies.TRAIN)
+	bodies.create(1, 1, Vector2(300.0 + 2.0 * r + DebugCounts.TOUCH_GAP + 1.0, -24), SlimeBodies.TRAIN)
+	var hash_before := StateHash.of(bodies.dump())
+	var pairs := DebugCounts.touching_by_distance(bodies, DebugCounts.physics_slime_ids(bodies))
+	assert_eq(pairs, [Vector2i(near_a, near_b)], "only the near pair, once")
+	assert_eq(StateHash.of(bodies.dump()), hash_before, "read only")
+	assert_eq(DebugCounts.TOUCH_GAP, SlimeBodies.TOUCH_SKIN, "the solver's skin")
+
+
+## A chain of 4 (no tick) is one group of 4; slimes of any size, anywhere.
+# @test-link [[req_platform_and_performance_targets]]
+func test_touching_by_distance_joins_a_chain() -> void:
+	var bodies := Support.bodies_on_floor()
+	for i in 4:
+		bodies.create(i % Species.COUNT, 1, Vector2(-5000.0 + 40.0 * i, 3000), SlimeBodies.FREE)
+	bodies.create(0, SlimeBodies.MAX_SIZE, Vector2(800, -24), SlimeBodies.FREE)
+	var physics := DebugCounts.physics_slime_ids(bodies)
+	var pairs := DebugCounts.touching_by_distance(bodies, physics)
+	assert_eq(pairs.size(), 3)
+	assert_eq(DebugCounts.largest_cluster_in(pairs, physics), 4)
+
+
+## A resting, a parked or a sleeping slime isn't a Physics slime: it's left
+## out of the pairs and joins nothing.
+# @test-link [[req_platform_and_performance_targets]]
+func test_touching_by_distance_ignores_slimes_that_arent_physics() -> void:
+	var bodies := Support.bodies_on_floor()
+	var chain: Array[int] = []
+	for i in 7:
+		chain.append(bodies.create(i % Species.COUNT, 1, Vector2(40.0 * i, -24), SlimeBodies.TRAIN))
+	bodies.calm[bodies.index_of(chain[2])] = SlimeBodies.RESTING
+	bodies.set_state(chain[4], SlimeBodies.SLEEPER)
+	bodies.park(chain[6])
+	var physics := DebugCounts.physics_slime_ids(bodies)
+	assert_eq(physics, PackedInt32Array([chain[0], chain[1], chain[3], chain[5]]))
+	var pairs := DebugCounts.touching_by_distance(bodies, physics)
+	assert_eq(pairs, [Vector2i(chain[0], chain[1])])
+	assert_eq(DebugCounts.largest_cluster(bodies), 2, "no tick yet: by distance")
 
 
 func test_the_woken_counter_refreshes_with_the_stats_at_most_every_stats_ms() -> void:

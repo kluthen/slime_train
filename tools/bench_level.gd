@@ -48,11 +48,14 @@ extends SceneTree
 ## fusion changed them; the lead-in (lead_in) and, for stress-still, the tick
 ## its pile rested at (rested_at, "-" for the other cases); the slime counts
 ## at the end of the timed ticks, as the debug overlay counts them
-## (DebugCounts.count_slimes: on screen, simulated off screen, off screen
-## parked); the resting slimes before -> after; the camera's zoom and whether
-## it stayed steady; and, as means over the timed ticks, the bodies the
-## solver simulates (active: PerfLog.active_bodies, baskets included) and its
-## candidate pairs (pairs: SlimeBodies.candidate_pair_count).
+## (DebugCounts.count_slimes: physics, calm ACTIVE and not a sleeper; on
+## screen, centre in the view, any state; in range, not parked; parked; the
+## groups overlap; the table shows the last three); the resting slimes
+## before -> after; the camera's zoom and whether it stayed steady; and, as
+## means over the timed ticks, the slimes
+## that cost physics (active: SlimeBodies.crowd_count, the same count as
+## physics, baskets and slimes asleep at bedtime still settling included) and
+## the solver's candidate pairs (pairs: SlimeBodies.candidate_pair_count).
 # @spec-link [[req_platform_and_performance_targets]]
 
 const USAGE := "usage: tools/level.sh bench [--level=<id>] [--ticks=N] [--fixture=NAME[,NAME...]] [--lead-in=N]"
@@ -110,7 +113,7 @@ func _init() -> void:
 			return
 	print("")
 	print("| Case | Base slimes | Bodies | Ticks | Lead-in | Median ms/tick | p95 ms/tick | Max ms/tick "
-			+ "| Mean ms/tick | On screen | Simulated | Off screen |")
+			+ "| Mean ms/tick | On screen | In range | Parked |")
 	print("|---|---|---|---|---|---|---|---|---|---|---|---|")
 	for row in rows:
 		print(row)
@@ -247,7 +250,7 @@ func _case(case_name: String, sim: Simulation, lead_in: int) -> bool:
 		var start := Time.get_ticks_usec()
 		_step(sim)
 		spent[t] = (Time.get_ticks_usec() - start) / 1000.0
-		active_sum += PerfLog.active_bodies(sim)
+		active_sum += sim.slimes.crowd_count()
 		pairs_sum += sim.slimes.candidate_pair_count()
 	var total := 0.0
 	for ms in spent:
@@ -264,14 +267,15 @@ func _case(case_name: String, sim: Simulation, lead_in: int) -> bool:
 		bodies += "->%d" % sim.slimes.slime_count
 	var counts := DebugCounts.count_slimes(sim)
 	print(("RESULT case=%s base=%d bodies=%s ticks=%d lead_in=%d rested_at=%s median_ms=%.3f p95_ms=%.3f "
-			+ "max_ms=%.3f mean_ms=%.3f on_screen=%d simulated=%d off_screen=%d resting=%d->%d zoom=%.3f "
-			+ "camera_steady=%s active=%.1f pairs=%.1f") % [case_name, _base_slimes(sim), bodies, ticks, lead_in,
-			rested_at, median, p95, worst, mean, counts[DebugCounts.ON_SCREEN], counts[DebugCounts.SIMULATED],
-			counts[DebugCounts.OFF_SCREEN], resting_before, _count_calm(sim, SlimeBodies.RESTING), sim.camera.zoom,
-			steady, float(active_sum) / ticks, float(pairs_sum) / ticks])
+			+ "max_ms=%.3f mean_ms=%.3f physics=%d on_screen=%d in_range=%d parked=%d resting=%d->%d "
+			+ "zoom=%.3f camera_steady=%s active=%.1f pairs=%.1f") % [case_name, _base_slimes(sim), bodies, ticks,
+			lead_in, rested_at, median, p95, worst, mean, counts[DebugCounts.PHYSICS], counts[DebugCounts.ON_SCREEN],
+			counts[DebugCounts.IN_RANGE], counts[DebugCounts.PARKED], resting_before,
+			_count_calm(sim, SlimeBodies.RESTING), sim.camera.zoom, steady, float(active_sum) / ticks,
+			float(pairs_sum) / ticks])
 	rows.append("| %s | %d | %s | %d | %d | %.3f | %.3f | %.3f | %.3f | %d | %d | %d |" % [case_name,
 			_base_slimes(sim), bodies, ticks, lead_in, median, p95, worst, mean, counts[DebugCounts.ON_SCREEN],
-			counts[DebugCounts.SIMULATED], counts[DebugCounts.OFF_SCREEN]])
+			counts[DebugCounts.IN_RANGE], counts[DebugCounts.PARKED]])
 	return true
 
 

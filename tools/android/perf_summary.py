@@ -15,9 +15,11 @@ last S seconds of lines). For each: fps p50, p5 and min over the lines (p5:
 95 % of the lines ran at least that fast, the fps side of a p95), frame_ms
 p95 (the median and the max of the lines' p95s) and the worst frame, ms per
 tick (weighted by ticks), ms per frame in ticks, outside them (the rest) and
-in the whole process, ticks per frame (weighted by frames), active bodies and
-candidate pairs (weighted by frames), the slime counts (mean and max), the
-sections the camera was in (lines in each: seconds at --perf-log=1), the
+in the whole process, ticks per frame (weighted by frames), active slimes
+(those that cost physics) and candidate pairs (weighted by frames), the slime
+counts (mean, min and max over the lines: physics, on_screen, in_range,
+parked, resting, bodies, and an older log's simulated and off_screen), the
+largest awake cluster's max (and mean), the sections the camera was in (lines in each: seconds at --perf-log=1), the
 zoom range, and the frame's parts outside the ticks (weighted by frames: each
 node's ms, the rendering server's setup and render times, the draw calls,
 objects and primitives), when the lines carry them (older logs don't).
@@ -39,11 +41,17 @@ import sys
 
 # The PERF line's fields that must be there (src/debug/perf_log.gd).
 REQUIRED = ("t", "frames", "fps", "frame_ms_p95", "frame_ms_max", "process_ms_mean", "ticks", "ticks_per_frame_mean",
-            "ticks_per_frame_max", "tick_ms_mean", "tick_ms_frame_mean", "rest_ms_mean", "on_screen",
-            "simulated", "off_screen", "bodies", "active", "pairs", "zoom")
-# The count fields summarised by mean and max; parked and section are newer
-# (a log without them just skips them).
-COUNTS = ("on_screen", "simulated", "off_screen", "parked", "bodies")
+            "ticks_per_frame_max", "tick_ms_mean", "tick_ms_frame_mean", "rest_ms_mean", "bodies", "active",
+            "pairs", "zoom")
+# The slime count fields summarised by min, mean and max, each only when the
+# lines carry it: the perf log's since chunk 22d (physics, on_screen,
+# in_range, parked, resting, bodies), and an older log's simulated and
+# off_screen (before 22d; parked and section older still, a log may lack
+# them). A log from before 22d parses and reports its own counts.
+COUNTS = ("physics", "on_screen", "in_range", "parked", "resting", "bodies", "simulated", "off_screen")
+# The largest awake cluster (since chunk 22d), summarised as the counts but
+# reported on its own line, its max first.
+CLUSTER = "largest_cluster"
 # The frame's parts outside the ticks (the perf log's PART_FIELDS), newer
 # still: summarised by their frame-weighted mean over the lines that have
 # them, in three rows (the nodes' ms, the rendering's ms, the counts).
@@ -149,10 +157,10 @@ def summarise(records):
         "sections": {},
         "parts": {},
     }
-    for key in COUNTS:
+    for key in COUNTS + (CLUSTER,):
         values = [r[key] for r in records if key in r]
         if values:
-            out["counts"][key] = (statistics.fmean(values), max(values))
+            out["counts"][key] = (min(values), statistics.fmean(values), max(values))
     for r in records:
         if "section" in r:
             section = int(r["section"])
@@ -170,7 +178,8 @@ def format_summary(title, records):
     if not records:
         return ["== %s: no PERF line" % title]
     s = summarise(records)
-    counts = "  ".join("%s %.0f (max %d)" % (key, mean, most) for key, (mean, most) in s["counts"].items())
+    counts = "  ".join("%s %.1f (%d..%d)" % (key, mean, least, most)
+                       for key, (least, mean, most) in s["counts"].items() if key != CLUSTER)
     lines = [
         "== %s: %d PERF lines, t=%.1f..%.1f s" % (title, s["lines"], s["t_first"], s["t_last"]),
         "  fps             p50 %.1f  p5 %.1f  min %.1f" % (s["fps_p50"], s["fps_p5"], s["fps_min"]),
@@ -180,8 +189,11 @@ def format_summary(title, records):
             s["ticks_per_frame"], s["ticks_per_frame_max"], s["tick_ms_frame"], s["rest_ms"]),
         "  per tick        %.2f ms   process per frame %.2f ms" % (s["tick_ms"], s["process_ms"]),
         "  solver (mean)   active %.1f  pairs %.1f" % (s["active"], s["pairs"]),
-        "  slimes (mean)   " + counts,
+        "  slimes          " + counts,
     ]
+    if CLUSTER in s["counts"]:
+        _, mean, most = s["counts"][CLUSTER]
+        lines.append("  largest cluster max %d (mean %.1f)" % (most, mean))
     if s["sections"]:
         lines.append("  section (lines) " + "  ".join(
             "s%d %d" % (section, n) for section, n in sorted(s["sections"].items())))
@@ -258,16 +270,23 @@ def report(log_lines, cold=None, warm=None, thermal_lines=None):
 
 # The self-test's log: a threadtime logcat prefix on some lines, a header, a
 # PERF_INFO line, a noise line, and six PERF lines a second apart, the last
-# two with the frame's parts (the first four are an older log's).
+# two with the frame's parts (the first four have none, as an older log's).
 CANNED_LOG = """# device test: Canned Phone
 09-30 17:00:00.000  100  101 I godot   : PERF_INFO seconds=1 model=Canned renderer=mobile
 09-30 17:00:00.500  100  101 I godot   : Slime Train booted
-PERF t=10.0 frames=30 fps=30.0 frame_ms_p50=33.00 frame_ms_p95=40.00 frame_ms_max=50.00 process_ms_mean=20.00 ticks=60 ticks_per_frame_mean=2.00 ticks_per_frame_max=3 tick_ms_mean=5.00 tick_ms_frame_mean=10.00 rest_ms_mean=23.00 on_screen=10 simulated=5 off_screen=20 parked=21 bodies=35 active=12.0 pairs=40.0 section=1 zoom=1.000
-PERF t=11.0 frames=60 fps=60.0 frame_ms_p50=16.00 frame_ms_p95=17.00 frame_ms_max=20.00 process_ms_mean=8.00 ticks=60 ticks_per_frame_mean=1.00 ticks_per_frame_max=1 tick_ms_mean=2.00 tick_ms_frame_mean=2.00 rest_ms_mean=14.00 on_screen=12 simulated=5 off_screen=18 parked=18 bodies=35 active=10.0 pairs=20.0 section=1 zoom=1.000
-PERF t=12.0 frames=45 fps=45.0 frame_ms_p50=22.00 frame_ms_p95=30.00 frame_ms_max=35.00 process_ms_mean=10.00 ticks=60 ticks_per_frame_mean=1.33 ticks_per_frame_max=2 tick_ms_mean=3.00 tick_ms_frame_mean=4.00 rest_ms_mean=18.00 on_screen=12 simulated=5 off_screen=18 parked=18 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800
-09-30 17:00:13.000  100  101 I godot   : PERF t=13.0 frames=20 fps=20.0 frame_ms_p50=50.00 frame_ms_p95=60.00 frame_ms_max=90.00 process_ms_mean=40.00 ticks=60 ticks_per_frame_mean=3.00 ticks_per_frame_max=4 tick_ms_mean=10.00 tick_ms_frame_mean=30.00 rest_ms_mean=20.00 on_screen=30 simulated=0 off_screen=5 parked=5 bodies=35 active=30.0 pairs=100.0 section=2 zoom=0.800
-PERF t=14.0 frames=50 fps=50.0 frame_ms_p50=20.00 frame_ms_p95=25.00 frame_ms_max=30.00 process_ms_mean=9.00 ticks=60 ticks_per_frame_mean=1.20 ticks_per_frame_max=2 tick_ms_mean=2.50 tick_ms_frame_mean=3.00 rest_ms_mean=17.00 on_screen=12 simulated=5 off_screen=18 parked=18 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800 slimes_ms=2.00 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=40 objects=30 primitives=900
-PERF t=15.0 frames=40 fps=40.0 frame_ms_p50=25.00 frame_ms_p95=28.00 frame_ms_max=40.00 process_ms_mean=11.00 ticks=60 ticks_per_frame_mean=1.50 ticks_per_frame_max=2 tick_ms_mean=3.50 tick_ms_frame_mean=5.25 rest_ms_mean=19.75 on_screen=12 simulated=5 off_screen=18 parked=18 bodies=35 active=10.0 pairs=20.0 section=3 zoom=0.800 slimes_ms=4.25 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=49 objects=30 primitives=900
+PERF t=10.0 frames=30 fps=30.0 frame_ms_p50=33.00 frame_ms_p95=40.00 frame_ms_max=50.00 process_ms_mean=20.00 ticks=60 ticks_per_frame_mean=2.00 ticks_per_frame_max=3 tick_ms_mean=5.00 tick_ms_frame_mean=10.00 rest_ms_mean=23.00 physics=12 on_screen=10 in_range=14 parked=21 resting=2 largest_cluster=6 bodies=35 active=12.0 pairs=40.0 section=1 zoom=1.000
+PERF t=11.0 frames=60 fps=60.0 frame_ms_p50=16.00 frame_ms_p95=17.00 frame_ms_max=20.00 process_ms_mean=8.00 ticks=60 ticks_per_frame_mean=1.00 ticks_per_frame_max=1 tick_ms_mean=2.00 tick_ms_frame_mean=2.00 rest_ms_mean=14.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=4 bodies=35 active=10.0 pairs=20.0 section=1 zoom=1.000
+PERF t=12.0 frames=45 fps=45.0 frame_ms_p50=22.00 frame_ms_p95=30.00 frame_ms_max=35.00 process_ms_mean=10.00 ticks=60 ticks_per_frame_mean=1.33 ticks_per_frame_max=2 tick_ms_mean=3.00 tick_ms_frame_mean=4.00 rest_ms_mean=18.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=4 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800
+09-30 17:00:13.000  100  101 I godot   : PERF t=13.0 frames=20 fps=20.0 frame_ms_p50=50.00 frame_ms_p95=60.00 frame_ms_max=90.00 process_ms_mean=40.00 ticks=60 ticks_per_frame_mean=3.00 ticks_per_frame_max=4 tick_ms_mean=10.00 tick_ms_frame_mean=30.00 rest_ms_mean=20.00 physics=30 on_screen=30 in_range=30 parked=5 resting=0 largest_cluster=22 bodies=35 active=30.0 pairs=100.0 section=2 zoom=0.800
+PERF t=14.0 frames=50 fps=50.0 frame_ms_p50=20.00 frame_ms_p95=25.00 frame_ms_max=30.00 process_ms_mean=9.00 ticks=60 ticks_per_frame_mean=1.20 ticks_per_frame_max=2 tick_ms_mean=2.50 tick_ms_frame_mean=3.00 rest_ms_mean=17.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=5 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800 slimes_ms=2.00 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=40 objects=30 primitives=900
+PERF t=15.0 frames=40 fps=40.0 frame_ms_p50=25.00 frame_ms_p95=28.00 frame_ms_max=40.00 process_ms_mean=11.00 ticks=60 ticks_per_frame_mean=1.50 ticks_per_frame_max=2 tick_ms_mean=3.50 tick_ms_frame_mean=5.25 rest_ms_mean=19.75 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=5 bodies=35 active=10.0 pairs=20.0 section=3 zoom=0.800 slimes_ms=4.25 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=49 objects=30 primitives=900
+"""
+
+# An older log (before chunk 22d): on_screen, simulated, off_screen and no
+# physics, in_range, resting nor largest_cluster; its second line older
+# still, without parked nor section.
+CANNED_OLD_LOG = """PERF t=1.0 frames=30 fps=30.0 frame_ms_p50=33.00 frame_ms_p95=40.00 frame_ms_max=50.00 process_ms_mean=20.00 ticks=60 ticks_per_frame_mean=2.00 ticks_per_frame_max=3 tick_ms_mean=5.00 tick_ms_frame_mean=10.00 rest_ms_mean=23.00 on_screen=10 simulated=5 off_screen=20 parked=21 bodies=35 active=12.0 pairs=40.0 section=1 zoom=1.000
+PERF t=2.0 frames=60 fps=60.0 frame_ms_p50=16.00 frame_ms_p95=17.00 frame_ms_max=20.00 process_ms_mean=8.00 ticks=60 ticks_per_frame_mean=1.00 ticks_per_frame_max=1 tick_ms_mean=2.00 tick_ms_frame_mean=2.00 rest_ms_mean=14.00 on_screen=12 simulated=7 off_screen=16 bodies=35 active=10.0 pairs=20.0 zoom=1.000
 """
 
 CANNED_THERMAL = """2026-09-30T17:00:00+02:00 elapsed_s=0 thermal_status=0 battery_c=31.0
@@ -293,7 +312,18 @@ def self_test():
     rest = (30 * 23 + 60 * 14 + 45 * 18 + 20 * 20 + 50 * 17 + 40 * 19.75) / frames
     assert abs(s["rest_ms"] - rest) < 1e-9, s["rest_ms"]
     assert s["ticks_per_frame_max"] == 4, s
-    assert s["counts"]["parked"] == (98 / 6, 21), s["counts"]
+    assert list(s["counts"]) == ["physics", "on_screen", "in_range", "parked", "resting", "bodies",
+                                 "largest_cluster"], s["counts"]
+    assert s["counts"]["physics"] == (10, 82 / 6, 30), s["counts"]
+    assert s["counts"]["in_range"] == (14, 112 / 6, 30), s["counts"]
+    assert s["counts"]["parked"] == (5, 98 / 6, 21), s["counts"]
+    assert s["counts"]["resting"] == (0, 30 / 6, 7), s["counts"]
+    assert s["counts"]["bodies"] == (35, 35, 35), s["counts"]
+    assert s["counts"]["largest_cluster"] == (4, 46 / 6, 22), s["counts"]
+    session = format_summary("session", records)
+    assert session[6] == ("  slimes          physics 13.7 (10..30)  on_screen 14.7 (10..30)  in_range 18.7 (14..30)  "
+                          "parked 16.3 (5..21)  resting 5.0 (0..7)  bodies 35.0 (35..35)"), session
+    assert session[7] == "  largest cluster max 22 (mean 7.7)", session
     assert s["sections"] == {1: 2, 2: 3, 3: 1}, s["sections"]
     assert (s["zoom_min"], s["zoom_max"]) == (0.8, 1.0), s
     # Parts: only the last two lines (50 and 40 frames) carry them.
@@ -305,6 +335,15 @@ def self_test():
     new = format_summary("new", records[4:])
     assert new[-3] == "  parts ms/frame  slimes 3.00  eyes 0.50  frontier 0.30  hud 0.05  debug 0.00  main 0.10", new
     assert new[-1] == "  render /frame   draw_calls 44  objects 30  primitives 900", new
+    _, _, old_records = read_log(CANNED_OLD_LOG.splitlines())
+    assert len(old_records) == 2, old_records
+    old_counts = summarise(old_records)["counts"]
+    assert list(old_counts) == ["on_screen", "parked", "bodies", "simulated", "off_screen"], old_counts
+    assert old_counts["simulated"] == (5, 6, 7) and old_counts["parked"] == (21, 21, 21), old_counts
+    old_log = format_summary("old log", old_records)
+    assert old_log[6] == ("  slimes          on_screen 11.0 (10..12)  parked 21.0 (21..21)  bodies 35.0 (35..35)  "
+                          "simulated 6.0 (5..7)  off_screen 18.0 (16..20)"), old_log
+    assert not any(text.startswith("  largest cluster") for text in old_log), old_log
     assert [r["t"] for r in cold_window(records, 2)] == [10.0, 11.0]
     assert [r["t"] for r in warm_window(records, 2)] == [14.0, 15.0]
     thermal = format_thermal(CANNED_THERMAL.splitlines())

@@ -52,7 +52,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `src/sim/` | The simulation core: pure logic, with no scene dependencies, so it can be unit tested |
 | `src/test_mode_guard.gd` | The one check that keeps test mode out of release builds |
 | `src/test_mode/` | Test mode: scripted input, time control, fixtures and saves to start from, the on-screen marker |
-| `src/debug/` | The debug overlay, debug builds only: speed, reset, slime labels, the kill tool, the fps, the woken/available counter, the slime counts (see "Debug overlay"); the perf log (`PerfLog`, see "Measuring on the phone") |
+| `src/debug/` | The debug overlay, debug builds only: speed, reset, slime labels, the kill tool, the fps, the woken/available counter, the slime counts (see "Debug overlay"); the perf log (`PerfLog`, see "Measuring on the phone"); the largest awake cluster (`DebugCounts.largest_cluster()`, see "Chunk 22d: debug counters and the largest awake cluster") |
 | `src/save/` | The save files (`SaveStore`: one per level, never wiped), autosave timing (`Autosave`), the real clocks sessions count on (`SessionClock`) and the app's parent code (`ParentStore`, see "Parent gate and settings (chunk 18)"); the save format itself is `src/sim/save_data.gd` (see "Saves and fixtures") |
 | `src/parent/` | The parent layer: the parent buttons, the code prompt, settings and setup (`ParentGate` and its surfaces), their strings (`ParentText`) and sizes (`ParentLayout`) (see "Parent gate and settings (chunk 18)") |
 | `src/session/` | The session's screen effects (`SessionScreen`: the dusk tint, keeping the screen on); the session logic itself is `src/sim/session.gd` (see "Sessions (chunk 17)") |
@@ -75,7 +75,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `tools/bench_offscreen.gd` | Times the off-screen fallbacks (see "Off-screen simulation (chunk 15)") |
 | `tools/bench_level.gd`, `tools/bench_level/` | Times a whole level: the test level with its 200 slimes (see "Off-screen simulation (chunk 15)"), or any level with `--level` (chunk LD3); `stress-still` from its pile's rest (see "Chunk 22: performance") |
 | `tools/bench_rest.gd`, `tools/bench_rest/` | The resting-pile rule measured on the test level (`tools/level.sh rest`, see "Resting piles (D107)") |
-| `tools/perf_slow.sh` | A windowed perf-log run of a fixture on the desktop, slowed or at full speed, and its summary (see "Chunk 22b: drawing", "How to measure the parts") |
+| `tools/perf_slow.sh` | A windowed perf-log run of a fixture on the desktop, slowed or at full speed, and its summary (see "Chunk 22b: drawing", "How to measure the parts"; the counts and the largest awake cluster: "Chunk 22d: debug counters and the largest awake cluster") |
 | `tools/compare_frames.py` | Compares two sets of movie frames pixel by pixel (see "Chunk 22b: drawing", "The look") |
 | `tools/make_fixture.gd` | Writes a level's fixtures (see "Saves and fixtures") |
 | `tools/check_level.gd`, `tools/level_check/` | The level-rules checker, rules 1 to 22, on any level (see [level-tooling.md](level-tooling.md)) |
@@ -2586,7 +2586,9 @@ tools/level.sh bench --fixture=s3-basket-59of60 --lead-in=700
 
 Each case prints a `RESULT` line (its fields: "What was measured and how"
 under [Chunk 22: performance](#chunk-22-performance); `parked=` became
-`on_screen=`, `simulated=` and `off_screen=` there) and a row of a table.
+`on_screen=`, `simulated=` and `off_screen=` there, and those became
+`physics=`, `on_screen=`, `in_range=` and `parked=` in chunk 22d) and a row
+of a table.
 The numbers below are chunk 16's; chunk 22's, after its fixes, are in
 "Chunk 22: performance".
 
@@ -3223,7 +3225,7 @@ labels on and 2x at frame 3 and arming Kill at frame 150: tick 299 at frame
 | **Kill** | Arms the kill tool (red, "Kill: tap a slime"). The next tap sends the slime under it to the start of the loop, as a lost slime |
 | **60 fps** | The frame rate (`Engine.get_frames_per_second()`, rounded), refreshed at most every 250 ms |
 | **Woken n / available m** | The counter, in base slimes, refreshed at most every 250 ms (see below) |
-| **Slimes a on screen : b simulated : c off screen** | The slime counts, in slimes, refreshed at most every 250 ms (see below) |
+| **Physics a : on screen b : in range c : parked d** | The slime counts, in slimes, refreshed at most every 250 ms (see below; chunk 22d) |
 
 The last action's result shows after the slime counts for 4 s ("Kill: #12 sent
 to the start of the loop", "Reset: fresh level, save replaced") and Reset
@@ -3271,27 +3273,38 @@ section's entrance is the previous section's return-route gate, so opening
 `s1.gate` makes section 2 accessible. The open gates are the train's
 (`Train.open_gates`, kept in step by the frontier sets).
 
-**The slime counts.** `DebugCounts.count_slimes()` puts every slime (a
-body: a fused slime counts once, whatever its size; every state, sleepers,
-piles and slimes in a basket included) in exactly one of three groups, read
-from the off-screen simulation's own state rather than recomputing its
-margins (see "Off-screen simulation" for the margins):
+**The slime counts.** `DebugCounts.count_slimes()` counts slimes (bodies:
+a fused slime counts once, whatever its size) in one pass, read from the
+simulation's own state (`SlimeBodies`' calm, `Offscreen`'s parking) rather
+than recomputing the margins (see "Off-screen simulation" for them). The
+groups overlap (On screen and In range share most slimes), so the four
+don't add up to the total:
 
+- **Physics**: the slimes that cost physics on a tick: calm ACTIVE and not
+  a sleeper. It is `SlimeBodies.crowd_count()`, the count crowd detail
+  steps on. A slime in a basket and one asleep at bedtime still settling
+  count; a sleeper, a resting slime and a parked one don't;
 - **on screen**: its centre is in the view's visible rect
-  (`Fusion.view_rect()`, the rect `Offscreen` parks around). A parked slime
-  whose centre is there (the view just moved) counts here; the next tick
-  unparks it;
-- **simulated**: off the visible rect but fully simulated, "computed as on
-  screen": within the view grown by `NEAR_MARGIN`, or between `NEAR_MARGIN`
-  and `PARK_MARGIN` and not parked yet, or everything when the off-screen
+  (`Fusion.view_rect()`, the rect `Offscreen` parks around), any state,
+  parked or not. A parked slime whose centre is there (the view just moved)
+  counts here; the next tick unparks it;
+- **in range**: not parked (`SlimeBodies.is_parked`), any state: on screen
+  or within `Offscreen`'s margins, or everything when the off-screen
   simulation is off (tests, a game a test adds);
-- **off screen**: off the visible rect and parked (`SlimeBodies.is_parked`):
-  neither simulated nor touched, moved by `Offscreen`'s proxies.
+- **parked**: neither simulated nor touched, moved by `Offscreen`'s
+  proxies.
+
+`count_slimes()` also returns `resting` (calm RESTING, any state), which
+only the perf log shows. Until chunk 22d the bar read "Slimes a on screen :
+b simulated : c off screen", three groups that added up; it counted slimes
+in a basket on screen as "on screen" and never showed what the physics
+cost (see "Chunk 22d: debug counters and the largest awake cluster").
 
 The fps, the slime counts and the woken/available counter refresh at most
 every `STATS_MS` (250 real ms), counting included (`update_stats`), as the
-counts loop over every slime. Until chunk 22 the counts ran every frame
-and only their text waited.
+counts loop over every slime; each label's text is assigned only when it
+changes (an assignment redraws the bar even with the same text). Until
+chunk 22 the counts ran every frame and only their text waited.
 
 **Kill.** The tap is intercepted before the simulation: the game root's
 `_unhandled_input` asks `DebugOverlay.intercept()` right after the parent
@@ -4454,22 +4467,27 @@ earlier bench in these notes.
   - The `RESULT` line's fields, in order: `case`, `base`, `bodies`,
     `ticks`, `lead_in`, `rested_at` (the tick `stress-still`'s pile rested
     at, `-` for the other cases), `median_ms`, `p95_ms`, `max_ms`,
-    `mean_ms`, `on_screen`, `simulated`, `off_screen`, `resting`
+    `mean_ms`, `physics`, `on_screen`, `in_range`, `parked`, `resting`
     (before -> after), `zoom`, `camera_steady`, `active`, `pairs`.
-    `on_screen`, `simulated` and `off_screen` are the debug overlay's counts
-    (`DebugCounts.count_slimes`) at the end of the timed ticks; they replace
-    `parked=`. `active` and `pairs` are means over the timed ticks: the
-    bodies the solver simulates (`PerfLog.active_bodies`, slimes in a basket
-    included) and its candidate pairs (`SlimeBodies.candidate_pair_count()`).
-    The table gains the columns Lead-in, Max, On screen, Simulated and Off
-    screen.
+    `physics`, `on_screen`, `in_range` and `parked` are the debug overlay's
+    counts (`DebugCounts.count_slimes`, see "Debug overlay") at the end of
+    the timed ticks. `active` and `pairs` are means over the timed ticks:
+    the slimes that cost physics (`SlimeBodies.crowd_count()`, the same
+    count as `physics`: slimes in a basket and slimes asleep at bedtime
+    still settling included) and the solver's candidate pairs
+    (`SlimeBodies.candidate_pair_count()`). The table gains the columns
+    Lead-in and Max, and ends with On screen, In range and Parked. Chunk 22
+    printed `on_screen`, `simulated` and `off_screen` (and the columns On
+    screen, Simulated and Off screen) where chunk 22d prints these, and its
+    `active` left out slimes asleep at bedtime; the numbers quoted in this
+    section are chunk 22's.
 - **Resting piles: `tools/level.sh rest`** (`tools/bench_rest.gd`), D107's
   two measurements; see "Resting piles (D107)".
 - **Windowed runs with the perf log.** A debug run in a window (1152 × 648)
   with `--perf-log[=SECONDS]` prints a `PERF` line every window of that many
   seconds: fps, frame times, ticks per frame, ms per tick, the rest of the
-  frame, the slime counts, the active bodies and pairs (the fields: "Measuring
-  on the phone"). `--disable-vsync` (Godot's own) shows a frame's real cost
+  frame, the slime counts, the largest awake cluster (chunk 22d), `active`
+  and `pairs` (the fields: "Measuring on the phone"). `--disable-vsync` (Godot's own) shows a frame's real cost
   instead of the wait for the next 60 Hz refresh; `--max-ticks-per-frame=N`
   (debug builds only) sets the fixed step's cap at 1x for the run. Labels
   off. Test mode leaves both flags to the perf log. For example:
@@ -4869,6 +4887,11 @@ of 2, the culling and the centre cache. GLES (Compatibility), Adreno 650.
 | Section 3, the right shelves, 102 woken | off | 15 | 79 : 31 : 84 |
 | Section 3's endgame (basket 3 full, the celebration playing), 178 woken | off | 4 | 75 : 5 : 112 |
 
+The last column is the bar as it was then (chunk 22d replaced it: "Debug
+overlay"): "simulated" counted only slimes off the view and not parked,
+so slimes in a basket on screen were "on screen" and the physics' load
+didn't show.
+
 The battery went from 33.6 to 35.8 °C, thermal status 0 then 1 (light)
 from about 15:49. The debug labels alone took section 1 from 47 to 13 fps
 with 5 slimes simulated: measure with labels off. The migrated save's awake
@@ -4927,8 +4950,9 @@ What exists now:
   seconds ran at least that fast) and min; the frame time's p95 (the median
   and the max of the lines' p95s) and the worst frame; ms per tick, ms per
   frame in ticks, outside them (the rest of the frame) and in the whole
-  process; ticks per frame; `active` and `pairs`; the slime counts (mean
-  and max); the seconds spent in each section; the zoom range; the frame's
+  process; ticks per frame; `active` and `pairs`; the slime counts (mean,
+  min and max, chunk 22d); the largest awake cluster's max and mean (chunk
+  22d); the seconds spent in each section; the zoom range; the frame's
   parts, when the lines carry them (chunk 22b). Then the thermal status
   (first, max, last, and every change) and the battery temperature (first,
   max, last). Re-summarise a saved session with:
@@ -4968,8 +4992,9 @@ What exists now:
   fixed order: `t`, `frames`, `fps`, `frame_ms_p50`, `frame_ms_p95`,
   `frame_ms_max`, `process_ms_mean`, `ticks`, `ticks_per_frame_mean`,
   `ticks_per_frame_max`, `tick_ms_mean`, `tick_ms_frame_mean`,
-  `rest_ms_mean`, `on_screen`, `simulated`, `off_screen`, `parked`,
-  `bodies`, `active`, `pairs`, `section`, `zoom`, then the frame's parts
+  `rest_ms_mean`, `physics`, `on_screen`, `in_range`, `parked`, `resting`,
+  `largest_cluster`, `bodies`, `active`, `pairs`, `section`, `zoom`, then
+  the frame's parts
   outside the ticks (chunk 22b): `slimes_ms`, `eyes_ms`, `frontier_ms`,
   `hud_ms`, `debug_ms`, `main_ms`, `setup_ms`, `render_cpu_ms`,
   `render_gpu_ms`, `field_cpu_ms`, `field_gpu_ms`, `draw_calls`, `objects`,
@@ -4978,14 +5003,20 @@ What exists now:
   the smoothed delta; `process_ms_mean` is the frame's real process span
   (from the tree's `process_frame` to the perf log's own `_process`, which
   runs last), not `Performance.TIME_PROCESS` (Godot 4.7 updates that once a
-  second, with the second's worst frame). `bodies` is every slime.
-  `off_screen` counts the parked slimes off the view; `parked` counts every
-  parked slime, on screen or not (those in the view unpark on the next
-  tick), so `parked` is at least `off_screen`. `section` is the section the
-  camera is in: that of the current loop's segment nearest the view's
-  centre, 0 without a loop. `perf_summary.py` needs every field but
-  `frame_ms_p50`, `parked`, `section` and the parts (an older log without
-  them still summarises).
+  second, with the second's worst frame). `physics`, `on_screen`,
+  `in_range` and `parked` are the debug bar's counts at the line (see
+  "Debug overlay"), `resting` the calm RESTING slimes, `largest_cluster`
+  the largest awake cluster (see "Chunk 22d: debug counters and the
+  largest awake cluster"); `bodies` is every slime. `active` is the mean
+  per frame of the slimes that cost physics (`SlimeBodies.crowd_count()`,
+  the same count as `physics`). Logs from before chunk 22d carry
+  `on_screen`, `simulated` and `off_screen` instead (centre in the view;
+  off it and not parked; off it and parked), and their `active` left out
+  slimes asleep at bedtime. `section` is the section the camera is in:
+  that of the current loop's segment nearest the view's centre, 0 without
+  a loop. `perf_summary.py` needs every field but `frame_ms_p50`, the
+  slime counts, `largest_cluster`, `section` and the parts, so an older
+  log still summarises, with its own counts.
 - **The player's data is safe.** A test-mode run writes no save (test
   mode's autosave is off unless its run asks) and the game reads the
   player's save only in normal play; `--fixture=none` and `--free-play`
@@ -5425,6 +5456,147 @@ The same sum before the cuts, from the before full-speed runs:
   headless tick); after it, 1.2 to 1.6 ms a frame on the desktop.
 - **The debug labels' cached text** (D139's 24.6): proposed, for the user's
   review.
+
+## Chunk 22d: debug counters and the largest awake cluster
+
+Build plan chunk 22d, D143 part 1, before chunk 5N
+(`req_platform_and_performance_targets`). The debug bar and the perf log
+now count what costs physics, and the `PERF` line carries the largest
+awake cluster, the measure proposed for level rule 23 (O107). Debug builds
+only. **Nothing runs in the tick and nothing changes in the simulation**:
+the counts and the cluster are read only (the state hash is the same
+before and after them, tested). Code: `src/debug/debug_counts.gd`,
+`debug_overlay.gd`, `perf_log.gd`, `tools/bench_level.gd`,
+`tools/android/perf_summary.py`. Tests: `tests/unit/test_debug_overlay.gd`,
+`tests/unit/test_perf_log.gd`, `perf_summary.py --self-test`.
+
+### The counts
+
+The old bar, "Slimes a on screen : b simulated : c off screen", misled: a
+full basket in view counted as "on screen" whether its slimes cost physics
+or rested, and "simulated" counted only slimes off the view, so as basket 3
+filled on the desktop it read 20 with about 96 slimes costing physics (see
+"The section 3 endgame"). The bar now reads **"Physics a : on screen b :
+in range c : parked d"**; the groups overlap, so they don't add up:
+
+| Count | Which slimes | Bar | `PERF` field |
+|---|---|---|---|
+| Physics | Calm ACTIVE and not a sleeper: `SlimeBodies.crowd_count()`, the count crowd detail steps on. Slimes in a basket and slimes asleep at bedtime still settling count | yes | `physics` |
+| On screen | Centre in `Fusion.view_rect()`, any state, parked or not | yes | `on_screen` |
+| In range | Not parked, any state | yes | `in_range` |
+| Parked | Parked (`SlimeBodies.is_parked`) | yes | `parked` |
+| Resting | Calm RESTING, any state | no | `resting` |
+| Largest awake cluster | See below | no | `largest_cluster` |
+| Every slime | | no | `bodies` |
+
+`physics` to `resting` and `largest_cluster` are taken at the line. The
+`PERF` line's `active` (the mean per frame over the window) is now
+`crowd_count()` too, so it counts slimes asleep at bedtime still settling:
+they are integrated. `PerfLog.active_bodies()` and `parked_bodies()` are
+gone. `simulated` and `off_screen` are gone rather than redefined: a new
+meaning under an old name would mislead readings of old logs. The bench's
+`RESULT` line changes the same way (see "What was measured and how").
+
+### The largest awake cluster
+
+The size, in slimes, of the biggest connected group of touching Physics
+slimes: A touches B and B touches C make one group of 3. A lone Physics
+slime is a group of 1; no Physics slime, 0.
+`DebugCounts.largest_cluster()` joins the pairs by a union-find over the
+slime ids (`largest_cluster_in()`); a pair with an end that isn't a Physics
+slime now (resting, parked, a sleeper, gone) joins nothing.
+
+- **Touching** is the last tick's contact list,
+  `SlimeBodies.touching_pairs()`: rings within the solver's `TOUCH_SKIN`
+  (2 px).
+- **The fallback.** A removal (a fusion, which `Simulation.step` runs
+  after the slimes' tick) wipes that list until the next tick: without the
+  fallback, a line whose frame's last tick fused read 1 for a crowd of
+  158. So when no
+  candidate pair is left (`candidate_pair_count()` 0, which a removal
+  clears too) it measures by distance: centres closer than the sum of the
+  ring radii + 2 px (`DebugCounts.touching_by_distance()`, a uniform grid
+  whose cells are as wide as the widest touching distance, O(n)). A real
+  tick with no candidate pair has no touching pair either, and the
+  distance rule finds none. The two agree: after 300 ticks of
+  `stress-moving`, 228 pairs from the list and 233 by distance, the same
+  cluster of 125; on `s3-basket-59of60`, 181 and 181, 59 and 59.
+- **When:** only in `PerfLog.line()`, once per perf-log period, never per
+  frame nor in the tick.
+- **Reading it:** `perf_summary.py` prints each count as mean (min..max),
+  an older log's `simulated` and `off_screen` included, and a line
+  `largest cluster max N (mean M)`. How long it stays above a limit is
+  read from the lines themselves, each `largest_cluster=` with its `t=`
+  (see "How to reproduce").
+
+### What the counting costs
+
+Desktop, headless, the test level, a probe after 300 ticks, the mean of
+1000 calls:
+
+| Case | Slimes | Physics | `count_slimes` | `largest_cluster`, list | `largest_cluster`, by distance | `crowd_count` | One tick |
+|---|---|---|---|---|---|---|---|
+| `stress-moving` | 167 | 167 | 78 µs | 129 to 137 µs | 478 µs | 7.7 µs | 9.4 to 10.4 ms |
+| `s3-basket-59of60` | 200 (106 parked) | 94 | 84 µs | 95 to 101 µs | 284 µs | 6.5 µs | 4.8 to 5.0 ms |
+
+**Does computing these stats take time? Very little, and none in the
+tick.** Once per `PERF` line (every 2 s in the desktop runs, every 1 s on
+the phone by default) the counts and the cluster cost about 0.2 ms, and
+0.6 ms on the rare line that measures by distance: about 2 to 4 % of one
+tick, once a period, outside the ticks. The phone is roughly 2 to 3.5 times slower. The
+per-frame `crowd_count()` (about 7 µs) costs what `active_bodies()` did.
+The bar's `count_slimes()` runs every 250 ms (about 0.08 ms), most of it
+`centre_of()` for the on-screen test.
+
+### Section 3 measured: first numbers for O107
+
+Windowed desktop runs at full speed, capped at 60 fps, a `PERF` line every
+2 s, 25 lines each:
+
+| Fixture | fps | Tick, ms | Physics (mean) | On screen | In range | Parked | Resting | Largest cluster (mean) | Above 20 |
+|---|---|---|---|---|---|---|---|---|---|
+| `s3-basket-59of60` | 60 | 6.0 to 8.0 | 32 to 95 (80) | 60 to 70 | 74 to 95 | 105 to 125 | 0, except 59, 59, 52 | 14 to 60 (50) | 30 s in a row, then 14 s |
+| `stress-moving` | 60 | 12.4 → 9.0 | 119 to 200 (134) | 115 to 200 | 119 to 200 | 0 to 9 | 0 | 54 to 132 (92) | the whole run, 48 s |
+| `gate2-open` | 60 | 2.7 | 1 to 4 (2) | 8 to 26 | 38 to 48 | 152 to 162 | 0 | 1 (1) | never |
+
+- **`s3-basket-59of60`** (basket 3 at 59 of 60 in view, 141 train slimes
+  coming up section 3's bowl toward switch 3): the largest cluster is the
+  basket's own slimes, calm ACTIVE in the basket and touching, 47 to 60
+  almost the whole run. It drops to 28, 29 and 14 only while they rest
+  (the three `resting` lines), then they wake again. The basket didn't
+  fire within the run (bodies 200, then 199 after one fusion).
+- **`stress-moving`** (200 train slimes moving along the loop through
+  section 3's bowl): the moving train is one touching group of 80 to 110
+  slimes, 132 at most (t = 5 s). The tick falls as fusions bring the bodies
+  from 200 to 128.
+- **`gate2-open`** (the loop through section 3, the camera at its start):
+  1 to 4 slimes cost physics, no candidate pair.
+
+What this says for O107 (observations; the reading is proposed, not a
+decision):
+
+- Measured this way, a full basket in view and a dense train queue both
+  read as one large cluster, so rule 23's proposed limit (above 20 slimes
+  for more than 5 s in a row fails) would fail both scenes.
+- Whether a train queue on the loop counts (O107 (a)), or only groups off
+  the loop, or piles by area, and whether slimes in a basket count, are
+  for chunk 24 to settle.
+
+### How to reproduce
+
+```sh
+tools/perf_slow.sh --full-speed --max-fps=60 --seconds=40 s3-basket-59of60
+tools/perf_slow.sh --full-speed --max-fps=60 --seconds=40 stress-moving
+tools/perf_slow.sh --full-speed --max-fps=60 --seconds=40 gate2-open
+tools/android/perf_summary.py build/perf/desktop-<fixture>-full-<timestamp>.log
+grep -o 't=[0-9.]*\|largest_cluster=[0-9]*' build/perf/desktop-<fixture>-full-<timestamp>.log | paste - -
+```
+
+Each run logs to `build/perf/` (git-ignored) and prints its summary; the
+last two lines re-summarise a saved log and list its cluster line by
+line. Labels off, no other Godot running.
+On the phone, `tools/android/perf.sh` logs the same fields ("Measuring on
+the phone").
 
 ## Technical choices
 

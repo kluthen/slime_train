@@ -31,21 +31,26 @@ extends Node
 ##   tick_ms_frame_mean   ms per frame spent in ticks
 ##   rest_ms_mean         ms per frame outside the ticks (frame - ticks):
 ##                        rendering, input, the rest of the process
-##   on_screen, simulated, off_screen
+##   physics, on_screen, in_range, parked, resting
 ##                        the debug overlay's slime counts at the line
-##                        (DebugCounts.count_slimes()): centre in the view;
-##                        off the view and fully simulated; off the view
-##                        and parked
-##   parked               every parked slime (SlimeBodies.is_parked), on
-##                        screen or not: off_screen plus the parked ones
-##                        whose centre is in the view (they unpark on the
-##                        next tick), so parked >= off_screen
-##   bodies               every slime, whatever its state (on_screen +
-##                        simulated + off_screen)
-##   active               mean bodies the solver simulates, per frame
-##                        (active_bodies(): baskets included, which
-##                        "simulated" doesn't show; resting, parked and
-##                        sleeping ones excluded)
+##                        (DebugCounts.count_slimes(), the bar's Physics, On
+##                        screen, In range, Parked, plus Resting): calm
+##                        ACTIVE and not a sleeper (they cost physics);
+##                        centre in the view, any state; not parked; parked;
+##                        calm RESTING. They overlap, so they don't add up
+##   largest_cluster      the largest awake cluster at the line
+##                        (DebugCounts.largest_cluster()): the most Physics
+##                        slimes touching each other, directly or through
+##                        others, in the last tick's contacts (by distance
+##                        when a fusion since the tick wiped them). Taken only
+##                        here, once a line, never per frame nor in the tick
+##   bodies               every slime, whatever its state
+##   active               mean slimes that cost physics, per frame
+##                        (SlimeBodies.crowd_count(), the same count as
+##                        physics and as the crowd detail's): baskets
+##                        included, and slimes asleep at bedtime still
+##                        settling (they are integrated, so they cost
+##                        physics); resting, parked and sleepers excluded
 ##   pairs                mean candidate pairs on the frame's last tick
 ##                        (SlimeBodies.candidate_pair_count())
 ##   section              the section the camera is in (camera_section():
@@ -132,8 +137,9 @@ var _process_start_usec := -1
 ## The simulation ticks run in the window.
 var _ticks := 0
 ## Per frame of the window (as _deltas): the ticks the game root ran, the
-## real time they took (microseconds), the active bodies and candidate pairs
-## after them (0 without a simulation).
+## real time they took (microseconds), the slimes that cost physics
+## (SlimeBodies.crowd_count()) and candidate pairs after them (0 without a
+## simulation).
 var _frame_ticks := PackedInt32Array()
 var _frame_tick_usec := PackedInt64Array()
 var _frame_active := PackedInt32Array()
@@ -196,7 +202,7 @@ func _process(_delta: float) -> void:
 	_process_s += (now - _process_start_usec) / 1_000_000.0
 	_frame_ticks.append(int(game.get("frame_ticks")))
 	_frame_tick_usec.append(int(game.get("frame_tick_usec")))
-	_frame_active.append(active_bodies(sim) if sim != null else 0)
+	_frame_active.append(sim.slimes.crowd_count() if sim != null else 0)
 	_frame_pairs.append(sim.slimes.candidate_pair_count() if sim != null else 0)
 	for i in parts.size():
 		_part_sums[i] += parts[i]
@@ -353,9 +359,9 @@ static func window_stats(deltas_s: PackedFloat64Array) -> Dictionary:
 
 ## The tick statistics of one window: per frame, its time `deltas_s`
 ## (seconds), the ticks the game root ran `frame_ticks`, their real time
-## `frame_tick_usec` (microseconds), the active bodies `frame_active` and
-## candidate pairs `frame_pairs` after them, all the same size, at least one
-## frame. Returns {"ticks_per_frame_mean", "ticks_per_frame_max",
+## `frame_tick_usec` (microseconds), the slimes that cost physics
+## `frame_active` and candidate pairs `frame_pairs` after them, all the same
+## size, at least one frame. Returns {"ticks_per_frame_mean", "ticks_per_frame_max",
 ## "tick_ms_mean" (ms per tick; 0 without a tick), "tick_ms_frame_mean" (ms
 ## per frame spent in ticks), "rest_ms_mean" (ms per frame outside them),
 ## "active_mean", "pairs_mean"}.
@@ -392,19 +398,6 @@ static func tick_stats(deltas_s: PackedFloat64Array, frame_ticks: PackedInt32Arr
 	}
 
 
-## How many of `sim`'s slimes the solver simulates: calm ACTIVE (neither
-## resting nor parked) and not a sleeper nor asleep at bedtime, whatever
-## else their state (a slime in a basket counts).
-static func active_bodies(sim: Simulation) -> int:
-	var bodies := sim.slimes
-	var count := 0
-	for s in bodies.slime_count:
-		if bodies.calm[s] == SlimeBodies.ACTIVE and bodies.state[s] != SlimeBodies.STATE_SLEEPER \
-				and bodies.state[s] != SlimeBodies.STATE_BEDTIME_ASLEEP:
-			count += 1
-	return count
-
-
 ## The nearest-rank `share` percentile of `sorted` (ascending, not empty).
 static func _nearest_rank(sorted: PackedFloat64Array, share: float) -> float:
 	var rank := clampi(ceili(share * sorted.size()), 1, sorted.size())
@@ -414,32 +407,36 @@ static func _nearest_rank(sorted: PackedFloat64Array, share: float) -> float:
 ## The PERF line for a window: `t` seconds since the engine started, its
 ## window_stats() `stats` and tick_stats() `ticking` (active and pairs
 ## included), the mean process time `process_ms_mean`, the `ticks` run,
-## `sim`'s slime counts, parked slimes, camera section and zoom (zeros
-## without a simulation), and the part_means() `parts`. The fields are the
-## class doc's, in its order.
+## `sim`'s slime counts, largest awake cluster, total slimes, camera section
+## and zoom (zeros without a simulation), and the part_means() `parts`. The
+## fields are the class doc's, in its order. Read only.
 static func line(t: float, stats: Dictionary, ticking: Dictionary, process_ms_mean: float, ticks: int,
 		sim: Simulation, parts: PackedFloat64Array) -> String:
 	assert(parts.size() == PART_FIELDS.size(), "PerfLog.line: one mean per part field")
-	var counts := {DebugCounts.ON_SCREEN: 0, DebugCounts.SIMULATED: 0, DebugCounts.OFF_SCREEN: 0}
-	var parked := 0
+	var counts := {DebugCounts.PHYSICS: 0, DebugCounts.ON_SCREEN: 0, DebugCounts.IN_RANGE: 0,
+			DebugCounts.PARKED: 0, DebugCounts.RESTING: 0}
+	var largest_cluster := 0
+	var bodies := 0
 	var section := 0
 	var zoom := 0.0
 	if sim != null:
 		counts = DebugCounts.count_slimes(sim)
-		parked = parked_bodies(sim)
+		largest_cluster = DebugCounts.largest_cluster(sim.slimes)
+		bodies = sim.slimes.slime_count
 		section = camera_section(sim)
 		zoom = sim.view.zoom
-	var bodies: int = counts[DebugCounts.ON_SCREEN] + counts[DebugCounts.SIMULATED] + counts[DebugCounts.OFF_SCREEN]
 	return ("PERF t=%.1f frames=%d fps=%.1f frame_ms_p50=%.2f frame_ms_p95=%.2f frame_ms_max=%.2f"
 			+ " process_ms_mean=%.2f ticks=%d ticks_per_frame_mean=%.2f ticks_per_frame_max=%d"
 			+ " tick_ms_mean=%.2f tick_ms_frame_mean=%.2f rest_ms_mean=%.2f"
-			+ " on_screen=%d simulated=%d off_screen=%d parked=%d bodies=%d active=%.1f pairs=%.1f"
+			+ " physics=%d on_screen=%d in_range=%d parked=%d resting=%d largest_cluster=%d bodies=%d"
+			+ " active=%.1f pairs=%.1f"
 			+ " section=%d zoom=%.3f") % [
 			t, stats["frames"], stats["fps"], stats["p50_ms"], stats["p95_ms"], stats["max_ms"],
 			process_ms_mean, ticks, ticking["ticks_per_frame_mean"], ticking["ticks_per_frame_max"],
 			ticking["tick_ms_mean"], ticking["tick_ms_frame_mean"], ticking["rest_ms_mean"],
-			counts[DebugCounts.ON_SCREEN], counts[DebugCounts.SIMULATED], counts[DebugCounts.OFF_SCREEN], parked,
-			bodies, ticking["active_mean"], ticking["pairs_mean"], section, zoom] + _part_text(parts)
+			counts[DebugCounts.PHYSICS], counts[DebugCounts.ON_SCREEN], counts[DebugCounts.IN_RANGE],
+			counts[DebugCounts.PARKED], counts[DebugCounts.RESTING], largest_cluster, bodies,
+			ticking["active_mean"], ticking["pairs_mean"], section, zoom] + _part_text(parts)
 
 
 ## The part fields of the PERF line for the means `parts` (one per
@@ -450,16 +447,6 @@ static func _part_text(parts: PackedFloat64Array) -> String:
 	for i in PART_FIELDS.size():
 		text += (" %s=%.0f" if i >= PART_FIRST_COUNT else " %s=%.2f") % [PART_FIELDS[i], parts[i]]
 	return text
-
-
-## How many of `sim`'s slimes are parked (SlimeBodies.PARKED), wherever they are.
-static func parked_bodies(sim: Simulation) -> int:
-	var bodies := sim.slimes
-	var count := 0
-	for s in bodies.slime_count:
-		if bodies.calm[s] == SlimeBodies.PARKED:
-			count += 1
-	return count
 
 
 ## The section the camera is in: that of the current loop's segment (for the
