@@ -873,8 +873,8 @@ measurements are in [Chunk 22: performance](#chunk-22-performance).
 along the loop. It reads the loop in use (`LoopData.current_segments`,
 flattened into one polyline with a per-edge "slide" flag) and keeps, per
 train slime, its progress: a distance along the loop and a lap count.
-Each tick, `Simulation.step()` runs the input, `train.steer()` (grip, carry
-and hop aim, before the bodies move), `slimes.tick()`, the split zones
+Each tick, `Simulation.step()` runs the input, `train.steer()` (grip, carry,
+the hold and hop aim, before the bodies move), `slimes.tick()`, the split zones
 (`SplitZones.apply`, whose parts `train.inherit()` their parent's
 progress), then `train.follow()` (progress, laps, stalled slimes).
 `train.dump()` is in the state dump.
@@ -919,6 +919,43 @@ most 45° steep: a supported slime there is braked by half each tick
 route is pulled towards `SLIDE_SPEED` (360 px/s) by a fifth each tick. The
 real slide comes with the level art.
 
+**The hold (chunk 22e, D145; numbers proposed, calibrated from the logs,
+O107).** When a train slime's hop is due and it stands on something,
+`train.steer(bodies, dt, tick, fusion)` makes two checks first. The crowd
+check fails when more than `HOLD_CROWD` (30) Physics slimes out of a
+basket (`SlimeBodies.awake_count_ahead`: calm ACTIVE, not sleepers, not in
+a basket, not itself, any species) have their centres within
+`HOLD_CROWD_RADIUS` (240 px) of its hop's target and ahead of it (on the
+target's side of its centre): the front of a queue, whose way is clear,
+goes first. The jam check fails when its hop, `hop_reach(size)` along the
+loop, comes within its radius plus the rearmost holder ahead's
+(`SlimeBodies.radius_of`, the rest ring's) plus `JAM_GAP` (24 px) of that
+holder, or past it: it stops short of a queue instead of landing on it. If
+either fails it **holds** where it stands: its record's `"hold"` is the
+tick the hold began, its hop timer is kept at `HOLD_TIMER_SECONDS` (0.25 s)
+at least without a draw (as the dip nudge does), and it isn't aimed. It
+checks again every `HOLD_RECHECK_TICKS` (30, 0.5 s) from the hold's start;
+when both pass, or at `HOLD_CAP_TICKS` (300, 5 s) whatever they say, the
+hold ends: a resting holder is woken (only it), its timer is set to hop
+this tick and it is aimed as usual (one draw per hop, as before). Known
+edge case, left to chunk 22f (which changes the cap): that zero overrides a
+dip nudge's pin set on the tick before (`Fusion._nudge`), so a holder
+waiting on a dip's floor for a partner hops when its hold ends. The hold
+also ends when the slime is parked, leaves the train (a call, bedtime),
+is moved to the start (stall or stuck: `track()` gives a fresh record) or
+reaches a slide; split parts keep their parent's hold (proposed). A holder
+may rest (`SlimeBodies.set_may_rest`, set by `steer()` every tick) unless
+one of its contacts counts toward fusion (`Fusion.counts_toward_fusion`,
+the last step's counts): resting slimes never touch for fusion. A resting
+holder isn't gripped nor carried; `steer()` only runs its re-checks and
+cap. The celebration's start wakes the resting train slimes on screen it
+picks (`CelebrationHops.begin`), so they do the double hop; their hold
+goes on. `train.is_holding(id)` and `train.hold_began_at(id)` read it; the
+hold is in `record_of()` and `train.dump()` only while a slime holds, so a
+run where none holds keeps its hash. Measured over 900 ticks on seeds 21 and 909:
+`stress-moving` has its first holder at tick 315 and up to 103 and 108 at
+once; `s3-basket-59of60` one at a time, the first at ticks 93 and 110.
+
 **Stalled (D118, D121; chunk 23A).** A train slime is stalled when its
 progress hasn't advanced `STALL_ADVANCE` (24 px) in `STALL_SECONDS` (60 s),
 on screen or off, or when its centre leaves the level's bounds (the
@@ -947,7 +984,10 @@ waking and the hint").
 
 **Tests.** `tests/unit/test_train_progress.gd` (progress window, wrap,
 laps, stalled and out of bounds, aim, targets, off-route steering),
-`tests/unit/test_train_stalled.gd` (the stalled safety net) and
+`tests/unit/test_train_stalled.gd` (the stalled safety net),
+`tests/unit/test_train_hold.gd` (the hold: the crowd and jam checks, the
+re-checks, the cap, resting holders, fusion first, the celebration, the
+other ends, the dump) and
 `tests/unit/test_split_zones.gd`; `tests/e2e/test_train_in_game.gd`
 (the first slime woken, each size 1 to 3 completes a lap and comes back as
 base slimes, a size 3 and a size 2 entering the split zone leave as five
@@ -2309,13 +2349,20 @@ A train slime isn't lost but stalled: `train.stalled` (see "Train").
   bedtime) that touch rest together once every one has been supported and
   within `REST_DRIFT` (1 px) of its anchor for `REST_TICKS` (30). A
   resting slime is a wall, like a sleeper, and two walls are never paired.
-  A pile wakes whole when disturbed: a touching slime faster than
-  `WAKE_SPEED` (30 px/s: a hop, a landing, a neighbour moving), a state
-  change (bedtime, sunrise, a basket catching or releasing), a new velocity
-  or body, a slime removed, fused or split next to it; a call wakes the
-  resting slimes within its radius and a tilt change every resting slime
-  (`Offscreen`); a door opening or shutting wakes the piles within
-  `FrontierSets.DOOR_WAKE_REACH` (80 px) of it.
+  A pile wakes locally (chunk 22e, D145; it woke whole before): a
+  disturbance wakes only the resting slimes it touches, the rest of the
+  pile rests on, a wall, keeping its `pile` id. A resting slime wakes on a
+  touching slime faster than `WAKE_SPEED` (30 px/s: a hop, a landing, a
+  neighbour moving), its own state change (bedtime, sunrise, a basket
+  catching or releasing it), a new velocity or body, a slime moved away
+  by a body (a basket's release), removed, fused or split touching it; a
+  call wakes the resting slimes within its radius and a tilt change every
+  resting slime (`Offscreen`); a door opening or shutting wakes the
+  resting slimes within `FrontierSets.DOOR_WAKE_REACH` (80 px) of it.
+- Holding train slimes rest too (chunk 22e, D145; see "Train", "The
+  hold"): `SlimeBodies.may_rest`, an input the Train sets before every
+  tick (not state: neither dumped nor saved), lets a train slime rest under
+  the same rule; turning it off doesn't wake it, the Train does.
 - Sleepers don't simulate (chunk 9); bedtime-asleep slimes now rest once
   settled, and park off screen like every slime.
 - Slimes in a full basket rest as a pile.
@@ -2346,7 +2393,11 @@ A train slime isn't lost but stalled: `train.stalled` (see "Train").
 `"detail"` level (absent: 0; an older save's `"low": true` reads as level
 2), and the Offscreen state (`"offscreen"`: zoomed out, crowd level, away
 counts, proxies, lost log) are saved (`SaveData`, optional keys) and in
-`dump()`, so a reload continues the same way. `offscreen.enabled` is a
+`dump()`, so a reload continues the same way. The `"rest"` is left out for
+an active slime with no count; an active slime that may not rest (not a
+pile slime, not a holder) has none, its anchor following its centre each
+tick, so the anchor a load gives it (its centre) is the one it had (chunk
+22e: a train slime starting to hold reloads with the same count). `offscreen.enabled` is a
 mode, like the screensaver: the game turns it on (`src/main.gd`,
 `_new_simulation`); off, every slime is simulated, which the core's unit
 tests rely on.
@@ -3417,7 +3468,7 @@ One JSON object, keys sorted, tab-indented:
 | `format` | 1. A newer format is refused, never read half-way |
 | `level` | `{"id", "version"}`. Another id, or a newer version, is refused; an older version is migrated on load (chunk 19, below) |
 | `sim` | `tick`, `seed` and `rng_state` (strings: 64-bit), `next_slime_id`. Optional |
-| `slimes` | Every slime, in runtime id order (at least one): `id` (its stable ID, below), `members`, `runtime_id`, `species` (a letter), `size`, `state` (`train`, `free`, `sleeper`, `bedtime_asleep`, `in_basket`), `centre`, `velocity`, then `train` (distance, laps, slide, stall mark; a `lost` flag from before chunk 23A is ignored) or `free` (phase, since, point, route back, stream state), and `body` (points, previous points, the solver's centre, hop timer, heading, held, supported, stream state; optional `rest` and `detail`, the ring's detail level 1 to 3, absent 0, an older `"low": true` read as 2: see "Saves and hash" in the off-screen section) |
+| `slimes` | Every slime, in runtime id order (at least one): `id` (its stable ID, below), `members`, `runtime_id`, `species` (a letter), `size`, `state` (`train`, `free`, `sleeper`, `bedtime_asleep`, `in_basket`), `centre`, `velocity`, then `train` (distance, laps, slide, stall mark; an optional `hold`, the tick the slime's hold began (chunk 22e, D145), written only while it holds: absent is not holding, so an older save loads with no hold and the format stays 1; a bad `hold`, not a whole number >= 0, makes the save unusable; a `lost` flag from before chunk 23A is ignored) or `free` (phase, since, point, route back, stream state), and `body` (points, previous points, the solver's centre, hop timer, heading, held, supported, stream state; optional `rest` and `detail`, the ring's detail level 1 to 3, absent 0, an older `"low": true` read as 2: see "Saves and hash" in the off-screen section) |
 | `offscreen` | The off-screen state (chunk 15): `zoomed_out`, `crowd_level` (0 to 3, absent 0), `away`, `proxies`, `lost`. Optional |
 | `train` | The open gates and the stalled log (`stalled`: `{"id", "tick", "reason"}`, chunk 23A; the key was `lost` before and is ignored now) |
 | `call` | The last call (point, tick), or null |
@@ -4952,7 +5003,9 @@ What exists now:
   frame in ticks, outside them (the rest of the frame) and in the whole
   process; ticks per frame; `active` and `pairs`; the slime counts (mean,
   min and max, chunk 22d); the largest awake cluster's max and mean (chunk
-  22d); the seconds spent in each section; the zoom range; the frame's
+  22d); the train hops, `hops` and `short_hops`, as their mean per line,
+  and the short hops' share of the hops over the lines, a percentage
+  ("n/a" without a hop; chunk 22e); the seconds spent in each section; the zoom range; the frame's
   parts, when the lines carry them (chunk 22b). Then the thermal status
   (first, max, last, and every change) and the battery temperature (first,
   max, last). Re-summarise a saved session with:
@@ -4993,8 +5046,8 @@ What exists now:
   `frame_ms_max`, `process_ms_mean`, `ticks`, `ticks_per_frame_mean`,
   `ticks_per_frame_max`, `tick_ms_mean`, `tick_ms_frame_mean`,
   `rest_ms_mean`, `physics`, `on_screen`, `in_range`, `parked`, `resting`,
-  `largest_cluster`, `bodies`, `active`, `pairs`, `section`, `zoom`, then
-  the frame's parts
+  `largest_cluster`, `hops`, `short_hops`, `bodies`, `active`, `pairs`,
+  `section`, `zoom`, then the frame's parts
   outside the ticks (chunk 22b): `slimes_ms`, `eyes_ms`, `frontier_ms`,
   `hud_ms`, `debug_ms`, `main_ms`, `setup_ms`, `render_cpu_ms`,
   `render_gpu_ms`, `field_cpu_ms`, `field_gpu_ms`, `draw_calls`, `objects`,
@@ -5007,16 +5060,23 @@ What exists now:
   `in_range` and `parked` are the debug bar's counts at the line (see
   "Debug overlay"), `resting` the calm RESTING slimes, `largest_cluster`
   the largest awake cluster (see "Chunk 22d: debug counters and the
-  largest awake cluster"); `bodies` is every slime. `active` is the mean
-  per frame of the slimes that cost physics (`SlimeBodies.crowd_count()`,
+  largest awake cluster"); `hops` the train hops taken in the window
+  (automatic hops of train slimes, counted at take-off; not the
+  celebration's, a free slime's, nor on a slide, where a slime is held)
+  and `short_hops` those that landed in the window less than half their
+  `Train.hop_reach(size)` along the loop past their take-off progress (a
+  hop that never lands as a train slime is no short hop): `Train`'s
+  cumulative `hops_taken` and `short_hops_taken`, the perf log printing the
+  difference per window (chunk 22e, D145 point 7); `bodies` is every
+  slime. `active` is the mean per frame of the slimes that cost physics (`SlimeBodies.crowd_count()`,
   the same count as `physics`). Logs from before chunk 22d carry
   `on_screen`, `simulated` and `off_screen` instead (centre in the view;
   off it and not parked; off it and parked), and their `active` left out
   slimes asleep at bedtime. `section` is the section the camera is in:
   that of the current loop's segment nearest the view's centre, 0 without
   a loop. `perf_summary.py` needs every field but `frame_ms_p50`, the
-  slime counts, `largest_cluster`, `section` and the parts, so an older
-  log still summarises, with its own counts.
+  slime counts, `largest_cluster`, `hops`, `short_hops`, `section` and the
+  parts, so an older log still summarises, with its own counts.
 - **The player's data is safe.** A test-mode run writes no save (test
   mode's autosave is off unless its run asks) and the game reads the
   player's save only in normal play; `--fixture=none` and `--free-play`
@@ -5597,6 +5657,210 @@ last two lines re-summarise a saved log and list its cluster line by
 line. Labels off, no other Godot running.
 On the phone, `tools/android/perf.sh` logs the same fields ("Measuring on
 the phone").
+
+## Chunk 22e: the local wake and the hold
+
+Build plan chunk 22e, D145 as moved by D146, before chunk 5N
+(`req_hopping_behavior`, `req_offscreen_simulation`,
+`req_platform_and_performance_targets`). The measurements, the method and
+the probes are in [the perf report](../perf/2026-10-01-chunk-22e.md).
+What changed:
+
+- **The hop counters.** The `PERF` line counts the train hops and the
+  short ones (`hops`, `short_hops`, below). Debug only, read only.
+- **The local wake.** A disturbance wakes only the resting slimes it
+  touches; the rest of the pile rests on. It replaces D96's whole-pile
+  wake.
+- **The hold.** A train slime whose hop is due holds where it stands when
+  the crowd check or the jam check fails, and hops once a re-check passes
+  or at the cap ("Train", "The hold"). It replaces D143's lean (never
+  built): one rule instead of two.
+- **May rest.** A holder may rest, like a pile slime (below).
+- **The celebration** wakes the resting train slimes on screen it picks
+  (`CelebrationHops.begin`), so they do the double hop; their hold goes on.
+
+Code: `src/sim/train.gd` (the hold, the counters), `slime_bodies.gd` (the
+local wake, may rest, `awake_count_ahead`), `frontier_sets.gd` (a release
+and a door wake locally), `loop_start.gd`, `celebration_hops.gd`,
+`fusion.gd` (`counts_toward_fusion`), `save_data.gd`;
+`src/debug/perf_log.gd`, `tools/android/perf_summary.py`. Tests:
+`tests/unit/test_train_hold.gd`, `test_slime_may_rest.gd`,
+`test_slime_rest.gd`, `test_train_progress.gd`, `test_save_data.gd`,
+`test_frontier_sets.gd`, `test_perf_log.gd`,
+`tests/e2e/test_fixture_scenarios_e2e.gd`, `perf_summary.py --self-test`.
+
+### The hold's settings
+
+All in `src/sim/train.gd`, all proposed (D145):
+
+| Constant | Value | What it is |
+|---|---|---|
+| `HOLD_CROWD` | 30 | The crowd check fails above this many Physics slimes out of a basket near the hop's target, ahead of the slime |
+| `HOLD_CROWD_RADIUS` | 240 px | How near the target they count (5 base slime diameters) |
+| `JAM_GAP` | 24 px | The jam check fails when the hop comes within the two radii plus this of the rearmost holder ahead |
+| `HOLD_RECHECK_TICKS` | 30 (0.5 s) | A holder checks again this often from the hold's start |
+| `HOLD_CAP_TICKS` | 300 (5 s) | The hold ends here whatever the checks say |
+| `HOLD_TIMER_SECONDS` | 0.25 s | A holder's hop timer is kept at this at least, with no draw (as the dip nudge's `Fusion.DIP_HOLD_SECONDS`) |
+
+**First calibration: kept.** A lower crowd threshold (20, 15) only nudges
+`stress-moving` and doesn't help `s3-basket-59of60`, `JAM_GAP` 48 changes
+almost nothing, and whatever the numbers most holds end at the cap: the
+limit is the rule, not its numbers ([the sweep](../perf/2026-10-01-chunk-22e.md#the-calibration-sweep)).
+
+Proposed defaults, one line each:
+
+- **The jam's radius** is `SlimeBodies.radius_of`, the rest ring's.
+- **Split parts inherit the hold** (`Train.inherit`): they hold on from
+  the same tick.
+- **Jam ties go to the bigger slime**: holders at the same distance along
+  the loop tie to the bigger one, so the answer doesn't hang on the
+  records' order.
+
+**Handed to chunk 22f:**
+
+- **The hold mostly ends at its 5 s cap** (86 % of hold ends), and 288 of
+  the 292 that reach it are still jammed then
+  ([the diagnosis](../perf/2026-10-01-chunk-22e.md#why-the-hold-rarely-ends-before-its-cap)).
+- **The end of a hold zeroes the hop timer**, which overrides a dip
+  nudge's pin set on the tick before (`Fusion._nudge`): a holder waiting on
+  a dip's floor for a partner hops when its hold ends (as "Train", "The
+  hold" says).
+- **`src/sim/train.gd` is at 417 effective lines**, over CODING_RULE's
+  400 warning; 22f moves the hold to its own file.
+
+### The local wake
+
+What wakes a resting slime now wakes only it and the resting slimes it
+touches, never the rest of their pile, which rests on as a wall and keeps
+its `pile` id (a woken slime's `pile` is 0 until it rests again):
+
+- **a release** (`FrontierSets._release`): the released slime wakes (its
+  state change), and so do the resting slimes touching where it was
+  (`SlimeBodies.set_body` moving it by more than a pixel);
+- **the end of a hold**: the holder, only it (`Train._end_hold`);
+- **a touch faster than `WAKE_SPEED`** (30 px/s): the resting slime
+  touched (`SlimeBodies._rest`);
+- **a LoopStart move** (a stalled or stuck slime moved to the start): the
+  moved slime, and the resting slimes touching where it was.
+
+A removal, a fusion, a split, a call and a door wake the same way, only
+the resting slimes they touch or reach (see "Off-screen simulation"). A
+sleeper is a state, never the resting calm: no wake changes it.
+
+**The one-step-neighbour fallback was not built.** D145 kept it for piles
+that churn (keep waking): wake the touched slimes' touching neighbours
+too. Measured on basket 3's drain, there was no need: 0 whole-pile wakes
+after the change (6 before, of 52 to 59 slimes), a median of 3 pile
+slimes woken in a tick and at most 9
+([the pile probe](../perf/2026-10-01-chunk-22e.md#pile-wakes-headless-probes)).
+The pile is still partly awake most of the time, because basket 3's outlet
+is blocked on most release-due ticks (item 24.3), not because of the wake.
+
+### May rest
+
+`SlimeBodies.may_rest` is a per-slime input the Train sets before every
+tick (`set_may_rest`, from `Train.steer`): on for a holder, unless one of
+its contacts counts toward fusion. It is not state: neither saved nor
+dumped. A new, fused or split slime starts at 0, and a state change
+clears it. It is read in one place, `_can_rest`: a pile slime (in a
+basket, asleep at bedtime) or a train slime with may rest on. It is
+separate from the pile states, so a holder isn't capped at the pile
+detail (`PILE_MAX_DETAIL`, which `set_active_detail` gives pile slimes
+only). Turning it off doesn't wake a resting slime: the Train does
+(`wake`). `_rest` zeroes the still count and resets the anchor of every
+active slime that may not rest, so a reload, which gives it its centre as
+anchor, matches.
+
+**For chunk 5N:** the native rest pass must take this input, as
+`_can_rest` does.
+
+### The save key
+
+`save["slimes"][i]["train"]["hold"]`, an integer: the tick the slime's
+hold began. It is written only while the slime holds; absent, it doesn't
+hold. The save format version stays 1, and an older save loads unchanged,
+with no hold. A value that isn't a whole number >= 0 makes the save
+invalid (`SaveData`). See ["What a save holds"](#what-a-save-holds).
+In the state dump, the hold is in `Train.dump()` only while a slime
+holds, so a fixture where none holds keeps its hash.
+
+### Reading hops and short_hops
+
+- `hops`: the train hops taken in the `PERF` line's period (automatic hops
+  of train slimes, at take-off; not the celebration's, nor a free slime's,
+  nor on a slide).
+- `short_hops`: those whose landing advanced the slime along the loop by
+  less than half its `Train.hop_reach(size)`. A hop that never lands as a
+  train slime is no short hop.
+- **The short share** is `short_hops / hops`. `perf_summary.py` prints a
+  line `train hops      per line: hops M  short_hops N   short share S %
+  (short of hops)`, the means per line and the share summed over the
+  lines; "n/a (no hop)" without a hop.
+- Debug only: the counters (`Train.hops_taken`, `short_hops_taken`) are in
+  neither the dumps nor the saves.
+
+### Before and after
+
+Windowed desktop runs, full speed capped at 60 fps, seed 1, 25 `PERF`
+lines each; BEFORE is the tree with the counters only, AFTER-FINAL the
+final 22e tree. "Slowed tick" is the `--pin=main` run's tick.
+
+| Fixture | Run | Physics (mean) | Largest cluster (mean / max) | Resting (mean) | Hops | Short share | Tick, ms | fps p50 (min) | Slowed tick, ms |
+|---|---|---|---|---|---|---|---|---|---|
+| `stress-moving` | BEFORE | 134.3 | 92.1 / 132 | 0.0 | 1709 | 96.1 % | 9.68 | 60.0 (57.2) | 25.61 |
+| `stress-moving` | AFTER-FINAL | 123.4 | 74.4 / 132 | 13.5 | 1176 | 95.2 % | 10.17 | 60.0 (57.8) | 26.00 |
+| `s3-basket-59of60` | BEFORE | 79.9 | 50.0 / 60 | 6.8 | 646 | 76.2 % | 7.27 | 60.0 (58.3) | 15.27 |
+| `s3-basket-59of60` | AFTER-FINAL | 51.2 | 24.4 / 59 | 33.4 | 601 | 76.7 % | 6.68 | 60.0 (58.3) | 13.22 |
+| `gate2-open` | BEFORE | 2.1 | 1.0 / 1 | 0 | 41 | 0 % | 2.68 | 60.0 (57.8) | 1.74 |
+| `gate2-open` | AFTER-FINAL | 2.0 | 1.0 / 1 | 0 | 41 | 0 % | 2.78 | 60.0 (58.6) | 1.86 |
+| `fresh` | BEFORE | 0.5 | 0.5 / 1 | 0 | 12 | 0 % | 2.13 | 60.0 (58.5) | 1.33 |
+| `fresh` | AFTER-FINAL | 0.5 | 0.5 / 1 | 0 | 12 | 0 % | 2.11 | 60.0 (58.5) | 1.36 |
+
+- **Met** ([D145's done-when](../perf/2026-10-01-chunk-22e.md#d145-and-d146s-done-when-build-plan-22e)):
+  the Physics count drops in both bowl fixtures (−8 % and −36 %), and the
+  drain no longer keeps the whole pile awake. The tick drops 8 % in
+  `s3-basket-59of60` and rises 5 % in `stress-moving`, where the hold's
+  checks cost about 0.8 ms a tick.
+- **Not met:** the short-hop share barely moves (96.1 to 95.2 %) or not
+  at all (76.2 to 76.7 %); no train slime holds in `s3-basket-59of60` on
+  seed 1.
+- **Why the hold rarely ends before its cap:** the crowd check almost
+  never fires (what it counts is the train queue itself, about 24 at the
+  back, under 30), the jam check starts 92 % of the holds, and a jammed
+  holder stays jammed until the cap
+  ([the diagnosis](../perf/2026-10-01-chunk-22e.md#why-the-hold-rarely-ends-before-its-cap)).
+
+### Changed hashes
+
+All 17 fixtures, seed 909, 600 and 2400 ticks, headless test mode
+(`--run-ticks`): only two changed.
+
+- **`stress-moving`**: the hold acts there.
+- **`s3-basket-59of60`**: the local wake changes basket 3's pile and its
+  releases (whether a train slime also holds there on seed 909 wasn't
+  measured; on seed 1 none does).
+
+The 15 others are identical: no slime holds in them, and their resting
+piles never take a wake that differs between the whole-pile and the local
+wake. The build plan expected more changes (the basket-drain and
+resting-pile fixtures, the section 3 bench cases); they kept their hashes
+for the same reason, within the hashed ticks (`stress-still`'s pile of
+140 rests at 6 to 7 s and never wakes). The lists are in
+[the report's `hashes/`](../perf/2026-10-01-chunk-22e/hashes/).
+
+### How to reproduce
+
+```sh
+tools/perf_slow.sh --full-speed --max-fps=60 --seconds=40 <fixture>
+tools/perf_slow.sh --pin=main --seconds=40 <fixture>
+tools/android/perf_summary.py build/perf/desktop-<fixture>-<mode>-<timestamp>.log
+godot --headless --no-header -- --test-mode --level=test --fixture=<fixture> --seed=909 --run-ticks=600 | grep '^STATE'
+```
+
+The fixtures: `stress-moving`, `s3-basket-59of60`, `gate2-open`, `fresh`.
+Each run logs to `build/perf/` (git-ignored). The hash command runs once
+per fixture, with `--run-ticks=600` and `2400`. Labels off, one Godot
+process at a time.
 
 ## Technical choices
 

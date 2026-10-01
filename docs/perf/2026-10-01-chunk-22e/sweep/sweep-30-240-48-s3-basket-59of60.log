@@ -1,0 +1,6 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+Slime Train booted (Godot 4.7.2-stable (official)).
+fixture=s3-basket-59of60 tick0=0 slimes=200 consts=(30, 240, 48) parts=false
+RESULT fixture=s3-basket-59of60 consts=(30,240,48) physics_mean=51.8 physics_max=96 resting_mean=36.2 cluster_mean=25.9 cluster_max=59 holders_mean=0.00 holders_max=0 train_resting_mean=0.00 hops=510 short=409 short_share=80.2 stalled=0 zero_hop_secs=1 bodies_end=197 wall_ms=22137
+STATE_HASH_HINT tick=2400 hops=510

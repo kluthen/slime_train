@@ -102,6 +102,10 @@ const DIP_HOLD_SECONDS := 0.25
 
 ## Pair of runtime ids Vector2i(lower, higher) -> ticks of continuous contact.
 var _contacts := {}
+## The slimes with a counted contact (runtime id -> true), rebuilt from
+## _contacts on the first query after they change (counts_toward_fusion).
+var _counting := {}
+var _counting_stale := true
 ## The current loop's dip floors: [Vector2(from, to)] distances along it.
 var _floors: Array[Vector2] = []
 ## The loop and open gates the floors were computed for.
@@ -113,6 +117,23 @@ var _floors_for := ""
 ## Ticks of continuous contact counted for slimes `a` and `b` (0 when none).
 func contact_ticks(a: int, b: int) -> int:
 	return _contacts.get(Vector2i(mini(a, b), maxi(a, b)), 0)
+
+
+## Whether one of slime `slime_id`'s contacts counted toward fusing on the
+## last step (its pair has a count): a holding train slime about to fuse
+## doesn't rest (D145). Read only: the set of such slimes is rebuilt once
+## per change of the counts, not scanned per query (the Train asks for every
+## holder every tick).
+# @spec-link [[rule_fusion_contact_time]]
+func counts_toward_fusion(slime_id: int) -> bool:
+	if _counting_stale:
+		_counting.clear()
+		for pair: Vector2i in _contacts:
+			if _contacts[pair] > 0:
+				_counting[pair.x] = true
+				_counting[pair.y] = true
+		_counting_stale = false
+	return _counting.has(slime_id)
 
 
 ## The view's box in level pixels.
@@ -192,6 +213,7 @@ func step(sim: Simulation) -> void:
 		else:
 			counts[pair] = ticks
 	_contacts = counts
+	_counting_stale = true
 	var changed := {}
 	for pair in due:
 		if changed.has(pair.x) or changed.has(pair.y):
@@ -224,6 +246,7 @@ func dump() -> Array:
 ## Puts the counts back from dump().
 func restore(data: Array) -> void:
 	_contacts.clear()
+	_counting_stale = true
 	for entry in data:
 		_contacts[Vector2i(int(entry[0]), int(entry[1]))] = int(entry[2])
 

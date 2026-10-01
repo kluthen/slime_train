@@ -316,3 +316,81 @@ func test_runtime_ids_must_be_given_for_all_slimes_or_none() -> void:
 	assert_ne(SaveData.problems(save, _level()), PackedStringArray(), "ascending, no repeats")
 	save["slimes"][1]["runtime_id"] = 2
 	assert_eq(SaveData.problems(save, _level()), PackedStringArray())
+
+
+# --- The hold (chunk 22e, D145) ---------------------------------------------------
+
+## The played story on the ground, its first slime (a train slime) holding
+## since 7 ticks ago (its hold set from a record, as test_train_hold.gd does):
+## its next re-check, 23 ticks on, finds no crowd and no jam and ends it.
+func _with_a_holder() -> Simulation:
+	var sim := _played_on_the_ground()
+	var record := sim.train.record_of(1)
+	record["hold"] = sim.tick - 7
+	sim.train.restore_record(1, record)
+	assert_true(sim.train.is_holding(1), "the first slime holds")
+	return sim
+
+
+# @test-link [[req_persistence_and_saves]]
+func test_a_holding_slimes_hold_round_trips_and_stays_equal_past_its_end() -> void:
+	var sim := _with_a_holder()
+	var save := _through_json(sim.to_save())
+	assert_eq(_saved_hold(save, 1), sim.tick - 7, "the tick the hold began, in the slime's train record")
+	var reloaded := _reloaded(save)
+	assert_not_null(reloaded)
+	if reloaded == null:
+		return
+	assert_eq(reloaded.train.hold_began_at(1), sim.tick - 7, "it holds on after the load")
+	assert_eq(StateHash.canonical_json(reloaded.dump()), StateHash.canonical_json(sim.dump()))
+	assert_eq(reloaded.state_hash(), sim.state_hash())
+	sim.run(Train.HOLD_RECHECK_TICKS)
+	reloaded.run(Train.HOLD_RECHECK_TICKS)
+	assert_false(sim.train.is_holding(1), "its re-check ended the hold")
+	assert_false(reloaded.train.is_holding(1))
+	assert_eq(reloaded.state_hash(), sim.state_hash(), "equal past the re-check and the hold's end")
+	sim.run(MORE_TICKS)
+	reloaded.run(MORE_TICKS)
+	assert_eq(reloaded.state_hash(), sim.state_hash())
+
+
+## Slime `runtime_id`'s saved "hold" in `save` (JSON reads it back as a
+## float), -1 without one.
+func _saved_hold(save: Dictionary, runtime_id: int) -> int:
+	for slime in save["slimes"]:
+		if int(slime["runtime_id"]) == runtime_id and slime.get("train", {}).has("hold"):
+			return int(slime["train"]["hold"])
+	return -1
+
+
+# @test-link [[req_persistence_and_saves]]
+func test_a_save_without_a_hold_loads_with_none_and_a_run_without_holders_writes_none() -> void:
+	var save := _played_on_the_ground().to_save()
+	for slime in save["slimes"]:
+		if slime.has("train"):
+			assert_false(slime["train"].has("hold"), "no holder: no hold in its train record")
+	assert_false(SaveData.to_text(save).contains("\"hold\""), "nor anywhere in the save")
+	var older := _through_json(_with_a_holder().to_save())
+	for slime in older["slimes"]:
+		if slime.has("train"):
+			slime["train"].erase("hold")
+	var reloaded := _reloaded(older)
+	assert_not_null(reloaded)
+	if reloaded == null:
+		return
+	assert_false(reloaded.train.is_holding(1), "an older save, without the key: no hold")
+	var hand_made := Simulation.from_save(_hand_made(), _level(), _terrain(), 99)
+	assert_false(hand_made.train.is_holding(2), "a hand-made train record: no hold")
+
+
+# @test-link [[req_persistence_and_saves]]
+func test_a_bad_hold_makes_the_save_unusable() -> void:
+	for bad in [-1, -1.0, 2.5, "12", null, [3]]:
+		var save := _hand_made()
+		save["slimes"][1]["train"]["hold"] = bad
+		assert_ne(SaveData.problems(save, _level()), PackedStringArray(), "hold %s" % [bad])
+		assert_null(Simulation.from_save(save, _level(), _terrain(), 1), "hold %s: not loaded" % [bad])
+	var save := _hand_made()
+	save["slimes"][1]["train"]["hold"] = 0.0
+	assert_eq(SaveData.problems(save, _level()), PackedStringArray(), "a whole number >= 0 is fine")
+

@@ -1,0 +1,6 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+Slime Train booted (Godot 4.7.2-stable (official)).
+fixture=stress-moving tick0=0 slimes=200 consts=(30, 240, 24) parts=false
+RESULT fixture=stress-moving consts=(30,240,24) physics_mean=127.2 physics_max=200 resting_mean=14.6 cluster_mean=70.1 cluster_max=133 holders_mean=41.88 holders_max=102 train_resting_mean=14.55 hops=926 short=867 short_share=93.6 stalled=0 zero_hop_secs=1 bodies_end=132 wall_ms=27971
+STATE_HASH_HINT tick=2400 hops=926

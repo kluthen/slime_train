@@ -19,7 +19,9 @@ in the whole process, ticks per frame (weighted by frames), active slimes
 (those that cost physics) and candidate pairs (weighted by frames), the slime
 counts (mean, min and max over the lines: physics, on_screen, in_range,
 parked, resting, bodies, and an older log's simulated and off_screen), the
-largest awake cluster's max (and mean), the sections the camera was in (lines in each: seconds at --perf-log=1), the
+largest awake cluster's max (and mean), the train hops (hops and short_hops,
+since chunk 22e: their mean per line, and the short hops' share of the hops
+over the lines, a percentage), the sections the camera was in (lines in each: seconds at --perf-log=1), the
 zoom range, and the frame's parts outside the ticks (weighted by frames: each
 node's ms, the rendering server's setup and render times, the draw calls,
 objects and primitives), when the lines carry them (older logs don't).
@@ -52,6 +54,10 @@ COUNTS = ("physics", "on_screen", "in_range", "parked", "resting", "bodies", "si
 # The largest awake cluster (since chunk 22d), summarised as the counts but
 # reported on its own line, its max first.
 CLUSTER = "largest_cluster"
+# The train hops taken and those landed short, per line (since chunk 22e):
+# their mean per line over the lines that carry them, and short_hops' share
+# of hops summed over those lines, reported on their own line.
+HOPS = ("hops", "short_hops")
 # The frame's parts outside the ticks (the perf log's PART_FIELDS), newer
 # still: summarised by their frame-weighted mean over the lines that have
 # them, in three rows (the nodes' ms, the rendering's ms, the counts).
@@ -156,7 +162,14 @@ def summarise(records):
         "counts": {},
         "sections": {},
         "parts": {},
+        "hops": None,
     }
+    having = [r for r in records if all(key in r for key in HOPS)]
+    if having:
+        hops = sum(r["hops"] for r in having)
+        short = sum(r["short_hops"] for r in having)
+        out["hops"] = {"lines": len(having), "hops_mean": hops / len(having), "short_mean": short / len(having),
+                       "hops": hops, "short_hops": short, "short_share": 100.0 * short / hops if hops > 0 else None}
     for key in COUNTS + (CLUSTER,):
         values = [r[key] for r in records if key in r]
         if values:
@@ -194,6 +207,13 @@ def format_summary(title, records):
     if CLUSTER in s["counts"]:
         _, mean, most = s["counts"][CLUSTER]
         lines.append("  largest cluster max %d (mean %.1f)" % (most, mean))
+    if s["hops"] is not None:
+        h = s["hops"]
+        share = "n/a (no hop)"
+        if h["short_share"] is not None:
+            share = "%.1f %% (%d of %d)" % (h["short_share"], h["short_hops"], h["hops"])
+        lines.append("  train hops      per line: hops %.1f  short_hops %.1f   short share %s" % (
+            h["hops_mean"], h["short_mean"], share))
     if s["sections"]:
         lines.append("  section (lines) " + "  ".join(
             "s%d %d" % (section, n) for section, n in sorted(s["sections"].items())))
@@ -271,20 +291,21 @@ def report(log_lines, cold=None, warm=None, thermal_lines=None):
 # The self-test's log: a threadtime logcat prefix on some lines, a header, a
 # PERF_INFO line, a noise line, and six PERF lines a second apart, the last
 # two with the frame's parts (the first four have none, as an older log's).
+# Hops: 54 in all, 12 short.
 CANNED_LOG = """# device test: Canned Phone
 09-30 17:00:00.000  100  101 I godot   : PERF_INFO seconds=1 model=Canned renderer=mobile
 09-30 17:00:00.500  100  101 I godot   : Slime Train booted
-PERF t=10.0 frames=30 fps=30.0 frame_ms_p50=33.00 frame_ms_p95=40.00 frame_ms_max=50.00 process_ms_mean=20.00 ticks=60 ticks_per_frame_mean=2.00 ticks_per_frame_max=3 tick_ms_mean=5.00 tick_ms_frame_mean=10.00 rest_ms_mean=23.00 physics=12 on_screen=10 in_range=14 parked=21 resting=2 largest_cluster=6 bodies=35 active=12.0 pairs=40.0 section=1 zoom=1.000
-PERF t=11.0 frames=60 fps=60.0 frame_ms_p50=16.00 frame_ms_p95=17.00 frame_ms_max=20.00 process_ms_mean=8.00 ticks=60 ticks_per_frame_mean=1.00 ticks_per_frame_max=1 tick_ms_mean=2.00 tick_ms_frame_mean=2.00 rest_ms_mean=14.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=4 bodies=35 active=10.0 pairs=20.0 section=1 zoom=1.000
-PERF t=12.0 frames=45 fps=45.0 frame_ms_p50=22.00 frame_ms_p95=30.00 frame_ms_max=35.00 process_ms_mean=10.00 ticks=60 ticks_per_frame_mean=1.33 ticks_per_frame_max=2 tick_ms_mean=3.00 tick_ms_frame_mean=4.00 rest_ms_mean=18.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=4 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800
-09-30 17:00:13.000  100  101 I godot   : PERF t=13.0 frames=20 fps=20.0 frame_ms_p50=50.00 frame_ms_p95=60.00 frame_ms_max=90.00 process_ms_mean=40.00 ticks=60 ticks_per_frame_mean=3.00 ticks_per_frame_max=4 tick_ms_mean=10.00 tick_ms_frame_mean=30.00 rest_ms_mean=20.00 physics=30 on_screen=30 in_range=30 parked=5 resting=0 largest_cluster=22 bodies=35 active=30.0 pairs=100.0 section=2 zoom=0.800
-PERF t=14.0 frames=50 fps=50.0 frame_ms_p50=20.00 frame_ms_p95=25.00 frame_ms_max=30.00 process_ms_mean=9.00 ticks=60 ticks_per_frame_mean=1.20 ticks_per_frame_max=2 tick_ms_mean=2.50 tick_ms_frame_mean=3.00 rest_ms_mean=17.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=5 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800 slimes_ms=2.00 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=40 objects=30 primitives=900
-PERF t=15.0 frames=40 fps=40.0 frame_ms_p50=25.00 frame_ms_p95=28.00 frame_ms_max=40.00 process_ms_mean=11.00 ticks=60 ticks_per_frame_mean=1.50 ticks_per_frame_max=2 tick_ms_mean=3.50 tick_ms_frame_mean=5.25 rest_ms_mean=19.75 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=5 bodies=35 active=10.0 pairs=20.0 section=3 zoom=0.800 slimes_ms=4.25 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=49 objects=30 primitives=900
+PERF t=10.0 frames=30 fps=30.0 frame_ms_p50=33.00 frame_ms_p95=40.00 frame_ms_max=50.00 process_ms_mean=20.00 ticks=60 ticks_per_frame_mean=2.00 ticks_per_frame_max=3 tick_ms_mean=5.00 tick_ms_frame_mean=10.00 rest_ms_mean=23.00 physics=12 on_screen=10 in_range=14 parked=21 resting=2 largest_cluster=6 hops=10 short_hops=2 bodies=35 active=12.0 pairs=40.0 section=1 zoom=1.000
+PERF t=11.0 frames=60 fps=60.0 frame_ms_p50=16.00 frame_ms_p95=17.00 frame_ms_max=20.00 process_ms_mean=8.00 ticks=60 ticks_per_frame_mean=1.00 ticks_per_frame_max=1 tick_ms_mean=2.00 tick_ms_frame_mean=2.00 rest_ms_mean=14.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=4 hops=12 short_hops=3 bodies=35 active=10.0 pairs=20.0 section=1 zoom=1.000
+PERF t=12.0 frames=45 fps=45.0 frame_ms_p50=22.00 frame_ms_p95=30.00 frame_ms_max=35.00 process_ms_mean=10.00 ticks=60 ticks_per_frame_mean=1.33 ticks_per_frame_max=2 tick_ms_mean=3.00 tick_ms_frame_mean=4.00 rest_ms_mean=18.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=4 hops=8 short_hops=1 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800
+09-30 17:00:13.000  100  101 I godot   : PERF t=13.0 frames=20 fps=20.0 frame_ms_p50=50.00 frame_ms_p95=60.00 frame_ms_max=90.00 process_ms_mean=40.00 ticks=60 ticks_per_frame_mean=3.00 ticks_per_frame_max=4 tick_ms_mean=10.00 tick_ms_frame_mean=30.00 rest_ms_mean=20.00 physics=30 on_screen=30 in_range=30 parked=5 resting=0 largest_cluster=22 hops=4 short_hops=4 bodies=35 active=30.0 pairs=100.0 section=2 zoom=0.800
+PERF t=14.0 frames=50 fps=50.0 frame_ms_p50=20.00 frame_ms_p95=25.00 frame_ms_max=30.00 process_ms_mean=9.00 ticks=60 ticks_per_frame_mean=1.20 ticks_per_frame_max=2 tick_ms_mean=2.50 tick_ms_frame_mean=3.00 rest_ms_mean=17.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=5 hops=9 short_hops=0 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800 slimes_ms=2.00 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=40 objects=30 primitives=900
+PERF t=15.0 frames=40 fps=40.0 frame_ms_p50=25.00 frame_ms_p95=28.00 frame_ms_max=40.00 process_ms_mean=11.00 ticks=60 ticks_per_frame_mean=1.50 ticks_per_frame_max=2 tick_ms_mean=3.50 tick_ms_frame_mean=5.25 rest_ms_mean=19.75 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=5 hops=11 short_hops=2 bodies=35 active=10.0 pairs=20.0 section=3 zoom=0.800 slimes_ms=4.25 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=49 objects=30 primitives=900
 """
 
 # An older log (before chunk 22d): on_screen, simulated, off_screen and no
-# physics, in_range, resting nor largest_cluster; its second line older
-# still, without parked nor section.
+# physics, in_range, resting, largest_cluster, hops nor short_hops; its
+# second line older still, without parked nor section.
 CANNED_OLD_LOG = """PERF t=1.0 frames=30 fps=30.0 frame_ms_p50=33.00 frame_ms_p95=40.00 frame_ms_max=50.00 process_ms_mean=20.00 ticks=60 ticks_per_frame_mean=2.00 ticks_per_frame_max=3 tick_ms_mean=5.00 tick_ms_frame_mean=10.00 rest_ms_mean=23.00 on_screen=10 simulated=5 off_screen=20 parked=21 bodies=35 active=12.0 pairs=40.0 section=1 zoom=1.000
 PERF t=2.0 frames=60 fps=60.0 frame_ms_p50=16.00 frame_ms_p95=17.00 frame_ms_max=20.00 process_ms_mean=8.00 ticks=60 ticks_per_frame_mean=1.00 ticks_per_frame_max=1 tick_ms_mean=2.00 tick_ms_frame_mean=2.00 rest_ms_mean=14.00 on_screen=12 simulated=7 off_screen=16 bodies=35 active=10.0 pairs=20.0 zoom=1.000
 """
@@ -324,6 +345,13 @@ def self_test():
     assert session[6] == ("  slimes          physics 13.7 (10..30)  on_screen 14.7 (10..30)  in_range 18.7 (14..30)  "
                           "parked 16.3 (5..21)  resting 5.0 (0..7)  bodies 35.0 (35..35)"), session
     assert session[7] == "  largest cluster max 22 (mean 7.7)", session
+    assert s["hops"] == {"lines": 6, "hops_mean": 9.0, "short_mean": 2.0, "hops": 54, "short_hops": 12,
+                         "short_share": 100.0 * 12 / 54}, s["hops"]
+    assert session[8] == "  train hops      per line: hops 9.0  short_hops 2.0   short share 22.2 % (12 of 54)", session
+    no_hop = summarise([dict(records[0], hops=0, short_hops=0)])["hops"]
+    assert no_hop["short_share"] is None, no_hop
+    assert format_summary("still", [dict(records[0], hops=0, short_hops=0)])[8].endswith(
+        "short share n/a (no hop)"), "no hop: no share"
     assert s["sections"] == {1: 2, 2: 3, 3: 1}, s["sections"]
     assert (s["zoom_min"], s["zoom_max"]) == (0.8, 1.0), s
     # Parts: only the last two lines (50 and 40 frames) carry them.
@@ -344,6 +372,7 @@ def self_test():
     assert old_log[6] == ("  slimes          on_screen 11.0 (10..12)  parked 21.0 (21..21)  bodies 35.0 (35..35)  "
                           "simulated 6.0 (5..7)  off_screen 18.0 (16..20)"), old_log
     assert not any(text.startswith("  largest cluster") for text in old_log), old_log
+    assert not any(text.startswith("  train hops") for text in old_log), old_log
     assert [r["t"] for r in cold_window(records, 2)] == [10.0, 11.0]
     assert [r["t"] for r in warm_window(records, 2)] == [14.0, 15.0]
     thermal = format_thermal(CANNED_THERMAL.splitlines())

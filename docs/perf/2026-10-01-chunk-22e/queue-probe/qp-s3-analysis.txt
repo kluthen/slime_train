@@ -1,0 +1,24 @@
+decisions 771
+outcomes Counter({'hop': 510, 'nohop_nohold': 261})
+prediction mismatches 0 Counter()
+outcome x queue bin (train slimes ahead within 300px along loop):
+                    0-2    3-7   8-14    15+
+hop                 108    131    150    121
+nohop_nohold         56     61     77     67
+hop n=510 count mean=10.5 median=10 | split: train_holding=0% train_awake=100% other=0% | behind_on_loop=1% elsewhere_on_loop(fwd>450)=1% | mean_dist_to_target=98 | jam=0 | count>15:144 >30:0 | ahead mean=9.0
+   0-2 n=108 count mean=1.3 median=1 | split: train_holding=0% train_awake=100% other=0% | behind_on_loop=1% elsewhere_on_loop(fwd>450)=0% | mean_dist_to_target=100 | jam=0 | count>15:0 >30:0 | ahead mean=1.0
+   3-7 n=131 count mean=5.7 median=6 | split: train_holding=0% train_awake=100% other=0% | behind_on_loop=1% elsewhere_on_loop(fwd>450)=1% | mean_dist_to_target=98 | jam=0 | count>15:0 >30:0 | ahead mean=4.9
+   8-14 n=150 count mean=12.9 median=13 | split: train_holding=0% train_awake=100% other=0% | behind_on_loop=1% elsewhere_on_loop(fwd>450)=1% | mean_dist_to_target=99 | jam=0 | count>15:28 >30:0 | ahead mean=10.7
+   15+ n=121 count mean=20.7 median=20 | split: train_holding=0% train_awake=100% other=0% | behind_on_loop=1% elsewhere_on_loop(fwd>450)=1% | mean_dist_to_target=94 | jam=0 | count>15:116 >30:0 | ahead mean=18.7
+nohop_nohold n=261 count mean=10.8 median=10 | split: train_holding=0% train_awake=100% other=0% | behind_on_loop=1% elsewhere_on_loop(fwd>450)=1% | mean_dist_to_target=96 | jam=0 | count>15:80 >30:0 | ahead mean=9.3
+   0-2 n=56 count mean=1.5 median=1 | split: train_holding=0% train_awake=100% other=0% | behind_on_loop=0% elsewhere_on_loop(fwd>450)=0% | mean_dist_to_target=97 | jam=0 | count>15:0 >30:0 | ahead mean=1.1
+   3-7 n=61 count mean=5.7 median=6 | split: train_holding=0% train_awake=100% other=0% | behind_on_loop=1% elsewhere_on_loop(fwd>450)=1% | mean_dist_to_target=93 | jam=0 | count>15:0 >30:0 | ahead mean=4.8
+   8-14 n=77 count mean=12.8 median=13 | split: train_holding=0% train_awake=100% other=0% | behind_on_loop=2% elsewhere_on_loop(fwd>450)=1% | mean_dist_to_target=98 | jam=0 | count>15:16 >30:0 | ahead mean=10.7
+   15+ n=67 count mean=20.9 median=20 | split: train_holding=0% train_awake=100% other=0% | behind_on_loop=2% elsewhere_on_loop(fwd>450)=1% | mean_dist_to_target=95 | jam=0 | count>15:64 >30:0 | ahead mean=18.6
+starts: crowd only 0 jam only 0 both 0
+failed rechecks: crowd only 0 jam only 0 both 0
+flips at HOLD_CROWD 15: [(('pass->fail', 'hop', '15+'), 116), (('pass->fail', 'hop', '8-14'), 28)]
+flips at 30 excluding behind-on-loop train slimes: []
+flips at 15 excluding behind-on-loop: [(('pass->fail', 'hop', '15+'), 115), (('pass->fail', 'hop', '8-14'), 26)]
+flips at 30 counting only non-train + train ahead<=300 on loop: []
+cap ends still blocked at the cap: 0 of 0

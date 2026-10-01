@@ -2,11 +2,12 @@ extends GutTest
 ## The perf log (src/debug/perf_log.gd), the phone measurement's PERF line:
 ## its window statistics (frame times to fps, p50, p95, max), its tick
 ## statistics (ticks per frame, ms per tick, the frame's rest), the active
-## slimes (the crowd count) and candidate pairs, the slime counts and the
-## largest awake cluster, its --perf-log[=SECONDS] and
-## --max-ticks-per-frame=N arguments, the line's fields, and the game root
-## adding it only in a debug build (after TestModeGuard, by path) and only
-## when asked. tools/android/perf.sh reads the line on a phone.
+## slimes (the crowd count) and candidate pairs, the slime counts, the
+## largest awake cluster and the window's train hops and short hops, its
+## --perf-log[=SECONDS] and --max-ticks-per-frame=N arguments, the line's
+## fields, and the game root adding it only in a debug build (after
+## TestModeGuard, by path) and only when asked. tools/android/perf.sh reads
+## the line on a phone.
 
 # @test-link [[req_platform_and_performance_targets]]
 
@@ -108,12 +109,13 @@ func test_line_holds_every_field() -> void:
 	var sim := Simulation.new(7)
 	var ticking := PerfLog.tick_stats(PackedFloat64Array([0.05, 0.05]), PackedInt32Array([3, 1]),
 			PackedInt64Array([30_000, 10_000]), PackedInt32Array([80, 31]), PackedInt32Array([200, 41]))
-	var text := PerfLog.line(12.34, PerfLog.window_stats(_ramp(20)), ticking, 4.5, 300, sim, _parts())
+	var text := PerfLog.line(12.34, PerfLog.window_stats(_ramp(20)), ticking, 4.5, 300, 9, 4, sim, _parts())
 	assert_true(text.begins_with("PERF t=12.3 frames=20 fps=95.2 "), text)
 	for field in ["frame_ms_p50=10.00", "frame_ms_p95=19.00", "frame_ms_max=20.00", "process_ms_mean=4.50",
 			"ticks=300", "ticks_per_frame_mean=2.00", "ticks_per_frame_max=3", "tick_ms_mean=10.00",
 			"tick_ms_frame_mean=20.00", "rest_ms_mean=30.00", "physics=0", "on_screen=0", "in_range=0",
-			"parked=0", "resting=0", "largest_cluster=0", "bodies=0", "active=55.5", "pairs=120.5", "section=0", "zoom=",
+			"parked=0", "resting=0", "largest_cluster=0", "hops=9", "short_hops=4", "bodies=0", "active=55.5",
+			"pairs=120.5", "section=0", "zoom=",
 			"slimes_ms=0.50", "main_ms=5.50", "field_gpu_ms=10.50", "draw_calls=12", "primitives=14"]:
 		assert_string_contains(text, " " + field)
 	assert_false("\n" in text, "one line")
@@ -124,7 +126,7 @@ func test_line_holds_every_field() -> void:
 func test_line_is_key_value_numbers_in_the_documented_order() -> void:
 	var ticking := PerfLog.tick_stats(PackedFloat64Array([0.02]), PackedInt32Array([1]), PackedInt64Array([5_000]),
 			PackedInt32Array([1]), PackedInt32Array([0]))
-	var fields := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 5.0, 1,
+	var fields := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 5.0, 1, 0, 0,
 			Simulation.new(7), _parts()).split(" ")
 	assert_eq(fields[0], "PERF")
 	var keys := PackedStringArray()
@@ -135,7 +137,8 @@ func test_line_is_key_value_numbers_in_the_documented_order() -> void:
 	assert_eq(keys, PackedStringArray(["t", "frames", "fps", "frame_ms_p50", "frame_ms_p95", "frame_ms_max",
 			"process_ms_mean", "ticks", "ticks_per_frame_mean", "ticks_per_frame_max", "tick_ms_mean",
 			"tick_ms_frame_mean", "rest_ms_mean", "physics", "on_screen", "in_range", "parked", "resting",
-			"largest_cluster", "bodies", "active", "pairs", "section", "zoom", "slimes_ms", "eyes_ms", "frontier_ms", "hud_ms", "debug_ms",
+			"largest_cluster", "hops", "short_hops", "bodies", "active", "pairs", "section", "zoom", "slimes_ms",
+			"eyes_ms", "frontier_ms", "hud_ms", "debug_ms",
 			"main_ms", "setup_ms", "render_cpu_ms", "render_gpu_ms", "field_cpu_ms", "field_gpu_ms", "draw_calls",
 			"objects", "primitives"]))
 
@@ -169,7 +172,8 @@ func test_the_line_counts_the_slimes_as_the_bar() -> void:
 	bodies.calm[bodies.index_of(resting)] = SlimeBodies.RESTING
 	var ticking := PerfLog.tick_stats(PackedFloat64Array([0.02]), PackedInt32Array([0]), PackedInt64Array([0]),
 			PackedInt32Array([0]), PackedInt32Array([0]))
-	var text := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 1.0, 0, sim, _parts())
+	var text := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 1.0, 0, 0, 0,
+			sim, _parts())
 	for field in ["physics=1", "on_screen=1", "in_range=2", "parked=2", "resting=1", "largest_cluster=1",
 			"bodies=4"]:
 		assert_string_contains(text, " " + field)
@@ -192,10 +196,37 @@ func test_the_line_holds_the_largest_cluster_and_reads_only() -> void:
 	var hash_before := sim.state_hash()
 	var ticking := PerfLog.tick_stats(PackedFloat64Array([0.02]), PackedInt32Array([1]), PackedInt64Array([0]),
 			PackedInt32Array([5]), PackedInt32Array([0]))
-	var text := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 1.0, 1, sim, _parts())
+	var text := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 1.0, 1, 0, 0,
+			sim, _parts())
 	assert_string_contains(text, " largest_cluster=3 ")
 	assert_string_contains(text, " physics=5 ")
 	assert_eq(sim.state_hash(), hash_before, "read only")
+
+
+## The line's hops and short_hops are the window's: the perf log takes the
+## train's new hops (Train.hops_taken, short_hops_taken) frame by frame, so
+## those counted before its first frame aren't the window's.
+# @test-link [[req_platform_and_performance_targets]]
+func test_the_window_counts_the_trains_new_hops() -> void:
+	var game := _game_with_guard(true)
+	assert_eq(game.enable_test_mode({"seed": 1}), PackedStringArray())
+	assert_eq(game.add_perf_log(PackedStringArray(["--perf-log=100"])), PackedStringArray())
+	var train: Train = game.simulation.train
+	assert_not_null(train, "test mode's level has a train")
+	train.hops_taken += 7
+	train.short_hops_taken += 2
+	var perf_log: PerfLog = game.perf_log
+	perf_log._on_process_frame()
+	perf_log._process(0.0)
+	assert_eq([perf_log._hops, perf_log._short_hops], [0, 0], "counted before the log's first frame")
+	train.hops_taken += 5
+	train.short_hops_taken += 1
+	perf_log._on_process_frame()
+	perf_log._process(0.0)
+	train.hops_taken += 2
+	perf_log._on_process_frame()
+	perf_log._process(0.0)
+	assert_eq([perf_log._hops, perf_log._short_hops], [7, 1])
 
 
 ## The camera's section: that of the current loop's segment nearest the

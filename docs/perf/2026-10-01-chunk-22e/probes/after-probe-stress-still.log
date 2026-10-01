@@ -1,0 +1,50 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+Slime Train booted (Godot 4.7.2-stable (official)).
+fixture=stress-still tick0=0 slimes=200
+SEC  1 physics=133 resting=7 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=124 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC  2 physics=127 resting=13 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=124 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC  3 physics=126 resting=14 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=124 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC  4 physics=126 resting=14 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=124 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC  5 physics=124 resting=16 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=124 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC  6 physics=124 resting=16 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=124 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC  7 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC  8 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC  9 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 10 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 11 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 12 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 13 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 14 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 15 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 16 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 17 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 18 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 19 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 20 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 21 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 22 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 23 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 24 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 25 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 26 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 27 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 28 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 29 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 30 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 31 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 32 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 33 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 34 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 35 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 36 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 37 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 38 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 39 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+SEC 40 physics=0 resting=140 in_basket=60 (resting 0) trans=0 [basket 0 train 0 other 0] whole_pile=0 cluster=0 rel=0 cat=0 phase=full bodies=200 pile_active_ticks=0 hold_mean=0.0 hold_max=0 train_resting=0 (max 0)
+TOTAL { "trans": 0, "trans_basket": 0, "trans_train": 0, "trans_other": 0, "whole_pile": 0, "whole_events": 0, "releases": 0, "catches": 0, "hold_slime_ticks": 0, "hold_max": 0, "train_rest_slime_ticks": 0 }
+HOLD mean holding train slimes per tick 0.00
+BASKET_WAKES by same-tick event [events, slimes woken] {  }
+BASKET3_FIRED_TICK -1
+RELEASES due_ticks=0 blocked_ticks=0 (outlet not clear)
+PILE_AFTER_FIRE active_ticks=0 resting_ticks=0

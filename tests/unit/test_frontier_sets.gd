@@ -241,6 +241,35 @@ func test_a_fired_basket_lets_its_slimes_go_one_at_a_time_at_its_outlet() -> voi
 	assert_eq(_basket(sim)["weight"], 0, "empty")
 
 
+## The local wake (D145): a release wakes the released slime and only the
+## resting basket slimes touching it; the rest of the pile rests on.
+# @test-link [[req_offscreen_simulation]]
+# @test-link [[req_switch_basket_gate_set]]
+func test_a_release_wakes_only_the_slimes_touching_the_released_one() -> void:
+	var sim := _sim()
+	sim.frontier.tap_switch(sim, SWITCH)
+	# A row of touching base slimes on the basket's floor, the lowest id (the
+	# first released) in the middle.
+	var gap := 2.0 * (SlimeBodies.RING_RADIUS_SIZE_1 + SlimeBodies.EDGE) - 4.0
+	var row := {}
+	for k in [0, -1, 1, -2, 2]:
+		row[k] = _slime(sim, 1, -750.0 + gap * k, SlimeBodies.IN_BASKET)
+	for t in 300:
+		sim.slimes.tick(Simulation.TICK_SECONDS)
+	for k in row:
+		assert_eq(sim.slimes.calm_of(row[k]), SlimeBodies.RESTING, "slime %d rests" % k)
+		assert_eq(sim.slimes.body_of(row[k])["pile"], row[0], "one pile")
+	_frontier_steps(sim, 2 + REWARD_TICKS)
+	assert_eq(_basket(sim)["phase"], FrontierSets.FIRED)
+	assert_eq(sim.slimes.state_of(row[0]), SlimeBodies.TRAIN, "released")
+	assert_eq(sim.slimes.calm_of(row[0]), SlimeBodies.ACTIVE)
+	for k in [-1, 1]:
+		assert_eq(sim.slimes.calm_of(row[k]), SlimeBodies.ACTIVE, "slime %d, touching it, wakes" % k)
+	for k in [-2, 2]:
+		assert_eq(sim.slimes.calm_of(row[k]), SlimeBodies.RESTING, "slime %d rests on" % k)
+		assert_eq(sim.slimes.state_of(row[k]), SlimeBodies.IN_BASKET)
+
+
 func _moved(body: Dictionary, by: Vector2) -> Dictionary:
 	var points: PackedVector2Array = body["points"]
 	for k in points.size():

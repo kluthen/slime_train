@@ -59,7 +59,9 @@ extends RefCounted
 ## Tick order: queued input (taps dispatched, calls answered, tilt read, wake
 ## early); the session advances (clocks, phases, bedtime and sunrise); the slimes far
 ## from the view park and move at their off-screen pace, the near ones
-## simulate again (Offscreen); the train steers (aims the coming hops, carries the slimes on a slide); the free
+## simulate again (Offscreen); the train steers (aims the coming hops, holds
+## them before a crowd or a jam and lets holders rest, from the last step's
+## fusion contacts; carries the slimes on a slide); the free
 ## slimes steer; the slime bodies (free slimes fall the way the tilt says;
 ## hops, then the solver); the free slimes'
 ## hops are paced and every hop turns its slime; the split zones split (train
@@ -301,7 +303,7 @@ func step() -> void:
 	offscreen.step(self)
 	var gates: Array = train.open_gates if train != null else []
 	if train != null:
-		train.steer(slimes, TICK_SECONDS)
+		train.steer(slimes, TICK_SECONDS, tick, fusion)
 	free_slimes.steer(slimes, TICK_SECONDS, level, gates)
 	slimes.free_down = phone_tilt.down()
 	slimes.tick(TICK_SECONDS)

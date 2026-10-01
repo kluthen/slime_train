@@ -19,7 +19,8 @@ extends RefCounted
 ##       "runtime_id": 4,                   # optional (all or none)
 ##       "species": "C", "size": 2, "state": "train" | "free" | "sleeper" | "bedtime_asleep" | "in_basket",
 ##       "centre": [x, y], "velocity": [x, y],
-##       "train": {"distance", "laps", "on_slide", "mark", "marked_at"},  # optional
+##       "train": {"distance", "laps", "on_slide", "mark", "marked_at",
+##                 "hold"},  # optional; "hold" optional (chunk 22e)
 ##       "free": {"phase", "since", "point", "route", "rng_state"},             # optional
 ##       "body": {"points", "previous", "centre", "hop_timer", "heading", "held",
 ##                "supported", "rng_state",                                    # optional
@@ -187,6 +188,7 @@ static func _slime(sim: Simulation, slime_id: int) -> Dictionary:
 		out["train"] = {"distance": exact(record["distance"]), "laps": record["laps"],
 				"on_slide": record["on_slide"], "mark": exact(record["mark"]),
 				"marked_at": record["marked_at"]}
+		_save_hold(record, out["train"])
 	if sim.free_slimes.tracks(slime_id):
 		var record := sim.free_slimes.record_of(slime_id)
 		out["free"] = {"phase": record["phase"], "since": record["since"], "point": vector(record["point"]),
@@ -397,6 +399,8 @@ static func _slime_problems(slimes: Array) -> PackedStringArray:
 		var train: Variant = slime.get("train")
 		if train != null and typeof(train) != TYPE_DICTIONARY:
 			out.append(at + "'train' must be a dictionary")
+		elif train != null and train.has("hold") and not _is_tick(train["hold"]):
+			out.append(at + "'train.hold' must be a whole number >= 0")
 		var body: Variant = slime.get("body")
 		if body != null and size != null and size >= 1 and size <= SlimeBodies.MAX_SIZE:
 			var level: Variant = _detail_level(body) if typeof(body) == TYPE_DICTIONARY else 0
@@ -559,6 +563,7 @@ static func _restore_progress(sim: Simulation, slime_id: int, slime: Dictionary)
 				record[key] = _whole(train[key])
 		if train.has("on_slide"):
 			record["on_slide"] = bool(train["on_slide"])
+		_restore_hold(train, record)
 		sim.train.restore_record(slime_id, record)
 	elif sim.train != null and sim.slimes.state_of(slime_id) == SlimeBodies.TRAIN:
 		var at := sim.slimes.centre_of(slime_id)
@@ -570,6 +575,23 @@ static func _restore_progress(sim: Simulation, slime_id: int, slime: Dictionary)
 		if free.has("rng_state"):
 			record["rng_state"] = str(free["rng_state"]).to_int()
 		sim.free_slimes.restore_record(slime_id, record)
+
+
+## Writes train record `record`'s "hold" (the tick its hold began, chunk 22e,
+## D145) into `saved`, the slime's saved "train", only while it holds.
+# @spec-link [[req_persistence_and_saves]]
+static func _save_hold(record: Dictionary, saved: Dictionary) -> void:
+	if record.has("hold"):
+		saved["hold"] = record["hold"]
+
+
+## Reads `saved`'s "hold" (a slime's saved "train") into the train record
+## `record` as a whole number (Train.restore_record wants an int); without
+## one (an older save) the slime doesn't hold.
+# @spec-link [[req_persistence_and_saves]]
+static func _restore_hold(saved: Dictionary, record: Dictionary) -> void:
+	if saved.has("hold"):
+		record["hold"] = _whole(saved["hold"])
 
 
 static func _restore_transient(sim: Simulation, transient: Dictionary) -> void:
@@ -725,6 +747,14 @@ static func _detail_level(body: Dictionary) -> Variant:
 		var level: Variant = _whole(body["detail"])
 		return level if level != null and level >= 0 and level <= SlimeBodies.MAX_DETAIL else null
 	return SlimeBodies.LOW_DETAIL if body.get("low", false) == true else 0
+
+
+## Whether `value` is a tick: a whole number >= 0 (an int, or a float as
+## JSON reads it back).
+# @spec-link [[req_persistence_and_saves]]
+static func _is_tick(value: Variant) -> bool:
+	var tick: Variant = _whole(value)
+	return tick != null and tick >= 0
 
 
 ## An int from an int or a whole float (JSON numbers are floats), else null.

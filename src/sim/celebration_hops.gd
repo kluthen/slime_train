@@ -8,12 +8,14 @@ extends RefCounted
 ## stands still), after the slime bodies have ticked.
 ##
 ## Each chosen slime hops straight up at HOP_STRENGTH as soon as it stands on
-## something (SlimeBodies.hop), then again on landing. A slime that can't
-## hop (asleep, caught by a basket, gone) waits; whatever is still due when
-## the burst ends is dropped. Slimes that come into view during the burst
-## don't join in. The hops still due are state: in dump() (so the state
-## hash) and in saves (transient.frontier, SaveData). No randomness: the
-## slimes are taken in id order.
+## something (SlimeBodies.hop), then again on landing. A slime that can't hop
+## (asleep, caught by a basket, gone) waits; whatever is still due when the
+## burst ends is dropped. Slimes that come into view during the burst don't
+## join in. A resting train slime (a holder, Train) chosen is woken at the
+## burst's start: resting, it couldn't hop; its hold goes on (D145). The hops
+## still due are state: in dump() (so the state hash) and in saves
+## (transient.frontier, SaveData). No randomness: the slimes are taken in id
+## order.
 # @spec-link [[req_level_completion_celebration]]
 # @spec-link [[req_hopping_behavior]]
 
@@ -29,6 +31,10 @@ var _due := {}
 
 
 ## The burst begins: every awake slime on screen now has HOPS hops to do.
+## A resting train slime among them (a holder, which rests while it holds,
+## Train) is woken, only it, so it can hop; its hold goes on after (D145).
+# @spec-link [[req_level_completion_celebration]]
+# @spec-link [[req_hopping_behavior]]
 func begin(sim: Simulation) -> void:
 	_due.clear()
 	var view := Fusion.view_rect(sim.view)
@@ -36,6 +42,8 @@ func begin(sim: Simulation) -> void:
 		var state := sim.slimes.state_of(slime_id)
 		if (state == SlimeBodies.TRAIN or state == SlimeBodies.FREE) and view.has_point(sim.slimes.centre_of(slime_id)):
 			_due[slime_id] = HOPS
+			if state == SlimeBodies.TRAIN and sim.slimes.calm_of(slime_id) == SlimeBodies.RESTING:
+				sim.slimes.wake(slime_id)
 
 
 ## One tick. `playing`: whether the burst still plays; once it doesn't, the

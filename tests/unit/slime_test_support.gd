@@ -43,7 +43,7 @@ static func layout_problems(bodies: SlimeBodies) -> PackedStringArray:
 		problems.append("point arrays hold %d/%d/%d points, the ranges %d"
 				% [bodies.pos.size(), bodies.prev.size(), bodies.rest_off.size(), next_first])
 	for array_name in ["id", "first", "npts", "size", "species", "state", "ring_radius", "rest_area",
-			"centre", "hop_timer", "heading", "calm", "detail", "still_ticks"]:
+			"centre", "hop_timer", "heading", "calm", "detail", "still_ticks", "may_rest"]:
 		if bodies.get(array_name).size() != bodies.slime_count:
 			problems.append("%s has %d entries for %d slimes" % [array_name, bodies.get(array_name).size(), bodies.slime_count])
 	return problems

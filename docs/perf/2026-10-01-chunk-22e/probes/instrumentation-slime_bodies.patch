@@ -1,0 +1,155 @@
+--- a/src/sim/slime_bodies.gd	2026-10-01 07:38:48.653700323 +0200
++++ b/src/sim/slime_bodies.gd	2026-10-01 07:49:35.870150103 +0200
+@@ -237,6 +237,10 @@
+ ## state: not in dump() nor in saves. A hop() (the celebration's) isn't in it.
+ # @spec-link [[req_platform_and_performance_targets]]
+ var train_hopped := PackedInt32Array()
++var probe_cause := ""
++var probe_tick := 0
++var probe_log: Array = []
++var probe_toucher := {}
+ 
+ var _master: Rng
+ var _streams: Array[Rng] = []
+@@ -365,6 +369,7 @@
+ 
+ ## Removes a slime. False when there is no such slime.
+ func remove(slime_id: int) -> bool:
++	probe_cause = "remove"
+ 	var s := index_of(slime_id)
+ 	if s < 0:
+ 		return false
+@@ -476,6 +481,7 @@
+ # --- Changing ---------------------------------------------------------------
+ 
+ func set_state(slime_id: int, slime_state: int) -> void:
++	probe_cause = "set_state"
+ 	var s := index_of(slime_id)
+ 	if s < 0 or slime_state < 0 or slime_state >= STATE_NAMES.size():
+ 		push_error("SlimeBodies: can't set state %d on slime %d" % [slime_state, slime_id])
+@@ -517,6 +523,7 @@
+ 
+ ## Gives every point of the slime the velocity `velocity` (px/s).
+ func set_velocity(slime_id: int, velocity: Vector2) -> void:
++	probe_cause = "set_velocity"
+ 	var s := index_of(slime_id)
+ 	if s < 0:
+ 		return
+@@ -587,6 +594,7 @@
+ # @spec-link [[rule_max_size_three]]
+ # @spec-link [[rule_fusion_contact_time]]
+ func merge(a: int, b: int) -> int:
++	probe_cause = "merge"
+ 	if not can_merge(a, b):
+ 		return -1
+ 	var keep := index_of(mini(a, b))
+@@ -609,6 +617,7 @@
+ ## []. Where slimes split (only in a split zone) is the loop chunk's job.
+ # @spec-link [[rule_split_zone_only_splitter]]
+ func split(slime_id: int) -> PackedInt32Array:
++	probe_cause = "split"
+ 	var s := index_of(slime_id)
+ 	if s < 0:
+ 		return PackedInt32Array()
+@@ -677,6 +686,7 @@
+ ## was (a slime taken out from under a pile).
+ # @spec-link [[req_offscreen_simulation]]
+ func set_body(slime_id: int, body: Dictionary) -> bool:
++	probe_cause = "set_body"
+ 	var s := index_of(slime_id)
+ 	if s < 0:
+ 		return false
+@@ -784,6 +794,7 @@
+ 
+ ## Wakes a resting slime (ACTIVE again). Nothing for an active or parked one.
+ func wake(slime_id: int) -> void:
++	probe_cause = "wake"
+ 	var s := index_of(slime_id)
+ 	if s >= 0:
+ 		_wake_at(s)
+@@ -791,6 +802,7 @@
+ 
+ ## Wakes every resting slime whose centre is in `box`. Returns how many.
+ func wake_resting_in(box: Rect2) -> int:
++	probe_cause = "wake_resting_in"
+ 	var woken := 0
+ 	for s in slime_count:
+ 		if calm[s] == RESTING and box.has_point(centre[s]):
+@@ -801,6 +813,7 @@
+ ## Wakes every resting slime whose ring may reach within `radius` of `point`.
+ ## Returns how many.
+ func wake_around(point: Vector2, radius: float) -> int:
++	probe_cause = "wake_around"
+ 	return _wake_around(point, radius, -1)
+ 
+ 
+@@ -809,6 +822,7 @@
+ ## False when nothing changed.
+ # @spec-link [[req_offscreen_simulation]]
+ func set_detail(slime_id: int, level: int) -> bool:
++	probe_cause = "set_detail"
+ 	assert(level >= 0 and level <= MAX_DETAIL, "SlimeBodies: invalid detail level %d" % level)
+ 	var s := index_of(slime_id)
+ 	if s < 0 or detail[s] == level:
+@@ -825,6 +839,7 @@
+ ## once ACTIVE again, on the next call. Returns how many rings changed.
+ # @spec-link [[req_offscreen_simulation]]
+ func set_active_detail(level: int) -> int:
++	probe_cause = "set_active_detail"
+ 	assert(level >= 0 and level <= MAX_DETAIL, "SlimeBodies: invalid detail level %d" % level)
+ 	# Often every ring already has it: one native count, no loop.
+ 	if level <= PILE_MAX_DETAIL and detail.count(level) == slime_count:
+@@ -846,6 +861,7 @@
+ 
+ ## Advances every body by `dt` seconds (the simulation's fixed tick).
+ func tick(dt: float) -> void:
++	probe_cause = "tick"
+ 	_h = dt / substeps
+ 	hopped.clear()
+ 	train_hopped.clear()
+@@ -869,6 +885,7 @@
+ 		if _pair_touch[k] != 0:
+ 			_touching.append(Vector2i(id[_pairs[2 * k]], id[_pairs[2 * k + 1]]))
+ 	_rest()
++	probe_cause = "after_tick"
+ 
+ 
+ ## The resting-pile rule (see the class doc), after the tick. A resting pile
+@@ -880,6 +897,7 @@
+ # @spec-link [[req_offscreen_simulation]]
+ func _rest() -> void:
+ 	if not rest_enabled:
++		probe_cause = "rest_off"
+ 		for s in slime_count:
+ 			_wake_at(s)
+ 		return
+@@ -892,9 +910,11 @@
+ 		var b: int = _pairs[2 * k + 1]
+ 		if calm[a] == RESTING and calm[b] == ACTIVE and state[b] != STATE_SLEEPER:
+ 			if _drift[b].length_squared() > fast2:
++				_probe_touch(b)
+ 				_wake_at(a)
+ 		elif calm[b] == RESTING and calm[a] == ACTIVE and state[a] != STATE_SLEEPER:
+ 			if _drift[a].length_squared() > fast2:
++				_probe_touch(a)
+ 				_wake_at(b)
+ 	var ready := false
+ 	for s in slime_count:
+@@ -999,7 +1019,17 @@
+ 
+ ## Wakes slime index `s` and, when it rests, its whole pile. Returns how many
+ ## slimes woke.
++func _probe_touch(b: int) -> void:
++	probe_cause = "touch"
++	probe_toucher = {"id": id[b], "state": state[b], "speed": _drift[b].length() / _h, "supported": supported[b], "held": held[b]}
++
++
+ func _wake_at(s: int) -> int:
++	var probe_was := calm[s]
++	if probe_was == RESTING:
++		probe_log.append({"tick": probe_tick, "kind": "wake", "cause": probe_cause, "id": id[s], "state": state[s], "pile": pile[s], "toucher": probe_toucher.duplicate() if probe_cause == "touch" else {}})
++	elif probe_was == ACTIVE and _can_rest(s):
++		probe_log.append({"tick": probe_tick, "kind": "reset", "cause": probe_cause, "id": id[s], "state": state[s], "still": still_ticks[s]})
+ 	var woken := 0
+ 	if calm[s] == RESTING:
+ 		var group := pile[s]
