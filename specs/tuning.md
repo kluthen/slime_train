@@ -202,6 +202,22 @@ random spot. The rest **proposed**.
 | Landing draws per turn | 8, from `loop_start:spot:<tick>`; the first free one (no ring overlapping, parked ones included) is used (proposed) | D150 |
 | No free spot | nobody moves; the head tries again on the next tick that is a multiple of 30 (0.5 s) (proposed) | D150 |
 
+### The bucket cap (D151, chunk 22i)
+
+The user's: a loop bucket never holds more than 15; a hop into a full
+bucket holds; an overfilled bucket lets slimes move only while the next
+has room. The cap below is the coordinator's, accepted by the user as the
+starting value; the rest **proposed**. Behind `--bucket-cap`, off by
+default until the user decides.
+
+| Value | Start at | Source |
+|---|---|---|
+| Loop bucket length (`LoopBuckets.DEFAULT_BUCKET_LENGTH`, `--loop-bucket-length`) | 300 px of loop progress (22g's) | D151 |
+| Bucket cap density (`Train.bucket_cap_density`, `--bucket-cap-density`) | 4 of weight per 100 px of loop: 12 per 300 px bucket (the user's "never more than 15" leaves 3 of slack for hops in flight and arrivals); a size-n slime counts n | D151 |
+| A short last bucket's cap | density × its length, rounded down, never below 3 (the largest size) (proposed) | D151 |
+| Density floor (the train can't lock for lack of room) | at least 2 × the level's base slimes / the loop's length; never binds on the test level (2.3 per 100 px on section 1's loop, 1.0 on section 3's) (proposed) | D151 |
+| Bucket-load sampling (measurement only) | every 60 ticks: each bucket's highest load and a histogram (proposed) | D151 |
+
 ### Session, wind-down, bedtime and sunrise (chunk 17)
 
 | Value | Start at | Source |

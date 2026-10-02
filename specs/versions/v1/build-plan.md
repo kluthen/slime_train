@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v21 (approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v22 (approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
@@ -27,7 +27,8 @@ a save a build can't use before the first store release, proposed, D149;
 chunk 22d done, 7437fd0; chunk 22e done, 4750f12, as-built notes in D145
 and D146: the local wake and the Physics drop met, the short-hop share
 not, handed to 22f; chunk 22h, moves to the loop start one at a time to a
-random free spot and no stall clock while parked, next, D150)
+random free spot and no stall clock while parked, D150; chunk 22i, a cap
+on each loop bucket's load behind a switch, before 22h, the user's, D151)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -187,8 +188,10 @@ technology, not business behaviour:
 - **Chunks 22f** (9be1af7, the hold's second round) **and 22g**
   (6e423b7, experimental, its switch off by default) are committed; their
   as-built records aren't in the decisions log yet.
-- **Next, in this order (proposed, D140, D143, D142, D146, D147, D148, D150):**
-  chunk **22h** (moves to the loop start one at a time, 0.5 to 2 s apart,
+- **Next, in this order (proposed, D140, D143, D142, D146, D147, D148, D150, D151):**
+  chunk **22i** (a cap on each loop bucket's load, 12 of weight per 300 px,
+  behind `--bucket-cap`, off by default, measured off against on; the
+  user's: "let's try the bucket cap first", D151), chunk **22h** (moves to the loop start one at a time, 0.5 to 2 s apart,
   to a random free spot, and no stall clock while a train slime is
   parked; the user's, 2026-10-02, details proposed, D150), chunk **19w**
   (a `--wipe-save` launch flag that deletes the level saves in debug
@@ -246,7 +249,8 @@ technology, not business behaviour:
 | 22d | Debug counters and the largest awake cluster (proposed, D143) | S | 22b | unit tests of the four counts and the cluster; the PERF line and its summary carry them; same hashes |
 | 22e | Cluster fixes: the local wake and the hold (done, D146, 4750f12; out of 24.3 and 24.8; the short-hop share not reduced, handed to 22f) | S to M | 22d | the blocked-hop counters first; unit tests of the hold, the jam, the cap and the local wake; the bowl's Physics count and short hops drop in the PERF lines; changed hashes listed |
 | 22f | The hold, second round (proposed, D147) | S to M | 22e | the crowd diagnostic first; the hop corridor; no hop through a crowd, the hold guard; at least 90 % of holds end clear; no freeze over 10,000 ticks; the short-hop share drops and the front of a queue takes the hops; changed hashes listed |
-| 22h | Moves to the loop start one at a time, to a random free spot; no stall clock while parked (the user's, details proposed, D150) | S | 22f; runs next, before 19w and 5N | `s3-basket-59of60` over 10,000 ticks: no stall move of a parked slime, no stuck move within 10 s of a landing, moves at least 30 ticks apart; unit tests of the queue, the pause, the landing spot; same hash across a save and reload mid-queue; changed hashes listed |
+| 22i | The bucket cap: a cap on each loop bucket's load, behind a switch (the user's, details proposed, D151) | S | 22g; runs next, before 22h | off: the 17 hashes unchanged; off against on, `s3-basket-59of60` and `stress-moving`: 10,000-tick stalls, stuck moves, bowl left; the 2400-tick probe with holds by reason; the bucket-load histogram; phone-emulation fps; unit tests of the loads, the full-bucket hold, the overfilled bucket, the parked edge; same hash across a save and reload |
+| 22h | Moves to the loop start one at a time, to a random free spot; no stall clock while parked (the user's, details proposed, D150) | S | 22f, 22i; runs after 22i, before 19w and 5N | `s3-basket-59of60` over 10,000 ticks: no stall move of a parked slime, no stuck move within 10 s of a landing, moves at least 30 ticks apart; unit tests of the queue, the pause, the landing spot; same hash across a save and reload mid-queue; changed hashes listed |
 | 22c | Crowd detail only under load (proposed, D141) | S | 5N | the load meter's unit tests; same hashes in `always`; `auto` measured on the desktop |
 | 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
 | 24 | Playtest issues, round 2 (open list; proposed) | S per issue (24.1 may be M) | 22 repeated (after 22b, 22d, 22e, 22f and 5N, D140, D143, D146, D147) | each issue's own done-when |
@@ -261,9 +265,11 @@ parallel with the camera and objects work. Chunk 23 runs first among the
 remaining chunks, before 18 (D123), and chunk LD runs in parallel with it.
 TL1 ran after both, before 18 (D127; done, D129). After chunk 22, the
 order is 22b, 22d, 22e, 22f (those four done; 22g, experimental, committed
-with its switch off), 22h, 19w, 5N, 22c, 22 repeated, then the rest of
-chunk 24, the last chunk before the closing health review (D128, D140,
-D141, D143, D146, D147, D148, D150, proposed; O97 closed by D140).
+with its switch off), 22i (the bucket cap, behind its switch, the user's:
+"let's try the bucket cap first"), 22h, 19w, 5N, 22c, 22 repeated, then
+the rest of chunk 24, the last chunk before the closing health review
+(D128, D140, D141, D143, D146, D147, D148, D150, D151, proposed; O97
+closed by D140).
 
 ## Chunks
 
@@ -1177,6 +1183,81 @@ body code or the Train. Every rule and number below is D147's, proposed.
     diagnostic, the chosen detection, and the numbers before and after.
     The suite passes.
 
+### 22i. The bucket cap (S, the user's, details proposed, D151)
+
+The user (2026-10-02): "A bucket should NEVER have more than 15 slimes
+(with exception... like slimes in a basket) ... if a slime in bucket 12
+hope to reach bucket 13, but this bucket is already 15 full, then it hold
+its jump"; an overfilled bucket "can only attempt to move forward ...
+ONLY if the next bucket is empty enough"; the coordinator's cap accepted
+("let's try the bucket cap first, at your proposed cap"). Runs next,
+before 22h. It builds on 22g's loop buckets (`src/sim/loop_buckets.gd`)
+and edits the Train, the hold and the off-screen advance, so it runs
+alone. Behind a switch, default off: an ATD peek
+(`req_hopping_behavior`, `req_offscreen_simulation`; no save key), the
+full steps only if the user turns it on by default. Every rule and number
+below is D151's, proposed where it goes beyond the user's words.
+
+- **1. The loads, kept always** (the switch on or off, front-first on or
+  off): a bucket's load is the weight of the train slimes whose recorded
+  distance is in it, parked and sliding ones included; not slimes in a
+  basket, sleepers, bedtime-asleep or free slimes. Derived from the
+  records and the loop's cut, placed again when a gate recuts it. A hop
+  let through counts in its landing bucket until the slime's next
+  `follow()`: the first in processing order takes the last room. In the
+  air a slime counts where its progress is (known slack, measured).
+- **2. A hop into a full bucket holds:** the landing bucket (that of the
+  distance `hop_target` aims at) must have room: its load plus the
+  slime's size at most its cap. A skipped bucket isn't checked. Bucket 0
+  follows the last.
+- **3. An overfilled bucket** (at or over its cap): a slime in it hops
+  only while the next bucket ahead has room for it, landing there or
+  inside its own; otherwise it holds. Under its cap, a hop inside the
+  bucket is never held by the cap. The corridor and the holder rule apply
+  on top.
+- **4. A hold like any other** (D147): `train.hold`, the periods and
+  re-checks, rest by contact behind it, the holder rule; the cap checked
+  first, its holds filed as **bucket full** (`bucket_holds`); the guard's
+  release ignores the cap; the stall net unchanged (O110).
+- **5. Exceptions:** the slide, a slime joining the train, a split's parts
+  and a move to the loop start are never held (they may overfill a
+  bucket, which then drains by 3); a parked slime's advance stops at its
+  bucket's front edge while the next has no room. For 22h: a landing spot
+  needs room in its bucket.
+- **6. The caps:** density × length, rounded down (12 for 300 px), the
+  short last bucket never below 3; the density is the larger of 4 per
+  100 px and 2 × the level's base slimes / the loop's length (never binds
+  on the test level). Beyond that, the hold guard, then the stall net.
+- **7. The switch:** `Train.bucket_cap` (off), `Train.bucket_cap_density`
+  (4.0), `--bucket-cap`, `--bucket-cap-density=D`, debug builds only,
+  refused in a release build, forwarded by the probe tools; the bucket
+  length stays `--loop-bucket-length` (300 px). The PERF line gains
+  `bucket_holds`, `bucket_max`, `buckets_over`.
+- **Deterministic:** no draw of its own; the hold's draws come from its
+  derived streams as today; the same seed gives the same hash, also across
+  a save and reload mid-hold.
+- **Done when** (a measurement round, like 22g's; `stress-moving` shows
+  the drain only, never a target, the user's note):
+  - off: the 17 fixtures' hashes identical to 22g's committed build at
+    600 and 2400 ticks (seed 909); on: every changed hash listed;
+  - 10,000 ticks (`thru.gd`), off and on, `s3-basket-59of60` and
+    `stress-moving`, seeds 1 and 2: stall moves, stuck moves, guard
+    releases, hops, `bowl_n` at the end;
+  - the 2400-tick probe (`hold_probe.gd`), the same runs: hops, short-hop
+    share, front and queue hops, Physics, the largest awake cluster (mean,
+    max), holds by reason, hold ends;
+  - the bucket loads sampled every 60 ticks: each bucket's highest load and
+    a histogram, off and on; with the cap on, every bucket going over 15
+    after being at or under its cap listed with its cause (the bowl's
+    starting overfill apart);
+  - `tools/perf_slow.sh --pin=main --seconds=62`, off and on, both
+    fixtures: fps (mean, p5) and tick ms;
+  - unit tests: D151 (9)'s list;
+  - records: a perf report in `docs/perf/` with a short reading for the
+    user (turn it on by default? the user's call; D151 (9)'s proposed
+    reading); optional, one probe column with front-first on and the
+    tick-start snapshot kept (D151's 22g hypothesis); the suite passes.
+
 ### 22h. Moves to the loop start one at a time, to a random free spot (S, proposed, D150)
 
 The user (2026-10-02), after chunk 22g's stall diagnostic
@@ -1186,7 +1267,9 @@ have a cooldown. between 0.5s to 2s"; a global queue, one move at a time;
 and the stall clock paused while a train slime is parked. "Emergency
 teleport" is the **move to the loop start** (`LoopStart.move`), shared by
 lost free slimes, stuck slimes and stalled train slimes (out of bounds
-included). Runs next, after 22f and 22g are committed, before 19w and 5N.
+included). Runs after 22i (the user's: "let's try the bucket cap first",
+D151), before 19w and 5N. With 22i's cap on, a landing spot is free only
+if its loop bucket has room for the slime (D151 (5)).
 It changes three safety nets' rules, so it **keeps both ATD steps**. It
 must not run while another chunk edits the Train, `StuckSlimes` or
 `Offscreen`. Every rule and number below is D150's, proposed where it

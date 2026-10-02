@@ -4200,3 +4200,200 @@ hold's end was set "on the same tick". The code sets it the tick before:
 fusion's step and its nudge (where the pin is set), so the hold's end in
 tick t meets a pin set in tick t − 1. Both texts now say "the tick
 before"; the rule (the pin wins) is unchanged.
+
+## D151 — A cap on each loop bucket's load; chunk 22i, before 22h (2026-10-02)
+The user's decision (2026-10-02), after chunk 22g built the **loop
+buckets** (the loop cut by loop progress into 300 px stretches; 6e423b7,
+`src/sim/loop_buckets.gd`, used only to order the Train front-first behind
+`--loop-buckets`, off by default): "we now have segmented loop buckets. So
+we could also use this a hard stop. A bucket should NEVER have more than 15
+slimes. (with exception... like slimes in a basket don't count toward these
+bucket). Hence, if a slime in bucket 12 hope to reach bucket 13, but this
+bucket is already 15 full, then it hold its jump." The coordinator proposed
+a cap of about 12 per 300 px, written as a density (4 per 100 px of loop,
+so it survives a change of bucket length) and weighted by size; the user
+accepted it ("let's try the bucket cap first, at your proposed cap"), and
+asked that it run **before chunk 22h**. Then: "There is still the caveat of
+stress moving which instantly breaks this bucket cap rule... I also agree
+that an overfilled bucket (having reached its cap or beyond) can only
+attempt to move forward (meaning: slimes are allowed to move ONLY if the
+next bucket is empty enough, and hopefully if their corridor is free
+enough <= what i mean by this last one is: in a bucket of 30, this would
+hopefully only the front of the bucket would try to move on first... if it
+doesn't it's okayish so long they only attempt to move if the next one is
+free enough)." Proposed where it goes beyond those words. **Loop bucket**
+and **bucket cap** become spec terms. Grounded in `loop_buckets.gd`,
+`train.gd` (`steer`, `_steer_one`, `hop_target`, `processing_order`),
+`train_hold.gd` and `offscreen.gd` (`_train_proxy`), read 2026-10-02.
+
+**1. The bucket loads (proposed: kept always).** Each loop bucket has a
+**load**: the weight (sum of sizes: a size-n slime counts n) of the train
+slimes whose recorded distance along the loop is in it, parked ones and
+slimes on a slide included (they are on the loop). Not counted (the user's
+exception, widened as proposed): slimes in a basket, sleepers,
+bedtime-asleep slimes and free slimes, none of which is a train slime. The
+loads are kept with the switch below on or off, and whatever the
+front-first switch (unchanged, off): they change nothing by themselves, so
+the off run keeps today's hashes, and the histogram can be read off and on.
+They are derived from the Train's records and the loop's cut (no save
+key); a gate opening cuts the loop again and every slime is placed again,
+as in 22g. Through a tick a load follows the recorded distances as they
+change (`Train.follow`, a parked slime's advance, a move to the loop
+start), and a hop let through (2, 3) counts in its landing bucket from
+that decision until the slime's next `follow()`, so two slimes deciding in
+the same tick can't both take the last room: the first in the Train's
+processing order (ascending id; front-first with that switch on) wins.
+While in the air it counts where its progress is (*known slack, accepted*:
+a few hops in flight can carry a bucket a little past its cap; the
+histogram shows how much; counting an airborne hopper in its landing
+bucket would need state a reload can rebuild, and is the follow-up if the
+slack proves large).
+
+**2. A hop into a full bucket holds (the user's).** A train slime whose
+due hop would land in another bucket holds while that bucket has no room
+for it: its load plus the slime's size above its cap. The landing bucket
+is the one holding the distance along the loop the Train aims the hop at
+(`hop_target`'s: the progress plus the hop's reach, a step's foot, past a
+step's top, or a drop's top). A hop that skips a bucket (a step's hop
+reaches up to 2.5 reaches, 375 px for a size 1; or buckets shorter than a
+reach) checks only its landing bucket (proposed). The loop is one cycle in
+v1: the bucket after the last is bucket 0.
+
+**3. An overfilled bucket only lets slimes out forward (the user's, as
+written: "allowed to move ONLY if the next bucket is empty enough").** A
+bucket at or over its cap is **overfilled**. A train slime in an
+overfilled bucket may hop only while the next bucket ahead has room for
+it, whether its hop lands there or still inside its own bucket; otherwise
+it holds. In a bucket under its cap, a hop that stays inside it is never
+held by the cap. The hop corridor and the holder rule (D147) still apply
+on top, so in an overfilled bucket mostly the front goes first (the user's
+hope, not a hard rule: "okayish" if not). *Not taken (the coordinator's
+narrower reading, proposed):* "a hop that lands inside an overfilled
+bucket is always held". In a bucket at its cap whose slimes all sit more
+than a hop's reach from its front edge, no slime could ever hop out even
+with room ahead; the bucket would wait for the stall net, since the hold
+guard doesn't fire while train slimes elsewhere still hop.
+
+**4. How it holds (proposed).** It is a hold like any other (D147): the
+same record (`train.hold`, no new save key), the same periods, re-checks
+and phase from derived streams, the same end when every check passes, the
+same rest by contact behind it, and a bucket holder is a holder for the
+holder rule (so the slimes behind it hold too: a queue). At each check the
+cap is checked first; when it fails the slime holds without running the
+corridor, and the hold start is filed under a new reason, **bucket full**
+(`bucket_holds`, beside `holder_holds` and `crowd_holds`; each hold start
+filed once). The hold guard stays the last resort: when it releases the
+front-most holder, that hop ignores the cap (counted in `guard_releases`).
+The stall net is unchanged (O110 still open: hold time counts toward the
+60 s; D150's parked pause comes with 22h, after this chunk).
+
+**5. Exceptions (proposed).**
+- **Not hops, so never held:** a slime carried on a slide; a slime joining
+  the train (a sleeper waking, a free slime rejoining, a basket's release,
+  a split's parts); a move to the loop start. They may carry a bucket over
+  its cap; it then drains by (3). Fusion and splitting keep a bucket's
+  load (weights add up).
+- **Parked train slimes respect the cap:** a parked slime's advance off
+  screen (at the off-screen pace, single file) stops at its bucket's front
+  edge while the next bucket has no room for it, as it stops behind the
+  slime ahead today. A parked single-file line alone (about 50 px apart for
+  size 1s, about 6 per 300 px) stays under the cap; the clamp matters
+  where a parked line meets a bucket filled by simulated slimes near the
+  view, and keeps one rule for the whole train. Until 22h a parked slime
+  waiting there still stalls after 60 s, as today (reported, not new).
+- **For chunk 22h (noted, not built here):** with the cap on, a landing
+  spot for a move to the loop start counts as free only if its bucket has
+  room for the slime; the loop-start queue then waits for room in the
+  first 240 px.
+
+**6. The caps, and why the train can't lock (proposed).** A bucket's cap
+is the density times its length, rounded down: 12 for a 300 px bucket; the
+last bucket, shorter, gets its share, never below 3 (the largest size, so
+any slime fits an empty bucket). The **total room** (the caps summed) must
+stay well above the train's weight: the density used is the larger of
+4 per 100 px and **2 × the level's base slimes / the loop's length** (the
+total room at least twice the most the train can weigh), fixed when the
+loop is cut. On the test level it never binds (the level's 200 base slimes
+need 2.3 per 100 px on section 1's 17,600 px loop, 1.0 on section 3's
+38,300 px: a total room of about 700 to 1,530 against at most 30 to 200 of
+weight). With room left somewhere, an overfilled bucket whose next bucket
+has room keeps moving (3), so holds pass forward to the first bucket with
+room; what can still lock (every bucket full, or only scraps of room
+smaller than the slimes waiting) is the hold guard's case, then the stall
+net's.
+
+**7. Behind a switch, for measurement (proposed).** `Train.bucket_cap`
+(off by default) and `Train.bucket_cap_density` (4.0 per 100 px), set by
+`--bucket-cap` and `--bucket-cap-density=D` (D > 0), debug builds only,
+like 22g's flags (refused with a message in a release build); the bucket
+length stays 22g's `--loop-bucket-length` (300 px). Off and on come from
+the same build; off gives every hash of 22g's committed build. Whether it
+goes on by default is the user's call after the measurements. Debug only,
+not state: the PERF line gains `bucket_holds`, `bucket_max` (the highest
+load of any bucket now) and `buckets_over` (buckets over their cap now);
+22g's overlay layer may label each bucket with its load.
+
+**8. `stress-moving`** starts far over the cap (about 30 per bucket in the
+bowl): it shows how an overfilled stretch drains, nothing more; its
+numbers are never targets (the user's, D150). The target fixture is
+`s3-basket-59of60`.
+
+**9. Chunk 22i**, before 22h (the user's), then 19w, 5N, 22c, 22
+repeated, the rest of 24 and the health review (build plan, "22i"). It
+edits the Train, the hold and the off-screen advance, so it runs alone
+(not beside 22h or 5N). Behind a switch, default off, the declared rules
+don't change: an ATD peek (`req_hopping_behavior`,
+`req_offscreen_simulation`; no save key), the full steps only if the user
+turns it on by default. **Done when** (a measurement round, like 22g's):
+- **off = today:** the 17 fixtures' hashes identical to 22g's committed
+  build at 600 and 2400 ticks (seed 909); on, every changed hash listed;
+- **10,000 ticks** (`thru.gd`), off and on, `s3-basket-59of60` and
+  `stress-moving`, seeds 1 and 2: stall moves, stuck moves, guard
+  releases, hops, and the slimes left in the bowl (`bowl_n`) at the end;
+- **2400-tick probe** (`hold_probe.gd`), the same runs: hops, the short-hop
+  share, front and queue hops, Physics, the largest awake cluster (mean,
+  max), holds by reason (bucket full, holder, crowd) and hold ends;
+- **the bucket loads:** sampled every 60 ticks, per run the highest load
+  each bucket reached and the count of samples by load (a histogram), off
+  and on; with the cap on, every bucket that goes over 15 (the user's
+  "never") after having been at or under its cap is listed with its cause
+  (the slide, an arrival, a hop in flight, the guard), the bowl's starting
+  overfill apart;
+- **phone emulation:** `tools/perf_slow.sh --pin=main --seconds=62`, off
+  and on, both fixtures: fps (mean, p5) and tick ms;
+- **unit tests:** the loads (weighted, parked counted, basket, sleeper,
+  asleep and free not; a recut when a gate opens); a hop into a full bucket
+  holds, into a bucket with room doesn't; the last room taken by the first
+  in processing order only; an overfilled bucket: a hop inside it allowed
+  only with room ahead, a hop out allowed with room ahead; a bucket holder
+  holding the slime behind it (holder rule); the re-check ending a bucket
+  hold once room appears; the slide and an arrival never held; a parked
+  slime stopping at a full bucket's edge; the short last bucket's cap and
+  the density floor; the guard's release ignoring the cap; the switch off
+  changing nothing; the same hash across a save and reload mid-hold;
+- **records:** a perf report in `docs/perf/` with the tables and a short
+  reading for the user (proposed: the cap is worth turning on if, on
+  `s3-basket-59of60`, stall moves drop or the bowl drains without the stall
+  net, while Physics, the cluster and the fps are no worse than off); the
+  suite passes.
+
+**Numbers** (`tuning.md`): the density 4 per 100 px (12 per 300 px; the
+user accepted it as the starting value), the short bucket's floor of 3,
+the density floor of 2 × base slimes per loop length, the 60-tick
+sampling. **Terminology** (`concept.md`): **loop bucket**, **bucket cap**
+(with **overfilled**) added.
+
+**Unchanged:** the front-first switch (off) and its numbers; the hold's
+corridor, holder rule, periods and guard; the stall, stuck and lost nets;
+D150 and chunk 22h (it runs after 22i, gaining the landing note in 5).
+
+**For chunk 22g's as-built record (the coordinator's hypothesis, not
+measured):** why front-first measured worse. With its switch on, the
+holder table is live: when a front holder ends its hold and hops, the
+slime behind it, processed next in the same tick, sees no holder ahead and
+hops too, and so on down the queue. With the tick-start snapshot (switch
+off), the slime behind still saw the holder that tick and only went at its
+next check, which staggered the queue. So front-first released whole
+queues at once: more hops (+20 to 64 %), fewer resting slimes, Physics +13
+to +21. A cheap check, optional in 22i: one probe column with front-first
+on and the snapshot kept.

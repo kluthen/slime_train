@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v25 (moves to the loop start one at a time, 0.5 to 2 s apart, to a random free spot, and no stall clock while parked, chunk 22h, D150, the user's, details proposed; the hold's second round in chunk 22f: the hop corridor, the holder rule, no hop through a crowd, the hold guard, rest by contact and on the ground, D147, proposed; the hold and the local wake built in chunk 22e, before 5N, D146, proposed; the train holds before a crowd or a jam, holding slimes may rest, D145, proposed, replacing D143's lean, approved in direction, D144; its numbers proposed, O107)
+Status: draft v26 (the bucket cap, behind a switch, chunk 22i, D151, the user's, details proposed; moves to the loop start one at a time, 0.5 to 2 s apart, to a random free spot, and no stall clock while parked, chunk 22h, D150, the user's, details proposed; the hold's second round in chunk 22f: the hop corridor, the holder rule, no hop through a crowd, the hold guard, rest by contact and on the ground, D147, proposed; the hold and the local wake built in chunk 22e, before 5N, D146, proposed; the train holds before a crowd or a jam, holding slimes may rest, D145, proposed, replacing D143's lean, approved in direction, D144; its numbers proposed, O107)
 
 ## States
 
@@ -139,6 +139,19 @@ Slimes move only by hopping.
     on a resting slime. Basket and bedtime piles are unchanged;
   - **the celebration** no longer wakes holders: they bounce in drawing
     only (proposed).
+- **The bucket cap** *(D151, the user's; details proposed; chunk 22i,
+  behind a switch, off by default until the user decides)*: the loop is
+  cut into **loop buckets** of 300 px, each with a cap on its **load**
+  (the weight of the train slimes in it, parked ones included, not slimes
+  in a basket): 12 per 300 px (the user: never more than 15).
+  - a train slime whose hop would land in a bucket without room for it
+    **holds** (a hold like the others, filed as "bucket full");
+  - in an **overfilled** bucket (at or over its cap) a slime moves only
+    while the next bucket has room for it (the user's); the corridor and
+    the holder rule still apply, so mostly the front goes first;
+  - not held: the slide, slimes joining the train, a move to the loop
+    start (a bucket they overfill drains forward); a parked slime stops
+    at its bucket's edge while the next is full.
 - The numbers are in `tuning.md`.
 
 ## Size and weight (D24, D16)
