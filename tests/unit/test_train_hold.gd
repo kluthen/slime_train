@@ -37,7 +37,6 @@ const SPECIES_A := 0
 ## How far the slime nearest a crowd stands from its first column, px, and
 ## the spacing of a queue of holders: neither touches.
 const NEAR := Crowd.NEAR
-const STALL_TICKS := int(Train.STALL_SECONDS * Simulation.TICK_RATE)
 
 
 # --- The harness ---------------------------------------------------------------
@@ -343,11 +342,10 @@ func test_a_stall_or_stuck_move_ends_the_hold() -> void:
 	var run := _holder()
 	var sim: Simulation = run[0]
 	var slime: int = run[1]
-	var record := sim.train.record_of(slime)
-	record["marked_at"] = sim.tick - STALL_TICKS
-	sim.train.restore_record(slime, record)
+	# A holder's stall clock stands still (D152): out of bounds, it is moved.
+	sim.slimes.translate(slime, Vector2(0, 5000))
 	_step(sim)
-	assert_eq(sim.train.stalled.size(), 1, "moved to the start, stalled")
+	assert_eq(sim.train.stalled.size(), 1, "moved to the start, out of bounds")
 	assert_false(sim.train.is_holding(slime), "the move ends the hold")
 	run = _holder()
 	sim = run[0]

@@ -3343,7 +3343,8 @@ ahead of a queue's front.
   up (accepted, D143 (c)). If a queue waits there 60 s, the stall net
   moves its slimes to the loop start. The stall atom says that never
   happens in normal play. Whether hold time counts toward the stall is
-  O110. *Proposed default:* it does (the atom is unchanged), and 22f's
+  O110. *Proposed default:* it does (the atom is unchanged; answered the
+  other way by D152, the user's: holding slimes don't stall), and 22f's
   done-when requires zero stall moves on the bowl's fixtures and the long
   run.
 
@@ -4202,6 +4203,8 @@ tick t meets a pin set in tick t − 1. Both texts now say "the tick
 before"; the rule (the pin wins) is unchanged.
 
 ## D151 — A cap on each loop bucket's load; chunk 22i, before 22h (2026-10-02)
+**Amended by D152 (the user's, 2026-10-02):** a holding train slime, for
+any reason, has its stall clock paused (4); O110 answered.
 The user's decision (2026-10-02), after chunk 22g built the **loop
 buckets** (the loop cut by loop progress into 300 px stretches; 6e423b7,
 `src/sim/loop_buckets.gd`, used only to order the Train front-first behind
@@ -4397,3 +4400,36 @@ next check, which staggered the queue. So front-first released whole
 queues at once: more hops (+20 to 64 %), fewer resting slimes, Physics +13
 to +21. A cheap check, optional in 22i: one probe column with front-first
 on and the snapshot kept.
+
+## D152 — Holding train slimes don't stall; amends D151, answers O110 (2026-10-02)
+The user (2026-10-02), after chunk 22i's sanity run (e996b8a;
+`stress-moving` seed 1, 10,000 ticks, cap on: 94 stall moves against 19
+off, 715 stuck moves, the bowl emptied through the stall net and a pile at
+the loop start): "let's first ensure that hold for full bucket doesn't
+trigger the stall counter. make just this fix and do a round of testing",
+then, widening it: "ok let's amend this wider: holded slimes aren't
+stalling." Built as a small fix to chunk 22i, then a round of testing.
+
+- A train slime that is **holding**, for any reason (bucket full, crowd,
+  holder rule), doesn't age toward the stall rule
+  (`rule_stalled_train_slime_moved_to_start`, 24 px in 60 s): its stall
+  clock is paused on each tick it holds and resumes where it was when the
+  hold ends, as D150's parked pause. So is a train slime **resting by
+  contact** behind a holder (it counts as a holder, D147; proposed).
+  Derived from the saved hold record (`train.hold`) and the rest; no new
+  save key.
+- **Not paused:** a dip-pinned slime, and any train slime not holding or
+  resting by contact (one stuck against terrain still stalls at 60 s).
+- **O110 answered the other way** (D147's proposed default was that hold
+  time counts): the atom changes (documentalist, later). The trade-off
+  O110 named is accepted: a queue held behind a crowd that doesn't thin,
+  while other train slimes hop elsewhere (so the guard doesn't fire), may
+  wait as long as the crowd lasts. The hold guard stays the last resort
+  against a whole-train freeze.
+- With the cap on or off: the 22f hold exists either way, so hashes
+  change wherever a holder used to reach 60 s (the 17 off hashes no
+  longer all equal 22g's; changed ones listed).
+
+D151 (4)'s "the stall net is unchanged" and D147's O110 default are
+amended by this. **Unchanged:** the cap and its numbers, the hold's checks
+and the guard, the stuck and lost nets, D150 and chunk 22h (O113 open).

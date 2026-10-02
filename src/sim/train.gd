@@ -52,7 +52,10 @@ extends RefCounted
 ## reason STALLED or OUT_OF_BOUNDS, every time. A slime asleep at bedtime is
 ## not a train slime: it has no record, so it is never counted nor moved,
 ## and at sunrise its count starts from its waking. The safety net is for
-## play: the whole-level DoD 1 test still fails on any logged case.
+## play: the whole-level DoD 1 test still fails on any logged case. A held
+## slime isn't stalling (D152, proposed, amends D118): on every tick a train
+## slime holds (see the hold, below) or rests by contact, its count stands
+## still (_pause_stall()).
 ##
 ## Hop counters (debug, the PERF line's hops and short_hops, D145 point 7).
 ## follow() counts every train hop (an automatic hop of a train slime,
@@ -72,8 +75,12 @@ extends RefCounted
 ## began, absent when it doesn't hold) and calls it from steer(), which
 ## first has it take the start of the tick's holder snapshot, then run the
 ## hold guard (the train never freezes: no hop is forced at a hold's period
-## end). Hold time counts toward a stall: the hold never touches a slime's
-## stall mark. A train slime touching a holder ahead of it or in its stack
+## end). Hold time doesn't count toward a stall (D152, proposed, O110
+## flipped): while a slime holds, whatever the reason (a crowd, a holder, a
+## full loop bucket), or rests by contact, follow() moves its stall mark's
+## tick on by one each tick (_pause_stall()), derived from the record's
+## "hold" and the calm, no save key; the hold guard stays the safety
+## against a freeze. A train slime touching a holder ahead of it or in its stack
 ## zone may rest by contact (TrainHold.set_rest, D147 5 (a)); it counts as a
 ## holder for the holder rule. Its debug counters (chunk 22f: how holds begin and
 ## end, front, queue and crowded hops, TrainHold.COUNTERS) are read through
@@ -672,6 +679,7 @@ func follow(bodies: SlimeBodies, tick: int) -> void:
 		if not _records.has(slime_id):
 			track(slime_id, _closest_distance(centre))
 		var before := progress_of(slime_id)
+		_pause_stall(bodies, slime_id, s)
 		advance(slime_id, centre, tick)
 		_count_landing(bodies, slime_id, s, before)
 		var reason := stall_of(slime_id, centre, tick)
@@ -806,6 +814,23 @@ func _count_landing(bodies: SlimeBodies, slime_id: int, s: int, before: float) -
 		if progress_of(slime_id) - _takeoff[slime_id] < hop_reach(bodies.size[s]) * 0.5:
 			short_hops_taken += 1
 		_takeoff.erase(slime_id)
+
+
+## A held slime isn't stalling (D152, see the class doc): when followed train
+## slime `slime_id` (index `s`) holds (any reason) or rests by contact (calm
+## resting without a hold) this tick, its stall mark's tick moves on by one,
+## so its STALL_SECONDS window stands still. Called by follow() before
+## advance(), so the mark never passes the tick. Derived from saved state
+## only (the record's "hold", the calm): no save key. A fresh record (no
+## mark yet) is left alone.
+# @spec-link [[rule_stalled_train_slime_moved_to_start]]
+# @spec-link [[req_hopping_behavior]]
+func _pause_stall(bodies: SlimeBodies, slime_id: int, s: int) -> void:
+	var record: Dictionary = _records[slime_id]
+	if record["marked_at"] < 0:
+		return
+	if record.has("hold") or bodies.calm[s] == SlimeBodies.RESTING:
+		record["marked_at"] += 1
 
 
 ## Placeholder slide: pulls the slime's speed along the route toward SLIDE_SPEED.

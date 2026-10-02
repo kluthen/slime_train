@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v22 (approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v23 (chunk 22i amended: holding train slimes don't stall, the user's, D152; approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
@@ -1127,7 +1127,7 @@ body code or the Train. Every rule and number below is D147's, proposed.
     simulated train slime is holding, resting or `held`, and the most
     recent hold began at least 4 s ago. It covers a queue wrapping the
     loop and a front holder that can never clear. The stall net stays the
-    last resort; hold time counts toward it (O110's default).
+    last resort; hold time counts toward it (O110's default; reversed by D152: holding slimes don't stall).
 - **5. Resting:**
   - (a) a train slime touching one or more holders **ahead of it along
     the loop, or in its stack zone** (on or under it), may rest (D143's touching, read geometrically); its timer
@@ -1197,6 +1197,10 @@ alone. Behind a switch, default off: an ATD peek
 (`req_hopping_behavior`, `req_offscreen_simulation`; no save key), the
 full steps only if the user turns it on by default. Every rule and number
 below is D151's, proposed where it goes beyond the user's words.
+**Amended by D152 (the user's, after the sanity run):** a holding train
+slime (any reason, or resting by contact) has its stall clock paused, cap on
+or off (no save key; hashes change where a holder reached 60 s); built as a
+fix to 22i, then a round of testing.
 
 - **1. The loads, kept always** (the switch on or off, front-first on or
   off): a bucket's load is the weight of the train slimes whose recorded
@@ -1218,7 +1222,7 @@ below is D151's, proposed where it goes beyond the user's words.
 - **4. A hold like any other** (D147): `train.hold`, the periods and
   re-checks, rest by contact behind it, the holder rule; the cap checked
   first, its holds filed as **bucket full** (`bucket_holds`); the guard's
-  release ignores the cap; the stall net unchanged (O110).
+  release ignores the cap; the stall net unchanged (O110; amended by D152: holding slimes don't stall).
 - **5. Exceptions:** the slide, a slime joining the train, a split's parts
   and a move to the loop start are never held (they may overfill a
   bucket, which then drains by 3); a parked slime's advance stops at its

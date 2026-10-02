@@ -146,9 +146,10 @@ extends RefCounted
 ## longest hop interval plus HOLD_GUARD_TICKS after a freeze starts; the
 ## stall net (Train.stall_of: no STALL_ADVANCE px of progress in
 ## STALL_SECONDS, then a move to the loop's start) is per slime and stays
-## the last resort. Hold time counts toward a stall (O110's default): the
-## hold never resets nor pauses a slime's stall mark, so a queue held behind
-## a crowd while other train slimes still hop is moved after 60 s.
+## the last resort. Hold time doesn't count toward a stall (D152, proposed,
+## O110 flipped): while a slime holds or rests by contact its stall clock
+## stands still (Train._pause_stall), so a queue held behind a crowd isn't
+## moved by the stall net while it holds: its checks or the guard end it.
 # @spec-link [[req_hopping_behavior]]
 # @spec-link [[rule_loop_travelable_with_no_input]]
 

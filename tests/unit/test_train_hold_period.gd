@@ -405,13 +405,14 @@ func test_the_front_most_holder_has_the_longest_gap_ahead_a_tie_going_to_the_low
 
 # --- The stall -----------------------------------------------------------------
 
-# Hold time counts toward a stall (O110's default): a holder before a crowd
-# that never thins, its hold and its last stall mark both 60 s old less 40
-# ticks, a walker free to hop (so no guard): its re-checks leave the mark
-# alone, and the stall net moves it to the loop's start at 60 s.
+# Hold time doesn't count toward a stall (D152, O110 flipped): a holder
+# before a crowd that never thins, its hold and its last stall mark both
+# 60 s old less 40 ticks, a walker free to hop (so no guard): each tick it
+# holds moves its mark on by one, so the stall net doesn't move it at 60 s
+# (nor 20 ticks later).
 # @test-link [[rule_stalled_train_slime_moved_to_start]]
 # @test-link [[req_hopping_behavior]]
-func test_a_holder_with_no_progress_for_60_s_is_still_moved_by_the_stall_net() -> void:
+func test_a_holder_with_no_progress_for_60_s_is_not_moved_by_the_stall_net() -> void:
 	var sim := _sim()
 	sim.tick = 5000
 	_walker(sim)
@@ -421,16 +422,8 @@ func test_a_holder_with_no_progress_for_60_s_is_still_moved_by_the_stall_net() -
 	record["hold"] = mark
 	record["marked_at"] = mark
 	sim.train.restore_record(front, record)
-	var moved := -1
 	for i in 60:
-		var tick := sim.tick
 		_step(sim)
-		if not sim.train.stalled.is_empty():
-			moved = tick
-			break
 		assert_true(sim.train.is_holding(front), "it holds")
-		assert_eq(sim.train.marked_at_of(front), mark, "the hold leaves its stall mark alone")
-	assert_eq(moved, mark + STALL_TICKS, "moved at 60 s")
-	assert_eq(sim.train.stalled[0]["id"], front)
-	assert_eq(sim.train.stalled[0]["reason"], Train.STALLED)
-	assert_false(sim.train.is_holding(front), "the move ends its hold")
+		assert_eq(sim.train.marked_at_of(front), mark + i + 1, "its stall mark moves on with the hold")
+	assert_eq(sim.train.stalled, [] as Array[Dictionary], "not moved")

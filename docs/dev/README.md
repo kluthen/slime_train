@@ -974,6 +974,8 @@ for free slimes only: a free slime left alone off screen is lost by
 `Offscreen` (see "Off-screen simulation (chunk 15)"). `advance()` only
 re-derives the progress and its mark; `stall_of()` says whether a followed
 slime is stalled. See "Safety nets: stuck and stalled slimes (chunk 23A)".
+While a train slime holds (any reason) or rests by contact, its 60 s
+count stands still (D152, see "Chunk 22i").
 
 **Split zones.** `SplitZones` (`src/sim/split_zones.gd`) holds the level's
 split zone boxes. Every tick, every slime above size 1 whose centre is in a
@@ -3473,6 +3475,28 @@ under its cap); `hold_probe.gd` adds `bucket_max,buckets_over` to its
 - `tests/unit/test_offscreen_bucket_cap.gd`: the parked slime's clamp at its bucket's front edge, none on a slide.
 - `tests/unit/test_bucket_cap_flags.gd`: `--bucket-cap` and `--bucket-cap-density`.
 - `tests/unit/test_perf_log.gd`: the PERF fields.
+
+**A held slime isn't stalling (D152, amends D118 and D151, the user's,
+2026-10-02, proposed; O110 flipped).** On every tick a train slime holds
+its hop, whatever the reason (a full loop bucket, a crowd or a holder in
+its hop corridor), or rests by contact with a holder (calm resting
+without a hold), its stall clock stands still: `Train.follow()` moves its
+stall mark's tick (`marked_at`) on by one before `advance()`, so the 60 s
+window pauses. Derived each tick from saved state (the record's `hold`,
+the slime's calm), no new save key: a save mid-hold reloads to the same
+run. Once the hold ends the clock runs again from where it stood; a slime
+blocked without holding (dip-pinned, wedged, unable to hop) still stalls at
+60 s. The hold guard stays the safety against a freeze. Side effect: the
+dip wait (`Fusion._gathering`) reads the same mark, so a dip-floor slime
+that holds or rests by contact waits on while it does. With the cap off
+holds happen too, so this changes the state hash of any run where a slime
+holds or rests by contact (the mark is in the dump): of the 17 fixtures
+(seed 909, 600 and 2400 ticks), `stress-moving` and `s3-basket-59of60`
+change, by their marks only, except `stress-moving` at 2400 ticks, whose
+run differs through the dip wait (no stall move either way). Tests:
+`tests/unit/test_train_hold_stall.gd`; `test_train_hold.gd` and
+`test_train_hold_period.gd` now check a stall move of a holder out of
+bounds and a holder's mark moving on.
 
 ## Saves and fixtures
 
