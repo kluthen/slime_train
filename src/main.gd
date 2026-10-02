@@ -83,6 +83,13 @@ const PERF_LOG_FLAG := "--perf-log"
 const MAX_TICKS_FLAG := "--max-ticks-per-frame"
 const PERF_LOG_REFUSED := ("The perf log and its measurement flags are not available in this build"
 		+ " (release builds never run them).")
+## The loop buckets' user arguments (chunk 22g, experimental): --loop-buckets
+## turns the Train's front-first order on (Train.front_first),
+## --loop-bucket-length=PX sets its bucket length (Train.bucket_length).
+# @spec-link [[req_platform_and_performance_targets]]
+const LOOP_BUCKETS_FLAG := "--loop-buckets"
+const LOOP_BUCKET_LENGTH_FLAG := "--loop-bucket-length"
+const LOOP_BUCKETS_REFUSED := "The loop buckets' flags are not available in this build (release builds never run them)."
 
 var simulation: Simulation
 ## The loaded level, or null (a release build has none yet).
@@ -151,6 +158,11 @@ var perf_log: Node = null
 ## the speed): MAX_TICKS_PER_FRAME, unless a debug measurement set another
 ## (--max-ticks-per-frame, read by add_perf_log()).
 var max_ticks_per_frame := MAX_TICKS_PER_FRAME
+## The loop buckets asked for (use_loop_buckets()): every simulation the
+## game takes gets them on its Train (_use_simulation()). Off by default.
+# @spec-link [[req_platform_and_performance_targets]]
+var loop_buckets := false
+var loop_bucket_length := LoopBuckets.DEFAULT_BUCKET_LENGTH
 ## The ticks the last frame ran, and the real time they took (microseconds,
 ## around the step_simulation() calls): the perf log reads them.
 var frame_ticks := 0
@@ -223,6 +235,12 @@ func _ready() -> void:
 		# A measurement asked for with a bad flag must not run as if unmeasured,
 		# but in a release build the flag is simply ignored.
 		if not perf_errors.is_empty() and test_mode_guard.allows():
+			get_tree().quit(1)
+			return
+		var bucket_errors := use_loop_buckets(user_args)
+		for error in bucket_errors:
+			printerr("Loop buckets: ", error)
+		if not bucket_errors.is_empty() and test_mode_guard.allows():
 			get_tree().quit(1)
 			return
 	if TestModeGuard.requested(user_args):
@@ -658,6 +676,47 @@ func add_perf_log(user_args: PackedStringArray) -> PackedStringArray:
 	return PackedStringArray()
 
 
+## Reads the loop buckets' flags (chunk 22g, experimental) from `user_args`
+## when this build is a debug build (TestModeGuard): --loop-buckets turns
+## them on, --loop-bucket-length=PX (a number > 0) sets their length; both
+## go to the running simulation's Train and every later one's
+## (_use_simulation()), and one LOOP_BUCKETS line says so when on. Returns
+## the errors: the refusal in a release build, a malformed or repeated flag
+## (nothing set). The main scene calls it in _ready; tests may.
+# @spec-link [[req_platform_and_performance_targets]]
+func use_loop_buckets(user_args: PackedStringArray) -> PackedStringArray:
+	var seen := {}
+	var errors := PackedStringArray()
+	var length := LoopBuckets.DEFAULT_BUCKET_LENGTH
+	for arg in user_args:
+		var flag := arg.get_slice("=", 0)
+		if flag not in [LOOP_BUCKETS_FLAG, LOOP_BUCKET_LENGTH_FLAG]:
+			continue
+		if seen.has(flag):
+			errors.append("%s is given more than once" % flag)
+		seen[flag] = true
+		if flag == LOOP_BUCKETS_FLAG and "=" in arg:
+			errors.append("%s takes no value, got '%s'" % [flag, arg])
+		if flag == LOOP_BUCKET_LENGTH_FLAG:
+			var value := arg.substr(flag.length() + 1) if "=" in arg else ""
+			if value.is_valid_float() and value.to_float() > 0.0:
+				length = value.to_float()
+			else:
+				errors.append("%s=PX expects a length in px > 0, got '%s'" % [flag, value])
+	if seen.is_empty():
+		return PackedStringArray()
+	if not test_mode_guard.allows():
+		return PackedStringArray([LOOP_BUCKETS_REFUSED])
+	if not errors.is_empty():
+		return errors
+	loop_buckets = seen.has(LOOP_BUCKETS_FLAG)
+	loop_bucket_length = length
+	if loop_buckets:
+		print("LOOP_BUCKETS on length=%s" % loop_bucket_length)
+	_apply_loop_buckets(simulation)
+	return PackedStringArray()
+
+
 ## Starts the level over as on a first launch: a fresh simulation (a new
 ## random seed; test mode's run seed in test mode), sessions open in normal
 ## play (in test mode when the run has them), the frame clock and autosave
@@ -732,11 +791,20 @@ func _new_simulation(seed_value: int) -> Simulation:
 	return fresh
 
 
+## Gives `sim`'s Train, if any, the loop buckets asked for (use_loop_buckets()).
+# @spec-link [[req_platform_and_performance_targets]]
+func _apply_loop_buckets(sim: Simulation) -> void:
+	if sim != null and sim.train != null:
+		sim.train.front_first = loop_buckets
+		sim.train.bucket_length = loop_bucket_length
+
+
 ## Makes `fresh` the running simulation, and the one drawn.
 func _use_simulation(fresh: Simulation) -> void:
 	simulation = fresh
 	# The game simulates only near the screen (chunk 15).
 	fresh.offscreen.enabled = true
+	_apply_loop_buckets(fresh)
 	# The world shows: a due first-play hint counts its 10 s from here.
 	fresh.hint.world_shown(fresh.tick)
 	if slime_renderer != null:

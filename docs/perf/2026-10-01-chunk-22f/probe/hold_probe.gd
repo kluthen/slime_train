@@ -9,12 +9,25 @@ extends SceneTree
 ## only, it never changes the simulation (its final state hash must equal a
 ## plain --run-ticks run's).
 ##
-## It loads a fixture in test mode and steps it with Simulation.step()
-## replicated, call for call, with Train.steer()'s loop replicated too (its
-## start of the tick's holder snapshot, TrainHold.begin_tick, included), so
-## each train slime's decision is read in the exact state its own steer sees
-## (the slimes before it in id order already steered). A decision is a due
-## train slime standing on something (not holding, hop timer <= 1.5 ticks),
+## It loads a fixture in test mode and steps it with the game's own step
+## (game.step_simulation(), as --run-ticks does: the real Simulation.step()
+## and Train.steer()); since 22g step 0 nothing of either is copied here, so
+## the probe cannot drift from the game. To read each decision, the Train
+## gets a probe subclass (ProbeTrain, swapped in by set_script with every
+## member kept) that overrides only Train._steer_one() (a hook before and
+## after the real one) and Train.inherit() (notes the split parts, then the
+## real one). Each train slime's decision is so read in the exact state its
+## own steer sees (the holder snapshot taken, the hold guard run, the slimes
+## steered before it already steered, set_rest included), whatever order
+## steer() takes them in. The hold guard's release and the guard window are
+## read at the tick's first hook (after TrainHold.begin_tick and guard). At
+## the end, a plain run (a fresh game, the same fixture, seed and ticks,
+## game.step_simulation() only) gives the reference hash: one line
+## `PROBE_HASH probe=<8 hex> plain=<8 hex> match=yes|no` (--no-check skips
+## it).
+##
+## A decision is a due train slime standing on something (not holding, hop
+## timer <= 1.5 ticks),
 ## or a holder at one of its checks (since 22f step 4, TrainHold.check_at: a
 ## re-check from its phase, or its period's end; the `check` column). The
 ## hold guard (TrainHold.guard) runs right after the snapshot, as in
@@ -27,13 +40,39 @@ extends SceneTree
 ## godot --headless --path <repo> -s docs/perf/2026-10-01-chunk-22f/probe/hold_probe.gd -- \
 ##     --fixture=stress-moving --seed=1 --ticks=2400 --out=<base>.csv
 ## writes <base>.csv, <base>-snap.csv, <base>-totals.json; prints the hash.
-## --plain: game.step_simulation() only, no rows (the hash reference).
+## --plain: game.step_simulation() only, no rows, no hook (the hash
+## reference). --no-check: no plain run at the end, no PROBE_HASH line.
+## --loop-buckets [--loop-bucket-length=PX] (chunk 22g): forwarded to the
+## game (Main.use_loop_buckets) for the probe run and its plain check.
+
+
+## The Train with the probe's hooks: the real _steer_one() and inherit(),
+## each wrapped. Nothing else differs from Train.
+class ProbeTrain extends Train:
+	## The probe (this SceneTree script), whose hooks are called.
+	var probe: Object = null
+
+	func _steer_one(bodies: SlimeBodies, slime_id: int, s: int, dt: float, tick: int) -> void:
+		var d: Dictionary = probe.before_steer_one(slime_id, s)
+		super._steer_one(bodies, slime_id, s, dt, tick)
+		probe.after_steer_one(d, slime_id)
+
+	func inherit(parts: PackedInt32Array, bodies: SlimeBodies) -> void:
+		probe.on_split(parts)
+		super.inherit(parts, bodies)
+
 
 var fixture := "stress-moving"
 var seed_value := 1
 var ticks := 2400
 var plain := false
+var check_hash := true
 var out_path := ""
+## The probed simulation; this tick's decisions (outcomes still open); the
+## tick the first hook ran at (-1: none yet this tick).
+var _sim: Simulation
+var _decisions := []
+var _hooked_tick := -1
 ## Queue position: train slimes ahead along the loop within this, px (22e's).
 const QUEUE_RANGE := 300.0
 ## 22e's crowd check and jam check (gone from the game in 22f step 3),
@@ -105,18 +144,14 @@ func _initialize() -> void:
 			"seed": seed_value = int(p[1])
 			"ticks": ticks = int(p[1])
 			"plain": plain = true
+			"no-check": check_hash = false
 			"out": out_path = p[1]
-	var game: Node = load("res://src/main.tscn").instantiate()
-	game.save_store = null
-	root.add_child(game)
-	await process_frame
-	# The same run configuration as `-- --test-mode --fixture=X --seed=N`.
-	var errs = game.enable_test_mode({"seed": seed_value, "fixture": fixture})
-	if not errs.is_empty():
-		print("ERR ", errs)
+	var game: Node = await _new_game()
+	if game == null:
 		quit(1)
 		return
 	var sim: Simulation = game.simulation
+	_sim = sim
 	print("fixture=%s seed=%d tick0=%d slimes=%d loop_len=%.0f plain=%s" % [fixture, seed_value, sim.tick,
 			sim.slimes.slime_count, sim.train.length(), plain])
 	var base := out_path.trim_suffix(".csv")
@@ -142,11 +177,16 @@ func _initialize() -> void:
 			_prev_tracked[slime_id] = true
 			if sim.slimes.calm_of(slime_id) == SlimeBodies.PARKED:
 				_prev_parked[slime_id] = true
+		_install_probe_train(sim.train)
 	for t in ticks:
 		if plain:
 			game.step_simulation()
 		else:
-			_probed_step(game, f)
+			_probed_tick(game, f)
+			if game.simulation != sim or sim.train.get_script() != ProbeTrain:
+				print("ERR the simulation or its Train was replaced at tick %d: the probe no longer sees it" % sim.tick)
+				quit(1)
+				return
 			if sim.tick % SNAP_EVERY == 0:
 				_snapshot(sim, snap)
 				_graph_rows(sim)
@@ -185,8 +225,60 @@ func _initialize() -> void:
 		tf.store_string(JSON.stringify(totals, "  "))
 		tf.close()
 	print("TOTALS ", JSON.stringify(totals))
-	print("RESULT tick=%d hash=%s" % [sim.tick, sim.state_hash()])
+	var probe_hash := sim.state_hash()
+	print("RESULT tick=%d hash=%s" % [sim.tick, probe_hash])
+	if check_hash and not plain:
+		# The reference: a fresh game, the same fixture, seed and ticks, the game's own step only.
+		root.remove_child(game)
+		game.free()
+		_sim = null
+		var ref: Node = await _new_game()
+		if ref == null:
+			quit(1)
+			return
+		for t in ticks:
+			ref.step_simulation()
+		var plain_hash: String = ref.simulation.state_hash()
+		print("PROBE_HASH probe=%s plain=%s match=%s" % [probe_hash.left(8), plain_hash.left(8),
+				"yes" if plain_hash == probe_hash else "no"])
 	quit(0)
+
+
+## A game in test mode on `fixture` and `seed_value` (the same run
+## configuration as `-- --test-mode --fixture=X --seed=N`), no save store;
+## null (the errors printed) when test mode refuses it.
+func _new_game() -> Node:
+	var game: Node = load("res://src/main.tscn").instantiate()
+	game.save_store = null
+	root.add_child(game)
+	await process_frame
+	# --loop-buckets / --loop-bucket-length=PX (chunk 22g): main.gd reads them only
+	# as the current scene, so they are forwarded here (the probe and its plain check).
+	var bucket_errs: PackedStringArray = game.use_loop_buckets(OS.get_cmdline_user_args())
+	if not bucket_errs.is_empty():
+		print("ERR ", bucket_errs)
+		return null
+	var errs = game.enable_test_mode({"seed": seed_value, "fixture": fixture})
+	if not errs.is_empty():
+		print("ERR ", errs)
+		return null
+	return game
+
+
+## Turns `train` into a ProbeTrain in place (the same object, so every
+## holder of it sees the hooks), every member kept: set_script() resets
+## them, so they are read before and written back after.
+func _install_probe_train(train: Train) -> void:
+	var values := {}
+	for p in train.get_property_list():
+		if p["usage"] & PROPERTY_USAGE_SCRIPT_VARIABLE:
+			values[p["name"]] = train.get(p["name"])
+	var hold := train.hold()
+	train.set_script(ProbeTrain)
+	for member: String in values:
+		train.set(member, values[member])
+	train.set("probe", self)
+	assert(train.get_script() == ProbeTrain and train.hold() == hold)
 
 
 const COLUMNS := ["tick", "id", "size", "holding", "elapsed", "ahead", "qpos", "qsize", "front", "count",
@@ -195,109 +287,84 @@ const COLUMNS := ["tick", "id", "size", "holding", "elapsed", "ahead", "qpos", "
 		"holder_stack_only", "crowd_corr", "check", "guard", "outcome", "hopped"]
 
 
-## Simulation.step(), replicated (same calls, same order), Train.steer()
-## replaced by _probed_steer(); the decisions' outcomes written after it.
-func _probed_step(game: Node, f: FileAccess) -> void:
+## One tick: the game's own step (game.step_simulation()), the decisions
+## read by the ProbeTrain hooks during the real Train.steer(); then their
+## outcomes written and the tick's bookkeeping, read after the step.
+func _probed_tick(game: Node, f: FileAccess) -> void:
 	var sim: Simulation = game.simulation
-	var held_before := {}
-	if sim.train != null:
-		for slime_id: int in sim.train._records:
-			if sim.train._records[slime_id].has("hold"):
-				held_before[slime_id] = sim.train._records[slime_id]["hold"]
-	_split_now.clear()
-	game.sync_view()
-	sim.session.read_clock(game.test_mode.clock_at(sim.tick))
-	for event in game.test_mode.inputs_for_tick(sim.tick):
-		sim.push_input(event)
-	for event in sim._pending_input:
-		sim._apply_input(event)
-	sim._pending_input.clear()
-	sim.session.advance(sim)
-	sim.offscreen.step(sim)
-	var gates: Array = sim.train.open_gates if sim.train != null else []
-	var decisions := []
-	if sim.train != null:
-		decisions = _probed_steer(sim)
-	sim.free_slimes.steer(sim.slimes, Simulation.TICK_SECONDS, sim.level, gates)
-	sim.slimes.free_down = sim.phone_tilt.down()
-	sim.slimes.tick(Simulation.TICK_SECONDS)
-	Sleepers.wake(sim)
-	sim.free_slimes.paced(sim.slimes)
-	sim._face_hops()
-	for parts in sim.split_zones.apply(sim.slimes):
-		sim.identities.split(parts)
-		for k in range(1, parts.size()):
-			_split_now[parts[k]] = true
-		if sim.train != null:
-			sim.train.inherit(parts, sim.slimes)
-		sim.free_slimes.inherit(parts, sim.tick)
-	sim.fusion.step(sim)
-	sim.frontier.step(sim)
-	gates = sim.train.open_gates if sim.train != null else []
-	sim.free_slimes.follow(sim.slimes, sim.tick, sim.level, gates)
-	if sim.train != null:
-		for slime_id in sim.slimes.train_hopped:
-			if not _decided.has(slime_id):
-				uncovered_hops += 1
-		sim.train.follow(sim.slimes, sim.tick)
-	for d in decisions:
-		_write(f, d, sim)
-	sim.stuck_slimes.step(sim)
-	sim.camera.watch(sim.slimes, not sim.fingers_down.is_empty(), sim.screensaver,
-			sim.session.phase == Session.BEDTIME)
-	for gate_id in sim.frontier.gates_fired_open(sim):
-		sim.camera.show_gate(sim.level.gates[gate_id]["box"], sim.view, sim.level.loop, gates, sim.tick)
-	sim.camera.step(sim.level.loop if sim.level != null else null, gates, Simulation.TICK_SECONDS, sim.tick)
-	sim._tidy()
-	if sim.train != null:
-		_bookkeep(sim, held_before, decisions)
-	sim.tick += 1
-	sim.hint.update(sim.tick)
-	assert(not sim.session.save_due)
-
-
-## Train.steer(), replicated line for line, each decision read right before
-## its slime's _steer_one(). Returns the decisions, outcomes still open.
-func _probed_steer(sim: Simulation) -> Array:
-	var train: Train = sim.train
-	var b: SlimeBodies = sim.slimes
 	var tick := sim.tick
-	var out := []
+	var held_before := {}
+	for slime_id: int in sim.train._records:
+		if sim.train._records[slime_id].has("hold"):
+			held_before[slime_id] = sim.train._records[slime_id]["hold"]
+	_split_now.clear()
 	_queue_of.clear()
 	_queues_built = false
 	_decided.clear()
-	train.hold().begin_tick(b)
-	_released_now = train.hold().guard(b, tick, train.length())
+	_decisions = []
+	_released_now = -1
+	game.step_simulation()
+	if _hooked_tick != tick:
+		# No slime steered this tick: the guard's release is still readable
+		# (TrainHold._released lasts until the next begin_tick); the guard
+		# window misses the tick.
+		_released_now = sim.train.hold()._released
+		if _released_now >= 0:
+			guard_log.append([tick, _released_now])
+	for slime_id in sim.slimes.train_hopped:
+		if not _decided.has(slime_id):
+			uncovered_hops += 1
+	for d in _decisions:
+		_write(f, d, sim)
+	_bookkeep(sim, tick, held_before, _decisions)
+
+
+## ProbeTrain hook, the tick's first: right after the real steer() took the
+## holder snapshot and ran the hold guard, before any slime steers.
+func _tick_start() -> void:
+	var tick := _sim.tick
+	_hooked_tick = tick
+	_released_now = _sim.train.hold()._released
 	if _released_now >= 0:
 		guard_log.append([tick, _released_now])
 	if tick >= GUARD_FROM:
-		_guard_window(sim)
-	for slime_id in train.tracked_ids():
-		var s := b.index_of(slime_id)
-		var record: Dictionary = train._records[slime_id]
-		if s < 0 or b.state[s] != SlimeBodies.TRAIN or b.calm[s] == SlimeBodies.PARKED:
-			train.hold().drop(slime_id)
-			if s >= 0:
-				b.set_may_rest(slime_id, false)
-			continue
-		var d := _decision(sim, slime_id, s)
-		train._steer_one(b, slime_id, s, Simulation.TICK_SECONDS, tick)
-		if not d.is_empty():
-			d["after_holding"] = train.is_holding(slime_id)
-			d["after_began"] = train.hold_began_at(slime_id)
-			out.append(d)
-			_decided[slime_id] = true
-			if d["holder_corr"]:
-				_block_rows(sim, d)
-			if d["after_holding"]:
-				_ever_held[slime_id] = true
-				_last_cause[slime_id] = d["failed"]
-				_last_resp[slime_id] = d["resp"]
-			else:
-				_last_cause.erase(slime_id)
-				_last_resp.erase(slime_id)
-		b.set_may_rest(slime_id, record.has("hold") and not sim.fusion.counts_toward_fusion(slime_id))
-	return out
+		_guard_window(_sim)
+
+
+## ProbeTrain hook, right before the real _steer_one() of simulated train
+## slime `slime_id` (index `s`): its decision, or {} when it makes none.
+func before_steer_one(slime_id: int, s: int) -> Dictionary:
+	if _hooked_tick != _sim.tick:
+		_tick_start()
+	return _decision(_sim, slime_id, s)
+
+
+## ProbeTrain hook, right after the real _steer_one() of `slime_id`: decision
+## `d`'s state after it (holding, since when), kept for the tick's rows.
+func after_steer_one(d: Dictionary, slime_id: int) -> void:
+	if d.is_empty():
+		return
+	var train: Train = _sim.train
+	d["after_holding"] = train.is_holding(slime_id)
+	d["after_began"] = train.hold_began_at(slime_id)
+	_decisions.append(d)
+	_decided[slime_id] = true
+	if d["holder_corr"]:
+		_block_rows(_sim, d)
+	if d["after_holding"]:
+		_ever_held[slime_id] = true
+		_last_cause[slime_id] = d["failed"]
+		_last_resp[slime_id] = d["resp"]
+	else:
+		_last_cause.erase(slime_id)
+		_last_resp.erase(slime_id)
+
+
+## ProbeTrain hook, before the real Train.inherit(): a split zone's `parts`
+## (the first keeps its id), the others noted as split this tick.
+func on_split(parts: PackedInt32Array) -> void:
+	for k in range(1, parts.size()):
+		_split_now[parts[k]] = true
 
 
 ## The decision of simulated train slime `slime_id` (index `s`) this tick, as
@@ -624,13 +691,12 @@ func _kind(slime_id: int, tick: int) -> String:
 	return "held_before" if _ever_held.has(slime_id) else "never_held"
 
 
-## After the tick's step: every hold that ended this tick with its cause
+## After tick `tick`'s step: every hold that ended this tick with its cause
 ## (-ends.csv), the origin events (unpark, join, split), every train hop with
 ## its kind (-hops.csv).
-func _bookkeep(sim: Simulation, held_before: Dictionary, decisions: Array) -> void:
+func _bookkeep(sim: Simulation, tick: int, held_before: Dictionary, decisions: Array) -> void:
 	var train: Train = sim.train
 	var b: SlimeBodies = sim.slimes
-	var tick := sim.tick
 	var outcome_of := {}
 	var decision_of := {}
 	for d in decisions:

@@ -7,13 +7,20 @@ extends Node2D
 ## its centre to the target the Train would aim it at, plus
 ## TrainHold.CORRIDOR_PAST, TrainHold.CORRIDOR_HALF_WIDTH either side. None on a
 ## slide (no hop there). World space, like DebugSlimeLabels: place it at the
-## world origin; the line keeps its screen width at any zoom. It only reads the
-## simulation. Debug builds only: DebugOverlay toggles it, hidden by default,
-## and it redraws every frame only while shown.
+## world origin; the line keeps its screen width at any zoom. With the Train's
+## front_first on (chunk 22g), it also marks the loop buckets' boundaries, a
+## short tick across the loop at each (bucket_ticks), for information. It
+## only reads the simulation. Debug builds only: DebugOverlay toggles it,
+## hidden by default, and it redraws every frame only while shown.
 # @spec-link [[req_platform_and_performance_targets]]
 
 const HELD_COLOR := Color(1.0, 0.35, 0.3, 0.9)
 const FREE_COLOR := Color(0.4, 1.0, 0.5, 0.7)
+## The loop buckets' boundary ticks: muted, under the corridors' colours.
+# @spec-link [[req_platform_and_performance_targets]]
+const BOUNDARY_COLOR := Color(0.75, 0.8, 0.9, 0.5)
+## A boundary tick's length either side of the loop, world px.
+const TICK_HALF_LENGTH := 12.0
 ## The outline's width, screen pixels.
 const LINE_WIDTH := 1.5
 
@@ -59,11 +66,31 @@ static func corridor_of(sim: Simulation, slime_id: int) -> PackedVector2Array:
 	return TrainHold.corridor_corners(from, train.hop_target(progress, Train.hop_reach(bodies.size_of(slime_id))))
 
 
-## This frame's drawing: the labelled train slimes' corridors, outlined.
+## The loop buckets' boundary ticks of `train` now: two ends per boundary
+## (Train.bucket_boundaries), a segment across the loop centred on it,
+## TICK_HALF_LENGTH either side. None with front_first off or no Train.
+# @spec-link [[req_platform_and_performance_targets]]
+static func bucket_ticks(train: Train) -> PackedVector2Array:
+	var ticks := PackedVector2Array()
+	if train == null:
+		return ticks
+	for distance in train.bucket_boundaries():
+		var at := train.position_at(distance)
+		var across := train.direction_at(distance).orthogonal() * TICK_HALF_LENGTH
+		ticks.append(at - across)
+		ticks.append(at + across)
+	return ticks
+
+
+## This frame's drawing: the loop buckets' boundary ticks, then the labelled
+## train slimes' corridors, outlined.
 func _draw() -> void:
 	if simulation == null:
 		return
 	var zoom := simulation.view.zoom
+	var ticks := bucket_ticks(simulation.train)
+	if not ticks.is_empty():
+		draw_multiline(ticks, BOUNDARY_COLOR, LINE_WIDTH / zoom)
 	var bodies := simulation.slimes
 	for slime_id in DebugSlimeLabels.labelled_slimes(bodies, SlimeRenderer.shown_rect(get_viewport()), zoom):
 		var corners := corridor_of(simulation, slime_id)

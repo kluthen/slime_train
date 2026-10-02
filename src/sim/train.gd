@@ -155,6 +155,17 @@ const STALL_LOG_SIZE := 64
 # @spec-link [[req_platform_and_performance_targets]]
 var hops_taken := 0
 var short_hops_taken := 0
+## The front-first order (chunk 22g, experimental, a mode set by the game,
+## like SlimeBodies.rest_enabled; off by default): steer() processes the
+## train slimes front first by loop bucket (LoopBuckets: the loop cut into
+## bucket_length px segments, the front-most bucket first, ascending id
+## inside a bucket) instead of by ascending id, and the hold's holder
+## snapshot is live (TrainHold.refresh). Logical only: the buckets decide
+## the order, nothing else. Not state: neither in dump() nor in saves (the
+## buckets are derived from the records' distances and the loop's length).
+# @spec-link [[req_platform_and_performance_targets]]
+var front_first := false
+var bucket_length := LoopBuckets.DEFAULT_BUCKET_LENGTH
 
 ## The loop, and the gates opened so far (they pick the current loop).
 var loop: LoopData
@@ -184,6 +195,10 @@ var _len := 0.0
 ## (the hop counters', see the class doc). Not state: not in dump() nor saves.
 # @spec-link [[req_platform_and_performance_targets]]
 var _takeoff := {}
+## The front-first order's buckets (processing_order()), kept in step with
+## the records and the loop's length. Not state.
+# @spec-link [[req_hopping_behavior]]
+var _buckets := LoopBuckets.new()
 
 
 func _init(loop_data: LoopData = null, gates: Array = []) -> void:
@@ -533,23 +548,50 @@ func inherit(parts: PackedInt32Array, bodies: SlimeBodies) -> void:
 ## by contact with one, may rest unless one of its contacts counts toward
 ## fusion in `fusion` (fusion first); a slime resting by contact that
 ## touches no holder ahead or in its stack zone any more is woken. A parked
-## slime, or one no longer a train slime, ends its hold.
+## slime, or one no longer a train slime, ends its hold. The slimes go in
+## processing_order(): by ascending id or, with front_first on, front first,
+## each one's entry in the holder snapshot refreshed once it decided
+## (TrainHold.refresh, chunk 22g, experimental).
 # @spec-link [[req_hopping_behavior]]
 # @spec-link [[req_offscreen_simulation]]
+# @spec-link [[req_platform_and_performance_targets]]
 func steer(bodies: SlimeBodies, dt: float, tick: int, fusion: Fusion) -> void:
 	_hold.begin_tick(bodies)
 	_hold.guard(bodies, tick, _len)
-	for slime_id in tracked_ids():
-		var s := bodies.index_of(slime_id)
-		var record: Dictionary = _records[slime_id]
-		# A parked slime moves off screen at its pace (Offscreen).
-		if s < 0 or bodies.state[s] != SlimeBodies.TRAIN or bodies.calm[s] == SlimeBodies.PARKED:
-			_hold.drop(slime_id)
-			if s >= 0:
-				bodies.set_may_rest(slime_id, false)
-			continue
-		_steer_one(bodies, slime_id, s, dt, tick)
-		_hold.set_rest(bodies, slime_id, s, direction_at(record["distance"]), _len, dt, fusion)
+	for slime_id in processing_order():
+		_steer_tracked(bodies, slime_id, dt, tick, fusion)
+		if front_first:
+			_hold.refresh(bodies, slime_id)
+
+
+## The order steer() processes the followed slimes in: by ascending id, or
+## with front_first on, front first by loop bucket (see front_first). The
+## buckets are brought in step first, from the records' distances and the
+## loop's length alone (a gate opening cuts them again, a slime that left
+## the records leaves them), so a save and reload gives the same order.
+# @spec-link [[req_hopping_behavior]]
+# @spec-link [[req_platform_and_performance_targets]]
+func processing_order() -> PackedInt32Array:
+	if not front_first or _len <= 0.0:
+		return tracked_ids()
+	_buckets.configure(_len, bucket_length)
+	for slime_id: int in _records:
+		_buckets.place(slime_id, _records[slime_id]["distance"])
+	if _buckets.size() > _records.size():
+		for slime_id in _buckets.order():
+			if not _records.has(slime_id):
+				_buckets.drop(slime_id)
+	return _buckets.order()
+
+
+## The loop buckets' boundaries (LoopBuckets.boundaries(): distances along
+## the loop, as last cut by processing_order()), for the debug overlay; none
+## with front_first off. Read only.
+# @spec-link [[req_platform_and_performance_targets]]
+func bucket_boundaries() -> PackedFloat32Array:
+	if not front_first:
+		return PackedFloat32Array()
+	return _buckets.boundaries()
 
 
 ## After the bodies tick (and the split zones): follows every train slime,
@@ -640,6 +682,23 @@ func dump() -> Dictionary:
 
 
 # --- Internals --------------------------------------------------------------
+
+## steer() for followed slime `slime_id`: a parked slime, or one no longer a
+## simulated train slime, ends its hold and may not rest; any other is
+## steered (_steer_one) and its may_rest set (TrainHold.set_rest).
+# @spec-link [[req_hopping_behavior]]
+# @spec-link [[req_offscreen_simulation]]
+func _steer_tracked(bodies: SlimeBodies, slime_id: int, dt: float, tick: int, fusion: Fusion) -> void:
+	var s := bodies.index_of(slime_id)
+	# A parked slime moves off screen at its pace (Offscreen).
+	if s < 0 or bodies.state[s] != SlimeBodies.TRAIN or bodies.calm[s] == SlimeBodies.PARKED:
+		_hold.drop(slime_id)
+		if s >= 0:
+			bodies.set_may_rest(slime_id, false)
+		return
+	_steer_one(bodies, slime_id, s, dt, tick)
+	_hold.set_rest(bodies, slime_id, s, direction_at(_records[slime_id]["distance"]), _len, dt, fusion)
+
 
 ## steer() for simulated train slime `slime_id` (index `s`) at `tick`: on a
 ## slide it is carried (and holds no more); on the ground it grips, unless

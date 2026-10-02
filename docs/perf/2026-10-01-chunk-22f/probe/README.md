@@ -12,16 +12,33 @@ gone from the game, are computed inside the probe (240 px, 30, 24 px) for
 comparison. The committed `runs/` are step 2's (22e's rules); `runs/final/` holds the final part-2 build's runs.
 
 - `hold_probe.gd`: loads a fixture in test mode (the same configuration as
-  `-- --test-mode --fixture=X --seed=N`) and steps it with
-  `Simulation.step()` replicated call for call, `Train.steer()`'s loop
-  replicated too, so each decision is read in the exact state its own
-  steer sees. A decision: a due train slime standing on something, or a
-  holder at a re-check or at the cap. One CSV row each; a snapshot every
+  `-- --test-mode --fixture=X --seed=N`) and steps it with the game's own
+  step, `game.step_simulation()` (the real `Simulation.step()` and
+  `Train.steer()`, as `--run-ticks` does). Since 22g step 0 it copies
+  neither, so it cannot drift from the game (22f's copy did: its
+  stress-moving hash diverged), and it follows any change to `steer()`'s
+  order (22g's `Train.front_first`) for free. To read the decisions it
+  turns the Train, in place, into a `ProbeTrain` (an inner subclass,
+  swapped in by `set_script` with every member kept) that wraps only
+  `_steer_one()` (a hook before and after the real one) and `inherit()`
+  (notes the split parts): each decision is read in the exact state its
+  own steer sees (holder snapshot taken, hold guard run, the slimes before
+  it steered, `set_rest` included). The guard's release and the guard
+  window are read at the tick's first hook; everything else after the
+  step. A decision: a due train slime standing on something, or a holder
+  at a re-check or at its period's end. One CSV row each; a snapshot every
   120 ticks (the Train's hold snapshot, Physics, the largest awake
-  cluster); the Train's counters at the end. It uses the Train's privates
-  (`_records`, `_hold`, `_steer_one`) and Simulation's (`_pending_input`,
-  `_apply_input`, `_face_hops`, `_tidy`): if either step changes, the
-  hash check below fails and the probe must follow.
+  cluster); the Train's counters at the end. It still reads the Train's
+  privates (`_records`, `TrainHold._released`, `_holders`) and relies on
+  `steer()` calling `_steer_one()` per slime; if the Train or the
+  Simulation is replaced mid-run it stops with an `ERR` line. Not
+  measured: on a tick where no slime steers, the guard window skips the
+  tick (the guard's release is still logged).
+- The hash check: at the end the probe frees its game, runs a fresh one
+  on the same fixture, seed and ticks with `game.step_simulation()` only,
+  and prints `PROBE_HASH probe=<8 hex> plain=<8 hex> match=yes|no`. It
+  must say `match=yes`; `--no-check` skips it (half the time), `--plain`
+  runs the plain step alone (no rows, no hook).
 - `hold_analyze.py`: per run, the BEFORE row, readings (a)-(e) with a
   verdict, the hold start and end causes, back-of-queue hops by cause,
   and the corridor's occupancy by queue position with a threshold table.
@@ -38,10 +55,15 @@ Run (one Godot at a time), from the repository root:
 P=docs/perf/2026-10-01-chunk-22f/probe
 godot --headless --path . -s $P/hold_probe.gd -- \
     --fixture=stress-moving --seed=1 --ticks=2400 --out=$P/runs/stress-moving-seed1.csv
-# the reference: must print the same hash as the probe's RESULT line
-godot --headless --path . -- --test-mode --fixture=stress-moving --seed=1 --run-ticks=2400
+# the last line: PROBE_HASH probe=08805799 plain=08805799 match=yes (at 9be1af7)
 python3 $P/hold_analyze.py $P/runs/*-seed?.csv
 ```
+
+A 2400-tick run with the check takes about 50 s on stress-moving and 27 s
+on s3-basket-59of60 (the plain run included). At 9be1af7 the plain
+hashes are stress-moving `08805799` (seed 1), `9b846317` (seed 2),
+s3-basket-59of60 `82343b5f` (seed 1); the probe's own outputs on
+s3-basket-59of60 seed 1 equal `runs/final/`'s byte for byte.
 
 Columns: `ahead` train slimes ahead along the loop within 300 px (22e's
 queue position; bins 0-2, 3-7, 8-14, 15+); `qpos`/`qsize`/`front` the
@@ -63,3 +85,7 @@ pending (aimed, fires next tick: not a decision of its own),
 start_crowd/jam/both (step 2's runs: 22e's checks) or
 start_crowd/holder/both (since step 3: the corridor's), still, end_clear,
 end_cap; `hopped` the hop fired this tick.
+
+**Front-first order (chunk 22g):** both `hold_probe.gd` and `thru.gd` accept the game's
+`--loop-buckets` and `--loop-bucket-length=PX` user args (after `--`), for the probe run and its
+plain check alike; the game prints `LOOP_BUCKETS on length=…` when they apply.

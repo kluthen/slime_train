@@ -504,6 +504,36 @@ func test_a_train_slimes_corridor_runs_to_its_hop_target_and_past_it() -> void:
 	assert_eq(DebugCorridors.corridor_of(sim, slime).size(), 0, "a free slime has none")
 
 
+# The corridor layer marks the loop buckets' boundaries (chunk 22g, for
+# information): a tick across the loop at each, only with front_first on.
+# @test-link [[req_platform_and_performance_targets]]
+func test_the_bucket_ticks_cross_the_loop_at_each_boundary_only_with_front_first_on() -> void:
+	var sim := _sim()
+	sim.train.bucket_length = 1000.0
+	sim.step()
+	assert_eq(DebugCorridors.bucket_ticks(sim.train).size(), 0, "front_first off: no tick")
+	sim.train.front_first = true
+	sim.step()
+	var hash_before := sim.state_hash()
+	var boundaries := sim.train.bucket_boundaries()
+	assert_eq(boundaries.size(), ceili(sim.train.length() / 1000.0) - 1, "one boundary between two buckets")
+	assert_eq(boundaries[0], 1000.0)
+	var ticks := DebugCorridors.bucket_ticks(sim.train)
+	assert_eq(ticks.size(), 2 * boundaries.size(), "one segment (two ends) per boundary")
+	for k in boundaries.size():
+		var a := ticks[2 * k]
+		var b := ticks[2 * k + 1]
+		var at := sim.train.position_at(boundaries[k])
+		assert_almost_eq((a + b) / 2.0, at, Vector2(0.001, 0.001), "centred on the loop at boundary %d" % k)
+		assert_almost_eq(a.distance_to(b), 2.0 * DebugCorridors.TICK_HALF_LENGTH, 0.001)
+		assert_almost_eq((b - a).dot(sim.train.direction_at(boundaries[k])), 0.0, 0.001, "across the loop")
+	assert_almost_eq(ticks[0].x, 1000.0, 0.001, "the first boundary, 1000 px along the outgoing line")
+	assert_eq(sim.state_hash(), hash_before, "read only")
+	sim.train.front_first = false
+	assert_eq(DebugCorridors.bucket_ticks(sim.train).size(), 0, "off again: no tick")
+	assert_eq(DebugCorridors.bucket_ticks(null).size(), 0, "no train: no tick")
+
+
 # --- The bar's per-frame refresh --------------------------------------------------
 
 # @test-link [[req_platform_and_performance_targets]]

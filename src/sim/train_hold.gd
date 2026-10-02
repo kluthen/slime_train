@@ -36,6 +36,9 @@ extends RefCounted
 ## from the records as the tick goes on: a slime starting or ending its hold
 ## this tick is seen as it was at the tick's start by every other slime, so
 ## no same-tick decision depends on the order the slimes are steered in.
+## (Chunk 22g, experimental: with the Train's front-first order on, the
+## snapshot is live instead, each slime's entry refreshed once it decided,
+## refresh(), so a slime behind sees the decisions of those ahead.)
 ## Who counts as a holder for the holder rule is _is_holder_like()'s, one
 ## place: the holders and the train slimes resting by contact (below,
 ## D147 (4)), so a slime arriving behind a slime resting by contact holds.
@@ -251,10 +254,12 @@ var _released := -1
 # @spec-link [[req_persistence_and_saves]]
 var _periods := {}
 ## The holders at the start of this tick (begin_tick()), holding: slime id
-## -> true (the hold guard's, rest by contact's), and the holder rule's
+## -> its cell (the hold guard's, rest by contact's), and the holder rule's
 ## (_is_holder_like: those and the train slimes resting by contact), and the
 ## holders by cell (Vector2i of CONTACT_CELL px cells -> Array of the ids of
 ## the holders in it or in the 8 cells round it, for touches_holder()). Rebuilt every tick from the records, so not state.
+## With the Train's front-first order on, refresh() keeps them live through
+## the tick (chunk 22g, experimental).
 # @spec-link [[req_hopping_behavior]]
 # @spec-link [[req_offscreen_simulation]]
 var _holders := {}
@@ -321,16 +326,56 @@ func begin_tick(bodies: SlimeBodies) -> void:
 		if not _is_holder_like(bodies, slime_id):
 			continue
 		_holder_like[slime_id] = true
-		if not _records[slime_id].has("hold"):
-			continue
-		_holders[slime_id] = true
-		var cell := Vector2i((bodies.centre_of(slime_id) / CONTACT_CELL).floor())
-		for dy in range(-1, 2):
-			for dx in range(-1, 2):
-				var near := cell + Vector2i(dx, dy)
-				if not _holder_cells.has(near):
-					_holder_cells[near] = []
-				_holder_cells[near].append(slime_id)
+		if _records[slime_id].has("hold"):
+			_add_holder(bodies, slime_id)
+
+
+## Lists holder `slime_id` in the snapshot's holders, under its cell, and
+## in the 3 x 3 cells round it (begin_tick(), refresh()).
+# @spec-link [[req_offscreen_simulation]]
+func _add_holder(bodies: SlimeBodies, slime_id: int) -> void:
+	var cell := Vector2i((bodies.centre_of(slime_id) / CONTACT_CELL).floor())
+	_holders[slime_id] = cell
+	for dy in range(-1, 2):
+		for dx in range(-1, 2):
+			var near := cell + Vector2i(dx, dy)
+			if not _holder_cells.has(near):
+				_holder_cells[near] = []
+			_holder_cells[near].append(slime_id)
+
+
+## The front-first order's live snapshot (chunk 22g, experimental; the
+## Train's steer() calls it only with Train.front_first on, after slime
+## `slime_id` decided): its entry in the holder snapshot is set again from
+## its state now, by begin_tick()'s rule (added or taken out of the holders,
+## the holder rule's and the cells), so the slimes steered after it this
+## tick, behind it, see this tick's decision (a front holder letting go is
+## no holder for them; one starting to hold is). Only its entry: slimes
+## SlimeBodies.wake woke up its stack keep theirs until their own turn.
+# @spec-link [[req_hopping_behavior]]
+# @spec-link [[req_platform_and_performance_targets]]
+# @spec-link [[rule_loop_travelable_with_no_input]]
+func refresh(bodies: SlimeBodies, slime_id: int) -> void:
+	var like := _records.has(slime_id) and _is_holder_like(bodies, slime_id)
+	if like:
+		_holder_like[slime_id] = true
+	else:
+		_holder_like.erase(slime_id)
+	var holding: bool = like and _records[slime_id].has("hold")
+	if holding == _holders.has(slime_id):
+		return
+	if holding:
+		_add_holder(bodies, slime_id)
+		return
+	var cell: Vector2i = _holders[slime_id]
+	_holders.erase(slime_id)
+	for dy in range(-1, 2):
+		for dx in range(-1, 2):
+			var near := cell + Vector2i(dx, dy)
+			var ids: Array = _holder_cells[near]
+			ids.erase(slime_id)
+			if ids.is_empty():
+				_holder_cells.erase(near)
 
 
 ## Whether slime `slime_id` counted as a holder for the holder rule at the

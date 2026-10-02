@@ -3413,6 +3413,23 @@ under [Chunk 22: performance](#chunk-22-performance)).
 run. The lint above covers `PerfLog` too. Tests:
 `tests/unit/test_perf_log.gd`.
 
+**The loop buckets (chunk 22g, experimental).** `--loop-buckets` turns on
+the Train's front-first order (`Train.front_first`, off by default): steer()
+processes the train slimes front first by loop bucket (`LoopBuckets`,
+`src/sim/loop_buckets.gd`: the loop cut into `--loop-bucket-length=PX`
+segments, 300 px by default; the front-most bucket first, ascending id
+inside one) instead of by id, and the hold's holder snapshot is live
+(`TrainHold.refresh`: a slime behind sees this tick's decisions of the
+slimes ahead). Logical only, no save key; off, the run is exactly as before.
+Debug builds only (the game root's `use_loop_buckets()`, after
+`TestModeGuard`), in normal play or test mode (test mode leaves both flags
+to the game root); applied to every simulation the game takes; a
+`LOOP_BUCKETS on length=…` line says so. With the buckets on, the debug
+overlay's corridor layer also marks each bucket boundary with a short tick
+across the loop (`DebugCorridors.bucket_ticks`), for information only.
+Tests: `tests/unit/test_train_front_first.gd`,
+`tests/unit/test_loop_buckets.gd`, `tests/unit/test_debug_overlay.gd`.
+
 ## Saves and fixtures
 
 Master spec §6.4 and D72 (`req_persistence_and_saves`,

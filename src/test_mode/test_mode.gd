@@ -409,6 +409,8 @@ static func load_config_file(path: String) -> Dictionary:
 ##   --save=PATH              with --run-ticks, then save to PATH
 ##   --perf-log[=SECONDS]     not test mode's: the game root's perf log
 ##   --max-ticks-per-frame=N  (src/debug/perf_log.gd) reads them; skipped here
+##   --loop-buckets           not test mode's either: the game root reads
+##   --loop-bucket-length=PX  them (use_loop_buckets()); skipped here
 ## Returns {"config", "run_ticks" (-1 when absent), "print_state",
 ## "save_path" ("" when absent), "errors"}.
 static func config_from_args(user_args: PackedStringArray) -> Dictionary:
@@ -423,6 +425,8 @@ static func config_from_args(user_args: PackedStringArray) -> Dictionary:
 			"--test-mode":
 				pass
 			"--perf-log", "--max-ticks-per-frame":
+				pass
+			"--loop-buckets", "--loop-bucket-length":
 				pass
 			"--test-script":
 				var loaded := load_config_file(value)

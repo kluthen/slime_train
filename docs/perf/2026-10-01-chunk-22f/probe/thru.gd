@@ -4,7 +4,7 @@ extends SceneTree
 ## counts train slimes crossing loop distances X1/X2, stall moves, stuck
 ## moves, hops, simulated train slimes, and the bowl's back half.
 ## THRU_TOT adds the hold guard's releases (Train.hold_counters()).
-## godot --headless --path . -s docs/perf/2026-10-01-chunk-22f/probe/thru.gd -- --fixture=stress-moving --seed=N --ticks=T [--level=test]
+## godot --headless --path . -s docs/perf/2026-10-01-chunk-22f/probe/thru.gd -- --fixture=stress-moving --seed=N --ticks=T [--level=test] [--loop-buckets] [--loop-bucket-length=PX]
 
 var fixture := "stress-moving"
 var seed_n := 1
@@ -39,6 +39,12 @@ func _initialize() -> void:
 	var game: Node = load("res://src/main.tscn").instantiate()
 	root.add_child(game)
 	await process_frame
+	# --loop-buckets / --loop-bucket-length=PX (chunk 22g), forwarded: main.gd reads them only as the current scene.
+	var bucket_errs: PackedStringArray = game.use_loop_buckets(OS.get_cmdline_user_args())
+	if not bucket_errs.is_empty():
+		print("ERR ", bucket_errs)
+		quit(1)
+		return
 	var parsed: Dictionary = load("res://src/test_mode/test_mode.gd").config_from_args(PackedStringArray(
 			["--test-mode", "--level=" + level, "--fixture=" + fixture, "--seed=%d" % seed_n]))
 	if not parsed["errors"].is_empty():

@@ -1,0 +1,1639 @@
+====================================================================================================
+docs/perf/2026-10-01-chunk-22g/runs/probe/stress-moving-off-s1.csv
+BEFORE stress-moving seed 1 (2400 ticks, 20 snapshots every 120 ticks)
+  hops 651  short 92.2%  | hold ends 200: clear 97.5 / cap 0.0 / guard 0.0 / other 2.5 %
+  hold starts 271: holder (jam) 94.5% crowd 5.5% | front 18.3% queue 11.7% crowded 0.0% of hops
+  holding mean/max 55.8/84  holding_resting mean 25.0  contact_resting mean 7.0  back-held 29.0% (20/69)
+  Physics mean 105.3  cluster mean/max 61.1/132  stalled 0  hops not covered by a decision 0  hash 08805799d264
+READINGS (decisions 5151, pending 333 not counted)
+  (a) ruled out back (8+) passes 510: would fail with resting counted 1 (0.2%); resting in the half disc mean 0.1 max 3
+  (b) confirmed count p50/p90/max 17/26/35, > 30 at 40 of 5151 decisions (0.8%); starts with crowd failing 10 of 271
+  (c) confirmed jam-only starts 0 of 271 (0.0%)
+  (d) ruled out counted but behind on the loop mean 0.48 (3.1% of counted), ahead on the loop but missed mean 0.17; crowd verdict flips 30 of 5151 (0.6%)
+  (e) partly    counted: train 100.0% (awake holders 49.8%); failed re-checks 4209: crowd 10 jam 4175; cap ends 0: crowd 0 jam 0
+      (2nd option) disc, resting counted, ahead along the loop: > 30 at 21 of 5151 (0.4%), p50/p90 23/26
+OUTCOMES {'end_clear': 184, 'end_period': 11, 'hop': 476, 'pending': 333, 'start_both': 3, 'start_crowd': 12, 'start_holder': 256, 'still': 4209}
+HOLD STARTS crowd 12 jam 0 holder 256 both 3 none 0
+HOLD ENDS (re-check/cap decisions) clear 184 cap 0
+outcome x queue bin (train slimes ahead within 300 px):
+                  0-2    3-7   8-14    15+
+  end_clear         0      0     11    173
+  end_period        0      0      0     11
+  hop              66     84    109    217
+  pending          31     49     73    180
+  start_both        0      0      0      3
+  start_crowd       0      0      2     10
+  start_holder      0      0      9    247
+  still             0      0    315   3894
+BACK HOPS 8+: 501 hops: fresh (no hold) 326, after a clear end 166, after a cap end 0 (cap share 0.0%)
+BACK HOPS 15+: 382 hops: fresh (no hold) 217, after a clear end 156, after a cap end 0 (cap share 0.0%)
+CORRIDOR at due hops (not holding: hop or hold start), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2          66  0.00  0.03  0.11     0%     0%     0%      0%      0%    0.9
+  3-7          84  0.12  0.22  0.30     4%     0%     0%      0%      0%    4.5
+  8-14        120  0.32  0.52  0.63    72%    53%    19%      8%      3%    9.3
+  15+         477  0.34  0.54  0.66    73%    60%    29%     52%      5%   11.1
+  front       129  0.00  0.18  0.46    21%     9%     2%     15%      0%    5.4
+  behind      618  0.27  0.53  0.66    66%    55%    26%     39%      5%   10.0
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%      12%      95%      97%      38%      87%   |                       0%     12%     93%     96%     38%     86%
+  0.35         0%       4%      88%      92%      34%      81%   |                       0%      4%     85%     87%     32%     77%
+  0.40         0%       4%      78%      86%      26%      77%   |                       0%      4%     72%     73%     21%     66%
+  0.45         0%       0%      70%      82%      21%      73%   |                       0%      0%     62%     64%     12%     59%
+  0.50         0%       0%      61%      81%      20%      70%   |                       0%      0%     53%     60%      9%     55%
+  0.55         0%       0%      46%      77%      18%      64%   |                       0%      0%     38%     48%      5%     44%
+  0.60         0%       0%      27%      68%      16%      54%   |                       0%      0%     19%     29%      2%     26%
+  0.70         0%       0%       9%      55%      15%      41%   |                       0%      0%      2%      3%      0%      2%
+CORRIDOR at all decisions (re-checks and cap included), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2          66  0.00  0.03  0.11     0%     0%     0%      0%      0%    0.9
+  3-7          84  0.12  0.22  0.30     4%     0%     0%      0%      0%    4.5
+  8-14        446  0.26  0.38  0.57    32%    17%     8%     71%      1%    8.2
+  15+        4555  0.34  0.52  0.64    73%    53%    23%     90%      2%   10.3
+  front       413  0.06  0.42  0.55    55%    20%     4%     66%      1%    9.0
+  behind     4738  0.33  0.50  0.64    68%    51%    22%     88%      2%   10.0
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%      12%      98%     100%      80%      98%   |                       0%     12%     85%     96%     80%     94%
+  0.35         0%       4%      96%      99%      79%      97%   |                       0%      4%     79%     87%     68%     85%
+  0.40         0%       4%      93%      98%      74%      96%   |                       0%      4%     32%     73%     55%     68%
+  0.45         0%       0%      90%      97%      70%      96%   |                       0%      0%     20%     60%     26%     58%
+  0.50         0%       0%      88%      97%      70%      95%   |                       0%      0%     17%     53%     20%     51%
+  0.55         0%       0%      84%      96%      69%      94%   |                       0%      0%     13%     40%     11%     39%
+  0.60         0%       0%      79%      94%      67%      92%   |                       0%      0%      8%     23%      4%     22%
+  0.70         0%       0%      73%      91%      66%      89%   |                       0%      0%      2%      2%      0%      2%
+ROOTS (crowd-only re-checks, ticks 1200-2400): 25 checks, occupancy p50 0.74 p90 0.74; of it, p50: holders in the stack zone 0.00, resting non-holders 0.00, awake non-holders 0.74 (share 98%)
+LOAD (loop 38297 px): tick n_sim/parked/other, sum of diameters sim/all, share of the loop covered (sim), holders, guard blockers
+    120  200/  0/ 0  diam   8400/  8400 = 0.22 of the loop  covered 0.058  holders 0  blockers 200 (pinned 93)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+    600  141/  1/ 0  diam   6895/  6937 = 0.18 of the loop  covered 0.061  holders 64  blockers 72 (pinned 40)  front holder at 17475, ahead of it 19 within 1500 px, 0 beyond
+   1200  128/  4/ 0  diam   6489/  6674 = 0.17 of the loop  covered 0.061  holders 71  blockers 50 (pinned 10)  front holder at 17316, ahead of it 31 within 1500 px, 0 beyond
+   1800  127/  4/ 0  diam   6434/  6650 = 0.17 of the loop  covered 0.064  holders 73  blockers 36 (pinned 14)  front holder at 17321, ahead of it 30 within 1500 px, 3 beyond
+   2400  124/  6/ 0  diam   6342/  6625 = 0.17 of the loop  covered 0.066  holders 71  blockers 38 (pinned 7)  front holder at 17098, ahead of it 38 within 1500 px, 4 beyond
+BLOCKS (holder rule failing, responsible holders: in the corridor outside the stack zone)
+  gap = the holder's record distance minus the checker's, wrapped into (-L/2, L/2]: ahead > 0
+  all            checks   4425, holders/check 6.32 | ALL behind 0.1%, any behind 0.7% | holders behind 0.1%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:7% +60-200:65% +200-600:27% +>600:0%
+      euclid p50 185, along p50 182 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 87%, inherited 10%, both 2%, crowd 2% | holder resting 42%, holder a front 2%
+      behind holders held by: holder 90%, crowd 10%
+  due (starts)   checks    259, holders/check 4.15 | ALL behind 0.4%, any behind 1.5% | holders behind 0.4%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:7% +60-200:65% +200-600:28% +>600:0%
+      euclid p50 183, along p50 179 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 87%, inherited 6%, crowd 6%, both 1% | holder resting 20%, holder a front 1%
+      behind holders held by: holder 75%, crowd 25%
+  re-checks      checks   4166, holders/check 6.46 | ALL behind 0.0%, any behind 0.6% | holders behind 0.1%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:7% +60-200:65% +200-600:27% +>600:0%
+      euclid p50 185, along p50 182 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 87%, inherited 10%, both 2%, crowd 1% | holder resting 42%, holder a front 2%
+      behind holders held by: holder 92%, crowd 8%
+  front checkers checks    272, holders/check 6.01 | ALL behind 0.0%, any behind 7.0% | holders behind 1.2%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:1% +<=60:21% +60-200:66% +200-600:11% +>600:0%
+      euclid p50 195, along p50 189 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 91%, crowd 5%, both 3%, inherited 1% | holder resting 18%, holder a front 2%
+      behind holders held by: holder 100%
+GRAPH (edge A -> B: B a responsible holder of A's last check, B still holding)
+   tick hold crowd stale inher edges cycles scc sizes (shortest, wind)  ->cyc ->root   both   none
+    360   20     2     0     0    47      0                             0     20      0      0
+    480   51     1     0     0   294      0                             0     51      0      0
+    600   64     1     0     0   427      0                             0     64      0      0
+    720   64     0     2     0   326      0                             0     64      0      0
+    840   48     0     5     0   243      0                             0     48      0      0
+    960   31     1     2     0   120      0                             0     31      0      0
+   1080   46     2     2     0   203      0                             0     46      0      0
+   1200   71     0     3     0   411      0                             0     71      0      0
+   1320   84     0     3     0   492      0                             0     84      0      0
+   1440   66     1     2     0   364      0                             0     66      0      0
+   1560   50     0     4     0   201      0                             0     50      0      0
+   1680   55     1     0     0   162      0                             0     55      0      0
+   1800   73     1     0     0   376      0                             0     73      0      0
+   1920   77     1     0     0   444      0                             0     77      0      0
+   2040   80     1     0     0   500      0                             0     80      0      0
+   2160   82     2     0     0   520      0                             0     82      0      0
+   2280   82     1     0     0   514      0                             0     82      0      0
+   2400   71     0     4     0   422      0                             0     71      0      0
+  ticks 1200-2400: holders 791 (sum over snapshots): roots 3.0% (crowd 1.0%, stale 2.0%), in a cycle 0.0%; reach only a cycle 0.0%, only a root 100.0%, both 0.0%; cycles per snapshot 0.00
+  chain depth (edges to a root, longest): mean 9.6, max 22
+HOLD ENDS by cause: all {'clear': 195, 'gone_fusion': 5}
+  ticks 1200-2400: {'clear': 90, 'gone_fusion': 1}
+HOPS ticks 1200-2400: 245 (distinct slimes 78, fronts 21%): end:clear 109, never_held 98, held_before 38
+  gap to the nearest holder ahead: none 170, p50 24, <=300 px 58
+GUARD ticks 1200-2400 (1200): no blocker 0, latest start >= 240 old 62, both 0; blockers mean 40.4 (air 1.5, ground 38.9), latest-start age mean 36; distinct blockers 101
+  blocker-ticks by kind: end:clear 43.8%, never_held 38.9%, held_before 17.4%
+  top blockers [id, ticks, hops in window, ever held, kind]: [[32, 1200, 4, 1, 'held_before', 17536.7, 76.3, 1, 0.161, 0, 0, False, 1, 13.1, -5.0], [33, 1200, 8, 0, 'never_held', 17593.3, 80.9, 1, 2.6, 0, 0, False, 3, 23.9, -5.0], [34, 1200, 9, 0, 'never_held', 17881.4, 183.5, 1, 2.017, 0, 0, False, 1, 11.6, -24.0], [66, 1200, 6, 1, 'held_before', 17497.6, 75.9, 1, 0.492, 0, 0, False, 1, 10.2, 0.0], [67, 1200, 4, 0, 'never_held', 17523.3, 59.6, 1, 0.25, 0, 0, False, 2, 14.2, -5.0], [71, 1200, 5, 0, 'never_held', 17656.3, 79.5, 1, 0.25, 0, 0, False, 2, 7.2, -14.0], [73, 1200, 5, 0, 'never_held', 17800.1, 161.5, 1, 1.203, 0, 0, False, 2, 3.7, -20.0], [92, 1200, 5, 1, 'held_before', 17460.4, 68.5, 1, 1.19, 0, 0, False, 1, 7.6, 0.0]]
+====================================================================================================
+docs/perf/2026-10-01-chunk-22g/runs/probe/stress-moving-off-s2.csv
+BEFORE stress-moving seed 2 (2400 ticks, 20 snapshots every 120 ticks)
+  hops 484  short 91.3%  | hold ends 53: clear 92.5 / cap 0.0 / guard 0.0 / other 7.5 %
+  hold starts 141: holder (jam) 90.1% crowd 9.9% | front 19.0% queue 6.2% crowded 0.0% of hops
+  holding mean/max 71.9/99  holding_resting mean 35.1  contact_resting mean 6.2  back-held 44.3% (85/192)
+  Physics mean 96.5  cluster mean/max 52.2/133  stalled 0  hops not covered by a decision 0  hash 9b8463174fbe
+READINGS (decisions 6421, pending 283 not counted)
+  (a) ruled out back (8+) passes 331: would fail with resting counted 0 (0.0%); resting in the half disc mean 0.0 max 1
+  (b) confirmed count p50/p90/max 15/24/35, > 30 at 54 of 6421 decisions (0.8%); starts with crowd failing 13 of 141
+  (c) confirmed jam-only starts 0 of 141 (0.0%)
+  (d) ruled out counted but behind on the loop mean 0.40 (2.7% of counted), ahead on the loop but missed mean 0.25; crowd verdict flips 38 of 6421 (0.6%)
+  (e) partly    counted: train 100.0% (awake holders 64.7%); failed re-checks 5789: crowd 15 jam 5743; cap ends 0: crowd 0 jam 0
+      (2nd option) disc, resting counted, ahead along the loop: > 30 at 47 of 6421 (0.7%), p50/p90 23/27
+OUTCOMES {'end_clear': 47, 'end_period': 2, 'hop': 442, 'pending': 283, 'start_both': 5, 'start_crowd': 9, 'start_holder': 127, 'still': 5789}
+HOLD STARTS crowd 9 jam 0 holder 127 both 5 none 0
+HOLD ENDS (re-check/cap decisions) clear 47 cap 0
+outcome x queue bin (train slimes ahead within 300 px):
+                  0-2    3-7   8-14    15+
+  end_clear         0      0      8     39
+  end_period        0      0      0      2
+  hop              61     97    121    163
+  pending          28     48     68    139
+  start_both        0      0      0      5
+  start_crowd       0      0      2      7
+  start_holder      0      0      1    126
+  still             0      0    454   5335
+BACK HOPS 8+: 326 hops: fresh (no hold) 284, after a clear end 40, after a cap end 0 (cap share 0.0%)
+BACK HOPS 15+: 198 hops: fresh (no hold) 163, after a clear end 33, after a cap end 0 (cap share 0.0%)
+CORRIDOR at due hops (not holding: hop or hold start), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2          61  0.00  0.04  0.11     0%     0%     0%      0%      0%    1.0
+  3-7          97  0.10  0.22  0.33     0%     0%     0%      0%      0%    4.8
+  8-14        124  0.34  0.53  0.66    77%    58%    26%      1%      7%    9.7
+  15+         301  0.32  0.52  0.66    68%    52%    30%     44%      4%   11.3
+  front       104  0.00  0.15  0.50    24%    11%     5%     13%      1%    5.4
+  behind      479  0.21  0.46  0.66    57%    46%    24%     25%      4%    9.5
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%      13%      94%      96%      40%      79%   |                       0%     13%     94%     95%     40%     78%
+  0.35         0%       7%      88%      87%      36%      71%   |                       0%      7%     88%     83%     35%     69%
+  0.40         0%       0%      77%      79%      28%      63%   |                       0%      0%     77%     68%     24%     57%
+  0.45         0%       0%      68%      74%      22%      59%   |                       0%      0%     68%     59%     15%     51%
+  0.50         0%       0%      58%      70%      21%      55%   |                       0%      0%     58%     52%     11%     46%
+  0.55         0%       0%      40%      66%      19%      48%   |                       0%      0%     40%     44%      9%     36%
+  0.60         0%       0%      26%      59%      17%      40%   |                       0%      0%     26%     30%      5%     24%
+  0.70         0%       0%       2%      46%      13%      27%   |                       0%      0%      2%      4%      0%      3%
+CORRIDOR at all decisions (re-checks and cap included), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2          61  0.00  0.04  0.11     0%     0%     0%      0%      0%    1.0
+  3-7          97  0.10  0.22  0.33     0%     0%     0%      0%      0%    4.8
+  8-14        586  0.26  0.38  0.63    45%    24%    12%     74%      2%    8.3
+  15+        5677  0.36  0.53  0.63    73%    57%    20%     95%      1%   10.4
+  front       499  0.14  0.37  0.52    44%    11%     4%     80%      0%    8.9
+  behind     5922  0.35  0.52  0.64    71%    56%    20%     92%      1%   10.1
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%      13%      99%     100%      88%      98%   |                       0%     13%     88%     97%     87%     94%
+  0.35         0%       7%      97%      99%      87%      98%   |                       0%      7%     84%     91%     69%     90%
+  0.40         0%       0%      95%      99%      85%      97%   |                       0%      0%     45%     73%     44%     71%
+  0.45         0%       0%      93%      98%      83%      97%   |                       0%      0%     27%     67%     30%     64%
+  0.50         0%       0%      91%      98%      82%      96%   |                       0%      0%     24%     57%     11%     56%
+  0.55         0%       0%      87%      98%      82%      96%   |                       0%      0%     17%     43%      7%     42%
+  0.60         0%       0%      84%      97%      82%      95%   |                       0%      0%     12%     20%      4%     20%
+  0.70         0%       0%      78%      96%      81%      93%   |                       0%      0%      4%      3%      1%      3%
+ROOTS (crowd-only re-checks, ticks 1200-2400): 44 checks, occupancy p50 0.72 p90 0.76; of it, p50: holders in the stack zone 0.00, resting non-holders 0.00, awake non-holders 0.71 (share 95%)
+LOAD (loop 38297 px): tick n_sim/parked/other, sum of diameters sim/all, share of the loop covered (sim), holders, guard blockers
+    120  200/  0/ 0  diam   8400/  8400 = 0.22 of the loop  covered 0.058  holders 0  blockers 200 (pinned 102)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+    600  144/  0/ 0  diam   6990/  6990 = 0.18 of the loop  covered 0.060  holders 60  blockers 78 (pinned 40)  front holder at 17478, ahead of it 22 within 1500 px, 0 beyond
+   1200  129/  3/ 0  diam   6548/  6674 = 0.17 of the loop  covered 0.061  holders 82  blockers 40 (pinned 8)  front holder at 17379, ahead of it 25 within 1500 px, 0 beyond
+   1800  125/  5/ 0  diam   6394/  6621 = 0.17 of the loop  covered 0.061  holders 88  blockers 30 (pinned 8)  front holder at 17350, ahead of it 27 within 1500 px, 0 beyond
+   2400  124/  4/ 0  diam   6373/  6572 = 0.17 of the loop  covered 0.066  holders 88  blockers 25 (pinned 3)  front holder at 17350, ahead of it 22 within 1500 px, 4 beyond
+BLOCKS (holder rule failing, responsible holders: in the corridor outside the stack zone)
+  gap = the holder's record distance minus the checker's, wrapped into (-L/2, L/2]: ahead > 0
+  all            checks   5855, holders/check 7.13 | ALL behind 0.0%, any behind 0.3% | holders behind 0.0%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:7% +60-200:63% +200-600:30% +>600:0%
+      euclid p50 181, along p50 176 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 94%, both 3%, crowd 2%, inherited 1% | holder resting 38%, holder a front 2%
+      behind holders held by: holder 100%
+  due (starts)   checks    132, holders/check 4.20 | ALL behind 0.0%, any behind 1.5% | holders behind 0.4%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:1% +<=60:8% +60-200:66% +200-600:26% +>600:0%
+      euclid p50 174, along p50 170 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 87%, crowd 7%, both 5%, inherited 1% | holder resting 10%, holder a front 1%
+      behind holders held by: holder 100%
+  re-checks      checks   5723, holders/check 7.20 | ALL behind 0.0%, any behind 0.2% | holders behind 0.0%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:7% +60-200:63% +200-600:30% +>600:0%
+      euclid p50 181, along p50 176 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 94%, both 3%, crowd 2%, inherited 1% | holder resting 38%, holder a front 2%
+      behind holders held by: holder 100%
+  front checkers checks    399, holders/check 6.98 | ALL behind 0.0%, any behind 2.5% | holders behind 0.4%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:10% +60-200:74% +200-600:16% +>600:0%
+      euclid p50 190, along p50 186 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 90%, both 5%, crowd 3%, inherited 2% | holder resting 25%, holder a front 3%
+      behind holders held by: holder 100%
+GRAPH (edge A -> B: B a responsible holder of A's last check, B still holding)
+   tick hold crowd stale inher edges cycles scc sizes (shortest, wind)  ->cyc ->root   both   none
+    360   16     2     0     0    43      0                             0     16      0      0
+    480   33     1     0     0   122      0                             0     33      0      0
+    600   60     1     0     0   353      0                             0     60      0      0
+    720   81     1     0     0   523      0                             0     81      0      0
+    840   89     1     0     0   607      0                             0     89      0      0
+    960   91     1     0     0   630      0                             0     91      0      0
+   1080   80     1     0     0   510      0                             0     80      0      0
+   1200   82     1     0     0   544      0                             0     82      0      0
+   1320   88     1     0     0   611      0                             0     88      0      0
+   1440   98     1     0     0   694      0                             0     98      0      0
+   1560   99     1     0     0   738      0                             0     99      0      0
+   1680   91     1     1     0   651      0                             0     91      0      0
+   1800   88     1     0     0   636      0                             0     88      0      0
+   1920   88     1     0     0   641      0                             0     88      0      0
+   2040   88     1     0     0   644      0                             0     88      0      0
+   2160   90     2     0     0   663      0                             0     90      0      0
+   2280   88     1     0     0   643      0                             0     88      0      0
+   2400   88     1     0     0   642      0                             0     88      0      0
+  ticks 1200-2400: holders 988 (sum over snapshots): roots 1.3% (crowd 1.2%, stale 0.1%), in a cycle 0.0%; reach only a cycle 0.0%, only a root 100.0%, both 0.0%; cycles per snapshot 0.00
+  chain depth (edges to a root, longest): mean 11.6, max 25
+HOLD ENDS by cause: all {'clear': 49, 'gone_fusion': 4}
+  ticks 1200-2400: {'clear': 14}
+HOPS ticks 1200-2400: 171 (distinct slimes 32, fronts 20%): never_held 119, end:clear 36, held_before 16
+  gap to the nearest holder ahead: none 152, p50 29, <=300 px 19
+GUARD ticks 1200-2400 (1200): no blocker 0, latest start >= 240 old 489, both 0; blockers mean 27.2 (air 1.0, ground 26.1), latest-start age mean 281; distinct blockers 44
+  blocker-ticks by kind: never_held 61.3%, end:clear 29.4%, held_before 9.4%
+  top blockers [id, ticks, hops in window, ever held, kind]: [[33, 1200, 7, 0, 'never_held', 17557.3, 52.1, 1, 1.442, 0, 0, False, 3, 3.3, -5.0], [34, 1200, 8, 0, 'never_held', 17729.3, 31.3, 1, 0.354, 0, 0, False, 1, 48.8, -14.0], [67, 1200, 8, 0, 'never_held', 17495.4, 31.8, 1, 1.684, 0, 0, False, 2, 23.2, 0.0], [71, 1200, 6, 0, 'never_held', 17623.1, 54.9, 1, 1.521, 0, 0, False, 2, 6.4, -14.0], [73, 1200, 8, 0, 'never_held', 17686.9, 61.0, 0, 2.511, 0, 0, False, 2, 41.0, -14.0], [75, 1200, 8, 0, 'never_held', 17962.6, 219.9, 1, 0.414, 0, 0, False, 1, 13.9, -24.0], [80, 1200, 0, 0, 'never_held', 16768.7, 0.0, 1, 0.25, 0, 0, False, 1, 1.1, 0.0], [92, 1200, 5, 1, 'held_before', 17431.5, 66.3, 1, 0.519, 0, 0, False, 3, 12.9, 0.0]]
+====================================================================================================
+docs/perf/2026-10-01-chunk-22g/runs/probe/stress-moving-on300-s1.csv
+BEFORE stress-moving seed 1 (2400 ticks, 20 snapshots every 120 ticks)
+  hops 858  short 94.6%  | hold ends 339: clear 96.8 / cap 0.0 / guard 0.0 / other 3.2 %
+  hold starts 374: holder (jam) 96.3% crowd 3.7% | front 12.1% queue 12.7% crowded 0.0% of hops
+  holding mean/max 47.0/115  holding_resting mean 15.6  contact_resting mean 2.0  back-held 17.0% (28/165)
+  Physics mean 121.3  cluster mean/max 71.0/132  stalled 0  hops not covered by a decision 0  hash 18d4a2f14893
+READINGS (decisions 4518, pending 347 not counted)
+  (a) ruled out back (8+) passes 739: would fail with resting counted 0 (0.0%); resting in the half disc mean 0.1 max 4
+  (b) confirmed count p50/p90/max 20/26/35, > 30 at 61 of 4518 decisions (1.4%); starts with crowd failing 28 of 374
+  (c) confirmed jam-only starts 0 of 374 (0.0%)
+  (d) ruled out counted but behind on the loop mean 0.64 (3.5% of counted), ahead on the loop but missed mean 0.22; crowd verdict flips 48 of 4518 (1.1%)
+  (e) partly    counted: train 100.0% (awake holders 48.2%); failed re-checks 3251: crowd 29 jam 3219; cap ends 0: crowd 0 jam 0
+      (2nd option) disc, resting counted, ahead along the loop: > 30 at 36 of 4518 (0.8%), p50/p90 23/27
+OUTCOMES {'end_clear': 322, 'end_period': 6, 'hop': 565, 'pending': 347, 'start_both': 3, 'start_crowd': 11, 'start_holder': 360, 'still': 3251}
+HOLD STARTS crowd 11 jam 0 holder 360 both 3 none 0
+HOLD ENDS (re-check/cap decisions) clear 322 cap 0
+outcome x queue bin (train slimes ahead within 300 px):
+                  0-2    3-7   8-14    15+
+  end_clear         0      0     19    303
+  end_period        0      0      0      6
+  hop              60     88    104    313
+  pending          32     47     72    196
+  start_both        0      0      0      3
+  start_crowd       0      0      4      7
+  start_holder      0      0      8    352
+  still             0      0    197   3054
+BACK HOPS 8+: 710 hops: fresh (no hold) 417, after a clear end 287, after a cap end 0 (cap share 0.0%)
+BACK HOPS 15+: 587 hops: fresh (no hold) 313, after a clear end 268, after a cap end 0 (cap share 0.0%)
+CORRIDOR at due hops (not holding: hop or hold start), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2          60  0.00  0.03  0.11     0%     0%     0%      0%      0%    0.9
+  3-7          88  0.12  0.22  0.37     6%     1%     0%      0%      0%    5.0
+  8-14        116  0.31  0.53  0.67    72%    55%    22%      7%      7%    9.6
+  15+         675  0.36  0.56  0.66    81%    65%    28%     53%      3%   10.9
+  front       117  0.00  0.32  0.48    29%     9%     3%     28%      0%    6.4
+  behind      822  0.29  0.55  0.66    74%    60%    26%     40%      4%   10.0
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%      23%      96%      99%      52%      90%   |                       0%     23%     92%     98%     52%     88%
+  0.35         0%      16%      90%      97%      49%      87%   |                       0%     16%     86%     91%     44%     82%
+  0.40         0%       6%      77%      95%      43%      83%   |                       0%      6%     72%     81%     29%     74%
+  0.45         0%       1%      69%      92%      36%      80%   |                       0%      1%     63%     71%     17%     65%
+  0.50         0%       1%      61%      90%      33%      78%   |                       0%      1%     55%     65%      9%     60%
+  0.55         0%       0%      49%      86%      32%      73%   |                       0%      0%     43%     54%      7%     49%
+  0.60         0%       0%      29%      71%      32%      58%   |                       0%      0%     22%     28%      3%     26%
+  0.70         0%       0%      10%      54%      28%      41%   |                       0%      0%      3%      1%      0%      2%
+CORRIDOR at all decisions (re-checks and cap included), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2          60  0.00  0.03  0.11     0%     0%     0%      0%      0%    0.9
+  3-7          88  0.12  0.22  0.37     6%     1%     0%      0%      0%    5.0
+  8-14        332  0.26  0.36  0.66    41%    26%    14%     57%      4%    8.3
+  15+        4038  0.32  0.44  0.62    62%    40%    13%     84%      4%   10.0
+  front       468  0.15  0.40  0.57    52%    18%     4%     71%      3%    9.9
+  behind     4050  0.32  0.43  0.62    60%    40%    14%     80%      4%    9.6
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%      23%      97%     100%      88%      98%   |                       0%     23%     76%     96%     88%     92%
+  0.35         0%      16%      94%      99%      85%      97%   |                       0%     16%     59%     85%     79%     80%
+  0.40         0%       6%      88%      98%      81%      95%   |                       0%      6%     41%     62%     52%     60%
+  0.45         0%       1%      86%      96%      77%      94%   |                       0%      1%     29%     49%     32%     47%
+  0.50         0%       1%      83%      95%      76%      93%   |                       0%      1%     26%     40%     18%     40%
+  0.55         0%       0%      78%      93%      74%      91%   |                       0%      0%     22%     29%     12%     29%
+  0.60         0%       0%      71%      89%      73%      86%   |                       0%      0%     14%     13%      4%     14%
+  0.70         0%       0%      63%      85%      72%      81%   |                       0%      0%      6%      1%      1%      2%
+ROOTS (crowd-only re-checks, ticks 1200-2400): 18 checks, occupancy p50 0.70 p90 0.75; of it, p50: holders in the stack zone 0.00, resting non-holders 0.00, awake non-holders 0.70 (share 100%)
+LOAD (loop 38297 px): tick n_sim/parked/other, sum of diameters sim/all, share of the loop covered (sim), holders, guard blockers
+    120  200/  0/ 0  diam   8400/  8400 = 0.22 of the loop  covered 0.058  holders 0  blockers 200 (pinned 93)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+    600  142/  1/ 0  diam   6919/  6961 = 0.18 of the loop  covered 0.061  holders 115  blockers 27 (pinned 8)  front holder at 17478, ahead of it 19 within 1500 px, 0 beyond
+   1200  131/  4/ 0  diam   6575/  6760 = 0.18 of the loop  covered 0.059  holders 60  blockers 71 (pinned 23)  front holder at 17469, ahead of it 17 within 1500 px, 0 beyond
+   1800  129/  3/ 0  diam   6539/  6682 = 0.17 of the loop  covered 0.065  holders 26  blockers 97 (pinned 21)  front holder at 17444, ahead of it 19 within 1500 px, 3 beyond
+   2400  127/  4/ 0  diam   6459/  6658 = 0.17 of the loop  covered 0.067  holders 35  blockers 83 (pinned 21)  front holder at 16847, ahead of it 56 within 1500 px, 4 beyond
+BLOCKS (holder rule failing, responsible holders: in the corridor outside the stack zone)
+  gap = the holder's record distance minus the checker's, wrapped into (-L/2, L/2]: ahead > 0
+  all            checks   3578, holders/check 5.67 | ALL behind 0.1%, any behind 1.6% | holders behind 0.3%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:9% +60-200:66% +200-600:24% +>600:0%
+      euclid p50 185, along p50 180 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 93%, inherited 4%, both 2%, crowd 1% | holder resting 30%, holder a front 4%
+      behind holders held by: holder 80%, both 14%, crowd 7%
+  due (starts)   checks    363, holders/check 3.93 | ALL behind 0.0%, any behind 0.3% | holders behind 0.1%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:9% +60-200:66% +200-600:25% +>600:0%
+      euclid p50 185, along p50 180 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 90%, inherited 5%, crowd 3%, both 3% | holder resting 15%, holder a front 4%
+      behind holders held by: holder 100%
+  re-checks      checks   3215, holders/check 5.87 | ALL behind 0.1%, any behind 1.7% | holders behind 0.3%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:9% +60-200:66% +200-600:24% +>600:0%
+      euclid p50 184, along p50 180 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 94%, inherited 4%, both 1%, crowd 1% | holder resting 31%, holder a front 4%
+      behind holders held by: holder 79%, both 14%, crowd 7%
+  front checkers checks    333, holders/check 6.53 | ALL behind 0.3%, any behind 2.7% | holders behind 0.4%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:1% +<=60:16% +60-200:68% +200-600:16% +>600:0%
+      euclid p50 196, along p50 192 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 95%, both 2%, crowd 2%, inherited 1% | holder resting 15%, holder a front 8%
+      behind holders held by: holder 67%, crowd 22%, both 11%
+GRAPH (edge A -> B: B a responsible holder of A's last check, B still holding)
+   tick hold crowd stale inher edges cycles scc sizes (shortest, wind)  ->cyc ->root   both   none
+    360   90     1     0     0   436      0                             0     90      0      0
+    480  115     1     0     0   863      0                             0    115      0      0
+    600  115     1     0     0   862      0                             0    115      0      0
+    720   86     0     4     0   549      0                             0     86      0      0
+    840   58     0     5     0   338      0                             0     58      0      0
+    960   50     2     0     0   235      0                             0     50      0      0
+   1080   58     1     6     0   238      0                             0     58      0      0
+   1200   60     1     7     0   240      0                             0     60      0      0
+   1320   33     0    10     0    63      0                             0     33      0      0
+   1440   22     0     4     0    83      0                             0     22      0      0
+   1560   31     1     4     0   111      0                             0     31      0      0
+   1680   21     2     7     0    35      0                             0     21      0      0
+   1800   26     1     3     0   102      0                             0     26      0      0
+   1920   35     0     5     0   124      0                             0     35      0      0
+   2040   22     2     0     0    46      0                             0     22      0      0
+   2160   43     0     3     0   114      0                             0     43      0      0
+   2280   40     0     6     0    86      0                             0     40      0      0
+   2400   35     0     6     0    75      0                             0     35      0      0
+  ticks 1200-2400: holders 368 (sum over snapshots): roots 16.8% (crowd 1.9%, stale 14.9%), in a cycle 0.0%; reach only a cycle 0.0%, only a root 100.0%, both 0.0%; cycles per snapshot 0.00
+  chain depth (edges to a root, longest): mean 3.5, max 28
+HOLD ENDS by cause: all {'clear': 328, 'gone_fusion': 11}
+  ticks 1200-2400: {'clear': 231, 'gone_fusion': 1}
+HOPS ticks 1200-2400: 552 (distinct slimes 126, fronts 9%): end:clear 365, held_before 97, never_held 90
+  gap to the nearest holder ahead: none 293, p50 66, <=300 px 178
+GUARD ticks 1200-2400 (1200): no blocker 0, latest start >= 240 old 0, both 0; blockers mean 91.4 (air 2.5, ground 88.9), latest-start age mean 7; distinct blockers 135
+  blocker-ticks by kind: end:clear 62.5%, held_before 23.0%, never_held 14.5%
+  top blockers [id, ticks, hops in window, ever held, kind]: [[32, 1200, 3, 1, 'held_before', 17524.3, 67.0, 1, 0.25, 0, 0, False, 1, 4.0, -5.0], [33, 1200, 8, 0, 'never_held', 17580.0, 71.1, 1, 2.6, 0, 0, False, 3, 6.4, -5.0], [34, 1200, 9, 0, 'never_held', 17902.2, 204.2, 1, 1.037, 0, 0, False, 1, 66.2, -24.0], [65, 1200, 8, 1, 'held_before', 17373.0, 0.0, 1, 1.492, 0, 0, False, 1, 1.8, 0.0], [66, 1200, 6, 1, 'held_before', 17483.8, 63.6, 1, 0.842, 0, 0, False, 1, 4.0, 0.0], [71, 1200, 5, 0, 'never_held', 17642.6, 71.6, 1, 0.779, 0, 0, False, 2, 1.3, -14.0], [73, 1200, 4, 0, 'never_held', 17773.6, 141.3, 1, 0.19, 0, 0, False, 2, 2.2, -20.0], [75, 1200, 8, 0, 'never_held', 17874.5, 114.6, 1, 1.177, 0, 0, False, 1, 7.0, -24.0]]
+====================================================================================================
+docs/perf/2026-10-01-chunk-22g/runs/probe/stress-moving-on300-s2.csv
+BEFORE stress-moving seed 2 (2400 ticks, 20 snapshots every 120 ticks)
+  hops 697  short 93.7%  | hold ends 186: clear 94.6 / cap 0.0 / guard 0.0 / other 5.4 %
+  hold starts 203: holder (jam) 93.6% crowd 6.4% | front 13.5% queue 10.0% crowded 0.0% of hops
+  holding mean/max 66.4/113  holding_resting mean 29.1  contact_resting mean 0.5  back-held 50.3% (79/157)
+  Physics mean 111.8  cluster mean/max 63.8/133  stalled 0  hops not covered by a decision 0  hash 20d7ae39f3c8
+READINGS (decisions 6265, pending 317 not counted)
+  (a) ruled out back (8+) passes 532: would fail with resting counted 1 (0.2%); resting in the half disc mean 0.1 max 6
+  (b) confirmed count p50/p90/max 17/26/35, > 30 at 88 of 6265 decisions (1.4%); starts with crowd failing 29 of 203
+  (c) confirmed jam-only starts 0 of 203 (0.0%)
+  (d) ruled out counted but behind on the loop mean 0.62 (3.7% of counted), ahead on the loop but missed mean 0.19; crowd verdict flips 73 of 6265 (1.2%)
+  (e) partly    counted: train 100.0% (awake holders 65.5%); failed re-checks 5348: crowd 49 jam 5321; cap ends 0: crowd 0 jam 0
+      (2nd option) disc, resting counted, ahead along the loop: > 30 at 65 of 6265 (1.0%), p50/p90 23/27
+OUTCOMES {'end_clear': 170, 'end_period': 6, 'hop': 538, 'pending': 317, 'start_both': 3, 'start_crowd': 10, 'start_holder': 190, 'still': 5348}
+HOLD STARTS crowd 10 jam 0 holder 190 both 3 none 0
+HOLD ENDS (re-check/cap decisions) clear 170 cap 0
+outcome x queue bin (train slimes ahead within 300 px):
+                  0-2    3-7   8-14    15+
+  end_clear         0      0     17    153
+  end_period        0      0      0      6
+  hop              45    131    108    254
+  pending          22     70     64    161
+  start_both        0      0      0      3
+  start_crowd       0      0      2      8
+  start_holder      0      0      2    188
+  still             0      0    396   4952
+BACK HOPS 8+: 521 hops: fresh (no hold) 362, after a clear end 153, after a cap end 0 (cap share 0.0%)
+BACK HOPS 15+: 398 hops: fresh (no hold) 254, after a clear end 138, after a cap end 0 (cap share 0.0%)
+CORRIDOR at due hops (not holding: hop or hold start), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2          45  0.00  0.04  0.11     0%     0%     0%      0%      0%    0.9
+  3-7         131  0.11  0.22  0.35     3%     1%     0%      0%      0%    4.7
+  8-14        112  0.31  0.49  0.64    70%    46%    19%      2%      5%    9.3
+  15+         453  0.35  0.55  0.67    77%    62%    34%     42%      3%   11.4
+  front       105  0.00  0.26  0.51    23%    10%     6%     20%      4%    5.9
+  behind      636  0.22  0.50  0.66    64%    51%    27%     27%      3%    9.8
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%      21%      90%      99%      44%      83%   |                       0%     21%     90%     97%     44%     82%
+  0.35         0%      11%      83%      96%      39%      78%   |                       0%     11%     82%     90%     35%     75%
+  0.40         0%       3%      71%      90%      33%      72%   |                       0%      3%     70%     77%     23%     64%
+  0.45         0%       2%      61%      86%      29%      67%   |                       0%      2%     60%     70%     14%     58%
+  0.50         0%       1%      47%      82%      26%      63%   |                       0%      1%     46%     62%     10%     51%
+  0.55         0%       0%      34%      75%      26%      55%   |                       0%      0%     33%     51%     10%     40%
+  0.60         0%       0%      21%      64%      24%      46%   |                       0%      0%     19%     34%      6%     27%
+  0.70         0%       0%       4%      44%      20%      29%   |                       0%      0%      2%      2%      0%      2%
+CORRIDOR at all decisions (re-checks and cap included), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2          45  0.00  0.04  0.11     0%     0%     0%      0%      0%    0.9
+  3-7         131  0.11  0.22  0.35     3%     1%     0%      0%      0%    4.7
+  8-14        525  0.25  0.35  0.57    26%    14%     8%     73%      2%    7.7
+  15+        5564  0.33  0.49  0.64    66%    49%    18%     92%      2%   10.3
+  front       592  0.30  0.40  0.54    40%    14%     4%     80%      2%   10.1
+  behind     5673  0.32  0.48  0.64    63%    48%    18%     89%      1%    9.9
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%      21%      97%     100%      90%      98%   |                       0%     21%     78%     97%     90%     93%
+  0.35         0%      11%      95%      99%      88%      97%   |                       0%     11%     55%     85%     75%     81%
+  0.40         0%       3%      92%      98%      85%      96%   |                       0%      3%     26%     66%     40%     63%
+  0.45         0%       2%      90%      98%      83%      96%   |                       0%      2%     18%     55%     21%     54%
+  0.50         0%       1%      87%      97%      82%      95%   |                       0%      1%     14%     49%     14%     48%
+  0.55         0%       0%      84%      96%      82%      94%   |                       0%      0%     12%     36%      9%     35%
+  0.60         0%       0%      81%      95%      81%      92%   |                       0%      0%      8%     18%      4%     18%
+  0.70         0%       0%      76%      93%      80%      89%   |                       0%      0%      3%      2%      0%      2%
+ROOTS (crowd-only re-checks, ticks 1200-2400): 6 checks, occupancy p50 0.74 p90 0.75; of it, p50: holders in the stack zone 0.00, resting non-holders 0.00, awake non-holders 0.74 (share 98%)
+LOAD (loop 38297 px): tick n_sim/parked/other, sum of diameters sim/all, share of the loop covered (sim), holders, guard blockers
+    120  200/  0/ 0  diam   8400/  8400 = 0.22 of the loop  covered 0.058  holders 0  blockers 200 (pinned 102)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+    600  146/  0/ 0  diam   7043/  7043 = 0.18 of the loop  covered 0.060  holders 104  blockers 39 (pinned 14)  front holder at 17478, ahead of it 22 within 1500 px, 0 beyond
+   1200  134/  2/ 0  diam   6693/  6777 = 0.18 of the loop  covered 0.064  holders 102  blockers 31 (pinned 6)  front holder at 17491, ahead of it 18 within 1500 px, 0 beyond
+   1800  131/  4/ 0  diam   6567/  6752 = 0.18 of the loop  covered 0.061  holders 67  blockers 64 (pinned 12)  front holder at 16864, ahead of it 60 within 1500 px, 0 beyond
+   2400  129/  4/ 0  diam   6487/  6703 = 0.18 of the loop  covered 0.066  holders 17  blockers 104 (pinned 31)  front holder at 16838, ahead of it 58 within 1500 px, 3 beyond
+BLOCKS (holder rule failing, responsible holders: in the corridor outside the stack zone)
+  gap = the holder's record distance minus the checker's, wrapped into (-L/2, L/2]: ahead > 0
+  all            checks   5513, holders/check 7.12 | ALL behind 0.0%, any behind 0.7% | holders behind 0.1%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:8% +60-200:66% +200-600:25% +>600:0%
+      euclid p50 184, along p50 180 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 96%, both 3%, crowd 1%, inherited 1% | holder resting 33%, holder a front 2%
+      behind holders held by: holder 56%, both 44%
+  due (starts)   checks    193, holders/check 4.04 | ALL behind 0.0%, any behind 0.5% | holders behind 0.1%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:12% +60-200:67% +200-600:21% +>600:0%
+      euclid p50 177, along p50 175 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 91%, crowd 5%, both 2%, inherited 1% | holder resting 7%, holder a front 5%
+      behind holders held by: holder 100%
+  re-checks      checks   5320, holders/check 7.23 | ALL behind 0.0%, any behind 0.7% | holders behind 0.1%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:8% +60-200:66% +200-600:26% +>600:0%
+      euclid p50 185, along p50 180 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 96%, both 3%, inherited 1%, crowd 1% | holder resting 34%, holder a front 2%
+      behind holders held by: holder 55%, both 45%
+  front checkers checks    475, holders/check 7.90 | ALL behind 0.0%, any behind 2.5% | holders behind 0.3%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:16% +60-200:69% +200-600:15% +>600:0%
+      euclid p50 209, along p50 206 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 97%, both 1%, crowd 1%, inherited 0% | holder resting 16%, holder a front 5%
+      behind holders held by: holder 100%
+GRAPH (edge A -> B: B a responsible holder of A's last check, B still holding)
+   tick hold crowd stale inher edges cycles scc sizes (shortest, wind)  ->cyc ->root   both   none
+    360   85     2     0     0   412      0                             0     85      0      0
+    480   89     1     1     0   606      0                             0     89      0      0
+    600  104     1     0     0   714      0                             0    104      0      0
+    720  109     1     0     0   781      0                             0    109      0      0
+    840  112     1     0     0   838      0                             0    112      0      0
+    960  113     2     0     0   859      0                             0    113      0      0
+   1080   94     1     1     0   642      0                             0     94      0      0
+   1200  102     1     0     0   695      0                             0    102      0      0
+   1320  109     0     2     0   842      0                             0    109      0      0
+   1440   96     0     4     0   676      0                             0     96      0      0
+   1560   99     0     3     0   701      0                             0     99      0      0
+   1680   86     1     3     0   584      0                             0     86      0      0
+   1800   67     0     5     0   392      0                             0     67      0      0
+   1920   40     0     5     0   172      0                             0     40      0      0
+   2040    5     0     4     0     1      0                             0      5      0      0
+   2280    1     0     1     0     0      0                             0      1      0      0
+   2400   17     0     2     0    41      0                             0     17      0      0
+  ticks 1200-2400: holders 622 (sum over snapshots): roots 5.0% (crowd 0.3%, stale 4.7%), in a cycle 0.0%; reach only a cycle 0.0%, only a root 100.0%, both 0.0%; cycles per snapshot 0.00
+  chain depth (edges to a root, longest): mean 10.2, max 27
+HOLD ENDS by cause: all {'clear': 176, 'gone_fusion': 10}
+  ticks 1200-2400: {'clear': 135}
+HOPS ticks 1200-2400: 486 (distinct slimes 133, fronts 12%): end:clear 331, never_held 113, held_before 42
+  gap to the nearest holder ahead: none 342, p50 90, <=300 px 84
+GUARD ticks 1200-2400 (1200): no blocker 0, latest start >= 240 old 342, both 0; blockers mean 73.4 (air 2.1, ground 71.3), latest-start age mean 264; distinct blockers 136
+  blocker-ticks by kind: end:clear 68.1%, never_held 21.5%, held_before 10.4%
+  top blockers [id, ticks, hops in window, ever held, kind]: [[33, 1200, 7, 0, 'never_held', 17563.8, 58.5, 1, 1.442, 0, 0, False, 3, 2.9, -5.0], [34, 1200, 8, 0, 'never_held', 17819.0, 121.0, 1, 0.354, 0, 0, False, 1, 7.0, -20.0], [67, 1200, 6, 0, 'never_held', 17505.3, 41.6, 1, 1.259, 0, 0, False, 2, 3.2, -5.0], [71, 1200, 5, 0, 'never_held', 17629.6, 61.4, 1, 0.25, 0, 0, False, 2, 4.4, -14.0], [73, 1200, 7, 0, 'never_held', 17715.4, 89.5, 1, 2.579, 0, 0, False, 2, 6.8, -14.0], [75, 1200, 8, 0, 'never_held', 17899.8, 163.7, 1, 0.414, 0, 0, False, 1, 12.7, -24.0], [99, 1200, 4, 0, 'never_held', 17670.4, 77.3, 1, 2.827, 0, 0, False, 2, 6.3, -14.0], [101, 1200, 7, 0, 'never_held', 18137.7, 466.6, 1, 0.816, 0, 0, False, 3, 12.6, -22.0]]
+====================================================================================================
+docs/perf/2026-10-01-chunk-22g/runs/probe/stress-moving-on150-s1.csv
+BEFORE stress-moving seed 1 (2400 ticks, 20 snapshots every 120 ticks)
+  hops 805  short 92.7%  | hold ends 318: clear 96.9 / cap 0.0 / guard 0.0 / other 3.1 %
+  hold starts 354: holder (jam) 95.2% crowd 4.8% | front 14.9% queue 15.3% crowded 0.0% of hops
+  holding mean/max 49.7/115  holding_resting mean 15.7  contact_resting mean 3.4  back-held 23.9% (34/142)
+  Physics mean 118.8  cluster mean/max 70.3/132  stalled 0  hops not covered by a decision 0  hash 08d4715f759e
+READINGS (decisions 4776, pending 323 not counted)
+  (a) ruled out back (8+) passes 666: would fail with resting counted 0 (0.0%); resting in the half disc mean 0.1 max 4
+  (b) confirmed count p50/p90/max 19/26/35, > 30 at 59 of 4776 decisions (1.2%); starts with crowd failing 28 of 354
+  (c) confirmed jam-only starts 0 of 354 (0.0%)
+  (d) ruled out counted but behind on the loop mean 0.70 (3.8% of counted), ahead on the loop but missed mean 0.19; crowd verdict flips 46 of 4776 (1.0%)
+  (e) partly    counted: train 100.0% (awake holders 54.3%); failed re-checks 3589: crowd 29 jam 3562; cap ends 0: crowd 0 jam 0
+      (2nd option) disc, resting counted, ahead along the loop: > 30 at 38 of 4776 (0.8%), p50/p90 23/26
+OUTCOMES {'end_clear': 297, 'end_period': 11, 'hop': 525, 'pending': 323, 'start_both': 1, 'start_crowd': 16, 'start_holder': 337, 'still': 3589}
+HOLD STARTS crowd 16 jam 0 holder 337 both 1 none 0
+HOLD ENDS (re-check/cap decisions) clear 297 cap 0
+outcome x queue bin (train slimes ahead within 300 px):
+                  0-2    3-7   8-14    15+
+  end_clear         0      0     24    273
+  end_period        0      0      3      8
+  hop              69     87    107    262
+  pending          33     50     72    168
+  start_both        0      0      0      1
+  start_crowd       0      0      3     13
+  start_holder      0      0     14    323
+  still             0      0    236   3353
+BACK HOPS 8+: 649 hops: fresh (no hold) 369, after a clear end 269, after a cap end 0 (cap share 0.0%)
+BACK HOPS 15+: 516 hops: fresh (no hold) 262, after a clear end 246, after a cap end 0 (cap share 0.0%)
+CORRIDOR at due hops (not holding: hop or hold start), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2          69  0.00  0.04  0.11     0%     0%     0%      0%      0%    1.1
+  3-7          87  0.12  0.22  0.35     7%     1%     0%      0%      0%    4.8
+  8-14        124  0.31  0.53  0.65    69%    53%    21%     11%      3%    9.3
+  15+         599  0.36  0.53  0.65    75%    59%    27%     54%      4%   10.7
+  front       128  0.00  0.18  0.51    20%    11%     2%     23%      0%    5.3
+  behind      751  0.29  0.52  0.65    69%    54%    24%     41%      3%    9.8
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%      20%      94%      99%      40%      90%   |                       0%     20%     92%     97%     40%     88%
+  0.35         0%      10%      88%      97%      38%      87%   |                       0%     10%     82%     91%     34%     82%
+  0.40         0%       7%      78%      92%      34%      81%   |                       0%      7%     69%     75%     20%     69%
+  0.45         0%       3%      69%      89%      30%      78%   |                       0%      3%     59%     65%     14%     60%
+  0.50         0%       1%      64%      88%      29%      76%   |                       0%      1%     53%     59%     11%     54%
+  0.55         0%       0%      52%      80%      27%      68%   |                       0%      0%     41%     43%      7%     40%
+  0.60         0%       0%      32%      72%      24%      58%   |                       0%      0%     21%     27%      2%     24%
+  0.70         0%       0%      14%      56%      23%      43%   |                       0%      0%      2%      2%      0%      2%
+CORRIDOR at all decisions (re-checks and cap included), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2          69  0.00  0.04  0.11     0%     0%     0%      0%      0%    1.1
+  3-7          87  0.12  0.22  0.35     7%     1%     0%      0%      0%    4.8
+  8-14        387  0.26  0.37  0.60    36%    21%     9%     63%      4%    8.1
+  15+        4233  0.33  0.46  0.62    64%    42%    14%     86%      3%   10.0
+  front       473  0.10  0.40  0.57    48%    18%     4%     67%      2%    9.5
+  behind     4303  0.32  0.44  0.62    61%    41%    14%     83%      3%    9.6
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%      20%      97%     100%      84%      98%   |                       0%     20%     85%     97%     84%     94%
+  0.35         0%      10%      94%      99%      82%      97%   |                       0%     10%     67%     87%     77%     83%
+  0.40         0%       7%      89%      97%      78%      95%   |                       0%      7%     36%     64%     48%     61%
+  0.45         0%       3%      84%      96%      75%      94%   |                       0%      3%     22%     51%     33%     49%
+  0.50         0%       1%      83%      95%      72%      93%   |                       0%      1%     21%     42%     18%     41%
+  0.55         0%       0%      79%      93%      70%      90%   |                       0%      0%     16%     28%     13%     27%
+  0.60         0%       0%      72%      90%      68%      88%   |                       0%      0%      9%     14%      4%     14%
+  0.70         0%       0%      65%      87%      68%      84%   |                       0%      0%      2%      2%      1%      2%
+ROOTS (crowd-only re-checks, ticks 1200-2400): 12 checks, occupancy p50 0.73 p90 0.75; of it, p50: holders in the stack zone 0.00, resting non-holders 0.00, awake non-holders 0.73 (share 99%)
+LOAD (loop 38297 px): tick n_sim/parked/other, sum of diameters sim/all, share of the loop covered (sim), holders, guard blockers
+    120  200/  0/ 0  diam   8400/  8400 = 0.22 of the loop  covered 0.058  holders 0  blockers 200 (pinned 93)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+    600  142/  1/ 0  diam   6919/  6961 = 0.18 of the loop  covered 0.061  holders 115  blockers 27 (pinned 8)  front holder at 17478, ahead of it 19 within 1500 px, 0 beyond
+   1200  131/  4/ 0  diam   6575/  6760 = 0.18 of the loop  covered 0.060  holders 44  blockers 86 (pinned 27)  front holder at 17020, ahead of it 49 within 1500 px, 0 beyond
+   1800  127/  3/ 0  diam   6455/  6629 = 0.17 of the loop  covered 0.065  holders 69  blockers 38 (pinned 12)  front holder at 17367, ahead of it 25 within 1500 px, 3 beyond
+   2400  123/  7/ 0  diam   6287/  6629 = 0.17 of the loop  covered 0.066  holders 36  blockers 79 (pinned 19)  front holder at 17422, ahead of it 18 within 1500 px, 4 beyond
+BLOCKS (holder rule failing, responsible holders: in the corridor outside the stack zone)
+  gap = the holder's record distance minus the checker's, wrapped into (-L/2, L/2]: ahead > 0
+  all            checks   3894, holders/check 6.12 | ALL behind 0.1%, any behind 1.8% | holders behind 0.3%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:9% +60-200:66% +200-600:25% +>600:0%
+      euclid p50 184, along p50 180 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 96%, inherited 2%, crowd 2%, both 1% | holder resting 23%, holder a front 4%
+      behind holders held by: holder 76%, both 19%, crowd 4%
+  due (starts)   checks    338, holders/check 4.21 | ALL behind 0.0%, any behind 0.6% | holders behind 0.2%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:8% +60-200:66% +200-600:25% +>600:0%
+      euclid p50 183, along p50 179 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 92%, crowd 3%, inherited 3%, both 2% | holder resting 9%, holder a front 6%
+      behind holders held by: holder 67%, both 33%
+  re-checks      checks   3556, holders/check 6.30 | ALL behind 0.1%, any behind 1.9% | holders behind 0.3%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:9% +60-200:66% +200-600:25% +>600:0%
+      euclid p50 184, along p50 180 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 96%, inherited 2%, crowd 1%, both 1% | holder resting 24%, holder a front 3%
+      behind holders held by: holder 77%, both 19%, crowd 4%
+  front checkers checks    319, holders/check 6.74 | ALL behind 0.3%, any behind 3.1% | holders behind 0.5%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:1% +<=60:17% +60-200:68% +200-600:15% +>600:0%
+      euclid p50 197, along p50 193 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 96%, crowd 2%, both 1%, inherited 0% | holder resting 14%, holder a front 8%
+      behind holders held by: holder 60%, crowd 30%, both 10%
+GRAPH (edge A -> B: B a responsible holder of A's last check, B still holding)
+   tick hold crowd stale inher edges cycles scc sizes (shortest, wind)  ->cyc ->root   both   none
+    360   90     1     0     0   468      0                             0     90      0      0
+    480  115     1     0     0   865      0                             0    115      0      0
+    600  115     1     0     0   864      0                             0    115      0      0
+    720   84     0     2     0   549      0                             0     84      0      0
+    840   58     0     5     0   338      0                             0     58      0      0
+    960   49     2     0     0   234      0                             0     49      0      0
+   1080   47     1     0     0   223      0                             0     47      0      0
+   1200   44     0     7     0   166      0                             0     44      0      0
+   1320    4     1     2     0     1      0                             0      4      0      0
+   1440   16     1     5     0    36      0                             0     16      0      0
+   1560   29     2     1     0    91      0                             0     29      0      0
+   1680   63     2     0     0   331      0                             0     63      0      0
+   1800   69     1     0     0   411      0                             0     69      0      0
+   1920   68     0     4     0   447      0                             0     68      0      0
+   2040   44     0     1     0   239      0                             0     44      0      0
+   2160   46     0     7     0   148      0                             0     46      0      0
+   2280   17     1     4     0    47      0                             0     17      0      0
+   2400   36     1     2     0    79      0                             0     36      0      0
+  ticks 1200-2400: holders 436 (sum over snapshots): roots 9.6% (crowd 2.1%, stale 7.6%), in a cycle 0.0%; reach only a cycle 0.0%, only a root 100.0%, both 0.0%; cycles per snapshot 0.00
+  chain depth (edges to a root, longest): mean 6.2, max 28
+HOLD ENDS by cause: all {'clear': 308, 'gone_fusion': 10}
+  ticks 1200-2400: {'clear': 222}
+HOPS ticks 1200-2400: 485 (distinct slimes 125, fronts 14%): end:clear 308, never_held 93, held_before 84
+  gap to the nearest holder ahead: none 261, p50 47, <=300 px 162
+GUARD ticks 1200-2400 (1200): no blocker 0, latest start >= 240 old 27, both 0; blockers mean 79.1 (air 2.9, ground 76.2), latest-start age mean 27; distinct blockers 135
+  blocker-ticks by kind: end:clear 59.2%, held_before 22.8%, never_held 18.0%
+  top blockers [id, ticks, hops in window, ever held, kind]: [[32, 1200, 7, 1, 'held_before', 17507.3, 52.3, 1, 1.481, 0, 0, False, 1, 1.6, -5.0], [33, 1200, 8, 0, 'never_held', 17563.5, 56.5, 1, 2.6, 0, 0, False, 3, 4.1, -5.0], [34, 1200, 9, 0, 'never_held', 17922.7, 224.7, 1, 1.053, 0, 0, False, 1, 12.5, -24.0], [66, 1200, 5, 1, 'held_before', 17464.5, 47.3, 1, 0.25, 0, 0, False, 1, 6.0, 0.0], [71, 1200, 4, 0, 'never_held', 17665.3, 95.0, 1, 0.117, 0, 0, False, 2, 66.7, -14.0], [73, 1200, 5, 0, 'never_held', 17972.9, 339.8, 0, 1.603, 0, 0, False, 2, 439.0, -24.0], [99, 1200, 5, 0, 'never_held', 17863.1, 260.9, 1, 0.526, 0, 0, False, 2, 16.9, -24.0], [101, 1200, 7, 0, 'never_held', 18113.0, 434.7, 1, 0.691, 0, 0, False, 3, 14.9, -22.0]]
+====================================================================================================
+docs/perf/2026-10-01-chunk-22g/runs/probe/stress-moving-on150-s2.csv
+BEFORE stress-moving seed 2 (2400 ticks, 20 snapshots every 120 ticks)
+  hops 581  short 91.4%  | hold ends 167: clear 93.4 / cap 0.0 / guard 0.0 / other 6.6 %
+  hold starts 247: holder (jam) 94.3% crowd 5.7% | front 17.0% queue 11.9% crowded 0.0% of hops
+  holding mean/max 72.8/110  holding_resting mean 27.4  contact_resting mean 1.6  back-held 39.2% (71/181)
+  Physics mean 111.0  cluster mean/max 63.1/133  stalled 0  hops not covered by a decision 0  hash 06a704df2f77
+READINGS (decisions 6536, pending 248 not counted)
+  (a) ruled out back (8+) passes 433: would fail with resting counted 1 (0.2%); resting in the half disc mean 0.1 max 4
+  (b) confirmed count p50/p90/max 19/25/35, > 30 at 89 of 6536 decisions (1.4%); starts with crowd failing 31 of 247
+  (c) confirmed jam-only starts 0 of 247 (0.0%)
+  (d) ruled out counted but behind on the loop mean 0.66 (3.7% of counted), ahead on the loop but missed mean 0.20; crowd verdict flips 68 of 6536 (1.0%)
+  (e) partly    counted: train 100.0% (awake holders 67.7%); failed re-checks 5692: crowd 47 jam 5655; cap ends 0: crowd 0 jam 0
+      (2nd option) disc, resting counted, ahead along the loop: > 30 at 55 of 6536 (0.8%), p50/p90 23/27
+OUTCOMES {'end_clear': 150, 'end_period': 6, 'hop': 441, 'pending': 248, 'start_both': 5, 'start_crowd': 9, 'start_holder': 233, 'still': 5692}
+HOLD STARTS crowd 9 jam 0 holder 233 both 5 none 0
+HOLD ENDS (re-check/cap decisions) clear 150 cap 0
+outcome x queue bin (train slimes ahead within 300 px):
+                  0-2    3-7   8-14    15+
+  end_clear         0      0     15    135
+  end_period        0      0      2      4
+  hop              58    100    107    176
+  pending          28     58     61    101
+  start_both        0      0      0      5
+  start_crowd       0      0      2      7
+  start_holder      0      0      6    227
+  still             0      0    373   5319
+BACK HOPS 8+: 423 hops: fresh (no hold) 283, after a clear end 135, after a cap end 0 (cap share 0.0%)
+BACK HOPS 15+: 300 hops: fresh (no hold) 176, after a clear end 121, after a cap end 0 (cap share 0.0%)
+CORRIDOR at due hops (not holding: hop or hold start), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2          58  0.00  0.04  0.14     0%     0%     0%      0%      0%    1.1
+  3-7         100  0.11  0.22  0.33     4%     1%     0%      0%      0%    4.6
+  8-14        115  0.33  0.50  0.66    71%    50%    21%      5%      4%    9.4
+  15+         415  0.35  0.55  0.68    78%    62%    35%     56%      5%   11.4
+  front       112  0.00  0.18  0.45    20%     6%     3%     22%      1%    5.5
+  behind      576  0.24  0.52  0.67    67%    53%    29%     37%      4%    9.9
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%      14%      94%      99%      39%      85%   |                       0%     14%     92%     98%     39%     84%
+  0.35         0%       8%      89%      96%      38%      81%   |                       0%      8%     86%     89%     33%     77%
+  0.40         0%       4%      76%      94%      32%      77%   |                       0%      4%     71%     78%     20%     67%
+  0.45         0%       2%      65%      90%      26%      73%   |                       0%      2%     60%     67%      9%     59%
+  0.50         0%       1%      55%      88%      24%      70%   |                       0%      1%     50%     62%      6%     53%
+  0.55         0%       0%      37%      84%      23%      63%   |                       0%      0%     31%     51%      4%     42%
+  0.60         0%       0%      26%      76%      23%      56%   |                       0%      0%     21%     35%      3%     29%
+  0.70         0%       0%       7%      58%      22%      39%   |                       0%      0%      2%      3%      0%      2%
+CORRIDOR at all decisions (re-checks and cap included), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2          58  0.00  0.04  0.14     0%     0%     0%      0%      0%    1.1
+  3-7         100  0.11  0.22  0.33     4%     1%     0%      0%      0%    4.6
+  8-14        505  0.26  0.35  0.56    29%    16%     9%     73%      2%    7.8
+  15+        5873  0.33  0.50  0.63    66%    51%    18%     94%      1%   10.3
+  front       608  0.22  0.39  0.53    39%    12%     3%     81%      2%    9.9
+  behind     5928  0.32  0.50  0.64    64%    51%    18%     91%      1%    9.9
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%      14%      98%     100%      89%      98%   |                       0%     14%     75%     97%     89%     94%
+  0.35         0%       8%      96%     100%      88%      98%   |                       0%      8%     61%     85%     72%     82%
+  0.40         0%       4%      92%      99%      85%      97%   |                       0%      4%     29%     66%     39%     64%
+  0.45         0%       2%      90%      99%      83%      97%   |                       0%      2%     19%     56%     20%     55%
+  0.50         0%       1%      88%      98%      83%      96%   |                       0%      1%     16%     51%     12%     51%
+  0.55         0%       0%      83%      98%      82%      95%   |                       0%      0%     11%     37%      7%     37%
+  0.60         0%       0%      81%      97%      82%      94%   |                       0%      0%      9%     18%      3%     18%
+  0.70         0%       0%      75%      95%      81%      92%   |                       0%      0%      3%      2%      0%      2%
+ROOTS (crowd-only re-checks, ticks 1200-2400): 20 checks, occupancy p50 0.72 p90 0.72; of it, p50: holders in the stack zone 0.00, resting non-holders 0.00, awake non-holders 0.72 (share 100%)
+LOAD (loop 38297 px): tick n_sim/parked/other, sum of diameters sim/all, share of the loop covered (sim), holders, guard blockers
+    120  200/  0/ 0  diam   8400/  8400 = 0.22 of the loop  covered 0.058  holders 0  blockers 200 (pinned 102)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+    600  146/  0/ 0  diam   7043/  7043 = 0.18 of the loop  covered 0.060  holders 105  blockers 38 (pinned 15)  front holder at 17478, ahead of it 22 within 1500 px, 0 beyond
+   1200  133/  2/ 0  diam   6668/  6752 = 0.18 of the loop  covered 0.062  holders 97  blockers 35 (pinned 4)  front holder at 17414, ahead of it 23 within 1500 px, 0 beyond
+   1800  128/  6/ 0  diam   6458/  6728 = 0.18 of the loop  covered 0.061  holders 53  blockers 75 (pinned 11)  front holder at 16598, ahead of it 72 within 1500 px, 2 beyond
+   2400  129/  4/ 0  diam   6504/  6703 = 0.18 of the loop  covered 0.067  holders 80  blockers 35 (pinned 9)  front holder at 17246, ahead of it 31 within 1500 px, 4 beyond
+BLOCKS (holder rule failing, responsible holders: in the corridor outside the stack zone)
+  gap = the holder's record distance minus the checker's, wrapped into (-L/2, L/2]: ahead > 0
+  all            checks   5890, holders/check 6.98 | ALL behind 0.0%, any behind 1.3% | holders behind 0.2%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:9% +60-200:66% +200-600:25% +>600:0%
+      euclid p50 184, along p50 180 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 96%, both 2%, crowd 1%, inherited 0% | holder resting 26%, holder a front 1%
+      behind holders held by: holder 81%, both 19%
+  due (starts)   checks    238, holders/check 4.74 | ALL behind 0.0%, any behind 0.8% | holders behind 0.2%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:9% +60-200:66% +200-600:24% +>600:0%
+      euclid p50 182, along p50 179 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 94%, crowd 4%, both 2%, inherited 1% | holder resting 5%, holder a front 5%
+      behind holders held by: holder 100%
+  re-checks      checks   5652, holders/check 7.08 | ALL behind 0.0%, any behind 1.3% | holders behind 0.2%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:9% +60-200:66% +200-600:25% +>600:0%
+      euclid p50 184, along p50 180 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 96%, both 2%, crowd 1%, inherited 0% | holder resting 27%, holder a front 1%
+      behind holders held by: holder 81%, both 19%
+  front checkers checks    492, holders/check 7.65 | ALL behind 0.0%, any behind 1.4% | holders behind 0.2%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:16% +60-200:69% +200-600:15% +>600:0%
+      euclid p50 209, along p50 205 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 97%, both 2%, crowd 1%, inherited 0% | holder resting 14%, holder a front 5%
+      behind holders held by: holder 100%
+GRAPH (edge A -> B: B a responsible holder of A's last check, B still holding)
+   tick hold crowd stale inher edges cycles scc sizes (shortest, wind)  ->cyc ->root   both   none
+    360   85     2     0     0   436      0                             0     85      0      0
+    480   88     1     0     0   608      0                             0     88      0      0
+    600  105     1     0     0   726      0                             0    105      0      0
+    720  107     1     0     0   759      0                             0    107      0      0
+    840  108     1     0     0   801      0                             0    108      0      0
+    960  110     2     0     0   824      0                             0    110      0      0
+   1080   97     0     2     0   690      0                             0     97      0      0
+   1200   97     0     2     0   672      0                             0     97      0      0
+   1320   97     1     1     0   702      0                             0     97      0      0
+   1440   93     2     0     0   651      0                             0     93      0      0
+   1560   99     0     1     0   717      0                             0     99      0      0
+   1680   80     0     3     0   537      0                             0     80      0      0
+   1800   53     0     2     0   308      0                             0     53      0      0
+   1920   25     0     2     0    73      0                             0     25      0      0
+   2040   15     1     0     0    57      0                             0     15      0      0
+   2160   45     1     0     0   227      0                             0     45      0      0
+   2280   72     1     0     0   456      0                             0     72      0      0
+   2400   80     1     0     0   546      0                             0     80      0      0
+  ticks 1200-2400: holders 756 (sum over snapshots): roots 2.4% (crowd 0.9%, stale 1.5%), in a cycle 0.0%; reach only a cycle 0.0%, only a root 100.0%, both 0.0%; cycles per snapshot 0.00
+  chain depth (edges to a root, longest): mean 9.8, max 27
+HOLD ENDS by cause: all {'clear': 156, 'gone_fusion': 11}
+  ticks 1200-2400: {'clear': 116}
+HOPS ticks 1200-2400: 371 (distinct slimes 131, fronts 16%): end:clear 237, never_held 96, held_before 38
+  gap to the nearest holder ahead: none 255, p50 41, <=300 px 79
+GUARD ticks 1200-2400 (1200): no blocker 0, latest start >= 240 old 295, both 0; blockers mean 59.2 (air 2.0, ground 57.1), latest-start age mean 191; distinct blockers 135
+  blocker-ticks by kind: end:clear 62.2%, never_held 23.6%, held_before 14.2%
+  top blockers [id, ticks, hops in window, ever held, kind]: [[32, 1200, 6, 1, 'held_before', 17511.5, 69.6, 1, 1.233, 0, 0, False, 1, 3.5, -5.0], [33, 1200, 7, 0, 'never_held', 17563.0, 63.1, 1, 1.442, 0, 0, False, 3, 2.4, -5.0], [34, 1200, 8, 0, 'never_held', 17807.4, 109.5, 1, 0.387, 0, 0, False, 1, 1.2, -20.0], [67, 1200, 6, 0, 'never_held', 17502.4, 38.7, 1, 0.0, 0, 0, False, 2, 10.1, -5.0], [71, 1200, 3, 0, 'never_held', 17627.2, 59.0, 1, 0.25, 0, 0, False, 2, 2.1, -14.0], [73, 1200, 5, 0, 'never_held', 17691.4, 65.5, 1, 1.248, 0, 0, False, 2, 1.4, -14.0], [75, 1200, 8, 0, 'never_held', 18006.5, 272.1, 1, 0.414, 0, 0, False, 1, 11.6, -26.0], [99, 1200, 4, 0, 'never_held', 17659.4, 69.1, 1, 0.033, 0, 0, False, 2, 0.9, -14.0]]
+====================================================================================================
+docs/perf/2026-10-01-chunk-22g/runs/probe/stress-moving-on100-s1.csv
+BEFORE stress-moving seed 1 (2400 ticks, 20 snapshots every 120 ticks)
+  hops 900  short 94.8%  | hold ends 234: clear 95.7 / cap 0.0 / guard 0.0 / other 4.3 %
+  hold starts 302: holder (jam) 96.7% crowd 3.3% | front 11.0% queue 8.4% crowded 0.0% of hops
+  holding mean/max 43.3/115  holding_resting mean 11.7  contact_resting mean 0.8  back-held 15.7% (29/185)
+  Physics mean 126.0  cluster mean/max 72.2/132  stalled 0  hops not covered by a decision 0  hash 967e362e5e5f
+READINGS (decisions 4275, pending 427 not counted)
+  (a) ruled out back (8+) passes 761: would fail with resting counted 0 (0.0%); resting in the half disc mean 0.1 max 6
+  (b) confirmed count p50/p90/max 21/27/35, > 30 at 61 of 4275 decisions (1.4%); starts with crowd failing 27 of 302
+  (c) confirmed jam-only starts 0 of 302 (0.0%)
+  (d) ruled out counted but behind on the loop mean 0.77 (4.0% of counted), ahead on the loop but missed mean 0.18; crowd verdict flips 48 of 4275 (1.1%)
+  (e) partly    counted: train 100.0% (awake holders 52.2%); failed re-checks 3051: crowd 29 jam 3025; cap ends 0: crowd 0 jam 0
+      (2nd option) disc, resting counted, ahead along the loop: > 30 at 38 of 4275 (0.9%), p50/p90 23/27
+OUTCOMES {'end_clear': 214, 'end_period': 10, 'hop': 698, 'pending': 427, 'start_both': 2, 'start_crowd': 8, 'start_holder': 292, 'still': 3051}
+HOLD STARTS crowd 8 jam 0 holder 292 both 2 none 0
+HOLD ENDS (re-check/cap decisions) clear 214 cap 0
+outcome x queue bin (train slimes ahead within 300 px):
+                  0-2    3-7   8-14    15+
+  end_clear         0      0     26    188
+  end_period        0      0      1      9
+  hop              61     90    115    432
+  pending          34     48     79    266
+  start_both        0      0      0      2
+  start_crowd       0      0      1      7
+  start_holder      0      0     29    263
+  still             0      0    296   2755
+BACK HOPS 8+: 749 hops: fresh (no hold) 547, after a clear end 193, after a cap end 0 (cap share 0.0%)
+BACK HOPS 15+: 608 hops: fresh (no hold) 432, after a clear end 168, after a cap end 0 (cap share 0.0%)
+CORRIDOR at due hops (not holding: hop or hold start), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2          61  0.00  0.04  0.11     0%     0%     0%      0%      0%    1.0
+  3-7          90  0.12  0.21  0.33     1%     0%     0%      0%      0%    4.8
+  8-14        145  0.31  0.48  0.65    59%    46%    17%     20%      2%    9.1
+  15+         704  0.35  0.54  0.65    77%    61%    23%     38%      3%   10.7
+  front       122  0.00  0.21  0.51    26%    12%     2%     23%      0%    5.8
+  behind      878  0.30  0.52  0.65    68%    55%    21%     30%      3%    9.9
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%      16%      97%      99%      45%      91%   |                       0%     16%     92%     98%     45%     89%
+  0.35         0%       4%      88%      94%      42%      85%   |                       0%      4%     76%     89%     39%     79%
+  0.40         0%       1%      79%      91%      39%      81%   |                       0%      1%     59%     77%     26%     68%
+  0.45         0%       0%      72%      85%      32%      76%   |                       0%      0%     52%     67%     15%     60%
+  0.50         0%       0%      66%      82%      31%      72%   |                       0%      0%     46%     61%     12%     55%
+  0.55         0%       0%      57%      72%      28%      63%   |                       0%      0%     37%     46%      7%     42%
+  0.60         0%       0%      37%      55%      25%      47%   |                       0%      0%     17%     23%      2%     21%
+  0.70         0%       0%      21%      39%      24%      31%   |                       0%      0%      1%      1%      1%      1%
+CORRIDOR at all decisions (re-checks and cap included), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2          61  0.00  0.04  0.11     0%     0%     0%      0%      0%    1.0
+  3-7          90  0.12  0.21  0.33     1%     0%     0%      0%      0%    4.8
+  8-14        468  0.26  0.35  0.57    28%    16%     7%     68%      3%    7.9
+  15+        3656  0.32  0.44  0.62    60%    40%    13%     82%      3%   10.0
+  front       425  0.11  0.40  0.55    47%    15%     4%     72%      1%    9.7
+  behind     3850  0.32  0.42  0.62    55%    38%    12%     78%      3%    9.5
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%      16%      98%     100%      84%      98%   |                       0%     16%     84%     97%     84%     93%
+  0.35         0%       4%      92%      98%      82%      95%   |                       0%      4%     53%     83%     76%     77%
+  0.40         0%       1%      88%      97%      80%      94%   |                       0%      1%     28%     60%     47%     55%
+  0.45         0%       0%      86%      95%      76%      92%   |                       0%      0%     18%     48%     27%     44%
+  0.50         0%       0%      84%      94%      75%      91%   |                       0%      0%     16%     40%     15%     38%
+  0.55         0%       0%      81%      91%      74%      88%   |                       0%      0%     13%     28%     10%     27%
+  0.60         0%       0%      75%      87%      73%      84%   |                       0%      0%      7%     13%      4%     12%
+  0.70         0%       0%      70%      83%      72%      79%   |                       0%      0%      1%      2%      1%      2%
+ROOTS (crowd-only re-checks, ticks 1200-2400): 9 checks, occupancy p50 0.71 p90 0.77; of it, p50: holders in the stack zone 0.00, resting non-holders 0.00, awake non-holders 0.71 (share 100%)
+LOAD (loop 38297 px): tick n_sim/parked/other, sum of diameters sim/all, share of the loop covered (sim), holders, guard blockers
+    120  200/  0/ 0  diam   8400/  8400 = 0.22 of the loop  covered 0.058  holders 0  blockers 200 (pinned 93)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+    600  142/  1/ 0  diam   6919/  6961 = 0.18 of the loop  covered 0.061  holders 115  blockers 27 (pinned 8)  front holder at 17478, ahead of it 19 within 1500 px, 0 beyond
+   1200  130/  4/ 0  diam   6550/  6736 = 0.18 of the loop  covered 0.059  holders 47  blockers 83 (pinned 23)  front holder at 16519, ahead of it 82 within 1500 px, 0 beyond
+   1800  129/  3/ 0  diam   6508/  6682 = 0.17 of the loop  covered 0.065  holders 6  blockers 120 (pinned 28)  front holder at 16339, ahead of it 85 within 1500 px, 9 beyond
+   2400  126/  5/ 0  diam   6400/  6658 = 0.17 of the loop  covered 0.066  holders 68  blockers 50 (pinned 21)  front holder at 17225, ahead of it 31 within 1500 px, 4 beyond
+BLOCKS (holder rule failing, responsible holders: in the corridor outside the stack zone)
+  gap = the holder's record distance minus the checker's, wrapped into (-L/2, L/2]: ahead > 0
+  all            checks   3314, holders/check 5.89 | ALL behind 0.1%, any behind 1.7% | holders behind 0.3%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:9% +60-200:66% +200-600:25% +>600:0%
+      euclid p50 186, along p50 182 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 96%, crowd 2%, both 1%, inherited 1% | holder resting 20%, holder a front 3%
+      behind holders held by: holder 85%, both 12%, crowd 3%
+  due (starts)   checks    294, holders/check 3.91 | ALL behind 0.0%, any behind 0.7% | holders behind 0.2%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:9% +60-200:66% +200-600:24% +>600:0%
+      euclid p50 186, along p50 183 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 93%, crowd 3%, both 2%, inherited 2% | holder resting 7%, holder a front 5%
+      behind holders held by: holder 100%
+  re-checks      checks   3020, holders/check 6.08 | ALL behind 0.1%, any behind 1.8% | holders behind 0.3%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:9% +60-200:66% +200-600:25% +>600:0%
+      euclid p50 186, along p50 182 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 96%, crowd 2%, both 1%, inherited 1% | holder resting 21%, holder a front 3%
+      behind holders held by: holder 84%, both 12%, crowd 4%
+  front checkers checks    306, holders/check 6.81 | ALL behind 0.7%, any behind 3.6% | holders behind 0.5%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:1% +<=60:16% +60-200:69% +200-600:15% +>600:0%
+      euclid p50 199, along p50 193 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 96%, crowd 2%, both 1%, inherited 0% | holder resting 14%, holder a front 8%
+      behind holders held by: holder 73%, crowd 18%, both 9%
+GRAPH (edge A -> B: B a responsible holder of A's last check, B still holding)
+   tick hold crowd stale inher edges cycles scc sizes (shortest, wind)  ->cyc ->root   both   none
+    360   90     1     0     0   486      0                             0     90      0      0
+    480  115     1     0     0   867      0                             0    115      0      0
+    600  115     1     0     0   864      0                             0    115      0      0
+    720   90     0     4     0   599      0                             0     90      0      0
+    840   58     0     5     0   335      0                             0     58      0      0
+    960   49     2     0     0   233      0                             0     49      0      0
+   1080   48     1     1     0   223      0                             0     48      0      0
+   1200   47     1     0     0   219      0                             0     47      0      0
+   1320   32     1     4     0   107      0                             0     32      0      0
+   1440   17     0     3     0    43      0                             0     17      0      0
+   1560   24     0     3     0    72      0                             0     24      0      0
+   1680    5     0     2     0     4      0                             0      5      0      0
+   1800    6     0     3     0     5      0                             0      6      0      0
+   1920    9     0     4     0     8      0                             0      9      0      0
+   2040    9     2     0     0     8      0                             0      9      0      0
+   2160   41     0     2     0   166      0                             0     41      0      0
+   2280   43     2     0     0   213      0                             0     43      0      0
+   2400   68     0     2     0   332      0                             0     68      0      0
+  ticks 1200-2400: holders 301 (sum over snapshots): roots 9.6% (crowd 2.0%, stale 7.6%), in a cycle 0.0%; reach only a cycle 0.0%, only a root 100.0%, both 0.0%; cycles per snapshot 0.00
+  chain depth (edges to a root, longest): mean 5.6, max 28
+HOLD ENDS by cause: all {'clear': 224, 'gone_fusion': 10}
+  ticks 1200-2400: {'clear': 155}
+HOPS ticks 1200-2400: 580 (distinct slimes 128, fronts 9%): end:clear 322, held_before 156, never_held 102
+  gap to the nearest holder ahead: none 392, p50 104, <=300 px 127
+GUARD ticks 1200-2400 (1200): no blocker 0, latest start >= 240 old 106, both 0; blockers mean 100.2 (air 2.5, ground 97.7), latest-start age mean 37; distinct blockers 134
+  blocker-ticks by kind: end:clear 50.8%, held_before 33.9%, never_held 15.3%
+  top blockers [id, ticks, hops in window, ever held, kind]: [[32, 1200, 4, 1, 'held_before', 17525.4, 70.3, 1, 1.659, 0, 0, False, 1, 8.2, -5.0], [33, 1200, 8, 0, 'never_held', 17583.6, 75.9, 1, 2.6, 0, 0, False, 3, 7.5, -5.0], [34, 1200, 9, 0, 'never_held', 17902.7, 204.8, 1, 1.053, 0, 0, False, 1, 10.9, -24.0], [66, 1200, 5, 1, 'held_before', 17482.7, 66.8, 1, 0.513, 0, 0, False, 1, 15.0, 0.0], [71, 1200, 6, 0, 'never_held', 17648.7, 77.9, 1, 0.556, 0, 0, False, 2, 10.0, -14.0], [73, 1200, 4, 0, 'never_held', 17719.5, 86.1, 1, 2.006, 0, 0, False, 2, 2.3, -14.0], [75, 1200, 8, 0, 'never_held', 17941.8, 169.0, 1, 1.177, 0, 0, False, 1, 11.9, -24.0], [90, 1200, 7, 1, 'held_before', 17337.0, 17.9, 1, 0.079, 0, 0, False, 1, 60.3, 0.0]]
+====================================================================================================
+docs/perf/2026-10-01-chunk-22g/runs/probe/stress-moving-on100-s2.csv
+BEFORE stress-moving seed 2 (2400 ticks, 20 snapshots every 120 ticks)
+  hops 792  short 93.7%  | hold ends 159: clear 93.7 / cap 0.0 / guard 0.0 / other 6.3 %
+  hold starts 162: holder (jam) 93.2% crowd 6.8% | front 13.1% queue 7.8% crowded 0.0% of hops
+  holding mean/max 56.4/109  holding_resting mean 21.6  contact_resting mean 0.6  back-held 30.1% (62/206)
+  Physics mean 117.7  cluster mean/max 72.3/133  stalled 0  hops not covered by a decision 0  hash 5b9bff63abe3
+READINGS (decisions 5503, pending 384 not counted)
+  (a) ruled out back (8+) passes 654: would fail with resting counted 1 (0.2%); resting in the half disc mean 0.1 max 4
+  (b) confirmed count p50/p90/max 19/26/35, > 30 at 93 of 5503 decisions (1.7%); starts with crowd failing 32 of 162
+  (c) confirmed jam-only starts 0 of 162 (0.0%)
+  (d) ruled out counted but behind on the loop mean 0.64 (3.6% of counted), ahead on the loop but missed mean 0.21; crowd verdict flips 72 of 5503 (1.3%)
+  (e) partly    counted: train 100.0% (awake holders 64.6%); failed re-checks 4532: crowd 51 jam 4507; cap ends 0: crowd 0 jam 0
+      (2nd option) disc, resting counted, ahead along the loop: > 30 at 51 of 5503 (0.9%), p50/p90 23/27
+OUTCOMES {'end_clear': 147, 'end_period': 2, 'hop': 660, 'pending': 384, 'start_both': 3, 'start_crowd': 8, 'start_holder': 151, 'still': 4532}
+HOLD STARTS crowd 8 jam 0 holder 151 both 3 none 0
+HOLD ENDS (re-check/cap decisions) clear 147 cap 0
+outcome x queue bin (train slimes ahead within 300 px):
+                  0-2    3-7   8-14    15+
+  end_clear         0      0     15    132
+  end_period        0      0      0      2
+  hop              61     92    136    371
+  pending          32     55     76    221
+  start_both        0      0      0      3
+  start_crowd       0      0      1      7
+  start_holder      0      0      0    151
+  still             0      0    303   4229
+BACK HOPS 8+: 639 hops: fresh (no hold) 507, after a clear end 130, after a cap end 0 (cap share 0.0%)
+BACK HOPS 15+: 488 hops: fresh (no hold) 371, after a clear end 115, after a cap end 0 (cap share 0.0%)
+CORRIDOR at due hops (not holding: hop or hold start), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2          61  0.00  0.04  0.11     0%     0%     0%      0%      0%    1.0
+  3-7          92  0.11  0.22  0.31     4%     0%     0%      0%      0%    4.6
+  8-14        137  0.32  0.48  0.64    66%    45%    18%      0%      2%    9.1
+  15+         532  0.35  0.55  0.66    77%    61%    31%     29%      3%   11.1
+  front       117  0.00  0.22  0.50    26%    10%     4%     18%      2%    5.8
+  behind      705  0.26  0.53  0.66    67%    53%    26%     19%      3%    9.9
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%      13%      91%      98%      46%      86%   |                       0%     13%     91%     97%     46%     85%
+  0.35         0%       7%      79%      94%      43%      80%   |                       0%      7%     79%     89%     39%     77%
+  0.40         0%       4%      66%      86%      36%      72%   |                       0%      4%     66%     77%     26%     67%
+  0.45         0%       0%      53%      79%      26%      65%   |                       0%      0%     53%     66%     13%     58%
+  0.50         0%       0%      45%      76%      25%      62%   |                       0%      0%     45%     61%     10%     53%
+  0.55         0%       0%      34%      68%      24%      54%   |                       0%      0%     34%     51%      9%     44%
+  0.60         0%       0%      18%      53%      21%      40%   |                       0%      0%     18%     31%      4%     26%
+  0.70         0%       0%       1%      30%      18%      20%   |                       0%      0%      1%      2%      0%      2%
+CORRIDOR at all decisions (re-checks and cap included), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2          61  0.00  0.04  0.11     0%     0%     0%      0%      0%    1.0
+  3-7          92  0.11  0.22  0.31     4%     0%     0%      0%      0%    4.6
+  8-14        455  0.25  0.35  0.59    29%    17%     9%     64%      2%    7.8
+  15+        4895  0.33  0.49  0.63    65%    49%    18%     89%      2%   10.3
+  front       556  0.21  0.38  0.54    35%    13%     4%     78%      3%    9.8
+  behind     4947  0.32  0.49  0.64    63%    49%    18%     85%      1%    9.9
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%      13%      96%     100%      89%      98%   |                       0%     13%     77%     97%     89%     93%
+  0.35         0%       7%      93%      99%      87%      97%   |                       0%      7%     58%     84%     67%     81%
+  0.40         0%       4%      87%      98%      84%      95%   |                       0%      4%     29%     65%     35%     63%
+  0.45         0%       0%      84%      97%      81%      94%   |                       0%      0%     20%     55%     17%     54%
+  0.50         0%       0%      81%      96%      80%      94%   |                       0%      0%     17%     49%     13%     49%
+  0.55         0%       0%      78%      95%      80%      92%   |                       0%      0%     14%     35%      9%     35%
+  0.60         0%       0%      73%      93%      79%      90%   |                       0%      0%      9%     18%      4%     18%
+  0.70         0%       0%      67%      90%      78%      86%   |                       0%      0%      2%      2%      0%      2%
+ROOTS (crowd-only re-checks, ticks 1200-2400): 7 checks, occupancy p50 0.73 p90 0.74; of it, p50: holders in the stack zone 0.00, resting non-holders 0.00, awake non-holders 0.72 (share 97%)
+LOAD (loop 38297 px): tick n_sim/parked/other, sum of diameters sim/all, share of the loop covered (sim), holders, guard blockers
+    120  200/  0/ 0  diam   8400/  8400 = 0.22 of the loop  covered 0.058  holders 0  blockers 200 (pinned 102)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+    600  146/  0/ 0  diam   7043/  7043 = 0.18 of the loop  covered 0.060  holders 105  blockers 40 (pinned 17)  front holder at 17478, ahead of it 22 within 1500 px, 0 beyond
+   1200  132/  2/ 0  diam   6644/  6728 = 0.18 of the loop  covered 0.061  holders 98  blockers 32 (pinned 2)  front holder at 17364, ahead of it 28 within 1500 px, 0 beyond
+   1800  128/  5/ 0  diam   6476/  6703 = 0.18 of the loop  covered 0.063  holders 28  blockers 100 (pinned 21)  front holder at 17124, ahead of it 40 within 1500 px, 0 beyond
+   2400  127/  6/ 0  diam   6385/  6703 = 0.18 of the loop  covered 0.063  holders 3  blockers 121 (pinned 43)  front holder at 17387, ahead of it 22 within 1500 px, 3 beyond
+BLOCKS (holder rule failing, responsible holders: in the corridor outside the stack zone)
+  gap = the holder's record distance minus the checker's, wrapped into (-L/2, L/2]: ahead > 0
+  all            checks   4660, holders/check 7.00 | ALL behind 0.0%, any behind 0.6% | holders behind 0.1%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:9% +60-200:66% +200-600:26% +>600:0%
+      euclid p50 184, along p50 181 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 96%, both 3%, crowd 1%, inherited 0% | holder resting 25%, holder a front 2%
+      behind holders held by: holder 50%, both 50%
+  due (starts)   checks    154, holders/check 4.97 | ALL behind 0.0%, any behind 0.6% | holders behind 0.1%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:11% +60-200:68% +200-600:22% +>600:0%
+      euclid p50 179, along p50 175 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 94%, crowd 4%, both 2% | holder resting 4%, holder a front 6%
+      behind holders held by: holder 100%
+  re-checks      checks   4506, holders/check 7.07 | ALL behind 0.0%, any behind 0.6% | holders behind 0.1%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:8% +60-200:66% +200-600:26% +>600:0%
+      euclid p50 184, along p50 181 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 96%, both 3%, crowd 1%, inherited 0% | holder resting 25%, holder a front 2%
+      behind holders held by: both 52%, holder 48%
+  front checkers checks    433, holders/check 7.97 | ALL behind 0.0%, any behind 1.6% | holders behind 0.2%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:14% +60-200:69% +200-600:17% +>600:0%
+      euclid p50 208, along p50 205 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: holder 98%, both 1%, crowd 0%, inherited 0% | holder resting 15%, holder a front 6%
+      behind holders held by: holder 100%
+GRAPH (edge A -> B: B a responsible holder of A's last check, B still holding)
+   tick hold crowd stale inher edges cycles scc sizes (shortest, wind)  ->cyc ->root   both   none
+    360   85     2     0     0   453      0                             0     85      0      0
+    480   87     1     0     0   607      0                             0     87      0      0
+    600  105     1     0     0   720      0                             0    105      0      0
+    720  107     1     0     0   763      0                             0    107      0      0
+    840  109     1     0     0   819      0                             0    109      0      0
+    960  109     1     0     0   827      0                             0    109      0      0
+   1080   94     1     0     0   653      0                             0     94      0      0
+   1200   98     0     1     0   689      0                             0     98      0      0
+   1320   97     1     0     0   686      0                             0     97      0      0
+   1440   95     0     4     0   668      0                             0     95      0      0
+   1560   65     0     4     0   386      0                             0     65      0      0
+   1680   46     1     0     0   213      0                             0     46      0      0
+   1800   28     0     3     0    75      0                             0     28      0      0
+   2400    3     1     0     0     2      0                             0      3      0      0
+  ticks 1200-2400: holders 432 (sum over snapshots): roots 3.5% (crowd 0.7%, stale 2.8%), in a cycle 0.0%; reach only a cycle 0.0%, only a root 100.0%, both 0.0%; cycles per snapshot 0.00
+  chain depth (edges to a root, longest): mean 9.5, max 27
+HOLD ENDS by cause: all {'clear': 149, 'gone_fusion': 10}
+  ticks 1200-2400: {'clear': 111}
+HOPS ticks 1200-2400: 577 (distinct slimes 130, fronts 11%): end:clear 376, never_held 102, held_before 99
+  gap to the nearest holder ahead: none 475, p50 48, <=300 px 62
+GUARD ticks 1200-2400 (1200): no blocker 0, latest start >= 240 old 350, both 0; blockers mean 89.7 (air 2.5, ground 87.2), latest-start age mean 179; distinct blockers 134
+  blocker-ticks by kind: end:clear 61.8%, held_before 21.9%, never_held 16.3%
+  top blockers [id, ticks, hops in window, ever held, kind]: [[29, 1200, 8, 1, 'held_before', 17283.7, 20.0, 1, 0.728, 0, 0, False, 2, 1.3, 0.0], [32, 1200, 6, 1, 'held_before', 17514.3, 66.7, 1, 1.319, 0, 0, False, 1, 1.8, -5.0], [33, 1200, 7, 0, 'never_held', 17565.6, 63.0, 1, 1.442, 0, 0, False, 3, 0.4, -5.0], [34, 1200, 8, 0, 'never_held', 17798.4, 100.5, 1, 0.354, 0, 0, False, 1, 1.4, -20.0], [65, 1200, 6, 1, 'held_before', 17431.6, 58.6, 1, 1.292, 0, 0, False, 1, 2.1, 0.0], [66, 1200, 6, 1, 'held_before', 17470.5, 56.8, 1, 0.25, 0, 0, False, 1, 1.5, 0.0], [67, 1200, 6, 0, 'never_held', 17508.3, 44.7, 1, 0.0, 0, 0, False, 2, 2.1, -5.0], [71, 1200, 4, 0, 'never_held', 17628.9, 60.7, 1, 0.25, 0, 0, False, 2, 0.9, -14.0]]
+====================================================================================================
+docs/perf/2026-10-01-chunk-22g/runs/probe/s3-basket-59of60-off-s1.csv
+BEFORE s3-basket-59of60 seed 1 (2400 ticks, 20 snapshots every 120 ticks)
+  hops 510  short 80.2%  | hold ends 0: clear nan / cap nan / guard nan / other nan %
+  hold starts 0: holder (jam) nan% crowd nan% | front 27.6% queue 0.0% crowded 0.0% of hops
+  holding mean/max 0.0/0  holding_resting mean 0.0  contact_resting mean 0.0  back-held 0.0% (0/136)
+  Physics mean 52.3  cluster mean/max 25.9/59  stalled 0  hops not covered by a decision 0  hash 82343b5f8c43
+READINGS (decisions 510, pending 261 not counted)
+  (a) ruled out back (8+) passes 271: would fail with resting counted 0 (0.0%); resting in the half disc mean 0.0 max 0
+  (b) confirmed count p50/p90/max 10/20/30, > 30 at 0 of 510 decisions (0.0%); starts with crowd failing 0 of 0
+  (c) n/a       jam-only starts 0 of 0 (nan%)
+  (d) ruled out counted but behind on the loop mean 0.15 (1.4% of counted), ahead on the loop but missed mean 0.07; crowd verdict flips 0 of 510 (0.0%)
+  (e) partly    counted: train 100.0% (awake holders 0.0%); failed re-checks 0: crowd 0 jam 0; cap ends 0: crowd 0 jam 0
+      (2nd option) disc, resting counted, ahead along the loop: > 30 at 0 of 510 (0.0%), p50/p90 10/20
+OUTCOMES {'hop': 510, 'pending': 261}
+HOLD STARTS crowd 0 jam 0 holder 0 both 0 none 0
+HOLD ENDS (re-check/cap decisions) clear 0 cap 0
+outcome x queue bin (train slimes ahead within 300 px):
+                  0-2    3-7   8-14    15+
+  hop             108    131    150    121
+  pending          56     61     77     67
+BACK HOPS 8+: 271 hops: fresh (no hold) 271, after a clear end 0, after a cap end 0 (cap share 0.0%)
+BACK HOPS 15+: 121 hops: fresh (no hold) 121, after a clear end 0, after a cap end 0 (cap share 0.0%)
+CORRIDOR at due hops (not holding: hop or hold start), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2         108  0.00  0.04  0.07     0%     0%     0%      0%      0%    0.8
+  3-7         131  0.11  0.17  0.25     0%     0%     0%      0%      0%    4.5
+  8-14        150  0.29  0.37  0.47    35%     5%     0%      0%      0%   10.4
+  15+         121  0.48  0.55  0.61    99%    81%    17%      0%      0%   15.4
+  front       162  0.00  0.07  0.26     7%     4%     0%      0%      0%    2.8
+  behind      348  0.15  0.38  0.58    46%    28%     6%      0%      0%   10.5
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%       0%      81%     100%      10%      65%   |                       0%      0%     81%    100%     10%     65%
+  0.35         0%       0%      63%     100%      10%      57%   |                       0%      0%     63%    100%     10%     57%
+  0.40         0%       0%      35%      99%       7%      46%   |                       0%      0%     35%     99%      7%     46%
+  0.45         0%       0%      14%      94%       6%      36%   |                       0%      0%     14%     94%      6%     36%
+  0.50         0%       0%       5%      81%       4%      28%   |                       0%      0%      5%     81%      4%     28%
+  0.55         0%       0%       0%      55%       1%      19%   |                       0%      0%      0%     55%      1%     19%
+  0.60         0%       0%       0%      17%       0%       6%   |                       0%      0%      0%     17%      0%      6%
+  0.70         0%       0%       0%       0%       0%       0%   |                       0%      0%      0%      0%      0%      0%
+CORRIDOR at all decisions (re-checks and cap included), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2         108  0.00  0.04  0.07     0%     0%     0%      0%      0%    0.8
+  3-7         131  0.11  0.17  0.25     0%     0%     0%      0%      0%    4.5
+  8-14        150  0.29  0.37  0.47    35%     5%     0%      0%      0%   10.4
+  15+         121  0.48  0.55  0.61    99%    81%    17%      0%      0%   15.4
+  front       162  0.00  0.07  0.26     7%     4%     0%      0%      0%    2.8
+  behind      348  0.15  0.38  0.58    46%    28%     6%      0%      0%   10.5
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%       0%      81%     100%      10%      65%   |                       0%      0%     81%    100%     10%     65%
+  0.35         0%       0%      63%     100%      10%      57%   |                       0%      0%     63%    100%     10%     57%
+  0.40         0%       0%      35%      99%       7%      46%   |                       0%      0%     35%     99%      7%     46%
+  0.45         0%       0%      14%      94%       6%      36%   |                       0%      0%     14%     94%      6%     36%
+  0.50         0%       0%       5%      81%       4%      28%   |                       0%      0%      5%     81%      4%     28%
+  0.55         0%       0%       0%      55%       1%      19%   |                       0%      0%      0%     55%      1%     19%
+  0.60         0%       0%       0%      17%       0%       6%   |                       0%      0%      0%     17%      0%      6%
+  0.70         0%       0%       0%       0%       0%       0%   |                       0%      0%      0%      0%      0%      0%
+LOAD (loop 38297 px): tick n_sim/parked/other, sum of diameters sim/all, share of the loop covered (sim), holders, guard blockers
+    120   36/105/ 0  diam   1512/  5922 = 0.15 of the loop  covered 0.014  holders 0  blockers 36 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+    600   30/110/ 0  diam   1260/  5880 = 0.15 of the loop  covered 0.015  holders 0  blockers 30 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   1200   32/110/ 0  diam   1379/  5999 = 0.16 of the loop  covered 0.022  holders 0  blockers 30 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   1800   32/112/ 0  diam   1396/  6100 = 0.16 of the loop  covered 0.026  holders 0  blockers 28 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   2400   30/117/ 0  diam   1312/  6226 = 0.16 of the loop  covered 0.028  holders 0  blockers 24 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+BLOCKS (holder rule failing, responsible holders: in the corridor outside the stack zone)
+  gap = the holder's record distance minus the checker's, wrapped into (-L/2, L/2]: ahead > 0
+GRAPH (edge A -> B: B a responsible holder of A's last check, B still holding)
+   tick hold crowd stale inher edges cycles scc sizes (shortest, wind)  ->cyc ->root   both   none
+HOLD ENDS by cause: all {}
+  ticks 1200-2400: {}
+HOPS ticks 1200-2400: 244 (distinct slimes 36, fronts 39%): never_held 229, join 15
+  gap to the nearest holder ahead: none 244, p50 nan, <=300 px 0
+GUARD ticks 1200-2400 (1200): no blocker 0, latest start >= 240 old 0, both 0; blockers mean 27.3 (air 2.3, ground 25.0), latest-start age mean 0; distinct blockers 36
+  blocker-ticks by kind: never_held 94.0%, join 6.0%
+  top blockers [id, ticks, hops in window, ever held, kind]: [[91, 1200, 10, 0, 'never_held', 17413.7, 0.0, 1, 2.039, 0, 0, False, 1, 7.5, 0.0], [92, 1200, 8, 0, 'never_held', 17509.5, 13.3, 1, 1.172, 0, 0, False, 1, 11.2, -5.0], [93, 1200, 10, 0, 'never_held', 18469.8, 680.7, 0, 1.775, 0, 0, False, 1, 359.6, 0.0], [125, 1200, 9, 0, 'never_held', 17433.5, 0.0, 1, 1.942, 0, 0, False, 1, 8.1, 0.0], [126, 1200, 8, 0, 'never_held', 17530.0, 12.6, 0, 0.312, 0, 0, False, 1, 20.4, -5.0], [128, 1200, 9, 0, 'never_held', 17568.3, 32.3, 1, 1.559, 0, 0, False, 1, 2.1, -5.0], [130, 1200, 10, 0, 'never_held', 17636.9, 62.0, 1, 1.526, 0, 0, False, 1, 6.5, -14.0], [132, 1200, 8, 0, 'never_held', 17850.0, 224.1, 1, 1.038, 0, 0, False, 1, 13.3, -20.0]]
+====================================================================================================
+docs/perf/2026-10-01-chunk-22g/runs/probe/s3-basket-59of60-off-s2.csv
+BEFORE s3-basket-59of60 seed 2 (2400 ticks, 20 snapshots every 120 ticks)
+  hops 536  short 79.1%  | hold ends 2: clear 100.0 / cap 0.0 / guard 0.0 / other 0.0 %
+  hold starts 2: holder (jam) 50.0% crowd 50.0% | front 29.9% queue 0.2% crowded 0.0% of hops
+  holding mean/max 0.0/0  holding_resting mean 0.0  contact_resting mean 0.0  back-held 0.0% (0/162)
+  Physics mean 52.7  cluster mean/max 27.2/59  stalled 0  hops not covered by a decision 0  hash 5e68869a520b
+READINGS (decisions 538, pending 270 not counted)
+  (a) ruled out back (8+) passes 284: would fail with resting counted 0 (0.0%); resting in the half disc mean 0.0 max 0
+  (b) confirmed count p50/p90/max 10/22/32, > 30 at 2 of 538 decisions (0.4%); starts with crowd failing 0 of 2
+  (c) confirmed jam-only starts 0 of 2 (0.0%)
+  (d) ruled out counted but behind on the loop mean 0.18 (1.7% of counted), ahead on the loop but missed mean 0.11; crowd verdict flips 1 of 538 (0.2%)
+  (e) partly    counted: train 100.0% (awake holders 0.0%); failed re-checks 0: crowd 0 jam 0; cap ends 0: crowd 0 jam 0
+      (2nd option) disc, resting counted, ahead along the loop: > 30 at 1 of 538 (0.2%), p50/p90 10/22
+OUTCOMES {'end_clear': 2, 'hop': 534, 'pending': 270, 'start_crowd': 1, 'start_holder': 1}
+HOLD STARTS crowd 1 jam 0 holder 1 both 0 none 0
+HOLD ENDS (re-check/cap decisions) clear 2 cap 0
+outcome x queue bin (train slimes ahead within 300 px):
+                  0-2    3-7   8-14    15+
+  end_clear         0      0      0      2
+  hop             134    118    134    148
+  pending          73     58     63     76
+  start_crowd       0      0      0      1
+  start_holder      0      0      0      1
+BACK HOPS 8+: 284 hops: fresh (no hold) 282, after a clear end 2, after a cap end 0 (cap share 0.0%)
+BACK HOPS 15+: 150 hops: fresh (no hold) 148, after a clear end 2, after a cap end 0 (cap share 0.0%)
+CORRIDOR at due hops (not holding: hop or hold start), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2         134  0.00  0.04  0.07     0%     0%     0%      0%      0%    1.1
+  3-7         118  0.07  0.15  0.25     0%     0%     0%      0%      0%    4.5
+  8-14        134  0.29  0.39  0.47    43%     7%     0%      0%      0%   10.7
+  15+         150  0.49  0.57  0.65    97%    89%    35%      1%      1%   16.0
+  front       167  0.00  0.04  0.15     2%     1%     0%      0%      0%    2.0
+  behind      369  0.15  0.42  0.62    54%    38%    14%      0%      0%   11.3
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%       2%      81%     100%       6%      68%   |                       0%      2%     81%    100%      6%     68%
+  0.35         0%       0%      66%      99%       5%      62%   |                       0%      0%     66%     99%      5%     62%
+  0.40         0%       0%      43%      97%       2%      54%   |                       0%      0%     43%     97%      2%     54%
+  0.45         0%       0%      19%      95%       1%      45%   |                       0%      0%     19%     95%      1%     45%
+  0.50         0%       0%       7%      89%       1%      38%   |                       0%      0%      7%     89%      1%     38%
+  0.55         0%       0%       0%      58%       0%      24%   |                       0%      0%      0%     58%      0%     24%
+  0.60         0%       0%       0%      35%       0%      14%   |                       0%      0%      0%     35%      0%     14%
+  0.70         0%       0%       0%       1%       0%       1%   |                       0%      0%      0%      1%      0%      0%
+CORRIDOR at all decisions (re-checks and cap included), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2         134  0.00  0.04  0.07     0%     0%     0%      0%      0%    1.1
+  3-7         118  0.07  0.15  0.25     0%     0%     0%      0%      0%    4.5
+  8-14        134  0.29  0.39  0.47    43%     7%     0%      0%      0%   10.7
+  15+         152  0.49  0.58  0.65    97%    89%    36%      1%      1%   16.0
+  front       167  0.00  0.04  0.15     2%     1%     0%      0%      0%    2.0
+  behind      371  0.15  0.42  0.62    54%    39%    15%      0%      0%   11.3
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%       2%      81%     100%       6%      68%   |                       0%      2%     81%    100%      6%     68%
+  0.35         0%       0%      66%      99%       5%      63%   |                       0%      0%     66%     99%      5%     63%
+  0.40         0%       0%      43%      97%       2%      54%   |                       0%      0%     43%     97%      2%     54%
+  0.45         0%       0%      19%      95%       1%      45%   |                       0%      0%     19%     95%      1%     45%
+  0.50         0%       0%       7%      89%       1%      39%   |                       0%      0%      7%     89%      1%     39%
+  0.55         0%       0%       0%      59%       0%      24%   |                       0%      0%      0%     59%      0%     24%
+  0.60         0%       0%       0%      36%       0%      15%   |                       0%      0%      0%     36%      0%     15%
+  0.70         0%       0%       0%       1%       0%       1%   |                       0%      0%      0%      1%      0%      0%
+LOAD (loop 38297 px): tick n_sim/parked/other, sum of diameters sim/all, share of the loop covered (sim), holders, guard blockers
+    120   37/104/ 0  diam   1554/  5922 = 0.15 of the loop  covered 0.014  holders 0  blockers 37 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+    600   32/108/ 0  diam   1344/  5880 = 0.15 of the loop  covered 0.016  holders 0  blockers 32 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   1200   35/110/ 0  diam   1470/  6090 = 0.16 of the loop  covered 0.023  holders 0  blockers 33 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   1800   34/114/ 0  diam   1428/  6216 = 0.16 of the loop  covered 0.026  holders 0  blockers 30 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   2400   31/119/ 0  diam   1302/  6300 = 0.16 of the loop  covered 0.028  holders 0  blockers 25 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+BLOCKS (holder rule failing, responsible holders: in the corridor outside the stack zone)
+  gap = the holder's record distance minus the checker's, wrapped into (-L/2, L/2]: ahead > 0
+  all            checks      1, holders/check 1.00 | ALL behind 0.0%, any behind 0.0% | holders behind 0.0%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:100% +60-200:0% +200-600:0% +>600:0%
+      euclid p50 79, along p50 59 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: crowd 100% | holder resting 0%, holder a front 0%
+      behind holders held by: 
+  due (starts)   checks      1, holders/check 1.00 | ALL behind 0.0%, any behind 0.0% | holders behind 0.0%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:100% +60-200:0% +200-600:0% +>600:0%
+      euclid p50 79, along p50 59 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: crowd 100% | holder resting 0%, holder a front 0%
+      behind holders held by: 
+GRAPH (edge A -> B: B a responsible holder of A's last check, B still holding)
+   tick hold crowd stale inher edges cycles scc sizes (shortest, wind)  ->cyc ->root   both   none
+HOLD ENDS by cause: all {'clear': 2}
+  ticks 1200-2400: {}
+HOPS ticks 1200-2400: 255 (distinct slimes 37, fronts 42%): never_held 239, join 12, held_before 4
+  gap to the nearest holder ahead: none 255, p50 nan, <=300 px 0
+GUARD ticks 1200-2400 (1200): no blocker 0, latest start >= 240 old 0, both 0; blockers mean 28.9 (air 2.5, ground 26.4), latest-start age mean 0; distinct blockers 38
+  blocker-ticks by kind: never_held 94.2%, join 4.3%, held_before 1.5%
+  top blockers [id, ticks, hops in window, ever held, kind]: [[91, 1200, 9, 0, 'never_held', 17433.9, 0.0, 1, 1.932, 0, 0, False, 1, 2.5, 0.0], [92, 1200, 9, 0, 'never_held', 17469.9, 0.0, 1, 0.827, 0, 0, False, 1, 3.5, 0.0], [93, 1200, 9, 0, 'never_held', 18213.2, 514.4, 1, 0.711, 0, 0, False, 1, 1.7, 0.0], [125, 1200, 7, 0, 'never_held', 17452.2, 0.0, 1, 1.14, 0, 0, False, 1, 2.5, 0.0], [126, 1200, 9, 0, 'never_held', 17491.1, 3.2, 1, 1.246, 0, 0, False, 1, 3.1, 0.0], [128, 1200, 8, 0, 'never_held', 17533.1, 15.0, 1, 1.234, 0, 0, False, 1, 7.3, -5.0], [130, 1200, 9, 0, 'never_held', 17665.0, 89.5, 1, 2.565, 0, 0, False, 1, 13.3, -14.0], [132, 1200, 8, 0, 'never_held', 17767.8, 141.9, 1, 1.349, 0, 0, False, 1, 11.9, -20.0]]
+====================================================================================================
+docs/perf/2026-10-01-chunk-22g/runs/probe/s3-basket-59of60-on300-s1.csv
+BEFORE s3-basket-59of60 seed 1 (2400 ticks, 20 snapshots every 120 ticks)
+  hops 510  short 80.2%  | hold ends 0: clear nan / cap nan / guard nan / other nan %
+  hold starts 0: holder (jam) nan% crowd nan% | front 27.6% queue 0.0% crowded 0.0% of hops
+  holding mean/max 0.0/0  holding_resting mean 0.0  contact_resting mean 0.0  back-held 0.0% (0/136)
+  Physics mean 52.3  cluster mean/max 25.9/59  stalled 0  hops not covered by a decision 0  hash 82343b5f8c43
+READINGS (decisions 510, pending 261 not counted)
+  (a) ruled out back (8+) passes 271: would fail with resting counted 0 (0.0%); resting in the half disc mean 0.0 max 0
+  (b) confirmed count p50/p90/max 10/20/30, > 30 at 0 of 510 decisions (0.0%); starts with crowd failing 0 of 0
+  (c) n/a       jam-only starts 0 of 0 (nan%)
+  (d) ruled out counted but behind on the loop mean 0.15 (1.4% of counted), ahead on the loop but missed mean 0.07; crowd verdict flips 0 of 510 (0.0%)
+  (e) partly    counted: train 100.0% (awake holders 0.0%); failed re-checks 0: crowd 0 jam 0; cap ends 0: crowd 0 jam 0
+      (2nd option) disc, resting counted, ahead along the loop: > 30 at 0 of 510 (0.0%), p50/p90 10/20
+OUTCOMES {'hop': 510, 'pending': 261}
+HOLD STARTS crowd 0 jam 0 holder 0 both 0 none 0
+HOLD ENDS (re-check/cap decisions) clear 0 cap 0
+outcome x queue bin (train slimes ahead within 300 px):
+                  0-2    3-7   8-14    15+
+  hop             108    131    150    121
+  pending          56     61     77     67
+BACK HOPS 8+: 271 hops: fresh (no hold) 271, after a clear end 0, after a cap end 0 (cap share 0.0%)
+BACK HOPS 15+: 121 hops: fresh (no hold) 121, after a clear end 0, after a cap end 0 (cap share 0.0%)
+CORRIDOR at due hops (not holding: hop or hold start), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2         108  0.00  0.04  0.07     0%     0%     0%      0%      0%    0.8
+  3-7         131  0.11  0.17  0.25     0%     0%     0%      0%      0%    4.5
+  8-14        150  0.29  0.37  0.47    35%     5%     0%      0%      0%   10.4
+  15+         121  0.48  0.55  0.61    99%    81%    17%      0%      0%   15.4
+  front       162  0.00  0.07  0.26     7%     4%     0%      0%      0%    2.8
+  behind      348  0.15  0.38  0.58    46%    28%     6%      0%      0%   10.5
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%       0%      81%     100%      10%      65%   |                       0%      0%     81%    100%     10%     65%
+  0.35         0%       0%      63%     100%      10%      57%   |                       0%      0%     63%    100%     10%     57%
+  0.40         0%       0%      35%      99%       7%      46%   |                       0%      0%     35%     99%      7%     46%
+  0.45         0%       0%      14%      94%       6%      36%   |                       0%      0%     14%     94%      6%     36%
+  0.50         0%       0%       5%      81%       4%      28%   |                       0%      0%      5%     81%      4%     28%
+  0.55         0%       0%       0%      55%       1%      19%   |                       0%      0%      0%     55%      1%     19%
+  0.60         0%       0%       0%      17%       0%       6%   |                       0%      0%      0%     17%      0%      6%
+  0.70         0%       0%       0%       0%       0%       0%   |                       0%      0%      0%      0%      0%      0%
+CORRIDOR at all decisions (re-checks and cap included), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2         108  0.00  0.04  0.07     0%     0%     0%      0%      0%    0.8
+  3-7         131  0.11  0.17  0.25     0%     0%     0%      0%      0%    4.5
+  8-14        150  0.29  0.37  0.47    35%     5%     0%      0%      0%   10.4
+  15+         121  0.48  0.55  0.61    99%    81%    17%      0%      0%   15.4
+  front       162  0.00  0.07  0.26     7%     4%     0%      0%      0%    2.8
+  behind      348  0.15  0.38  0.58    46%    28%     6%      0%      0%   10.5
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%       0%      81%     100%      10%      65%   |                       0%      0%     81%    100%     10%     65%
+  0.35         0%       0%      63%     100%      10%      57%   |                       0%      0%     63%    100%     10%     57%
+  0.40         0%       0%      35%      99%       7%      46%   |                       0%      0%     35%     99%      7%     46%
+  0.45         0%       0%      14%      94%       6%      36%   |                       0%      0%     14%     94%      6%     36%
+  0.50         0%       0%       5%      81%       4%      28%   |                       0%      0%      5%     81%      4%     28%
+  0.55         0%       0%       0%      55%       1%      19%   |                       0%      0%      0%     55%      1%     19%
+  0.60         0%       0%       0%      17%       0%       6%   |                       0%      0%      0%     17%      0%      6%
+  0.70         0%       0%       0%       0%       0%       0%   |                       0%      0%      0%      0%      0%      0%
+LOAD (loop 38297 px): tick n_sim/parked/other, sum of diameters sim/all, share of the loop covered (sim), holders, guard blockers
+    120   36/105/ 0  diam   1512/  5922 = 0.15 of the loop  covered 0.014  holders 0  blockers 36 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+    600   30/110/ 0  diam   1260/  5880 = 0.15 of the loop  covered 0.015  holders 0  blockers 30 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   1200   32/110/ 0  diam   1379/  5999 = 0.16 of the loop  covered 0.022  holders 0  blockers 30 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   1800   32/112/ 0  diam   1396/  6100 = 0.16 of the loop  covered 0.026  holders 0  blockers 28 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   2400   30/117/ 0  diam   1312/  6226 = 0.16 of the loop  covered 0.028  holders 0  blockers 24 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+BLOCKS (holder rule failing, responsible holders: in the corridor outside the stack zone)
+  gap = the holder's record distance minus the checker's, wrapped into (-L/2, L/2]: ahead > 0
+GRAPH (edge A -> B: B a responsible holder of A's last check, B still holding)
+   tick hold crowd stale inher edges cycles scc sizes (shortest, wind)  ->cyc ->root   both   none
+HOLD ENDS by cause: all {}
+  ticks 1200-2400: {}
+HOPS ticks 1200-2400: 244 (distinct slimes 36, fronts 39%): never_held 229, join 15
+  gap to the nearest holder ahead: none 244, p50 nan, <=300 px 0
+GUARD ticks 1200-2400 (1200): no blocker 0, latest start >= 240 old 0, both 0; blockers mean 27.3 (air 2.3, ground 25.0), latest-start age mean 0; distinct blockers 36
+  blocker-ticks by kind: never_held 94.0%, join 6.0%
+  top blockers [id, ticks, hops in window, ever held, kind]: [[91, 1200, 10, 0, 'never_held', 17413.7, 0.0, 1, 2.039, 0, 0, False, 1, 7.5, 0.0], [92, 1200, 8, 0, 'never_held', 17509.5, 13.3, 1, 1.172, 0, 0, False, 1, 11.2, -5.0], [93, 1200, 10, 0, 'never_held', 18469.8, 680.7, 0, 1.775, 0, 0, False, 1, 359.6, 0.0], [125, 1200, 9, 0, 'never_held', 17433.5, 0.0, 1, 1.942, 0, 0, False, 1, 8.1, 0.0], [126, 1200, 8, 0, 'never_held', 17530.0, 12.6, 0, 0.312, 0, 0, False, 1, 20.4, -5.0], [128, 1200, 9, 0, 'never_held', 17568.3, 32.3, 1, 1.559, 0, 0, False, 1, 2.1, -5.0], [130, 1200, 10, 0, 'never_held', 17636.9, 62.0, 1, 1.526, 0, 0, False, 1, 6.5, -14.0], [132, 1200, 8, 0, 'never_held', 17850.0, 224.1, 1, 1.038, 0, 0, False, 1, 13.3, -20.0]]
+====================================================================================================
+docs/perf/2026-10-01-chunk-22g/runs/probe/s3-basket-59of60-on300-s2.csv
+BEFORE s3-basket-59of60 seed 2 (2400 ticks, 20 snapshots every 120 ticks)
+  hops 536  short 79.1%  | hold ends 2: clear 100.0 / cap 0.0 / guard 0.0 / other 0.0 %
+  hold starts 2: holder (jam) 50.0% crowd 50.0% | front 29.9% queue 0.2% crowded 0.0% of hops
+  holding mean/max 0.0/0  holding_resting mean 0.0  contact_resting mean 0.0  back-held 0.0% (0/162)
+  Physics mean 52.7  cluster mean/max 27.2/59  stalled 0  hops not covered by a decision 0  hash 5e68869a520b
+READINGS (decisions 538, pending 270 not counted)
+  (a) ruled out back (8+) passes 284: would fail with resting counted 0 (0.0%); resting in the half disc mean 0.0 max 0
+  (b) confirmed count p50/p90/max 10/22/32, > 30 at 2 of 538 decisions (0.4%); starts with crowd failing 0 of 2
+  (c) confirmed jam-only starts 0 of 2 (0.0%)
+  (d) ruled out counted but behind on the loop mean 0.18 (1.7% of counted), ahead on the loop but missed mean 0.11; crowd verdict flips 1 of 538 (0.2%)
+  (e) partly    counted: train 100.0% (awake holders 0.0%); failed re-checks 0: crowd 0 jam 0; cap ends 0: crowd 0 jam 0
+      (2nd option) disc, resting counted, ahead along the loop: > 30 at 1 of 538 (0.2%), p50/p90 10/22
+OUTCOMES {'end_clear': 2, 'hop': 534, 'pending': 270, 'start_crowd': 1, 'start_holder': 1}
+HOLD STARTS crowd 1 jam 0 holder 1 both 0 none 0
+HOLD ENDS (re-check/cap decisions) clear 2 cap 0
+outcome x queue bin (train slimes ahead within 300 px):
+                  0-2    3-7   8-14    15+
+  end_clear         0      0      0      2
+  hop             134    118    134    148
+  pending          73     58     63     76
+  start_crowd       0      0      0      1
+  start_holder      0      0      0      1
+BACK HOPS 8+: 284 hops: fresh (no hold) 282, after a clear end 2, after a cap end 0 (cap share 0.0%)
+BACK HOPS 15+: 150 hops: fresh (no hold) 148, after a clear end 2, after a cap end 0 (cap share 0.0%)
+CORRIDOR at due hops (not holding: hop or hold start), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2         134  0.00  0.04  0.07     0%     0%     0%      0%      0%    1.1
+  3-7         118  0.07  0.15  0.25     0%     0%     0%      0%      0%    4.5
+  8-14        134  0.29  0.39  0.47    43%     7%     0%      0%      0%   10.7
+  15+         150  0.49  0.57  0.65    97%    89%    35%      1%      1%   16.0
+  front       167  0.00  0.04  0.15     2%     1%     0%      0%      0%    2.0
+  behind      369  0.15  0.42  0.62    54%    38%    14%      0%      0%   11.3
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%       2%      81%     100%       6%      68%   |                       0%      2%     81%    100%      6%     68%
+  0.35         0%       0%      66%      99%       5%      62%   |                       0%      0%     66%     99%      5%     62%
+  0.40         0%       0%      43%      97%       2%      54%   |                       0%      0%     43%     97%      2%     54%
+  0.45         0%       0%      19%      95%       1%      45%   |                       0%      0%     19%     95%      1%     45%
+  0.50         0%       0%       7%      89%       1%      38%   |                       0%      0%      7%     89%      1%     38%
+  0.55         0%       0%       0%      58%       0%      24%   |                       0%      0%      0%     58%      0%     24%
+  0.60         0%       0%       0%      35%       0%      14%   |                       0%      0%      0%     35%      0%     14%
+  0.70         0%       0%       0%       1%       0%       1%   |                       0%      0%      0%      1%      0%      0%
+CORRIDOR at all decisions (re-checks and cap included), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2         134  0.00  0.04  0.07     0%     0%     0%      0%      0%    1.1
+  3-7         118  0.07  0.15  0.25     0%     0%     0%      0%      0%    4.5
+  8-14        134  0.29  0.39  0.47    43%     7%     0%      0%      0%   10.7
+  15+         152  0.49  0.58  0.65    97%    89%    36%      1%      1%   16.0
+  front       167  0.00  0.04  0.15     2%     1%     0%      0%      0%    2.0
+  behind      371  0.15  0.42  0.62    54%    39%    15%      0%      0%   11.3
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%       2%      81%     100%       6%      68%   |                       0%      2%     81%    100%      6%     68%
+  0.35         0%       0%      66%      99%       5%      63%   |                       0%      0%     66%     99%      5%     63%
+  0.40         0%       0%      43%      97%       2%      54%   |                       0%      0%     43%     97%      2%     54%
+  0.45         0%       0%      19%      95%       1%      45%   |                       0%      0%     19%     95%      1%     45%
+  0.50         0%       0%       7%      89%       1%      39%   |                       0%      0%      7%     89%      1%     39%
+  0.55         0%       0%       0%      59%       0%      24%   |                       0%      0%      0%     59%      0%     24%
+  0.60         0%       0%       0%      36%       0%      15%   |                       0%      0%      0%     36%      0%     15%
+  0.70         0%       0%       0%       1%       0%       1%   |                       0%      0%      0%      1%      0%      0%
+LOAD (loop 38297 px): tick n_sim/parked/other, sum of diameters sim/all, share of the loop covered (sim), holders, guard blockers
+    120   37/104/ 0  diam   1554/  5922 = 0.15 of the loop  covered 0.014  holders 0  blockers 37 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+    600   32/108/ 0  diam   1344/  5880 = 0.15 of the loop  covered 0.016  holders 0  blockers 32 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   1200   35/110/ 0  diam   1470/  6090 = 0.16 of the loop  covered 0.023  holders 0  blockers 33 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   1800   34/114/ 0  diam   1428/  6216 = 0.16 of the loop  covered 0.026  holders 0  blockers 30 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   2400   31/119/ 0  diam   1302/  6300 = 0.16 of the loop  covered 0.028  holders 0  blockers 25 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+BLOCKS (holder rule failing, responsible holders: in the corridor outside the stack zone)
+  gap = the holder's record distance minus the checker's, wrapped into (-L/2, L/2]: ahead > 0
+  all            checks      1, holders/check 1.00 | ALL behind 0.0%, any behind 0.0% | holders behind 0.0%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:100% +60-200:0% +200-600:0% +>600:0%
+      euclid p50 79, along p50 59 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: crowd 100% | holder resting 0%, holder a front 0%
+      behind holders held by: 
+  due (starts)   checks      1, holders/check 1.00 | ALL behind 0.0%, any behind 0.0% | holders behind 0.0%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:100% +60-200:0% +200-600:0% +>600:0%
+      euclid p50 79, along p50 59 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: crowd 100% | holder resting 0%, holder a front 0%
+      behind holders held by: 
+GRAPH (edge A -> B: B a responsible holder of A's last check, B still holding)
+   tick hold crowd stale inher edges cycles scc sizes (shortest, wind)  ->cyc ->root   both   none
+HOLD ENDS by cause: all {'clear': 2}
+  ticks 1200-2400: {}
+HOPS ticks 1200-2400: 255 (distinct slimes 37, fronts 42%): never_held 239, join 12, held_before 4
+  gap to the nearest holder ahead: none 255, p50 nan, <=300 px 0
+GUARD ticks 1200-2400 (1200): no blocker 0, latest start >= 240 old 0, both 0; blockers mean 28.9 (air 2.5, ground 26.4), latest-start age mean 0; distinct blockers 38
+  blocker-ticks by kind: never_held 94.2%, join 4.3%, held_before 1.5%
+  top blockers [id, ticks, hops in window, ever held, kind]: [[91, 1200, 9, 0, 'never_held', 17433.9, 0.0, 1, 1.932, 0, 0, False, 1, 2.5, 0.0], [92, 1200, 9, 0, 'never_held', 17469.9, 0.0, 1, 0.827, 0, 0, False, 1, 3.5, 0.0], [93, 1200, 9, 0, 'never_held', 18213.2, 514.4, 1, 0.711, 0, 0, False, 1, 1.7, 0.0], [125, 1200, 7, 0, 'never_held', 17452.2, 0.0, 1, 1.14, 0, 0, False, 1, 2.5, 0.0], [126, 1200, 9, 0, 'never_held', 17491.1, 3.2, 1, 1.246, 0, 0, False, 1, 3.1, 0.0], [128, 1200, 8, 0, 'never_held', 17533.1, 15.0, 1, 1.234, 0, 0, False, 1, 7.3, -5.0], [130, 1200, 9, 0, 'never_held', 17665.0, 89.5, 1, 2.565, 0, 0, False, 1, 13.3, -14.0], [132, 1200, 8, 0, 'never_held', 17767.8, 141.9, 1, 1.349, 0, 0, False, 1, 11.9, -20.0]]
+====================================================================================================
+docs/perf/2026-10-01-chunk-22g/runs/probe/s3-basket-59of60-on150-s1.csv
+BEFORE s3-basket-59of60 seed 1 (2400 ticks, 20 snapshots every 120 ticks)
+  hops 510  short 80.2%  | hold ends 0: clear nan / cap nan / guard nan / other nan %
+  hold starts 0: holder (jam) nan% crowd nan% | front 27.6% queue 0.0% crowded 0.0% of hops
+  holding mean/max 0.0/0  holding_resting mean 0.0  contact_resting mean 0.0  back-held 0.0% (0/136)
+  Physics mean 52.3  cluster mean/max 25.9/59  stalled 0  hops not covered by a decision 0  hash 82343b5f8c43
+READINGS (decisions 510, pending 261 not counted)
+  (a) ruled out back (8+) passes 271: would fail with resting counted 0 (0.0%); resting in the half disc mean 0.0 max 0
+  (b) confirmed count p50/p90/max 10/20/30, > 30 at 0 of 510 decisions (0.0%); starts with crowd failing 0 of 0
+  (c) n/a       jam-only starts 0 of 0 (nan%)
+  (d) ruled out counted but behind on the loop mean 0.15 (1.4% of counted), ahead on the loop but missed mean 0.07; crowd verdict flips 0 of 510 (0.0%)
+  (e) partly    counted: train 100.0% (awake holders 0.0%); failed re-checks 0: crowd 0 jam 0; cap ends 0: crowd 0 jam 0
+      (2nd option) disc, resting counted, ahead along the loop: > 30 at 0 of 510 (0.0%), p50/p90 10/20
+OUTCOMES {'hop': 510, 'pending': 261}
+HOLD STARTS crowd 0 jam 0 holder 0 both 0 none 0
+HOLD ENDS (re-check/cap decisions) clear 0 cap 0
+outcome x queue bin (train slimes ahead within 300 px):
+                  0-2    3-7   8-14    15+
+  hop             108    131    150    121
+  pending          56     61     77     67
+BACK HOPS 8+: 271 hops: fresh (no hold) 271, after a clear end 0, after a cap end 0 (cap share 0.0%)
+BACK HOPS 15+: 121 hops: fresh (no hold) 121, after a clear end 0, after a cap end 0 (cap share 0.0%)
+CORRIDOR at due hops (not holding: hop or hold start), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2         108  0.00  0.04  0.07     0%     0%     0%      0%      0%    0.8
+  3-7         131  0.11  0.17  0.25     0%     0%     0%      0%      0%    4.5
+  8-14        150  0.29  0.37  0.47    35%     5%     0%      0%      0%   10.4
+  15+         121  0.48  0.55  0.61    99%    81%    17%      0%      0%   15.4
+  front       162  0.00  0.07  0.26     7%     4%     0%      0%      0%    2.8
+  behind      348  0.15  0.38  0.58    46%    28%     6%      0%      0%   10.5
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%       0%      81%     100%      10%      65%   |                       0%      0%     81%    100%     10%     65%
+  0.35         0%       0%      63%     100%      10%      57%   |                       0%      0%     63%    100%     10%     57%
+  0.40         0%       0%      35%      99%       7%      46%   |                       0%      0%     35%     99%      7%     46%
+  0.45         0%       0%      14%      94%       6%      36%   |                       0%      0%     14%     94%      6%     36%
+  0.50         0%       0%       5%      81%       4%      28%   |                       0%      0%      5%     81%      4%     28%
+  0.55         0%       0%       0%      55%       1%      19%   |                       0%      0%      0%     55%      1%     19%
+  0.60         0%       0%       0%      17%       0%       6%   |                       0%      0%      0%     17%      0%      6%
+  0.70         0%       0%       0%       0%       0%       0%   |                       0%      0%      0%      0%      0%      0%
+CORRIDOR at all decisions (re-checks and cap included), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2         108  0.00  0.04  0.07     0%     0%     0%      0%      0%    0.8
+  3-7         131  0.11  0.17  0.25     0%     0%     0%      0%      0%    4.5
+  8-14        150  0.29  0.37  0.47    35%     5%     0%      0%      0%   10.4
+  15+         121  0.48  0.55  0.61    99%    81%    17%      0%      0%   15.4
+  front       162  0.00  0.07  0.26     7%     4%     0%      0%      0%    2.8
+  behind      348  0.15  0.38  0.58    46%    28%     6%      0%      0%   10.5
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%       0%      81%     100%      10%      65%   |                       0%      0%     81%    100%     10%     65%
+  0.35         0%       0%      63%     100%      10%      57%   |                       0%      0%     63%    100%     10%     57%
+  0.40         0%       0%      35%      99%       7%      46%   |                       0%      0%     35%     99%      7%     46%
+  0.45         0%       0%      14%      94%       6%      36%   |                       0%      0%     14%     94%      6%     36%
+  0.50         0%       0%       5%      81%       4%      28%   |                       0%      0%      5%     81%      4%     28%
+  0.55         0%       0%       0%      55%       1%      19%   |                       0%      0%      0%     55%      1%     19%
+  0.60         0%       0%       0%      17%       0%       6%   |                       0%      0%      0%     17%      0%      6%
+  0.70         0%       0%       0%       0%       0%       0%   |                       0%      0%      0%      0%      0%      0%
+LOAD (loop 38297 px): tick n_sim/parked/other, sum of diameters sim/all, share of the loop covered (sim), holders, guard blockers
+    120   36/105/ 0  diam   1512/  5922 = 0.15 of the loop  covered 0.014  holders 0  blockers 36 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+    600   30/110/ 0  diam   1260/  5880 = 0.15 of the loop  covered 0.015  holders 0  blockers 30 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   1200   32/110/ 0  diam   1379/  5999 = 0.16 of the loop  covered 0.022  holders 0  blockers 30 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   1800   32/112/ 0  diam   1396/  6100 = 0.16 of the loop  covered 0.026  holders 0  blockers 28 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   2400   30/117/ 0  diam   1312/  6226 = 0.16 of the loop  covered 0.028  holders 0  blockers 24 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+BLOCKS (holder rule failing, responsible holders: in the corridor outside the stack zone)
+  gap = the holder's record distance minus the checker's, wrapped into (-L/2, L/2]: ahead > 0
+GRAPH (edge A -> B: B a responsible holder of A's last check, B still holding)
+   tick hold crowd stale inher edges cycles scc sizes (shortest, wind)  ->cyc ->root   both   none
+HOLD ENDS by cause: all {}
+  ticks 1200-2400: {}
+HOPS ticks 1200-2400: 244 (distinct slimes 36, fronts 39%): never_held 229, join 15
+  gap to the nearest holder ahead: none 244, p50 nan, <=300 px 0
+GUARD ticks 1200-2400 (1200): no blocker 0, latest start >= 240 old 0, both 0; blockers mean 27.3 (air 2.3, ground 25.0), latest-start age mean 0; distinct blockers 36
+  blocker-ticks by kind: never_held 94.0%, join 6.0%
+  top blockers [id, ticks, hops in window, ever held, kind]: [[91, 1200, 10, 0, 'never_held', 17413.7, 0.0, 1, 2.039, 0, 0, False, 1, 7.5, 0.0], [92, 1200, 8, 0, 'never_held', 17509.5, 13.3, 1, 1.172, 0, 0, False, 1, 11.2, -5.0], [93, 1200, 10, 0, 'never_held', 18469.8, 680.7, 0, 1.775, 0, 0, False, 1, 359.6, 0.0], [125, 1200, 9, 0, 'never_held', 17433.5, 0.0, 1, 1.942, 0, 0, False, 1, 8.1, 0.0], [126, 1200, 8, 0, 'never_held', 17530.0, 12.6, 0, 0.312, 0, 0, False, 1, 20.4, -5.0], [128, 1200, 9, 0, 'never_held', 17568.3, 32.3, 1, 1.559, 0, 0, False, 1, 2.1, -5.0], [130, 1200, 10, 0, 'never_held', 17636.9, 62.0, 1, 1.526, 0, 0, False, 1, 6.5, -14.0], [132, 1200, 8, 0, 'never_held', 17850.0, 224.1, 1, 1.038, 0, 0, False, 1, 13.3, -20.0]]
+====================================================================================================
+docs/perf/2026-10-01-chunk-22g/runs/probe/s3-basket-59of60-on150-s2.csv
+BEFORE s3-basket-59of60 seed 2 (2400 ticks, 20 snapshots every 120 ticks)
+  hops 536  short 79.1%  | hold ends 2: clear 100.0 / cap 0.0 / guard 0.0 / other 0.0 %
+  hold starts 2: holder (jam) 50.0% crowd 50.0% | front 29.9% queue 0.2% crowded 0.0% of hops
+  holding mean/max 0.0/0  holding_resting mean 0.0  contact_resting mean 0.0  back-held 0.0% (0/162)
+  Physics mean 52.7  cluster mean/max 27.2/59  stalled 0  hops not covered by a decision 0  hash 5e68869a520b
+READINGS (decisions 538, pending 270 not counted)
+  (a) ruled out back (8+) passes 284: would fail with resting counted 0 (0.0%); resting in the half disc mean 0.0 max 0
+  (b) confirmed count p50/p90/max 10/22/32, > 30 at 2 of 538 decisions (0.4%); starts with crowd failing 0 of 2
+  (c) confirmed jam-only starts 0 of 2 (0.0%)
+  (d) ruled out counted but behind on the loop mean 0.18 (1.7% of counted), ahead on the loop but missed mean 0.11; crowd verdict flips 1 of 538 (0.2%)
+  (e) partly    counted: train 100.0% (awake holders 0.0%); failed re-checks 0: crowd 0 jam 0; cap ends 0: crowd 0 jam 0
+      (2nd option) disc, resting counted, ahead along the loop: > 30 at 1 of 538 (0.2%), p50/p90 10/22
+OUTCOMES {'end_clear': 2, 'hop': 534, 'pending': 270, 'start_crowd': 1, 'start_holder': 1}
+HOLD STARTS crowd 1 jam 0 holder 1 both 0 none 0
+HOLD ENDS (re-check/cap decisions) clear 2 cap 0
+outcome x queue bin (train slimes ahead within 300 px):
+                  0-2    3-7   8-14    15+
+  end_clear         0      0      0      2
+  hop             134    118    134    148
+  pending          73     58     63     76
+  start_crowd       0      0      0      1
+  start_holder      0      0      0      1
+BACK HOPS 8+: 284 hops: fresh (no hold) 282, after a clear end 2, after a cap end 0 (cap share 0.0%)
+BACK HOPS 15+: 150 hops: fresh (no hold) 148, after a clear end 2, after a cap end 0 (cap share 0.0%)
+CORRIDOR at due hops (not holding: hop or hold start), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2         134  0.00  0.04  0.07     0%     0%     0%      0%      0%    1.1
+  3-7         118  0.07  0.15  0.25     0%     0%     0%      0%      0%    4.5
+  8-14        134  0.29  0.39  0.47    43%     7%     0%      0%      0%   10.7
+  15+         150  0.49  0.57  0.65    97%    89%    35%      1%      1%   16.0
+  front       167  0.00  0.04  0.15     2%     1%     0%      0%      0%    2.0
+  behind      369  0.15  0.42  0.62    54%    38%    14%      0%      0%   11.3
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%       2%      81%     100%       6%      68%   |                       0%      2%     81%    100%      6%     68%
+  0.35         0%       0%      66%      99%       5%      62%   |                       0%      0%     66%     99%      5%     62%
+  0.40         0%       0%      43%      97%       2%      54%   |                       0%      0%     43%     97%      2%     54%
+  0.45         0%       0%      19%      95%       1%      45%   |                       0%      0%     19%     95%      1%     45%
+  0.50         0%       0%       7%      89%       1%      38%   |                       0%      0%      7%     89%      1%     38%
+  0.55         0%       0%       0%      58%       0%      24%   |                       0%      0%      0%     58%      0%     24%
+  0.60         0%       0%       0%      35%       0%      14%   |                       0%      0%      0%     35%      0%     14%
+  0.70         0%       0%       0%       1%       0%       1%   |                       0%      0%      0%      1%      0%      0%
+CORRIDOR at all decisions (re-checks and cap included), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2         134  0.00  0.04  0.07     0%     0%     0%      0%      0%    1.1
+  3-7         118  0.07  0.15  0.25     0%     0%     0%      0%      0%    4.5
+  8-14        134  0.29  0.39  0.47    43%     7%     0%      0%      0%   10.7
+  15+         152  0.49  0.58  0.65    97%    89%    36%      1%      1%   16.0
+  front       167  0.00  0.04  0.15     2%     1%     0%      0%      0%    2.0
+  behind      371  0.15  0.42  0.62    54%    39%    15%      0%      0%   11.3
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%       2%      81%     100%       6%      68%   |                       0%      2%     81%    100%      6%     68%
+  0.35         0%       0%      66%      99%       5%      63%   |                       0%      0%     66%     99%      5%     63%
+  0.40         0%       0%      43%      97%       2%      54%   |                       0%      0%     43%     97%      2%     54%
+  0.45         0%       0%      19%      95%       1%      45%   |                       0%      0%     19%     95%      1%     45%
+  0.50         0%       0%       7%      89%       1%      39%   |                       0%      0%      7%     89%      1%     39%
+  0.55         0%       0%       0%      59%       0%      24%   |                       0%      0%      0%     59%      0%     24%
+  0.60         0%       0%       0%      36%       0%      15%   |                       0%      0%      0%     36%      0%     15%
+  0.70         0%       0%       0%       1%       0%       1%   |                       0%      0%      0%      1%      0%      0%
+LOAD (loop 38297 px): tick n_sim/parked/other, sum of diameters sim/all, share of the loop covered (sim), holders, guard blockers
+    120   37/104/ 0  diam   1554/  5922 = 0.15 of the loop  covered 0.014  holders 0  blockers 37 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+    600   32/108/ 0  diam   1344/  5880 = 0.15 of the loop  covered 0.016  holders 0  blockers 32 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   1200   35/110/ 0  diam   1470/  6090 = 0.16 of the loop  covered 0.023  holders 0  blockers 33 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   1800   34/114/ 0  diam   1428/  6216 = 0.16 of the loop  covered 0.026  holders 0  blockers 30 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   2400   31/119/ 0  diam   1302/  6300 = 0.16 of the loop  covered 0.028  holders 0  blockers 25 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+BLOCKS (holder rule failing, responsible holders: in the corridor outside the stack zone)
+  gap = the holder's record distance minus the checker's, wrapped into (-L/2, L/2]: ahead > 0
+  all            checks      1, holders/check 1.00 | ALL behind 0.0%, any behind 0.0% | holders behind 0.0%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:100% +60-200:0% +200-600:0% +>600:0%
+      euclid p50 79, along p50 59 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: crowd 100% | holder resting 0%, holder a front 0%
+      behind holders held by: 
+  due (starts)   checks      1, holders/check 1.00 | ALL behind 0.0%, any behind 0.0% | holders behind 0.0%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:100% +60-200:0% +200-600:0% +>600:0%
+      euclid p50 79, along p50 59 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: crowd 100% | holder resting 0%, holder a front 0%
+      behind holders held by: 
+GRAPH (edge A -> B: B a responsible holder of A's last check, B still holding)
+   tick hold crowd stale inher edges cycles scc sizes (shortest, wind)  ->cyc ->root   both   none
+HOLD ENDS by cause: all {'clear': 2}
+  ticks 1200-2400: {}
+HOPS ticks 1200-2400: 255 (distinct slimes 37, fronts 42%): never_held 239, join 12, held_before 4
+  gap to the nearest holder ahead: none 255, p50 nan, <=300 px 0
+GUARD ticks 1200-2400 (1200): no blocker 0, latest start >= 240 old 0, both 0; blockers mean 28.9 (air 2.5, ground 26.4), latest-start age mean 0; distinct blockers 38
+  blocker-ticks by kind: never_held 94.2%, join 4.3%, held_before 1.5%
+  top blockers [id, ticks, hops in window, ever held, kind]: [[91, 1200, 9, 0, 'never_held', 17433.9, 0.0, 1, 1.932, 0, 0, False, 1, 2.5, 0.0], [92, 1200, 9, 0, 'never_held', 17469.9, 0.0, 1, 0.827, 0, 0, False, 1, 3.5, 0.0], [93, 1200, 9, 0, 'never_held', 18213.2, 514.4, 1, 0.711, 0, 0, False, 1, 1.7, 0.0], [125, 1200, 7, 0, 'never_held', 17452.2, 0.0, 1, 1.14, 0, 0, False, 1, 2.5, 0.0], [126, 1200, 9, 0, 'never_held', 17491.1, 3.2, 1, 1.246, 0, 0, False, 1, 3.1, 0.0], [128, 1200, 8, 0, 'never_held', 17533.1, 15.0, 1, 1.234, 0, 0, False, 1, 7.3, -5.0], [130, 1200, 9, 0, 'never_held', 17665.0, 89.5, 1, 2.565, 0, 0, False, 1, 13.3, -14.0], [132, 1200, 8, 0, 'never_held', 17767.8, 141.9, 1, 1.349, 0, 0, False, 1, 11.9, -20.0]]
+====================================================================================================
+docs/perf/2026-10-01-chunk-22g/runs/probe/s3-basket-59of60-on100-s1.csv
+BEFORE s3-basket-59of60 seed 1 (2400 ticks, 20 snapshots every 120 ticks)
+  hops 510  short 80.2%  | hold ends 0: clear nan / cap nan / guard nan / other nan %
+  hold starts 0: holder (jam) nan% crowd nan% | front 27.6% queue 0.0% crowded 0.0% of hops
+  holding mean/max 0.0/0  holding_resting mean 0.0  contact_resting mean 0.0  back-held 0.0% (0/136)
+  Physics mean 52.3  cluster mean/max 25.9/59  stalled 0  hops not covered by a decision 0  hash 82343b5f8c43
+READINGS (decisions 510, pending 261 not counted)
+  (a) ruled out back (8+) passes 271: would fail with resting counted 0 (0.0%); resting in the half disc mean 0.0 max 0
+  (b) confirmed count p50/p90/max 10/20/30, > 30 at 0 of 510 decisions (0.0%); starts with crowd failing 0 of 0
+  (c) n/a       jam-only starts 0 of 0 (nan%)
+  (d) ruled out counted but behind on the loop mean 0.15 (1.4% of counted), ahead on the loop but missed mean 0.07; crowd verdict flips 0 of 510 (0.0%)
+  (e) partly    counted: train 100.0% (awake holders 0.0%); failed re-checks 0: crowd 0 jam 0; cap ends 0: crowd 0 jam 0
+      (2nd option) disc, resting counted, ahead along the loop: > 30 at 0 of 510 (0.0%), p50/p90 10/20
+OUTCOMES {'hop': 510, 'pending': 261}
+HOLD STARTS crowd 0 jam 0 holder 0 both 0 none 0
+HOLD ENDS (re-check/cap decisions) clear 0 cap 0
+outcome x queue bin (train slimes ahead within 300 px):
+                  0-2    3-7   8-14    15+
+  hop             108    131    150    121
+  pending          56     61     77     67
+BACK HOPS 8+: 271 hops: fresh (no hold) 271, after a clear end 0, after a cap end 0 (cap share 0.0%)
+BACK HOPS 15+: 121 hops: fresh (no hold) 121, after a clear end 0, after a cap end 0 (cap share 0.0%)
+CORRIDOR at due hops (not holding: hop or hold start), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2         108  0.00  0.04  0.07     0%     0%     0%      0%      0%    0.8
+  3-7         131  0.11  0.17  0.25     0%     0%     0%      0%      0%    4.5
+  8-14        150  0.29  0.37  0.47    35%     5%     0%      0%      0%   10.4
+  15+         121  0.48  0.55  0.61    99%    81%    17%      0%      0%   15.4
+  front       162  0.00  0.07  0.26     7%     4%     0%      0%      0%    2.8
+  behind      348  0.15  0.38  0.58    46%    28%     6%      0%      0%   10.5
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%       0%      81%     100%      10%      65%   |                       0%      0%     81%    100%     10%     65%
+  0.35         0%       0%      63%     100%      10%      57%   |                       0%      0%     63%    100%     10%     57%
+  0.40         0%       0%      35%      99%       7%      46%   |                       0%      0%     35%     99%      7%     46%
+  0.45         0%       0%      14%      94%       6%      36%   |                       0%      0%     14%     94%      6%     36%
+  0.50         0%       0%       5%      81%       4%      28%   |                       0%      0%      5%     81%      4%     28%
+  0.55         0%       0%       0%      55%       1%      19%   |                       0%      0%      0%     55%      1%     19%
+  0.60         0%       0%       0%      17%       0%       6%   |                       0%      0%      0%     17%      0%      6%
+  0.70         0%       0%       0%       0%       0%       0%   |                       0%      0%      0%      0%      0%      0%
+CORRIDOR at all decisions (re-checks and cap included), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2         108  0.00  0.04  0.07     0%     0%     0%      0%      0%    0.8
+  3-7         131  0.11  0.17  0.25     0%     0%     0%      0%      0%    4.5
+  8-14        150  0.29  0.37  0.47    35%     5%     0%      0%      0%   10.4
+  15+         121  0.48  0.55  0.61    99%    81%    17%      0%      0%   15.4
+  front       162  0.00  0.07  0.26     7%     4%     0%      0%      0%    2.8
+  behind      348  0.15  0.38  0.58    46%    28%     6%      0%      0%   10.5
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%       0%      81%     100%      10%      65%   |                       0%      0%     81%    100%     10%     65%
+  0.35         0%       0%      63%     100%      10%      57%   |                       0%      0%     63%    100%     10%     57%
+  0.40         0%       0%      35%      99%       7%      46%   |                       0%      0%     35%     99%      7%     46%
+  0.45         0%       0%      14%      94%       6%      36%   |                       0%      0%     14%     94%      6%     36%
+  0.50         0%       0%       5%      81%       4%      28%   |                       0%      0%      5%     81%      4%     28%
+  0.55         0%       0%       0%      55%       1%      19%   |                       0%      0%      0%     55%      1%     19%
+  0.60         0%       0%       0%      17%       0%       6%   |                       0%      0%      0%     17%      0%      6%
+  0.70         0%       0%       0%       0%       0%       0%   |                       0%      0%      0%      0%      0%      0%
+LOAD (loop 38297 px): tick n_sim/parked/other, sum of diameters sim/all, share of the loop covered (sim), holders, guard blockers
+    120   36/105/ 0  diam   1512/  5922 = 0.15 of the loop  covered 0.014  holders 0  blockers 36 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+    600   30/110/ 0  diam   1260/  5880 = 0.15 of the loop  covered 0.015  holders 0  blockers 30 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   1200   32/110/ 0  diam   1379/  5999 = 0.16 of the loop  covered 0.022  holders 0  blockers 30 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   1800   32/112/ 0  diam   1396/  6100 = 0.16 of the loop  covered 0.026  holders 0  blockers 28 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   2400   30/117/ 0  diam   1312/  6226 = 0.16 of the loop  covered 0.028  holders 0  blockers 24 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+BLOCKS (holder rule failing, responsible holders: in the corridor outside the stack zone)
+  gap = the holder's record distance minus the checker's, wrapped into (-L/2, L/2]: ahead > 0
+GRAPH (edge A -> B: B a responsible holder of A's last check, B still holding)
+   tick hold crowd stale inher edges cycles scc sizes (shortest, wind)  ->cyc ->root   both   none
+HOLD ENDS by cause: all {}
+  ticks 1200-2400: {}
+HOPS ticks 1200-2400: 244 (distinct slimes 36, fronts 39%): never_held 229, join 15
+  gap to the nearest holder ahead: none 244, p50 nan, <=300 px 0
+GUARD ticks 1200-2400 (1200): no blocker 0, latest start >= 240 old 0, both 0; blockers mean 27.3 (air 2.3, ground 25.0), latest-start age mean 0; distinct blockers 36
+  blocker-ticks by kind: never_held 94.0%, join 6.0%
+  top blockers [id, ticks, hops in window, ever held, kind]: [[91, 1200, 10, 0, 'never_held', 17413.7, 0.0, 1, 2.039, 0, 0, False, 1, 7.5, 0.0], [92, 1200, 8, 0, 'never_held', 17509.5, 13.3, 1, 1.172, 0, 0, False, 1, 11.2, -5.0], [93, 1200, 10, 0, 'never_held', 18469.8, 680.7, 0, 1.775, 0, 0, False, 1, 359.6, 0.0], [125, 1200, 9, 0, 'never_held', 17433.5, 0.0, 1, 1.942, 0, 0, False, 1, 8.1, 0.0], [126, 1200, 8, 0, 'never_held', 17530.0, 12.6, 0, 0.312, 0, 0, False, 1, 20.4, -5.0], [128, 1200, 9, 0, 'never_held', 17568.3, 32.3, 1, 1.559, 0, 0, False, 1, 2.1, -5.0], [130, 1200, 10, 0, 'never_held', 17636.9, 62.0, 1, 1.526, 0, 0, False, 1, 6.5, -14.0], [132, 1200, 8, 0, 'never_held', 17850.0, 224.1, 1, 1.038, 0, 0, False, 1, 13.3, -20.0]]
+====================================================================================================
+docs/perf/2026-10-01-chunk-22g/runs/probe/s3-basket-59of60-on100-s2.csv
+BEFORE s3-basket-59of60 seed 2 (2400 ticks, 20 snapshots every 120 ticks)
+  hops 536  short 79.1%  | hold ends 2: clear 100.0 / cap 0.0 / guard 0.0 / other 0.0 %
+  hold starts 2: holder (jam) 50.0% crowd 50.0% | front 29.9% queue 0.2% crowded 0.0% of hops
+  holding mean/max 0.0/0  holding_resting mean 0.0  contact_resting mean 0.0  back-held 0.0% (0/162)
+  Physics mean 52.7  cluster mean/max 27.2/59  stalled 0  hops not covered by a decision 0  hash 5e68869a520b
+READINGS (decisions 538, pending 270 not counted)
+  (a) ruled out back (8+) passes 284: would fail with resting counted 0 (0.0%); resting in the half disc mean 0.0 max 0
+  (b) confirmed count p50/p90/max 10/22/32, > 30 at 2 of 538 decisions (0.4%); starts with crowd failing 0 of 2
+  (c) confirmed jam-only starts 0 of 2 (0.0%)
+  (d) ruled out counted but behind on the loop mean 0.18 (1.7% of counted), ahead on the loop but missed mean 0.11; crowd verdict flips 1 of 538 (0.2%)
+  (e) partly    counted: train 100.0% (awake holders 0.0%); failed re-checks 0: crowd 0 jam 0; cap ends 0: crowd 0 jam 0
+      (2nd option) disc, resting counted, ahead along the loop: > 30 at 1 of 538 (0.2%), p50/p90 10/22
+OUTCOMES {'end_clear': 2, 'hop': 534, 'pending': 270, 'start_crowd': 1, 'start_holder': 1}
+HOLD STARTS crowd 1 jam 0 holder 1 both 0 none 0
+HOLD ENDS (re-check/cap decisions) clear 2 cap 0
+outcome x queue bin (train slimes ahead within 300 px):
+                  0-2    3-7   8-14    15+
+  end_clear         0      0      0      2
+  hop             134    118    134    148
+  pending          73     58     63     76
+  start_crowd       0      0      0      1
+  start_holder      0      0      0      1
+BACK HOPS 8+: 284 hops: fresh (no hold) 282, after a clear end 2, after a cap end 0 (cap share 0.0%)
+BACK HOPS 15+: 150 hops: fresh (no hold) 148, after a clear end 2, after a cap end 0 (cap share 0.0%)
+CORRIDOR at due hops (not holding: hop or hold start), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2         134  0.00  0.04  0.07     0%     0%     0%      0%      0%    1.1
+  3-7         118  0.07  0.15  0.25     0%     0%     0%      0%      0%    4.5
+  8-14        134  0.29  0.39  0.47    43%     7%     0%      0%      0%   10.7
+  15+         150  0.49  0.57  0.65    97%    89%    35%      1%      1%   16.0
+  front       167  0.00  0.04  0.15     2%     1%     0%      0%      0%    2.0
+  behind      369  0.15  0.42  0.62    54%    38%    14%      0%      0%   11.3
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%       2%      81%     100%       6%      68%   |                       0%      2%     81%    100%      6%     68%
+  0.35         0%       0%      66%      99%       5%      62%   |                       0%      0%     66%     99%      5%     62%
+  0.40         0%       0%      43%      97%       2%      54%   |                       0%      0%     43%     97%      2%     54%
+  0.45         0%       0%      19%      95%       1%      45%   |                       0%      0%     19%     95%      1%     45%
+  0.50         0%       0%       7%      89%       1%      38%   |                       0%      0%      7%     89%      1%     38%
+  0.55         0%       0%       0%      58%       0%      24%   |                       0%      0%      0%     58%      0%     24%
+  0.60         0%       0%       0%      35%       0%      14%   |                       0%      0%      0%     35%      0%     14%
+  0.70         0%       0%       0%       1%       0%       1%   |                       0%      0%      0%      1%      0%      0%
+CORRIDOR at all decisions (re-checks and cap included), by queue bin (ahead within 300 px) | and by touching-queue front
+  bin           n   p10   p50   p90   >0.4   >0.5   >0.6  holder   stack n_corr
+  0-2         134  0.00  0.04  0.07     0%     0%     0%      0%      0%    1.1
+  3-7         118  0.07  0.15  0.25     0%     0%     0%      0%      0%    4.5
+  8-14        134  0.29  0.39  0.47    43%     7%     0%      0%      0%   10.7
+  15+         152  0.49  0.58  0.65    97%    89%    36%      1%      1%   16.0
+  front       167  0.00  0.04  0.15     2%     1%     0%      0%      0%    2.0
+  behind      371  0.15  0.42  0.62    54%    39%    15%      0%      0%   11.3
+  would hold (occupancy > th, or a holder outside the stack zone), share of decisions:
+  th          0-2      3-7     8-14      15+    front   behind   | occupancy only:     0-2     3-7    8-14     15+   front  behind
+  0.30         0%       2%      81%     100%       6%      68%   |                       0%      2%     81%    100%      6%     68%
+  0.35         0%       0%      66%      99%       5%      63%   |                       0%      0%     66%     99%      5%     63%
+  0.40         0%       0%      43%      97%       2%      54%   |                       0%      0%     43%     97%      2%     54%
+  0.45         0%       0%      19%      95%       1%      45%   |                       0%      0%     19%     95%      1%     45%
+  0.50         0%       0%       7%      89%       1%      39%   |                       0%      0%      7%     89%      1%     39%
+  0.55         0%       0%       0%      59%       0%      24%   |                       0%      0%      0%     59%      0%     24%
+  0.60         0%       0%       0%      36%       0%      15%   |                       0%      0%      0%     36%      0%     15%
+  0.70         0%       0%       0%       1%       0%       1%   |                       0%      0%      0%      1%      0%      0%
+LOAD (loop 38297 px): tick n_sim/parked/other, sum of diameters sim/all, share of the loop covered (sim), holders, guard blockers
+    120   37/104/ 0  diam   1554/  5922 = 0.15 of the loop  covered 0.014  holders 0  blockers 37 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+    600   32/108/ 0  diam   1344/  5880 = 0.15 of the loop  covered 0.016  holders 0  blockers 32 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   1200   35/110/ 0  diam   1470/  6090 = 0.16 of the loop  covered 0.023  holders 0  blockers 33 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   1800   34/114/ 0  diam   1428/  6216 = 0.16 of the loop  covered 0.026  holders 0  blockers 30 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+   2400   31/119/ 0  diam   1302/  6300 = 0.16 of the loop  covered 0.028  holders 0  blockers 25 (pinned 0)  front holder at -1, ahead of it 0 within 1500 px, 0 beyond
+BLOCKS (holder rule failing, responsible holders: in the corridor outside the stack zone)
+  gap = the holder's record distance minus the checker's, wrapped into (-L/2, L/2]: ahead > 0
+  all            checks      1, holders/check 1.00 | ALL behind 0.0%, any behind 0.0% | holders behind 0.0%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:100% +60-200:0% +200-600:0% +>600:0%
+      euclid p50 79, along p50 59 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: crowd 100% | holder resting 0%, holder a front 0%
+      behind holders held by: 
+  due (starts)   checks      1, holders/check 1.00 | ALL behind 0.0%, any behind 0.0% | holders behind 0.0%
+      gap bins ->600:0% -200-600:0% -60-200:0% -<=60:0% +<=60:100% +60-200:0% +200-600:0% +>600:0%
+      euclid p50 79, along p50 59 | |gap| > euclid + 200 (a fold of the loop) 0.0%
+      holder held by: crowd 100% | holder resting 0%, holder a front 0%
+      behind holders held by: 
+GRAPH (edge A -> B: B a responsible holder of A's last check, B still holding)
+   tick hold crowd stale inher edges cycles scc sizes (shortest, wind)  ->cyc ->root   both   none
+HOLD ENDS by cause: all {'clear': 2}
+  ticks 1200-2400: {}
+HOPS ticks 1200-2400: 255 (distinct slimes 37, fronts 42%): never_held 239, join 12, held_before 4
+  gap to the nearest holder ahead: none 255, p50 nan, <=300 px 0
+GUARD ticks 1200-2400 (1200): no blocker 0, latest start >= 240 old 0, both 0; blockers mean 28.9 (air 2.5, ground 26.4), latest-start age mean 0; distinct blockers 38
+  blocker-ticks by kind: never_held 94.2%, join 4.3%, held_before 1.5%
+  top blockers [id, ticks, hops in window, ever held, kind]: [[91, 1200, 9, 0, 'never_held', 17433.9, 0.0, 1, 1.932, 0, 0, False, 1, 2.5, 0.0], [92, 1200, 9, 0, 'never_held', 17469.9, 0.0, 1, 0.827, 0, 0, False, 1, 3.5, 0.0], [93, 1200, 9, 0, 'never_held', 18213.2, 514.4, 1, 0.711, 0, 0, False, 1, 1.7, 0.0], [125, 1200, 7, 0, 'never_held', 17452.2, 0.0, 1, 1.14, 0, 0, False, 1, 2.5, 0.0], [126, 1200, 9, 0, 'never_held', 17491.1, 3.2, 1, 1.246, 0, 0, False, 1, 3.1, 0.0], [128, 1200, 8, 0, 'never_held', 17533.1, 15.0, 1, 1.234, 0, 0, False, 1, 7.3, -5.0], [130, 1200, 9, 0, 'never_held', 17665.0, 89.5, 1, 2.565, 0, 0, False, 1, 13.3, -14.0], [132, 1200, 8, 0, 'never_held', 17767.8, 141.9, 1, 1.349, 0, 0, False, 1, 11.9, -20.0]]

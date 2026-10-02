@@ -1,0 +1,1 @@
+2400: off=final same; join <(sort off-2400.txt) <(sort on-2400.txt) | awk '!={print  changed:,, substr(,1,8),-
