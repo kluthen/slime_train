@@ -515,6 +515,8 @@ static func restore(save: Dictionary, level_data: LevelData, terrain: TerrainSeg
 	for slime_id in displaced:
 		sim.offscreen.lose(sim, slime_id)
 	MidairLanding.apply(sim)
+	if sim.train != null:
+		sim.train.rebuild_loads(sim.slimes)
 	sim.hint.update(sim.tick)
 	return sim
 

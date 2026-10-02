@@ -35,7 +35,11 @@ extends RefCounted
 ##              on one spot, the higher id is ahead). (Without it, a parked
 ##              slime faster than the one ahead, on the slide or bigger, ran
 ##              through it, and the two came back on screen on one spot,
-##              where two rings never come apart.) Over an open
+##              where two rings never come apart.) With the bucket cap
+##              on (Train.bucket_cap, D151 (5), chunk 22i) it also stops
+##              just short of its loop bucket's front edge while the next
+##              bucket has no room for it (_bucket_room(); never while it
+##              is carried on a slide). Over an open
 ##              trapdoor (its box grown ENTRY_REACH upward) it drops into
 ##              the basket instead: it is put in the basket box's next free
 ##              clear slot (a grid its own width plus SLOT_GAP apart,
@@ -131,6 +135,11 @@ const LOST_LOG_SIZE := 16
 ## How much closer than a slime's width two queued proxies may sit before
 ## one is moved back, px: absorbs floating-point rounding when queueing.
 const QUEUE_TOLERANCE := 0.001
+## How far short of its loop bucket's front edge a parked slime stops when
+## the next bucket is full (_bucket_room(), the bucket cap), px: well above
+## the projection's rounding, so its distance stays in its own bucket.
+# @spec-link [[req_offscreen_simulation]]
+const BUCKET_EDGE_GAP := 0.01
 const LOST := "lost"
 
 ## Physics only near the screen (the game's mode). Not saved.
@@ -320,10 +329,13 @@ func _train_proxy(sim: Simulation, slime_id: int, room: Dictionary, centre: Vect
 	var bodies := sim.slimes
 	var size := bodies.size_of(slime_id)
 	var distance := train.distance_of(slime_id)
-	var speed := Train.SLIDE_SPEED if train.is_slide_at(distance) else pace(size, bodies.hop_rate)
+	var on_slide := train.is_slide_at(distance)
+	var speed := Train.SLIDE_SPEED if on_slide else pace(size, bodies.hop_rate)
 	var step := speed * Simulation.TICK_SECONDS
 	if room.has(slime_id):
 		step = minf(step, room[slime_id])
+	if train.bucket_cap and not on_slide:
+		step = _bucket_room(train.bucket_loads(), distance, step, size)
 	var ahead := distance + step
 	var on := train.position_at(ahead)
 	# The point on the loop projects onto itself: the progress moves the whole
@@ -335,6 +347,23 @@ func _train_proxy(sim: Simulation, slime_id: int, room: Dictionary, centre: Vect
 	if not basket.is_empty():
 		at = _slot(sim, basket, size)
 	bodies.translate(slime_id, at - centre)
+
+
+## The bucket cap's parked clamp (D151 (5), chunk 22i, experimental: only
+## with Train.bucket_cap on): a parked slime of `size` at `distance` along
+## the loop, about to move `step` px, stops BUCKET_EDGE_GAP px short of its
+## loop bucket's front edge when the step would take it out of its bucket
+## and the next bucket in `loads` has no room for it; else the step is kept.
+## Never below 0. Only for its own advance: never while it is carried on a
+## slide (_train_proxy() doesn't call it there, D151 (5)).
+# @spec-link [[req_offscreen_simulation]]
+static func _bucket_room(loads: BucketLoads, distance: float, step: float, size: int) -> float:
+	if loads.count() == 0:
+		return step
+	var own := loads.bucket_index(distance)
+	if loads.bucket_index(distance + step) == own or loads.has_room(loads.next(own), size):
+		return step
+	return clampf(loads.front_edge(own) - BUCKET_EDGE_GAP - distance, 0.0, step)
 
 
 ## Single file for the parked train slimes (see the class doc): parked

@@ -114,7 +114,8 @@ func test_line_holds_every_field() -> void:
 	for field in ["frame_ms_p50=10.00", "frame_ms_p95=19.00", "frame_ms_max=20.00", "process_ms_mean=4.50",
 			"ticks=300", "ticks_per_frame_mean=2.00", "ticks_per_frame_max=3", "tick_ms_mean=10.00",
 			"tick_ms_frame_mean=20.00", "rest_ms_mean=30.00", "physics=0", "on_screen=0", "in_range=0",
-			"parked=0", "resting=0", "largest_cluster=0", "hops=9", "short_hops=4", "bodies=0", "active=55.5",
+			"parked=0", "resting=0", "largest_cluster=0", "hops=9", "short_hops=4", "bucket_max=0",
+			"buckets_over=0", "bodies=0", "active=55.5",
 			"pairs=120.5", "section=0", "zoom=",
 			"slimes_ms=0.50", "main_ms=5.50", "field_gpu_ms=10.50", "draw_calls=12", "primitives=14"]:
 		assert_string_contains(text, " " + field)
@@ -134,16 +135,23 @@ func test_line_is_key_value_numbers_in_the_documented_order() -> void:
 		assert_eq(field.get_slice_count("="), 2, field)
 		assert_true(field.get_slice("=", 1).is_valid_float(), field)
 		keys.append(field.get_slice("=", 0))
-	assert_eq(keys, PackedStringArray(["t", "frames", "fps", "frame_ms_p50", "frame_ms_p95", "frame_ms_max",
+	# The hold's counters are TrainHold.COUNTERS, in its order (the class doc
+	# lists them; chunk 22i adds bucket_holds there).
+	var expected := PackedStringArray(["t", "frames", "fps", "frame_ms_p50", "frame_ms_p95", "frame_ms_max",
 			"process_ms_mean", "ticks", "ticks_per_frame_mean", "ticks_per_frame_max", "tick_ms_mean",
 			"tick_ms_frame_mean", "rest_ms_mean", "physics", "on_screen", "in_range", "parked", "resting",
 			"largest_cluster", "hops", "short_hops", "holding", "holding_resting", "contact_resting", "queue_back",
-			"queue_back_held", "hold_ends_clear", "hold_ends_cap", "guard_releases", "hold_ends_other", "front_hops",
-			"queue_hops", "holder_holds", "crowd_holds", "crowded_hops", "bodies", "active", "pairs", "section",
+			"queue_back_held"])
+	expected.append_array(PackedStringArray(TrainHold.COUNTERS))
+	expected.append_array(PackedStringArray(["bucket_max", "buckets_over", "bodies", "active", "pairs", "section",
 			"zoom", "slimes_ms",
 			"eyes_ms", "frontier_ms", "hud_ms", "debug_ms",
 			"main_ms", "setup_ms", "render_cpu_ms", "render_gpu_ms", "field_cpu_ms", "field_gpu_ms", "draw_calls",
 			"objects", "primitives"]))
+	assert_eq(keys, expected)
+	for counter in ["hold_ends_clear", "hold_ends_cap", "guard_releases", "hold_ends_other", "front_hops",
+			"queue_hops", "holder_holds", "crowd_holds", "crowded_hops"]:
+		assert_has(keys, counter)
 
 
 ## The part means: the window's sums over its frames.
@@ -203,6 +211,34 @@ func test_the_line_holds_the_largest_cluster_and_reads_only() -> void:
 			sim, _parts())
 	assert_string_contains(text, " largest_cluster=3 ")
 	assert_string_contains(text, " physics=5 ")
+	assert_eq(sim.state_hash(), hash_before, "read only")
+
+
+## The line's bucket_max and buckets_over (chunk 22i, D151 (7)) are the
+## train's bucket loads now (Train.bucket_loads()): the highest load of any
+## loop bucket and the buckets over their bucket cap, the switch on or off
+## (the loads are kept either way). Taking the line changes nothing.
+# @test-link [[req_platform_and_performance_targets]]
+func test_the_line_holds_the_bucket_loads_now() -> void:
+	var game := _game_with_guard(true)
+	assert_eq(game.enable_test_mode({"seed": 1}), PackedStringArray())
+	var sim: Simulation = game.simulation
+	for i in 3:
+		game.step_simulation()
+	var loads := sim.train.bucket_loads()
+	assert_false(sim.train.bucket_cap, "the switch off: the loads are kept anyway")
+	assert_gt(loads.count(), 1, "the loop is cut")
+	# Overfill bucket 0 by hand (the next tick counts the loads afresh).
+	loads.add(0, loads.cap(0) + 8)
+	assert_gt(loads.max_load(), loads.cap(0) + 7)
+	assert_gt(loads.over_count(), 0)
+	var hash_before := sim.state_hash()
+	var ticking := PerfLog.tick_stats(PackedFloat64Array([0.02]), PackedInt32Array([1]), PackedInt64Array([0]),
+			PackedInt32Array([0]), PackedInt32Array([0]))
+	var text := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 1.0, 1, 0, 0,
+			sim, _parts())
+	assert_string_contains(text, " bucket_max=%d " % loads.max_load())
+	assert_string_contains(text, " buckets_over=%d " % loads.over_count())
 	assert_eq(sim.state_hash(), hash_before, "read only")
 
 

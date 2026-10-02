@@ -62,8 +62,9 @@ extends Node
 ##                        the two radii + 2 px), the members behind its
 ##                        front; of them, holding or resting
 ##   hold_ends_clear, hold_ends_cap, guard_releases, hold_ends_other,
-##   front_hops, queue_hops, holder_holds, crowd_holds, crowded_hops
-##                        the hold's counters in the window
+##   front_hops, queue_hops, holder_holds, crowd_holds, bucket_holds,
+##   crowded_hops         the hold's counters in the window, in
+##                        TrainHold.COUNTERS' order
 ##                        (Train.hold_counters(), TrainHold.COUNTERS, taken
 ##                        frame by frame as the hops, hold_counters()): holds
 ##                        ended at a re-check with both checks passing, by
@@ -77,8 +78,19 @@ extends Node
 ##                        started by the holder rule with the hop corridor's
 ##                        occupancy at or below the threshold, and with it
 ##                        above (a hold both checks start, a crowd and a
-##                        holder, counts there, in crowd_holds only); train
-##                        hops taken with it above (at the cap)
+##                        holder, counts there, in crowd_holds only); holds
+##                        started because the hop's loop bucket was full
+##                        (chunk 22i, the bucket cap's "bucket full", D151
+##                        (4): 0 with the cap off); train hops taken with
+##                        the corridor's occupancy above the threshold (at
+##                        the cap)
+##   bucket_max, buckets_over
+##                        the train's bucket loads at the line
+##                        (Train.bucket_loads(), chunk 22i, D151 (7); kept
+##                        with the bucket cap on or off; 0 without a train):
+##                        the highest load of any loop bucket (a weight: the
+##                        summed sizes of its train slimes), and the loop
+##                        buckets over their bucket cap (load above it)
 ##   bodies               every slime, whatever its state
 ##   active               mean slimes that cost physics, per frame
 ##                        (SlimeBodies.crowd_count(), the same count as
@@ -468,7 +480,8 @@ static func _nearest_rank(sorted: PackedFloat64Array, share: float) -> float:
 ## window_stats() `stats` and tick_stats() `ticking` (active and pairs
 ## included), the mean process time `process_ms_mean`, the `ticks` run, the
 ## train `hops` taken and `short_hops` landed in it, `sim`'s slime counts,
-## largest awake cluster, holders and touching queues, total slimes, camera
+## largest awake cluster, holders and touching queues, bucket loads (the
+## highest, those over their bucket cap), total slimes, camera
 ## section and zoom (zeros without a simulation), the part_means() `parts`
 ## and the hold's counters of the window `period` (one per
 ## TrainHold.COUNTERS; empty: zeros). The fields are the class doc's, in its
@@ -487,9 +500,14 @@ static func line(t: float, stats: Dictionary, ticking: Dictionary, process_ms_me
 	var section := 0
 	var zoom := 0.0
 	var snapshot := {}
+	var bucket_max := 0
+	var buckets_over := 0
 	if sim != null:
 		counts = DebugCounts.count_slimes(sim)
-		snapshot = sim.train.hold_snapshot(sim.slimes) if sim.train != null else {}
+		if sim.train != null:
+			snapshot = sim.train.hold_snapshot(sim.slimes)
+			bucket_max = sim.train.bucket_loads().max_load()
+			buckets_over = sim.train.bucket_loads().over_count()
 		largest_cluster = DebugCounts.largest_cluster(sim.slimes)
 		bodies = sim.slimes.slime_count
 		section = camera_section(sim)
@@ -498,7 +516,7 @@ static func line(t: float, stats: Dictionary, ticking: Dictionary, process_ms_me
 			+ " process_ms_mean=%.2f ticks=%d ticks_per_frame_mean=%.2f ticks_per_frame_max=%d"
 			+ " tick_ms_mean=%.2f tick_ms_frame_mean=%.2f rest_ms_mean=%.2f"
 			+ " physics=%d on_screen=%d in_range=%d parked=%d resting=%d largest_cluster=%d"
-			+ " hops=%d short_hops=%d%s bodies=%d"
+			+ " hops=%d short_hops=%d%s bucket_max=%d buckets_over=%d bodies=%d"
 			+ " active=%.1f pairs=%.1f"
 			+ " section=%d zoom=%.3f") % [
 			t, stats["frames"], stats["fps"], stats["p50_ms"], stats["p95_ms"], stats["max_ms"],
@@ -506,7 +524,7 @@ static func line(t: float, stats: Dictionary, ticking: Dictionary, process_ms_me
 			ticking["tick_ms_mean"], ticking["tick_ms_frame_mean"], ticking["rest_ms_mean"],
 			counts[DebugCounts.PHYSICS], counts[DebugCounts.ON_SCREEN], counts[DebugCounts.IN_RANGE],
 			counts[DebugCounts.PARKED], counts[DebugCounts.RESTING], largest_cluster, hops, short_hops,
-			_hold_text(snapshot, period), bodies,
+			_hold_text(snapshot, period), bucket_max, buckets_over, bodies,
 			ticking["active_mean"], ticking["pairs_mean"], section, zoom] + _part_text(parts)
 
 

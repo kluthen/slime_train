@@ -4,7 +4,17 @@ extends SceneTree
 ## counts train slimes crossing loop distances X1/X2, stall moves, stuck
 ## moves, hops, simulated train slimes, and the bowl's back half.
 ## THRU_TOT adds the hold guard's releases (Train.hold_counters()).
-## godot --headless --path . -s docs/perf/2026-10-01-chunk-22f/probe/thru.gd -- --fixture=stress-moving --seed=N --ticks=T [--level=test] [--loop-buckets] [--loop-bucket-length=PX]
+## Since chunk 22i (D151) THRU_WIN also gives the bucket loads at the
+## window's end (bucket_max: the highest load of any loop bucket; buckets_over:
+## the buckets over their bucket cap), THRU_TOT the bucket cap's "bucket full"
+## holds (bucket_holds=, -1 before the counter exists), and every BUCKET_EVERY
+## ticks each loop bucket's load is sampled (Train.bucket_loads(), the switch
+## on or off): at the end THRU_BUCKETS lines give each bucket's highest load,
+## a histogram (samples by load, every bucket's), and every bucket sampled
+## over OVER_LOAD after having been sampled at or under its cap (tick,
+## bucket, load, cap; the bowl's starting overfill so stays apart). Read only:
+## the final STATE hash is the plain run's.
+## godot --headless --path . -s docs/perf/2026-10-01-chunk-22f/probe/thru.gd -- --fixture=stress-moving --seed=N --ticks=T [--level=test] [--loop-buckets] [--loop-bucket-length=PX] [--bucket-cap] [--bucket-cap-density=D]
 
 var fixture := "stress-moving"
 var seed_n := 1
@@ -15,6 +25,67 @@ const X1 := 19000.0
 const X2 := 22000.0
 const BOWL_LO := 14000.0
 const BOWL_HI := 18000.0
+## The bucket loads' sampling period, ticks, and the load the user's "never
+## more than 15" names (D151).
+const BUCKET_EVERY := 60
+const OVER_LOAD := 15
+
+## Per loop bucket: its highest sampled load; whether it was sampled at or
+## under its cap since it was last listed as going over OVER_LOAD.
+var bucket_top := PackedInt32Array()
+var bucket_armed := PackedByteArray()
+## Samples by load (load -> samples, every bucket's), the samples taken, and
+## the listed crossings ("tick=T bucket=B load=L cap=C").
+var load_hist := {}
+var bucket_samples := 0
+var crossings := PackedStringArray()
+
+
+## Samples each loop bucket's load at `tick` (see the class doc). A recut (a
+## gate opening: another bucket count) starts the per-bucket record afresh.
+func _sample_buckets(train: Train, tick: int) -> void:
+	var loads := train.bucket_loads().loads()
+	var caps := train.bucket_loads().caps()
+	if loads.size() != bucket_top.size():
+		if not bucket_top.is_empty():
+			print("THRU_BUCKETS recut tick=%d buckets=%d->%d" % [tick, bucket_top.size(), loads.size()])
+		bucket_top = PackedInt32Array()
+		bucket_top.resize(loads.size())
+		bucket_armed = PackedByteArray()
+		bucket_armed.resize(loads.size())
+	bucket_samples += 1
+	for b in loads.size():
+		var weight := loads[b]
+		bucket_top[b] = maxi(bucket_top[b], weight)
+		load_hist[weight] = load_hist.get(weight, 0) + 1
+		if weight <= caps[b]:
+			bucket_armed[b] = 1
+		elif weight > OVER_LOAD and bucket_armed[b] == 1:
+			crossings.append("tick=%d bucket=%d load=%d cap=%d" % [tick, b, weight, caps[b]])
+			bucket_armed[b] = 0
+
+
+## The THRU_BUCKETS lines (see the class doc).
+func _print_buckets(train: Train) -> void:
+	var caps := train.bucket_loads().caps()
+	var top := []
+	for b in bucket_top.size():
+		if bucket_top[b] > 0:
+			top.append("%d:%d/%d" % [b, bucket_top[b], caps[b] if b < caps.size() else -1])
+	# buckets_overN: the buckets whose highest sampled load passed OVER_LOAD.
+	print("THRU_BUCKETS samples=%d buckets=%d density=%.3f max=%d buckets_over%d=%d crossings=%d" % [
+			bucket_samples, bucket_top.size(), train.bucket_loads().density_used(),
+			Array(bucket_top).max() if not bucket_top.is_empty() else 0, OVER_LOAD,
+			Array(bucket_top).filter(func(x: int) -> bool: return x > OVER_LOAD).size(), crossings.size()])
+	print("THRU_BUCKETS top bucket:highest/cap (buckets never loaded left out) ", " ".join(top))
+	var keys := load_hist.keys()
+	keys.sort()
+	var hist := []
+	for k in keys:
+		hist.append("%d:%d" % [k, load_hist[k]])
+	print("THRU_BUCKETS hist load:samples ", " ".join(hist))
+	for crossing in crossings:
+		print("THRU_BUCKETS over%d %s" % [OVER_LOAD, crossing])
 
 
 func _back_half(train: Train, ids: PackedInt32Array, bodies: SlimeBodies) -> Array:
@@ -61,7 +132,7 @@ func _initialize() -> void:
 	var bodies: SlimeBodies = sim.slimes
 	var length := train.length()
 	print("THRU fixture=%s seed=%d tick0=%d slimes=%d loop_len=%.0f" % [fixture, seed_n, sim.tick, bodies.slime_count, length])
-	print("THRU_HDR win_end,x19,x22,stall,oob,stuck,hops,sim_train,all_train,bowl_n,back_mean,back_adv")
+	print("THRU_HDR win_end,x19,x22,stall,oob,stuck,hops,sim_train,all_train,bowl_n,back_mean,back_adv,bucket_max,buckets_over")
 	var prev := {}
 	for id in train.tracked_ids():
 		prev[id] = train.distance_of(id)
@@ -85,6 +156,8 @@ func _initialize() -> void:
 					if p < X2 and d >= X2:
 						w["x2"] += 1
 		prev = now
+		if sim.tick % BUCKET_EVERY == 0:
+			_sample_buckets(train, sim.tick)
 		for e in train.stalled:
 			if e["tick"] == t:
 				if e["reason"] == Train.STALLED:
@@ -128,15 +201,18 @@ func _initialize() -> void:
 			back0 = back
 			var hops: int = train.hops_taken - hops0
 			hops0 = train.hops_taken
-			print("THRU_WIN %d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%.0f,%.0f" % [sim.tick, w["x1"], w["x2"], w["stall"],
-					w["oob"], w["stuck"], hops, sim_train, all_train, bowl_n, mean, adv])
+			var loads := train.bucket_loads()
+			print("THRU_WIN %d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%.0f,%.0f,%d,%d" % [sim.tick, w["x1"], w["x2"], w["stall"],
+					w["oob"], w["stuck"], hops, sim_train, all_train, bowl_n, mean, adv, loads.max_load(),
+					loads.over_count()])
 			for k in w:
 				tot[k] += w[k]
 				w[k] = 0
 	var hc: Dictionary = train.hold_counters()
-	print("THRU_TOT tick=%d x19=%d x22=%d stall=%d oob=%d stuck=%d hops=%d guard=%d first_stall=%d" % [sim.tick,
-			tot["x1"], tot["x2"], tot["stall"], tot["oob"], tot["stuck"], train.hops_taken, hc["guard_releases"],
-			first_stall])
+	print("THRU_TOT tick=%d x19=%d x22=%d stall=%d oob=%d stuck=%d hops=%d guard=%d first_stall=%d bucket_holds=%d" % [
+			sim.tick, tot["x1"], tot["x2"], tot["stall"], tot["oob"], tot["stuck"], train.hops_taken,
+			hc["guard_releases"], first_stall, hc.get("bucket_holds", -1)])
+	_print_buckets(train)
 	# Where the train slimes are at the end: 2000 px bins of loop distance.
 	var hist := {}
 	var parked := {}

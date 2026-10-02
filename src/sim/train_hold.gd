@@ -109,6 +109,22 @@ extends RefCounted
 ## Celebration hops, calls, free and parked slimes are not train hops: the
 ## hold never blocks them (it is not the slide's `held`).
 ##
+## The bucket cap (D151 (2) to (4), chunk 22i, experimental: only while the
+## Train's bucket_cap is on, which hands holds() its BucketLoads and the
+## hop's landing distance; cap_allows()). Before the corridor, a due hop's
+## loop buckets are checked: the slime's own (its recorded distance's) and
+## its landing bucket (the landing distance's). A hop landing in another
+## bucket needs room there for the slime's size (a skipped bucket isn't
+## checked); a hop staying in its own bucket needs, when that bucket is
+## overfilled (at or over its cap), room for it in the next bucket ahead;
+## under its cap, never held by the cap. When the cap fails the slime holds,
+## a "bucket full" hold, without running the corridor (filed in
+## bucket_holds); a holder holds on while the cap fails or a corridor check
+## does. It is a hold like any other: the same record, periods, re-checks,
+## rest by contact, a holder for the holder rule; the hold guard's release
+## ignores the cap. Slides, joins and moves to the loop start are not hops:
+## never held.
+##
 ## The hold guard (D147 (3), chunk 22f; guard()): the train never freezes.
 ## With no forced hop, holders could wait on each other for ever (a ring of
 ## holders round the loop, a front holder whose crowd never thins while the
@@ -195,7 +211,7 @@ const _NO_HOLDERS: Array = []
 ## The hold's debug counters' names (counters()), in the PERF line's order.
 # @spec-link [[req_platform_and_performance_targets]]
 const COUNTERS: Array[String] = ["hold_ends_clear", "hold_ends_cap", "guard_releases", "hold_ends_other",
-		"front_hops", "queue_hops", "holder_holds", "crowd_holds", "crowded_hops"]
+		"front_hops", "queue_hops", "holder_holds", "crowd_holds", "bucket_holds", "crowded_hops"]
 
 ## The hold's debug counters (chunk 22f, D147 (1) and (8)), cumulative like
 ## Train.hops_taken: the perf log prints their difference per line. Read
@@ -221,7 +237,10 @@ const COUNTERS: Array[String] = ["hold_ends_clear", "hold_ends_cap", "guard_rele
 ##                    here only, never in holder_holds (with holder_holds,
 ##                    every hold started, each once; a split part's
 ##                    inherited hold is no start);
-##   crowded_hops     train hops taken with the occupancy above it, guard
+##   bucket_holds     holds started by the bucket cap ("bucket full", chunk
+##                    22i), the corridor not run: never also in holder_holds
+##                    nor crowd_holds;
+##   crowded_hops    train hops taken with the occupancy above it, guard
 ##                    releases apart: 0 by construction since 22f (every
 ##                    train hop passed its checks: a due slime's, a clear
 ##                    end; the cap forces none), kept for the line.
@@ -234,6 +253,7 @@ var front_hops := 0
 var queue_hops := 0
 var holder_holds := 0
 var crowd_holds := 0
+var bucket_holds := 0
 var crowded_hops := 0
 ## The occupancy the last check() measured (debug, read only; a probe reads
 ## it). Not state.
@@ -310,7 +330,8 @@ static func occupancy_of(bodies: SlimeBodies, from: Vector2, target: Vector2, ex
 func counters() -> Dictionary:
 	return {"hold_ends_clear": hold_ends_clear, "hold_ends_cap": hold_ends_cap, "guard_releases": guard_releases,
 			"hold_ends_other": hold_ends_other, "front_hops": front_hops, "queue_hops": queue_hops,
-			"holder_holds": holder_holds, "crowd_holds": crowd_holds, "crowded_hops": crowded_hops}
+			"holder_holds": holder_holds, "crowd_holds": crowd_holds, "bucket_holds": bucket_holds,
+			"crowded_hops": crowded_hops}
 
 
 ## Takes the start of the tick's holder snapshot (see the class doc) and
@@ -467,15 +488,25 @@ func end_other(bodies: SlimeBodies, slime_id: int) -> void:
 ## (7), the pin wins: a timer above the floor, set on the tick before, since
 ## fusion runs after the train steers); then it hops when the pin runs out.
 ## Derived from the hop timer, saved state: a save and reload keeps the pin.
+## With the bucket cap on, `loads` (the Train's BucketLoads, null when off)
+## and `landing` (the hop's landing distance along the loop) add the cap
+## (cap_allows(), see the class doc), checked before the corridor: a hold it
+## starts is a "bucket full" hold.
 # @spec-link [[req_hopping_behavior]]
 # @spec-link [[rule_dip_may_nudge_fusion]]
-func holds(bodies: SlimeBodies, slime_id: int, s: int, target: Vector2, tick: int) -> bool:
+# @spec-link [[rule_loop_travelable_with_no_input]]
+func holds(bodies: SlimeBodies, slime_id: int, s: int, target: Vector2, tick: int, loads: BucketLoads = null,
+		landing := 0.0) -> bool:
 	if slime_id == _released:
 		return false
 	var record: Dictionary = _records[slime_id]
 	if not record.has("hold"):
 		if bodies.supported[s] == 0:
 			return false
+		if loads != null and not cap_allows(loads, record["distance"], landing, bodies.size[s]):
+			record["hold"] = tick
+			bucket_holds += 1
+			return true
 		var failed := check(bodies, slime_id, target)
 		if failed == 0:
 			return false
@@ -483,11 +514,28 @@ func holds(bodies: SlimeBodies, slime_id: int, s: int, target: Vector2, tick: in
 		crowd_holds += 1 if failed & CROWDED else 0
 		holder_holds += 0 if failed & CROWDED else 1
 		return true
-	if check_at(bodies, slime_id, tick) == NO_CHECK or check(bodies, slime_id, target) != 0:
+	if check_at(bodies, slime_id, tick) == NO_CHECK \
+			or (loads != null and not cap_allows(loads, record["distance"], landing, bodies.size[s])) \
+			or check(bodies, slime_id, target) != 0:
 		return true
 	hold_ends_clear += 1
 	_let_go(bodies, slime_id, s)
 	return false
+
+
+## The bucket cap's check (D151 (2), (3); see the class doc) for a hop of a
+## slime of `size` from `distance` along the loop (its recorded distance) to
+## `landing`, in `loads`: true when the cap lets it go. Landing in another
+## bucket: that bucket has room for it. Staying in its own: its bucket isn't
+## overfilled, or the next bucket ahead has room for it. Read only.
+# @spec-link [[req_hopping_behavior]]
+# @spec-link [[rule_loop_travelable_with_no_input]]
+static func cap_allows(loads: BucketLoads, distance: float, landing: float, size: int) -> bool:
+	var own := loads.bucket_index(distance)
+	var land := loads.bucket_index(landing)
+	if land != own:
+		return loads.has_room(land, size)
+	return not loads.overfilled(own) or loads.has_room(loads.next(own), size)
 
 
 ## Whether holder `slime_id` checks again at `tick` (see the class doc):

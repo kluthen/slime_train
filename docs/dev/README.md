@@ -3430,6 +3430,50 @@ across the loop (`DebugCorridors.bucket_ticks`), for information only.
 Tests: `tests/unit/test_train_front_first.gd`,
 `tests/unit/test_loop_buckets.gd`, `tests/unit/test_debug_overlay.gd`.
 
+**The bucket cap (chunk 22i, D151, experimental).** Each loop bucket has a
+load: the summed sizes of the train slimes whose recorded distance is in
+it (parked ones and slimes on a slide included; slimes in a basket,
+sleepers and free slimes not counted), and a bucket cap: 4 per 100 px of
+loop by default, so 12 for a 300 px bucket, never below 3, the density
+raised so the caps summed stay at least twice the level's base slimes
+(`BucketLoads`, `src/sim/bucket_loads.gd`; the loads are counted afresh at
+the start of each tick, `Train.rebuild_loads()`, and kept with the switch
+on or off, so they can be read either way). `--bucket-cap` turns the cap
+on (`Train.bucket_cap`, off by default): a train slime's hop into a bucket
+with no room for it holds ("bucket full"), and in an overfilled bucket (at
+or over its cap) a slime hops only while the next bucket has room; a
+parked slime stops at its bucket's front edge while the next bucket is
+full (`Offscreen.BUCKET_EDGE_GAP`, 0.01 px short of the edge, so it stays
+in its own bucket), but never while it is carried on a slide. `--bucket-cap-density=D` (D > 0) sets the density, slimes per 100 px
+(`Train.bucket_cap_density`). The cap is independent of `--loop-buckets`:
+`--bucket-cap` alone leaves the front-first order off; the buckets'
+length is `--loop-bucket-length`'s (300 px by default) either way. Off,
+the run is exactly as before (no save key). Read with the loop buckets'
+flags by `use_loop_buckets()`, so the same rules: debug builds only (a
+release build refuses them), a bad density or a repeated flag is an error
+and nothing is set, test mode leaves them to the game root, applied to
+every simulation the game takes; a `BUCKET_CAP on density=… length=…`
+line says so. The PERF line (debug, read only) gains `bucket_holds` (hold
+starts by "bucket full" in the window, one of `TrainHold.COUNTERS`),
+`bucket_max` (the highest load of any loop bucket now) and `buckets_over`
+(the buckets over their cap now); `tools/android/perf_summary.py` prints
+a `bucket loads` row (`bucket_max` and `buckets_over` mean and max,
+`bucket_holds` total). The probes in `docs/perf/2026-10-01-chunk-22f/probe/`
+take both flags (forwarded to `use_loop_buckets()`): `thru.gd` adds
+`bucket_max,buckets_over` to its `THRU_WIN` rows and `bucket_holds=` to
+`THRU_TOT`, samples every bucket's load each 60 ticks and prints
+`THRU_BUCKETS` lines at the end (each bucket's highest load, a histogram of
+the samples by load, every bucket going over 15 after having been at or
+under its cap); `hold_probe.gd` adds `bucket_max,buckets_over` to its
+`-snap.csv` and their highest to the totals. Tests:
+
+- `tests/unit/test_bucket_loads.gd`: the cut, the caps, the density floor, the loads.
+- `tests/unit/test_train_bucket_loads.gd`: who counts, the rebuild, a hop's landing bucket (on the ground only).
+- `tests/unit/test_train_bucket_cap.gd`: the "bucket full" hold, an overfilled bucket, the switch off unchanged.
+- `tests/unit/test_offscreen_bucket_cap.gd`: the parked slime's clamp at its bucket's front edge, none on a slide.
+- `tests/unit/test_bucket_cap_flags.gd`: `--bucket-cap` and `--bucket-cap-density`.
+- `tests/unit/test_perf_log.gd`: the PERF fields.
+
 ## Saves and fixtures
 
 Master spec §6.4 and D72 (`req_persistence_and_saves`,

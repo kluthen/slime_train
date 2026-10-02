@@ -247,7 +247,9 @@ func push_input(event: Dictionary) -> void:
 ## split zones. In a fresh state (tick 0, no slimes) the game wakes the first
 ## slime: a base slime of the first slime's species, on the train, at its
 ## marker, and puts every sleeper to sleep at its marker (Sleepers.place).
-## The hint takes its place and starts counting.
+## The train is told the level's base slimes (the first slime and the
+## sleepers: the bucket loads' density floor, D151) and counts its bucket
+## loads. The hint takes its place and starts counting.
 # @spec-link [[req_slime_states]]
 # @spec-link [[req_loop_and_world]]
 # @spec-link [[req_waking_sleepers]]
@@ -260,6 +262,7 @@ func load_level(data: LevelData) -> void:
 	if data.loop != null:
 		train = Train.new(data.loop)
 		train.bounds = Train.bounds_for(slimes.terrain, data.loop)
+		train.base_slimes = data.sleepers.size() + (0 if data.first_slime.is_empty() else 1)
 	split_zones = SplitZones.new(data.split_zones)
 	camera.zones = data.framing_zones
 	camera.start(data.loop, train.open_gates if train != null else [], data.first_slime.get("position"))
@@ -273,6 +276,8 @@ func load_level(data: LevelData) -> void:
 			train.track(first, data.loop.closest(at, train.open_gates)["distance"])
 	if fresh:
 		Sleepers.place(self, data)
+	if train != null:
+		train.rebuild_loads(slimes)
 	hint.place(data)
 	hint.world_shown(tick)
 	frontier.start(self)
@@ -301,6 +306,8 @@ func step() -> void:
 		_apply_input(event)
 	_pending_input.clear()
 	session.advance(self)
+	if train != null:
+		train.rebuild_loads(slimes)
 	offscreen.step(self)
 	var gates: Array = train.open_gates if train != null else []
 	if train != null:

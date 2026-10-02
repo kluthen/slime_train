@@ -90,6 +90,14 @@ const PERF_LOG_REFUSED := ("The perf log and its measurement flags are not avail
 const LOOP_BUCKETS_FLAG := "--loop-buckets"
 const LOOP_BUCKET_LENGTH_FLAG := "--loop-bucket-length"
 const LOOP_BUCKETS_REFUSED := "The loop buckets' flags are not available in this build (release builds never run them)."
+## The bucket cap's user arguments (chunk 22i, D151 (7), experimental), read
+## with the loop buckets' (use_loop_buckets()): --bucket-cap turns the cap
+## on (Train.bucket_cap), --bucket-cap-density=D sets its density, slimes
+## per 100 px of loop (Train.bucket_cap_density). Independent of
+## --loop-buckets; the bucket length is --loop-bucket-length's.
+# @spec-link [[req_platform_and_performance_targets]]
+const BUCKET_CAP_FLAG := "--bucket-cap"
+const BUCKET_CAP_DENSITY_FLAG := "--bucket-cap-density"
 
 var simulation: Simulation
 ## The loaded level, or null (a release build has none yet).
@@ -163,6 +171,11 @@ var max_ticks_per_frame := MAX_TICKS_PER_FRAME
 # @spec-link [[req_platform_and_performance_targets]]
 var loop_buckets := false
 var loop_bucket_length := LoopBuckets.DEFAULT_BUCKET_LENGTH
+## The bucket cap asked for (use_loop_buckets()), given to every
+## simulation's Train like the loop buckets. Off by default.
+# @spec-link [[req_platform_and_performance_targets]]
+var bucket_cap := false
+var bucket_cap_density := BucketLoads.DEFAULT_DENSITY
 ## The ticks the last frame ran, and the real time they took (microseconds,
 ## around the step_simulation() calls): the perf log reads them.
 var frame_ticks := 0
@@ -676,33 +689,42 @@ func add_perf_log(user_args: PackedStringArray) -> PackedStringArray:
 	return PackedStringArray()
 
 
-## Reads the loop buckets' flags (chunk 22g, experimental) from `user_args`
-## when this build is a debug build (TestModeGuard): --loop-buckets turns
-## them on, --loop-bucket-length=PX (a number > 0) sets their length; both
-## go to the running simulation's Train and every later one's
-## (_use_simulation()), and one LOOP_BUCKETS line says so when on. Returns
-## the errors: the refusal in a release build, a malformed or repeated flag
-## (nothing set). The main scene calls it in _ready; tests may.
+## Reads the loop buckets' flags (chunk 22g, experimental) and the bucket
+## cap's (chunk 22i, D151 (7)) from `user_args` when this build is a debug
+## build (TestModeGuard): --loop-buckets turns the front-first order on,
+## --loop-bucket-length=PX (a number > 0) sets the buckets' length,
+## --bucket-cap turns the bucket cap on, --bucket-cap-density=D (a number
+## > 0) sets its density; all go to the running simulation's Train and every
+## later one's (_use_simulation()), and a LOOP_BUCKETS line and a BUCKET_CAP
+## line say so when on. Returns the errors: the refusal in a release build,
+## a malformed or repeated flag (nothing set). The main scene calls it in
+## _ready; tests and the probe tools may.
 # @spec-link [[req_platform_and_performance_targets]]
 func use_loop_buckets(user_args: PackedStringArray) -> PackedStringArray:
 	var seen := {}
 	var errors := PackedStringArray()
 	var length := LoopBuckets.DEFAULT_BUCKET_LENGTH
+	var density := BucketLoads.DEFAULT_DENSITY
 	for arg in user_args:
 		var flag := arg.get_slice("=", 0)
-		if flag not in [LOOP_BUCKETS_FLAG, LOOP_BUCKET_LENGTH_FLAG]:
+		if flag not in [LOOP_BUCKETS_FLAG, LOOP_BUCKET_LENGTH_FLAG, BUCKET_CAP_FLAG, BUCKET_CAP_DENSITY_FLAG]:
 			continue
 		if seen.has(flag):
 			errors.append("%s is given more than once" % flag)
 		seen[flag] = true
-		if flag == LOOP_BUCKETS_FLAG and "=" in arg:
+		if flag in [LOOP_BUCKETS_FLAG, BUCKET_CAP_FLAG] and "=" in arg:
 			errors.append("%s takes no value, got '%s'" % [flag, arg])
+		var value := arg.substr(flag.length() + 1) if "=" in arg else ""
 		if flag == LOOP_BUCKET_LENGTH_FLAG:
-			var value := arg.substr(flag.length() + 1) if "=" in arg else ""
 			if value.is_valid_float() and value.to_float() > 0.0:
 				length = value.to_float()
 			else:
 				errors.append("%s=PX expects a length in px > 0, got '%s'" % [flag, value])
+		if flag == BUCKET_CAP_DENSITY_FLAG:
+			if value.is_valid_float() and value.to_float() > 0.0:
+				density = value.to_float()
+			else:
+				errors.append("%s=D expects slimes per 100 px > 0, got '%s'" % [flag, value])
 	if seen.is_empty():
 		return PackedStringArray()
 	if not test_mode_guard.allows():
@@ -711,8 +733,12 @@ func use_loop_buckets(user_args: PackedStringArray) -> PackedStringArray:
 		return errors
 	loop_buckets = seen.has(LOOP_BUCKETS_FLAG)
 	loop_bucket_length = length
+	bucket_cap = seen.has(BUCKET_CAP_FLAG)
+	bucket_cap_density = density
 	if loop_buckets:
 		print("LOOP_BUCKETS on length=%s" % loop_bucket_length)
+	if bucket_cap:
+		print("BUCKET_CAP on density=%s length=%s" % [bucket_cap_density, loop_bucket_length])
 	_apply_loop_buckets(simulation)
 	return PackedStringArray()
 
@@ -791,12 +817,15 @@ func _new_simulation(seed_value: int) -> Simulation:
 	return fresh
 
 
-## Gives `sim`'s Train, if any, the loop buckets asked for (use_loop_buckets()).
+## Gives `sim`'s Train, if any, the loop buckets and the bucket cap asked for
+## (use_loop_buckets()).
 # @spec-link [[req_platform_and_performance_targets]]
 func _apply_loop_buckets(sim: Simulation) -> void:
 	if sim != null and sim.train != null:
 		sim.train.front_first = loop_buckets
 		sim.train.bucket_length = loop_bucket_length
+		sim.train.bucket_cap = bucket_cap
+		sim.train.bucket_cap_density = bucket_cap_density
 
 
 ## Makes `fresh` the running simulation, and the one drawn.

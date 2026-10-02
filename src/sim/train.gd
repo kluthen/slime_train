@@ -166,6 +166,19 @@ var short_hops_taken := 0
 # @spec-link [[req_platform_and_performance_targets]]
 var front_first := false
 var bucket_length := LoopBuckets.DEFAULT_BUCKET_LENGTH
+## The bucket cap (chunk 22i, D151, experimental, a mode set by the game,
+## off by default) and its density, slimes per 100 px of loop. The bucket
+## loads (BucketLoads over the loop cut by bucket_length) are kept with the
+## switch on or off: rebuild_loads() at the start of each tick, then each
+## counted slime's weight follows its recorded distance (advance(), track())
+## and a hop let through counts in its landing bucket until its follow().
+## base_slimes (the level's first slime and sleepers, set by
+## Simulation.load_level) raises the density to the floor. Not state:
+## neither in dump() nor in saves; read through bucket_loads().
+# @spec-link [[req_hopping_behavior]]
+var bucket_cap := false
+var bucket_cap_density := BucketLoads.DEFAULT_DENSITY
+var base_slimes := 0
 
 ## The loop, and the gates opened so far (they pick the current loop).
 var loop: LoopData
@@ -199,6 +212,11 @@ var _takeoff := {}
 ## the records and the loop's length. Not state.
 # @spec-link [[req_hopping_behavior]]
 var _buckets := LoopBuckets.new()
+## The bucket loads (see bucket_cap). Not state.
+var _loads := BucketLoads.new()
+## The drop edge the last hop_landing_distance() found, -1 for none: read by
+## hop_target() right after. Scratch, not state.
+var _drop_edge := -1
 
 
 func _init(loop_data: LoopData = null, gates: Array = []) -> void:
@@ -369,8 +387,18 @@ func steering_distance(distance: float, point: Vector2) -> float:
 
 
 ## Where a slime at `progress` aims its next hop, `reach` px ahead along the
-## loop, or at a step's foot, or over it (see the class doc).
+## loop, or at a step's foot, or over it (see the class doc): the loop point
+## at hop_landing_distance(), or DROP_OVER px past the top of a drop.
 func hop_target(progress: float, reach: float) -> Vector2:
+	return _landing_point(hop_landing_distance(progress, reach))
+
+
+## The distance along the loop hop_target() aims at (laps not taken off: it
+## may pass length()): progress + reach, a step's foot, past a step's top,
+## or a drop's top (chunk 22i: the hop's landing bucket, D151).
+# @spec-link [[req_hopping_behavior]]
+func hop_landing_distance(progress: float, reach: float) -> float:
+	_drop_edge = -1
 	var target := progress + reach
 	# The first step (steep rise) or drop starting before the target, if any.
 	var k := _edge_at(fposmod(progress, _len))
@@ -383,17 +411,17 @@ func hop_target(progress: float, reach: float) -> Vector2:
 			found = true
 			break
 		if _is_drop(k) and _dist[k] + wrap > progress:
-			var run := _pts[k] - _pts[k - 1 if k > 0 else _slide.size() - 1]
-			return _pts[k] + run.normalized() * DROP_OVER
+			_drop_edge = k
+			return _dist[k] + wrap
 		k += 1
 		if k >= _slide.size():
 			k = 0
 			wrap += _len
 	if not found:
-		return position_at(target)
+		return target
 	var foot := maxf(_dist[k] + wrap, progress)
 	if foot - progress > STEP_NEAR:
-		return position_at(foot - STEP_FOOT)
+		return foot - STEP_FOOT
 	# Over the step: STEP_LANDING px beyond its top.
 	for step in _slide.size():
 		if not _is_steep(k):
@@ -402,7 +430,7 @@ func hop_target(progress: float, reach: float) -> Vector2:
 		if k >= _slide.size():
 			k = 0
 			wrap += _len
-	return position_at(minf(_dist[k] + wrap + STEP_LANDING, progress + reach * MAX_REACH_FACTOR))
+	return minf(_dist[k] + wrap + STEP_LANDING, progress + reach * MAX_REACH_FACTOR)
 
 
 ## The highest point (lowest y) of the loop between `from` and `to` (px along
@@ -435,6 +463,7 @@ func track(slime_id: int, distance: float) -> void:
 	_records[slime_id] = {"distance": d, "laps": 0, "on_slide": false,
 			"mark": d, "marked_at": -1}
 	_takeoff.erase(slime_id)
+	_loads.carry(slime_id, d)
 
 
 func tracks(slime_id: int) -> bool:
@@ -501,6 +530,7 @@ func advance(slime_id: int, centre: Vector2, tick: int) -> void:
 		progress -= _len
 		record["laps"] += 1
 	record["distance"] = progress
+	_loads.carry(slime_id, progress)
 	var now := progress_of(slime_id)
 	if record["marked_at"] < 0 or now - record["mark"] >= STALL_ADVANCE:
 		record["mark"] = now
@@ -594,6 +624,31 @@ func bucket_boundaries() -> PackedFloat32Array:
 	return _buckets.boundaries()
 
 
+## Counts the bucket loads afresh (see bucket_cap): cuts the loop again when
+## its length, the bucket length, the density or the base slimes changed (a
+## gate opening), then counts each followed slime still a train slime in
+## `bodies` (parked or on a slide too), its size as its weight, at its
+## recorded distance. Simulation calls it at the start of each tick and
+## after a load. Changes no state.
+# @spec-link [[req_hopping_behavior]]
+func rebuild_loads(bodies: SlimeBodies) -> void:
+	if _len <= 0.0:
+		return
+	_loads.configure(_len, bucket_length, bucket_cap_density, base_slimes)
+	_loads.clear_loads()
+	for slime_id in tracked_ids():
+		if bodies.state_of(slime_id) == SlimeBodies.TRAIN:
+			_loads.place(slime_id, _records[slime_id]["distance"], bodies.size_of(slime_id))
+
+
+## The bucket loads (BucketLoads: each bucket's load and cap, a distance's
+## bucket, the next bucket, a bucket's front edge), read only: the bucket
+## cap, the perf log and the probes read them; only the Train changes them.
+# @spec-link [[req_platform_and_performance_targets]]
+func bucket_loads() -> BucketLoads:
+	return _loads
+
+
 ## After the bodies tick (and the split zones): follows every train slime,
 ## adopting new ones where the loop passes closest, and drops the others; a
 ## stalled one goes to the start of the loop and is logged; counts the train
@@ -607,6 +662,7 @@ func follow(bodies: SlimeBodies, tick: int) -> void:
 			_hold.drop(slime_id)
 			_records.erase(slime_id)
 			_takeoff.erase(slime_id)
+			_loads.drop(slime_id)
 	hops_taken += bodies.train_hopped.size()
 	for slime_id in bodies.ids():
 		var s := bodies.index_of(slime_id)
@@ -724,10 +780,13 @@ func _steer_one(bodies: SlimeBodies, slime_id: int, s: int, dt: float, tick: int
 	if bodies.hop_timer[s] > dt * DUE_TICKS and not record.has("hold"):
 		return
 	var size := bodies.size[s]
-	var target := hop_target(progress, hop_reach(size))
-	if _hold.holds(bodies, slime_id, s, target, tick):
+	var landing := hop_landing_distance(progress, hop_reach(size))
+	var target := _landing_point(landing)
+	if _hold.holds(bodies, slime_id, s, target, tick, _loads if bucket_cap and _loads.count() > 0 else null, landing):
 		_hold.keep_timer(bodies, slime_id, s)
 		return
+	if bodies.auto_hops and bodies.can_hop(slime_id) and bodies.supported[s] != 0 and bodies.hop_timer[s] - dt * bodies.hop_rate <= 0.0:
+		_loads.carry(slime_id, landing)  # only a hop taking off this tick (SlimeBodies._auto_hops); in the air: its progress
 	var high := minf(highest_between(progress, progress + hop_reach(size)), target.y)
 	var apex := hop_apex(size) + maxf(0.0, minf(from.y, target.y) - high)
 	bodies.set_hop_aim(slime_id, aim(from, target, apex, bodies.gravity.y, hop_cap(size)))
@@ -757,6 +816,17 @@ func _carry(bodies: SlimeBodies, slime_id: int, distance: float) -> void:
 	if along >= SLIDE_SPEED:
 		return
 	bodies.set_velocity(slime_id, velocity + tangent * (SLIDE_SPEED - along) * SLIDE_GRIP)
+
+
+## The hop target at `landing`, the hop_landing_distance() just computed:
+## past the drop it found (carrying on the way the route went), else the
+## loop point there.
+func _landing_point(landing: float) -> Vector2:
+	if _drop_edge < 0:
+		return position_at(landing)
+	var k := _drop_edge
+	var run := _pts[k] - _pts[k - 1 if k > 0 else _slide.size() - 1]
+	return _pts[k] + run.normalized() * DROP_OVER
 
 
 func _closest_distance(point: Vector2) -> float:

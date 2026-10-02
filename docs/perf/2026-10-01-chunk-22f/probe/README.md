@@ -89,3 +89,28 @@ end_cap; `hopped` the hop fired this tick.
 **Front-first order (chunk 22g):** both `hold_probe.gd` and `thru.gd` accept the game's
 `--loop-buckets` and `--loop-bucket-length=PX` user args (after `--`), for the probe run and its
 plain check alike; the game prints `LOOP_BUCKETS on length=…` when they apply.
+
+**Bucket cap (chunk 22i, D151):** both also accept `--bucket-cap` and
+`--bucket-cap-density=D` (forwarded the same way; independent of `--loop-buckets`, the bucket
+length is `--loop-bucket-length`'s); the game prints `BUCKET_CAP on density=… length=…`. The bucket
+loads are read with the switch on or off (`Train.bucket_loads()`, read only):
+
+- `thru.gd`: `THRU_WIN` ends with `bucket_max,buckets_over` (the highest load of any loop bucket
+  and the buckets over their cap, at the window's end); `THRU_TOT` ends with `bucket_holds=` (the
+  "bucket full" hold starts; -1 from a build without the counter). Every 60 ticks it samples each
+  bucket's load, and prints at the end `THRU_BUCKETS samples=… buckets=… density=… max=…
+  buckets_over15=… crossings=…`, `THRU_BUCKETS top` (each loaded bucket's highest load / cap),
+  `THRU_BUCKETS hist` (samples by load, every bucket's) and one `THRU_BUCKETS over15 tick=…
+  bucket=… load=… cap=…` per bucket sampled over 15 after having been sampled at or under its cap
+  (the bowl's starting overfill so stays out); `THRU_BUCKETS recut` if a gate opening changed the
+  bucket count.
+- `hold_probe.gd`: `-snap.csv` gains `bucket_max,buckets_over`; the totals gain
+  `bucket_max_max`, `buckets_over_max` (over the snapshots) and, with the Train's counters,
+  `bucket_holds`. The `PROBE_HASH` check is unchanged (it must still say `match=yes`).
+
+```sh
+P=docs/perf/2026-10-01-chunk-22f/probe
+godot --headless --path . -s $P/thru.gd -- --fixture=s3-basket-59of60 --seed=1 --ticks=10000 --bucket-cap
+godot --headless --path . -s $P/hold_probe.gd -- --fixture=s3-basket-59of60 --seed=1 --ticks=2400 \
+    --out=$P/runs/s3-basket-59of60-seed1-cap.csv --bucket-cap   # the probe makes no directory
+```

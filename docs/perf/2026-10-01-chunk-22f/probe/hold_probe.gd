@@ -42,8 +42,14 @@ extends SceneTree
 ## writes <base>.csv, <base>-snap.csv, <base>-totals.json; prints the hash.
 ## --plain: game.step_simulation() only, no rows, no hook (the hash
 ## reference). --no-check: no plain run at the end, no PROBE_HASH line.
-## --loop-buckets [--loop-bucket-length=PX] (chunk 22g): forwarded to the
-## game (Main.use_loop_buckets) for the probe run and its plain check.
+## --loop-buckets [--loop-bucket-length=PX] (chunk 22g) and --bucket-cap
+## [--bucket-cap-density=D] (chunk 22i): forwarded to the game
+## (Main.use_loop_buckets) for the probe run and its plain check. Since 22i
+## the snapshot also has the bucket loads (Train.bucket_loads(): bucket_max,
+## the highest load of any loop bucket, and buckets_over, the buckets over
+## their bucket cap), and the totals their highest over the snapshots
+## (bucket_max_max, buckets_over_max) besides the Train's counters
+## (bucket_holds among them once the bucket cap's counter exists).
 
 
 ## The Train with the probe's hooks: the real _steer_one() and inherit(),
@@ -133,6 +139,9 @@ var _blocker_ticks := {}
 ## Every followed slime's progress (laps included) at GUARD_FROM.
 var _progress_at_from := {}
 var _window_hops := {}
+## The bucket loads' highest over the snapshots (chunk 22i).
+var _bucket_max_max := 0
+var _buckets_over_max := 0
 
 
 ## Parses the arguments, runs, writes, quits.
@@ -161,7 +170,8 @@ func _initialize() -> void:
 		f = FileAccess.open(out_path, FileAccess.WRITE)
 		f.store_line(",".join(COLUMNS))
 		snap = FileAccess.open(base + "-snap.csv", FileAccess.WRITE)
-		snap.store_line("tick,holding,holding_resting,contact_resting,queue_back,queue_back_held,physics,cluster")
+		snap.store_line("tick,holding,holding_resting,contact_resting,queue_back,queue_back_held,physics,cluster," +
+				"bucket_max,buckets_over")
 		_blocks = FileAccess.open(base + "-blocks.csv", FileAccess.WRITE)
 		_blocks.store_line("tick,checker,c_holding,check,c_front,c_qsize,occ,holder,gap,euclid,along,h_cause,h_resting,h_front")
 		_graph = FileAccess.open(base + "-graph.csv", FileAccess.WRITE)
@@ -197,6 +207,9 @@ func _initialize() -> void:
 			"uncovered_hops": uncovered_hops, "guard_log": guard_log, "period_end_checks": period_end_checks,
 			"period_end_held_on": period_end_held_on, "hash": sim.state_hash()}
 	totals.merge(train.hold_counters())
+	if not plain:
+		totals["bucket_max_max"] = _bucket_max_max
+		totals["buckets_over_max"] = _buckets_over_max
 	if f != null:
 		f.close()
 		snap.close()
@@ -602,9 +615,13 @@ func _write(f: FileAccess, d: Dictionary, sim: Simulation) -> void:
 ## One snapshot row: the Train's hold snapshot, Physics, the largest cluster.
 func _snapshot(sim: Simulation, snap: FileAccess) -> void:
 	var shot := sim.train.hold_snapshot(sim.slimes)
-	snap.store_line("%d,%d,%d,%d,%d,%d,%d,%d" % [sim.tick, shot["holding"], shot["holding_resting"],
+	var loads := sim.train.bucket_loads()
+	_bucket_max_max = maxi(_bucket_max_max, loads.max_load())
+	_buckets_over_max = maxi(_buckets_over_max, loads.over_count())
+	snap.store_line("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d" % [sim.tick, shot["holding"], shot["holding_resting"],
 			shot["contact_resting"], shot["queue_back"], shot["queue_back_held"],
-			DebugCounts.physics_slime_ids(sim.slimes).size(), DebugCounts.largest_cluster(sim.slimes)])
+			DebugCounts.physics_slime_ids(sim.slimes).size(), DebugCounts.largest_cluster(sim.slimes),
+			loads.max_load(), loads.over_count()])
 
 
 # --- Diagnostic 2 -----------------------------------------------------------

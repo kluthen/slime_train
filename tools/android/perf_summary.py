@@ -24,7 +24,9 @@ since chunk 22e: their mean per line, and the short hops' share of the hops
 over the lines, a percentage), the hold (since chunk 22f: its snapshot's
 counts by mean, min and max; its per-line counters' totals and shares: how
 the holds ended, how they began, front, queue and crowded hops among the
-hops, and the share of the touching queues' back slimes held), the sections
+hops, and the share of the touching queues' back slimes held), the bucket
+loads (since chunk 22i, D151: bucket_max's mean and max, buckets_over's mean
+and max, and bucket_holds' total, the bucket cap's "bucket full" holds), the sections
 the camera was in (lines in each: seconds at --perf-log=1), the
 zoom range, and the frame's parts outside the ticks (weighted by frames: each
 node's ms, the rendering server's setup and render times, the draw calls,
@@ -72,6 +74,15 @@ HOLD_PERIOD = ("hold_ends_clear", "hold_ends_cap", "guard_releases", "hold_ends_
 # How a hold ends, in the order reported, as (field, short name).
 HOLD_ENDS = (("hold_ends_clear", "clear"), ("hold_ends_cap", "cap"), ("guard_releases", "guard"),
              ("hold_ends_other", "other"))
+# The bucket loads (since chunk 22i, D151 (7)): the highest load of any loop
+# bucket and the buckets over their cap at each line, summarised by mean and
+# max over the lines that carry each; and the hold counter bucket_holds (the
+# bucket cap's "bucket full" hold starts, one of TrainHold.COUNTERS), summed
+# over the lines that carry it. Kept apart from HOLD_PERIOD so a 22f log,
+# without it, still gives its hold numbers.
+# @spec-link [[req_platform_and_performance_targets]]
+BUCKET_NOW = ("bucket_max", "buckets_over")
+BUCKET_HOLDS = "bucket_holds"
 # The frame's parts outside the ticks (the perf log's PART_FIELDS), newer
 # still: summarised by their frame-weighted mean over the lines that have
 # them, in three rows (the nodes' ms, the rendering's ms, the counts).
@@ -178,6 +189,7 @@ def summarise(records):
         "parts": {},
         "hops": None,
         "hold": None,
+        "buckets": None,
     }
     having = [r for r in records if all(key in r for key in HOPS)]
     if having:
@@ -186,6 +198,7 @@ def summarise(records):
         out["hops"] = {"lines": len(having), "hops_mean": hops / len(having), "short_mean": short / len(having),
                        "hops": hops, "short_hops": short, "short_share": 100.0 * short / hops if hops > 0 else None}
     out["hold"] = summarise_hold(records)
+    out["buckets"] = summarise_buckets(records)
     for key in COUNTS + (CLUSTER,):
         values = [r[key] for r in records if key in r]
         if values:
@@ -247,6 +260,30 @@ def summarise_hold(records):
     }
 
 
+def summarise_buckets(records):
+    """The bucket loads' numbers of `records` (D151 (7)), or None when no line carries them.
+
+    {"now": {field: (mean, max)} for BUCKET_NOW's fields present, "bucket_holds":
+    the sum over the lines carrying it (None when none does)}."""
+    now = {}
+    for key in BUCKET_NOW:
+        values = [r[key] for r in records if key in r]
+        if values:
+            now[key] = (statistics.fmean(values), max(values))
+    holds = [r[BUCKET_HOLDS] for r in records if BUCKET_HOLDS in r]
+    if not now and not holds:
+        return None
+    return {"now": now, "bucket_holds": sum(holds) if holds else None}
+
+
+def format_buckets(b):
+    """The printed line of summarise_buckets()'s `b`."""
+    parts = ["%s mean %.1f max %d" % (key, mean, most) for key, (mean, most) in b["now"].items()]
+    if b["bucket_holds"] is not None:
+        parts.append("bucket_holds %d" % b["bucket_holds"])
+    return "  bucket loads    " + "  ".join(parts)
+
+
 def percent(value):
     """A share (or None) as "12.3 %" or "n/a"."""
     return "n/a" if value is None else "%.1f %%" % value
@@ -306,6 +343,8 @@ def format_summary(title, records):
             h["hops_mean"], h["short_mean"], share))
     if s["hold"] is not None:
         lines += format_hold(s["hold"])
+    if s["buckets"] is not None:
+        lines.append(format_buckets(s["buckets"]))
     if s["sections"]:
         lines.append("  section (lines) " + "  ".join(
             "s%d %d" % (section, n) for section, n in sorted(s["sections"].items())))
@@ -382,8 +421,10 @@ def report(log_lines, cold=None, warm=None, thermal_lines=None):
 
 # The self-test's log: a threadtime logcat prefix on some lines, a header, a
 # PERF_INFO line, a noise line, and six PERF lines a second apart, the last
-# two with the frame's parts and the hold's fields (the first four have
-# none, as an older log's). Hops: 54 in all, 12 short; 20 on the hold's lines.
+# two with the frame's parts, the hold's fields and the bucket loads' (the
+# first four have none, as an older log's). Hops: 54 in all, 12 short; 20 on
+# the hold's lines. Bucket loads: bucket_max 14, 11; buckets_over 1, 0;
+# bucket_holds 2, 3.
 CANNED_LOG = """# device test: Canned Phone
 09-30 17:00:00.000  100  101 I godot   : PERF_INFO seconds=1 model=Canned renderer=mobile
 09-30 17:00:00.500  100  101 I godot   : Slime Train booted
@@ -391,8 +432,8 @@ PERF t=10.0 frames=30 fps=30.0 frame_ms_p50=33.00 frame_ms_p95=40.00 frame_ms_ma
 PERF t=11.0 frames=60 fps=60.0 frame_ms_p50=16.00 frame_ms_p95=17.00 frame_ms_max=20.00 process_ms_mean=8.00 ticks=60 ticks_per_frame_mean=1.00 ticks_per_frame_max=1 tick_ms_mean=2.00 tick_ms_frame_mean=2.00 rest_ms_mean=14.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=4 hops=12 short_hops=3 bodies=35 active=10.0 pairs=20.0 section=1 zoom=1.000
 PERF t=12.0 frames=45 fps=45.0 frame_ms_p50=22.00 frame_ms_p95=30.00 frame_ms_max=35.00 process_ms_mean=10.00 ticks=60 ticks_per_frame_mean=1.33 ticks_per_frame_max=2 tick_ms_mean=3.00 tick_ms_frame_mean=4.00 rest_ms_mean=18.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=4 hops=8 short_hops=1 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800
 09-30 17:00:13.000  100  101 I godot   : PERF t=13.0 frames=20 fps=20.0 frame_ms_p50=50.00 frame_ms_p95=60.00 frame_ms_max=90.00 process_ms_mean=40.00 ticks=60 ticks_per_frame_mean=3.00 ticks_per_frame_max=4 tick_ms_mean=10.00 tick_ms_frame_mean=30.00 rest_ms_mean=20.00 physics=30 on_screen=30 in_range=30 parked=5 resting=0 largest_cluster=22 hops=4 short_hops=4 bodies=35 active=30.0 pairs=100.0 section=2 zoom=0.800
-PERF t=14.0 frames=50 fps=50.0 frame_ms_p50=20.00 frame_ms_p95=25.00 frame_ms_max=30.00 process_ms_mean=9.00 ticks=60 ticks_per_frame_mean=1.20 ticks_per_frame_max=2 tick_ms_mean=2.50 tick_ms_frame_mean=3.00 rest_ms_mean=17.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=5 hops=9 short_hops=0 holding=4 holding_resting=1 contact_resting=0 queue_back=6 queue_back_held=4 hold_ends_clear=3 hold_ends_cap=1 guard_releases=0 hold_ends_other=0 front_hops=8 queue_hops=1 holder_holds=1 crowd_holds=3 crowded_hops=1 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800 slimes_ms=2.00 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=40 objects=30 primitives=900
-PERF t=15.0 frames=40 fps=40.0 frame_ms_p50=25.00 frame_ms_p95=28.00 frame_ms_max=40.00 process_ms_mean=11.00 ticks=60 ticks_per_frame_mean=1.50 ticks_per_frame_max=2 tick_ms_mean=3.50 tick_ms_frame_mean=5.25 rest_ms_mean=19.75 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=5 hops=11 short_hops=2 holding=2 holding_resting=2 contact_resting=1 queue_back=4 queue_back_held=4 hold_ends_clear=5 hold_ends_cap=0 guard_releases=0 hold_ends_other=1 front_hops=10 queue_hops=0 holder_holds=0 crowd_holds=2 crowded_hops=0 bodies=35 active=10.0 pairs=20.0 section=3 zoom=0.800 slimes_ms=4.25 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=49 objects=30 primitives=900
+PERF t=14.0 frames=50 fps=50.0 frame_ms_p50=20.00 frame_ms_p95=25.00 frame_ms_max=30.00 process_ms_mean=9.00 ticks=60 ticks_per_frame_mean=1.20 ticks_per_frame_max=2 tick_ms_mean=2.50 tick_ms_frame_mean=3.00 rest_ms_mean=17.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=5 hops=9 short_hops=0 holding=4 holding_resting=1 contact_resting=0 queue_back=6 queue_back_held=4 hold_ends_clear=3 hold_ends_cap=1 guard_releases=0 hold_ends_other=0 front_hops=8 queue_hops=1 holder_holds=1 crowd_holds=3 crowded_hops=1 bucket_holds=2 bucket_max=14 buckets_over=1 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800 slimes_ms=2.00 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=40 objects=30 primitives=900
+PERF t=15.0 frames=40 fps=40.0 frame_ms_p50=25.00 frame_ms_p95=28.00 frame_ms_max=40.00 process_ms_mean=11.00 ticks=60 ticks_per_frame_mean=1.50 ticks_per_frame_max=2 tick_ms_mean=3.50 tick_ms_frame_mean=5.25 rest_ms_mean=19.75 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=5 hops=11 short_hops=2 holding=2 holding_resting=2 contact_resting=1 queue_back=4 queue_back_held=4 hold_ends_clear=5 hold_ends_cap=0 guard_releases=0 hold_ends_other=1 front_hops=10 queue_hops=0 holder_holds=0 crowd_holds=2 crowded_hops=0 bucket_holds=3 bucket_max=11 buckets_over=0 bodies=35 active=10.0 pairs=20.0 section=3 zoom=0.800 slimes_ms=4.25 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=49 objects=30 primitives=900
 """
 
 # An older log (before chunk 22d): on_screen, simulated, off_screen and no
@@ -460,6 +501,16 @@ def self_test():
         "  hop kinds       front 18 (90.0 %)  queue 1 (5.0 %)  crowded 1 (5.0 %)  of 20 hops",
         "  back held       80.0 % (8 of 10 queue_back)"], session
     assert summarise(records[:4])["hold"] is None, "an older log: no hold"
+    assert s["buckets"] == {"now": {"bucket_max": (12.5, 14), "buckets_over": (0.5, 1)}, "bucket_holds": 5}, s
+    assert session[14] == "  bucket loads    bucket_max mean 12.5 max 14  buckets_over mean 0.5 max 1  bucket_holds 5", \
+        session
+    assert summarise(records[:4])["buckets"] is None, "an older log: no bucket loads"
+    assert not any(text.startswith("  bucket") for text in format_summary("old", records[:4]))
+    no_holds = summarise([{k: v for k, v in records[4].items() if k != BUCKET_HOLDS}])["buckets"]
+    assert no_holds == {"now": {"bucket_max": (14, 14), "buckets_over": (1, 1)}, "bucket_holds": None}, no_holds
+    assert format_buckets(no_holds) == "  bucket loads    bucket_max mean 14.0 max 14  buckets_over mean 1.0 max 1"
+    assert summarise_hold([{k: v for k, v in records[4].items() if k != BUCKET_HOLDS}])["lines"] == 1, \
+        "a 22f log, without bucket_holds, keeps its hold numbers"
     assert not any(text.startswith("  hold") for text in format_summary("old", records[:4]))
     quiet = summarise([dict(records[4], **{key: 0 for key in HOLD_PERIOD + HOLD_SNAPSHOT})])["hold"]
     assert quiet["end_shares"]["hold_ends_cap"] is None and quiet["back_held_share"] is None, quiet
@@ -485,6 +536,7 @@ def self_test():
     assert not any(text.startswith("  largest cluster") for text in old_log), old_log
     assert not any(text.startswith("  train hops") for text in old_log), old_log
     assert not any(text.startswith("  hold") for text in old_log), old_log
+    assert not any(text.startswith("  bucket") for text in old_log), old_log
     assert [r["t"] for r in cold_window(records, 2)] == [10.0, 11.0]
     assert [r["t"] for r in warm_window(records, 2)] == [14.0, 15.0]
     thermal = format_thermal(CANNED_THERMAL.splitlines())

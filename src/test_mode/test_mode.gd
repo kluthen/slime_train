@@ -411,6 +411,8 @@ static func load_config_file(path: String) -> Dictionary:
 ##   --max-ticks-per-frame=N  (src/debug/perf_log.gd) reads them; skipped here
 ##   --loop-buckets           not test mode's either: the game root reads
 ##   --loop-bucket-length=PX  them (use_loop_buckets()); skipped here
+##   --bucket-cap             nor these (chunk 22i): the game root reads
+##   --bucket-cap-density=D   them with the loop buckets'; skipped here
 ## Returns {"config", "run_ticks" (-1 when absent), "print_state",
 ## "save_path" ("" when absent), "errors"}.
 static func config_from_args(user_args: PackedStringArray) -> Dictionary:
@@ -426,7 +428,7 @@ static func config_from_args(user_args: PackedStringArray) -> Dictionary:
 				pass
 			"--perf-log", "--max-ticks-per-frame":
 				pass
-			"--loop-buckets", "--loop-bucket-length":
+			"--loop-buckets", "--loop-bucket-length", "--bucket-cap", "--bucket-cap-density":
 				pass
 			"--test-script":
 				var loaded := load_config_file(value)

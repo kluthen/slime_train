@@ -121,7 +121,8 @@ func _nonzero(sim: Simulation) -> Dictionary:
 func test_the_counters_are_named_in_the_perf_lines_order_and_start_at_0() -> void:
 	var sim := _sim()
 	assert_eq(sim.train.hold_counters().keys(), ["hold_ends_clear", "hold_ends_cap", "guard_releases",
-			"hold_ends_other", "front_hops", "queue_hops", "holder_holds", "crowd_holds", "crowded_hops"])
+			"hold_ends_other", "front_hops", "queue_hops", "holder_holds", "crowd_holds", "bucket_holds",
+			"crowded_hops"])
 	assert_eq(_nonzero(sim), {})
 
 
@@ -276,11 +277,12 @@ func test_the_perf_line_holds_the_snapshot_and_the_windows_counters() -> void:
 			PackedInt32Array([0]), PackedInt32Array([0]))
 	var parts := PackedFloat64Array()
 	parts.resize(PerfLog.PART_FIELDS.size())
-	var period := PackedInt32Array([1, 2, 3, 4, 5, 6, 7, 8, 9])
+	var period := PackedInt32Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 	var hash_before := sim.state_hash()
 	var text := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 1.0, 1, 10, 3,
 			sim, parts, period)
 	assert_string_contains(text, " hops=10 short_hops=3 holding=5 holding_resting=1 contact_resting=1"
 			+ " queue_back=4 queue_back_held=3 hold_ends_clear=1 hold_ends_cap=2 guard_releases=3"
-			+ " hold_ends_other=4 front_hops=5 queue_hops=6 holder_holds=7 crowd_holds=8 crowded_hops=9 bodies=")
+			+ " hold_ends_other=4 front_hops=5 queue_hops=6 holder_holds=7 crowd_holds=8 bucket_holds=9"
+			+ " crowded_hops=10 ")
 	assert_eq(sim.state_hash(), hash_before, "read only")
