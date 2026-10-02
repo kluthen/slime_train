@@ -1,0 +1,8 @@
+{
+	"description": "Gates 1 and 2 open and all 200 base slimes woken as size-1 train slimes, each its sleeper's species, not at bedtime (no session); switch 3 and basket 3 untouched. At most 18 per 300 px loop bucket (the bucket cap's 12 plus 50 %), centred on section 3's bowl: the centre bucket's 18 lowest spots, then the buckets behind and ahead alternately, behind first, stacked from the ground up, none past switch 3; each follows the loop from its nearest point. As saved, loop buckets 50 to 60 hold 18 each and bucket 49 holds 2 (about 3,400 px of loop, x 12.74 to 15.60 screens); 134 are in the bowl (x 13.5 to 15.33 screens). The camera on the bowl. The dense moving case: what the rules allow plus 50 %, target at least 30 fps (chunk 22j, D153).",
+	"save": true,
+	"camera": [
+		16560.0,
+		-150.0
+	]
+}

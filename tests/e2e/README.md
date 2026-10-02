@@ -49,13 +49,17 @@ Four editor-only files are left out there; the script lists them.
   version starts fresh and is never written over.
 - `test_fixtures_e2e.gd` loads the test level's fixtures: `bump` has a
   size-3 and a size-2 slime of one species a little apart on the fusion
-  dip's floor with the camera on them, `fresh` is the level as new, and
-  every fixture in `levels/test/fixtures/` loads.
+  dip's floor with the camera on them, `fresh` is the level as new,
+  `stress-dense` (chunk 22j) has its 200 train slimes at most 18 per loop
+  bucket as saved, 134 in the bowl, none past switch 3, the camera on the
+  bowl, and reloads from a save to the same run; and every fixture in
+  `levels/test/fixtures/` loads.
 - `test_fixture_scenarios_e2e.gd` (chunk 21) runs a scripted scenario
   from each fixture that only had load-time checks or no same-seed hash
   test, twice on one seed for the same hash: `stress-moving` moves, keeping its mass of 200 in at most
   200 slimes, none above size 3, nothing lost (the wall time per tick is
-  printed, a measurement only); `midair`'s slimes land and play on;
+  printed, a measurement only); `stress-dense` (chunk 22j) the same, its
+  holds printed, not required; `midair`'s slimes land and play on;
   `old-version`'s migrated slime travels the loop and nothing is wiped or
   newly lost; from `s1-optout` a tap on the switch empties the basket;
   `stress-still` keeps its 60 in the basket and its pile asleep;

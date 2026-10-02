@@ -7,7 +7,9 @@ extends GutTest
 ## and spread 20 awake train slimes along the grown loop; `stress-still`
 ## wakes the whole population (60 in basket 3, full; 140 asleep at bedtime in
 ## section 3's bowl, a pile that comes to rest); `stress-moving` has all 200
-## as train slimes in the bowl (chunk 16). Every fixture in the directory
+## as train slimes in the bowl (chunk 16); `stress-dense` has all 200 as
+## train slimes at most 18 per loop bucket, centred on the bowl, none past
+## switch 3 (chunk 22j, D153). Every fixture in the directory
 ## loads, and none is older than the level (chunk LD3: its save holds every
 ## slime of the level, its sleepers where the level has them), but
 ## old-version, older on purpose. midair and old-version (chunk 19) are
@@ -38,6 +40,17 @@ const BOWL_RIGHT := 15.4 * S
 ## terrain corner fix); the rest is margin. tools/bench_level.gd waits for
 ## the same rest, within the same bound.
 const PILE_RESTS_WITHIN := 900
+## stress-dense (chunk 22j, D153): the most weight a loop bucket holds at
+## load (the bucket cap's 12 per 300 px plus 50 %); how many slimes are in
+## the bowl (x DENSE_BOWL_FROM to DENSE_BOWL_TO, the bowl's stretch the
+## fixture centres on), as its description records; switch 3, which no slime
+## is past; how long its save-and-reload run goes after the reload (ticks).
+const DENSE_PER_BUCKET := 18
+const DENSE_IN_BOWL := 134
+const DENSE_BOWL_FROM := 13.5 * S
+const DENSE_BOWL_TO := 15.33 * S
+const SWITCH_3 := "s3.switch"
+const DENSE_RELOAD_TICKS := 200
 ## The fixtures older than the level on purpose, exempt from
 ## test_no_fixture_is_older_than_the_level: old-version is a save of the
 ## test level's version 1 with a sleeper where version 1 had it, to test the
@@ -196,6 +209,85 @@ func test_stress_moving_has_200_train_slimes_in_the_bowl() -> void:
 		assert_between(sim.slimes.centre_of(slime_id).x, BOWL_LEFT, BOWL_RIGHT, "in the bowl")
 
 
+# @test-link [[rule_max_200_slimes_per_level]]
+# @test-link [[req_test_level_and_test_mode]]
+func test_stress_dense_has_200_train_slimes_at_most_18_per_loop_bucket_around_the_bowl() -> void:
+	var game := _boot({"fixture": "stress-dense"})
+	var sim: Simulation = game.simulation
+	assert_eq(sim.slimes.slime_count, POPULATION)
+	assert_eq(_count(sim, SlimeBodies.TRAIN), POPULATION, "every one a train slime")
+	assert_eq(sim.train.open_gates, ["s1.gate", "s2.gate"])
+	assert_ne(sim.session.phase, Session.BEDTIME, "not at bedtime")
+	assert_false(sim.object_states[SWITCH_3]["flipped"], "switch 3 untouched")
+	assert_eq(int(sim.object_states["s3.basket"]["weight"]), 0, "basket 3 empty")
+	var box: Rect2 = sim.level.switches[SWITCH_3]["box"]
+	var stop: float = sim.level.loop.closest(Vector2(box.position.x, box.get_center().y),
+			sim.train.open_gates)["distance"]
+	var in_bowl := 0
+	for slime_id in sim.slimes.ids():
+		assert_eq(sim.slimes.size_of(slime_id), 1)
+		assert_true(sim.train.tracks(slime_id))
+		var centre := sim.slimes.centre_of(slime_id)
+		assert_lt(sim.level.loop.closest(centre, sim.train.open_gates)["distance"], stop, "none past switch 3")
+		if centre.x >= DENSE_BOWL_FROM and centre.x <= DENSE_BOWL_TO:
+			in_bowl += 1
+	assert_eq(in_bowl, DENSE_IN_BOWL, "in the bowl, as the fixture's description records")
+	# The placement, as saved: each slime in the loop bucket of its saved
+	# centre's nearest loop point, cut as the bucket cap cuts the loop (D153).
+	# Loaded, a slime saved a pixel or two above what holds it is put down
+	# (D12), which can carry it over a bucket's edge.
+	var buckets := BucketLoads.new()
+	buckets.configure(sim.train.length(), sim.train.bucket_length, BucketLoads.DEFAULT_DENSITY, 0)
+	for slime: Dictionary in TestMode.load_fixture("stress-dense")["save"]["slimes"]:
+		var saved_at := SaveData.vector_from(slime["centre"])
+		var nearest: float = sim.level.loop.closest(saved_at, sim.train.open_gates)["distance"]
+		buckets.add(buckets.bucket_index(nearest), int(slime["size"]))
+	var loads := buckets.loads()
+	var used := []
+	var total := 0
+	for b in loads.size():
+		assert_lte(loads[b], DENSE_PER_BUCKET, "loop bucket %d at most 18" % b)
+		total += loads[b]
+		if loads[b] > 0:
+			used.append(b)
+	assert_eq(total, POPULATION, "every slime counted in a loop bucket")
+	assert_eq(used.size(), used[-1] - used[0] + 1, "the buckets used are side by side")
+	var short := used.filter(func(b): return loads[b] < DENSE_PER_BUCKET)
+	assert_lte(short.size(), 2, "every bucket used at 18 but the last and a short one: %s" % [short])
+	gut.p("stress-dense: loop buckets %d to %d, %d at 18; %d in the bowl" % [used[0], used[-1],
+			used.size() - short.size(), in_bowl])
+	game.sync_view()
+	assert_between(sim.view.centre.x, BOWL_LEFT, BOWL_RIGHT, "the camera on the bowl")
+
+
+## stress-dense loaded as a bare simulation on SEED, saved at once,
+## reloaded from the save's text and both run on: the same state hash after
+## the reload and after the run. (Saved later, a slime mid-hop would be put
+## down on reload, D12, so the run would not reload exactly.)
+# @test-link [[req_test_level_and_test_mode]]
+# @test-link [[req_persistence_and_saves]]
+func test_stress_dense_runs_the_same_across_a_save_and_reload() -> void:
+	var game := _boot({"fixture": "stress-dense"})
+	var data: LevelData = game.level.data
+	var loaded := TestMode.load_fixture("stress-dense")
+	assert_true(loaded["ok"], loaded["error"])
+	var sim := Simulation.from_save(loaded["save"], data, game._terrain, SEED)
+	assert_not_null(sim)
+	if sim == null:
+		return
+	var json := JSON.new()
+	assert_eq(json.parse(SaveData.to_text(sim.to_save())), OK)
+	var reloaded := Simulation.from_save(json.data, data, game._terrain, SEED)
+	assert_not_null(reloaded)
+	if reloaded == null:
+		return
+	assert_eq(reloaded.state_hash(), sim.state_hash(), "the same after the reload")
+	for i in DENSE_RELOAD_TICKS:
+		sim.step()
+		reloaded.step()
+	assert_eq(reloaded.state_hash(), sim.state_hash(), "and after running on")
+
+
 ## Chunk LD3: a fixture saved before the level changed still loads, without
 ## what the level gained since; LevelFixtures.stale() says so. Exempt:
 ## OLDER_ON_PURPOSE, older by design.
@@ -224,7 +316,7 @@ func test_every_fixture_loads() -> void:
 			names.append(file.trim_suffix(TestMode.SIDECAR_EXTENSION))
 	assert_true("fresh" in names)
 	assert_true("bump" in names)
-	for name in ["gate1-open", "gate2-open", "stress-still", "stress-moving", "midair", "old-version"]:
+	for name in ["gate1-open", "gate2-open", "stress-still", "stress-moving", "stress-dense", "midair", "old-version"]:
 		assert_true(name in names, name)
 	for name in names:
 		var game: Node = load(MAIN_SCENE).instantiate()
