@@ -21,7 +21,11 @@ counts (mean, min and max over the lines: physics, on_screen, in_range,
 parked, resting, bodies, and an older log's simulated and off_screen), the
 largest awake cluster's max (and mean), the train hops (hops and short_hops,
 since chunk 22e: their mean per line, and the short hops' share of the hops
-over the lines, a percentage), the sections the camera was in (lines in each: seconds at --perf-log=1), the
+over the lines, a percentage), the hold (since chunk 22f: its snapshot's
+counts by mean, min and max; its per-line counters' totals and shares: how
+the holds ended, how they began, front, queue and crowded hops among the
+hops, and the share of the touching queues' back slimes held), the sections
+the camera was in (lines in each: seconds at --perf-log=1), the
 zoom range, and the frame's parts outside the ticks (weighted by frames: each
 node's ms, the rendering server's setup and render times, the draw calls,
 objects and primitives), when the lines carry them (older logs don't).
@@ -58,6 +62,16 @@ CLUSTER = "largest_cluster"
 # their mean per line over the lines that carry them, and short_hops' share
 # of hops summed over those lines, reported on their own line.
 HOPS = ("hops", "short_hops")
+# The hold (since chunk 22f, D147): the snapshot at each line (Train's
+# hold_snapshot), summarised by min, mean and max, and the per-line counters
+# (TrainHold.COUNTERS), summed over the lines that carry them all.
+# @spec-link [[req_platform_and_performance_targets]]
+HOLD_SNAPSHOT = ("holding", "holding_resting", "contact_resting", "queue_back", "queue_back_held")
+HOLD_PERIOD = ("hold_ends_clear", "hold_ends_cap", "guard_releases", "hold_ends_other", "front_hops", "queue_hops",
+               "holder_holds", "crowd_holds", "crowded_hops")
+# How a hold ends, in the order reported, as (field, short name).
+HOLD_ENDS = (("hold_ends_clear", "clear"), ("hold_ends_cap", "cap"), ("guard_releases", "guard"),
+             ("hold_ends_other", "other"))
 # The frame's parts outside the ticks (the perf log's PART_FIELDS), newer
 # still: summarised by their frame-weighted mean over the lines that have
 # them, in three rows (the nodes' ms, the rendering's ms, the counts).
@@ -163,6 +177,7 @@ def summarise(records):
         "sections": {},
         "parts": {},
         "hops": None,
+        "hold": None,
     }
     having = [r for r in records if all(key in r for key in HOPS)]
     if having:
@@ -170,6 +185,7 @@ def summarise(records):
         short = sum(r["short_hops"] for r in having)
         out["hops"] = {"lines": len(having), "hops_mean": hops / len(having), "short_mean": short / len(having),
                        "hops": hops, "short_hops": short, "short_share": 100.0 * short / hops if hops > 0 else None}
+    out["hold"] = summarise_hold(records)
     for key in COUNTS + (CLUSTER,):
         values = [r[key] for r in records if key in r]
         if values:
@@ -184,6 +200,80 @@ def summarise(records):
             if having:
                 out["parts"][key] = weighted_mean(having, key, "frames")
     return out
+
+
+def share(part, whole):
+    """`part` over `whole` as a percentage, or None when `whole` is 0."""
+    return 100.0 * part / whole if whole > 0 else None
+
+
+def summarise_hold(records):
+    """The hold's numbers of `records` (D147 (1), (8)), or None when no line carries them.
+
+    {"snapshot": {field: (min, mean, max)}, "lines", "totals": {field: sum},
+    "hops" (the hops of those lines), "ends", "starts", "end_shares" {field: %},
+    "holder_share", "front_share", "queue_share", "crowded_share",
+    "back_held_share" (sum(queue_back_held) / sum(queue_back)), "back" (those two
+    sums)}; a share is None
+    when its whole is 0. The snapshot needs its own fields only; the rest
+    needs every counter and hops on the line."""
+    snapshot = {}
+    for key in HOLD_SNAPSHOT:
+        values = [r[key] for r in records if key in r]
+        if values:
+            snapshot[key] = (min(values), statistics.fmean(values), max(values))
+    having = [r for r in records if all(key in r for key in HOLD_PERIOD + ("hops",))]
+    if not snapshot and not having:
+        return None
+    totals = {key: sum(r[key] for r in having) for key in HOLD_PERIOD}
+    hops = sum(r["hops"] for r in having)
+    ends = sum(totals[key] for key, _ in HOLD_ENDS)
+    starts = totals["holder_holds"] + totals["crowd_holds"]
+    back = [r for r in records if "queue_back" in r and "queue_back_held" in r]
+    return {
+        "snapshot": snapshot,
+        "lines": len(having),
+        "totals": totals,
+        "hops": hops,
+        "ends": ends,
+        "starts": starts,
+        "end_shares": {key: share(totals[key], ends) for key, _ in HOLD_ENDS},
+        "holder_share": share(totals["holder_holds"], starts),
+        "front_share": share(totals["front_hops"], hops),
+        "queue_share": share(totals["queue_hops"], hops),
+        "crowded_share": share(totals["crowded_hops"], hops),
+        "back_held_share": share(sum(r["queue_back_held"] for r in back), sum(r["queue_back"] for r in back)),
+        "back": (sum(r["queue_back_held"] for r in back), sum(r["queue_back"] for r in back)),
+    }
+
+
+def percent(value):
+    """A share (or None) as "12.3 %" or "n/a"."""
+    return "n/a" if value is None else "%.1f %%" % value
+
+
+def format_hold(h):
+    """The printed lines of summarise_hold()'s `h`."""
+    lines = []
+    if h["snapshot"]:
+        lines.append("  hold (now)      " + "  ".join(
+            "%s %.1f (%d..%d)" % (key, mean, least, most) for key, (least, mean, most) in h["snapshot"].items()))
+    if h["lines"]:
+        t = h["totals"]
+        lines.append("  hold ends       " + "  ".join(
+            "%s %d (%s)" % (name, t[key], percent(h["end_shares"][key])) for key, name in HOLD_ENDS)
+            + "  of %d" % h["ends"])
+        # A hold both checks start (a crowd and a holder) is a crowd start:
+        # "holder" is the holder rule's own, below the occupancy threshold.
+        lines.append("  hold starts     holder (below threshold) %d  crowd (above, holder or not) %d   holder share %s" % (
+            t["holder_holds"], t["crowd_holds"], percent(h["holder_share"])))
+        lines.append("  hop kinds       front %d (%s)  queue %d (%s)  crowded %d (%s)  of %d hops" % (
+            t["front_hops"], percent(h["front_share"]), t["queue_hops"], percent(h["queue_share"]),
+            t["crowded_hops"], percent(h["crowded_share"]), h["hops"]))
+    if "queue_back" in h["snapshot"]:
+        lines.append("  back held       %s (%d of %d queue_back)" % (
+            (percent(h["back_held_share"]),) + h["back"]))
+    return lines
 
 
 def format_summary(title, records):
@@ -214,6 +304,8 @@ def format_summary(title, records):
             share = "%.1f %% (%d of %d)" % (h["short_share"], h["short_hops"], h["hops"])
         lines.append("  train hops      per line: hops %.1f  short_hops %.1f   short share %s" % (
             h["hops_mean"], h["short_mean"], share))
+    if s["hold"] is not None:
+        lines += format_hold(s["hold"])
     if s["sections"]:
         lines.append("  section (lines) " + "  ".join(
             "s%d %d" % (section, n) for section, n in sorted(s["sections"].items())))
@@ -290,8 +382,8 @@ def report(log_lines, cold=None, warm=None, thermal_lines=None):
 
 # The self-test's log: a threadtime logcat prefix on some lines, a header, a
 # PERF_INFO line, a noise line, and six PERF lines a second apart, the last
-# two with the frame's parts (the first four have none, as an older log's).
-# Hops: 54 in all, 12 short.
+# two with the frame's parts and the hold's fields (the first four have
+# none, as an older log's). Hops: 54 in all, 12 short; 20 on the hold's lines.
 CANNED_LOG = """# device test: Canned Phone
 09-30 17:00:00.000  100  101 I godot   : PERF_INFO seconds=1 model=Canned renderer=mobile
 09-30 17:00:00.500  100  101 I godot   : Slime Train booted
@@ -299,8 +391,8 @@ PERF t=10.0 frames=30 fps=30.0 frame_ms_p50=33.00 frame_ms_p95=40.00 frame_ms_ma
 PERF t=11.0 frames=60 fps=60.0 frame_ms_p50=16.00 frame_ms_p95=17.00 frame_ms_max=20.00 process_ms_mean=8.00 ticks=60 ticks_per_frame_mean=1.00 ticks_per_frame_max=1 tick_ms_mean=2.00 tick_ms_frame_mean=2.00 rest_ms_mean=14.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=4 hops=12 short_hops=3 bodies=35 active=10.0 pairs=20.0 section=1 zoom=1.000
 PERF t=12.0 frames=45 fps=45.0 frame_ms_p50=22.00 frame_ms_p95=30.00 frame_ms_max=35.00 process_ms_mean=10.00 ticks=60 ticks_per_frame_mean=1.33 ticks_per_frame_max=2 tick_ms_mean=3.00 tick_ms_frame_mean=4.00 rest_ms_mean=18.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=4 hops=8 short_hops=1 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800
 09-30 17:00:13.000  100  101 I godot   : PERF t=13.0 frames=20 fps=20.0 frame_ms_p50=50.00 frame_ms_p95=60.00 frame_ms_max=90.00 process_ms_mean=40.00 ticks=60 ticks_per_frame_mean=3.00 ticks_per_frame_max=4 tick_ms_mean=10.00 tick_ms_frame_mean=30.00 rest_ms_mean=20.00 physics=30 on_screen=30 in_range=30 parked=5 resting=0 largest_cluster=22 hops=4 short_hops=4 bodies=35 active=30.0 pairs=100.0 section=2 zoom=0.800
-PERF t=14.0 frames=50 fps=50.0 frame_ms_p50=20.00 frame_ms_p95=25.00 frame_ms_max=30.00 process_ms_mean=9.00 ticks=60 ticks_per_frame_mean=1.20 ticks_per_frame_max=2 tick_ms_mean=2.50 tick_ms_frame_mean=3.00 rest_ms_mean=17.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=5 hops=9 short_hops=0 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800 slimes_ms=2.00 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=40 objects=30 primitives=900
-PERF t=15.0 frames=40 fps=40.0 frame_ms_p50=25.00 frame_ms_p95=28.00 frame_ms_max=40.00 process_ms_mean=11.00 ticks=60 ticks_per_frame_mean=1.50 ticks_per_frame_max=2 tick_ms_mean=3.50 tick_ms_frame_mean=5.25 rest_ms_mean=19.75 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=5 hops=11 short_hops=2 bodies=35 active=10.0 pairs=20.0 section=3 zoom=0.800 slimes_ms=4.25 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=49 objects=30 primitives=900
+PERF t=14.0 frames=50 fps=50.0 frame_ms_p50=20.00 frame_ms_p95=25.00 frame_ms_max=30.00 process_ms_mean=9.00 ticks=60 ticks_per_frame_mean=1.20 ticks_per_frame_max=2 tick_ms_mean=2.50 tick_ms_frame_mean=3.00 rest_ms_mean=17.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=5 hops=9 short_hops=0 holding=4 holding_resting=1 contact_resting=0 queue_back=6 queue_back_held=4 hold_ends_clear=3 hold_ends_cap=1 guard_releases=0 hold_ends_other=0 front_hops=8 queue_hops=1 holder_holds=1 crowd_holds=3 crowded_hops=1 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800 slimes_ms=2.00 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=40 objects=30 primitives=900
+PERF t=15.0 frames=40 fps=40.0 frame_ms_p50=25.00 frame_ms_p95=28.00 frame_ms_max=40.00 process_ms_mean=11.00 ticks=60 ticks_per_frame_mean=1.50 ticks_per_frame_max=2 tick_ms_mean=3.50 tick_ms_frame_mean=5.25 rest_ms_mean=19.75 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=5 hops=11 short_hops=2 holding=2 holding_resting=2 contact_resting=1 queue_back=4 queue_back_held=4 hold_ends_clear=5 hold_ends_cap=0 guard_releases=0 hold_ends_other=1 front_hops=10 queue_hops=0 holder_holds=0 crowd_holds=2 crowded_hops=0 bodies=35 active=10.0 pairs=20.0 section=3 zoom=0.800 slimes_ms=4.25 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=49 objects=30 primitives=900
 """
 
 # An older log (before chunk 22d): on_screen, simulated, off_screen and no
@@ -352,6 +444,25 @@ def self_test():
     assert no_hop["short_share"] is None, no_hop
     assert format_summary("still", [dict(records[0], hops=0, short_hops=0)])[8].endswith(
         "short share n/a (no hop)"), "no hop: no share"
+    h = s["hold"]
+    assert h["snapshot"] == {"holding": (2, 3, 4), "holding_resting": (1, 1.5, 2), "contact_resting": (0, 0.5, 1),
+                             "queue_back": (4, 5, 6), "queue_back_held": (4, 4, 4)}, h["snapshot"]
+    assert h["lines"] == 2 and h["hops"] == 20 and h["ends"] == 10 and h["starts"] == 6, h
+    assert h["end_shares"] == {"hold_ends_clear": 80.0, "hold_ends_cap": 10.0, "guard_releases": 0.0,
+                               "hold_ends_other": 10.0}, h["end_shares"]
+    assert (h["front_share"], h["queue_share"], h["crowded_share"]) == (90.0, 5.0, 5.0), h
+    assert abs(h["holder_share"] - 100.0 / 6) < 1e-9 and h["back_held_share"] == 80.0, h
+    assert session[9:14] == [
+        "  hold (now)      holding 3.0 (2..4)  holding_resting 1.5 (1..2)  contact_resting 0.5 (0..1)  "
+        "queue_back 5.0 (4..6)  queue_back_held 4.0 (4..4)",
+        "  hold ends       clear 8 (80.0 %)  cap 1 (10.0 %)  guard 0 (0.0 %)  other 1 (10.0 %)  of 10",
+        "  hold starts     holder (below threshold) 1  crowd (above, holder or not) 5   holder share 16.7 %",
+        "  hop kinds       front 18 (90.0 %)  queue 1 (5.0 %)  crowded 1 (5.0 %)  of 20 hops",
+        "  back held       80.0 % (8 of 10 queue_back)"], session
+    assert summarise(records[:4])["hold"] is None, "an older log: no hold"
+    assert not any(text.startswith("  hold") for text in format_summary("old", records[:4]))
+    quiet = summarise([dict(records[4], **{key: 0 for key in HOLD_PERIOD + HOLD_SNAPSHOT})])["hold"]
+    assert quiet["end_shares"]["hold_ends_cap"] is None and quiet["back_held_share"] is None, quiet
     assert s["sections"] == {1: 2, 2: 3, 3: 1}, s["sections"]
     assert (s["zoom_min"], s["zoom_max"]) == (0.8, 1.0), s
     # Parts: only the last two lines (50 and 40 frames) carry them.
@@ -373,6 +484,7 @@ def self_test():
                           "simulated 6.0 (5..7)  off_screen 18.0 (16..20)"), old_log
     assert not any(text.startswith("  largest cluster") for text in old_log), old_log
     assert not any(text.startswith("  train hops") for text in old_log), old_log
+    assert not any(text.startswith("  hold") for text in old_log), old_log
     assert [r["t"] for r in cold_window(records, 2)] == [10.0, 11.0]
     assert [r["t"] for r in warm_window(records, 2)] == [14.0, 15.0]
     thermal = format_thermal(CANNED_THERMAL.splitlines())

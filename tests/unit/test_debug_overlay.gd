@@ -1,7 +1,7 @@
 extends GutTest
 ## The debug overlay's pure parts (src/debug/): the accessible-section rule
 ## and the "woken / available" counter (DebugCounts), the slime counts
-## (physics, on screen, in range, parked, resting), the largest awake cluster
+## (physics, on screen, in range, parked, resting, holding), the largest awake cluster
 ## and the fps text, the bar showing
 ## them at most every STATS_MS, the sped-up session clock (DebugClock), the
 ## kill tool's slime picking and its move to the start of the loop
@@ -152,9 +152,9 @@ func _placed_sim() -> Simulation:
 	return sim
 
 
-func _slimes(physics: int, on_screen: int, in_range: int, parked: int, resting: int) -> Dictionary:
+func _slimes(physics: int, on_screen: int, in_range: int, parked: int, resting: int, holding := 0) -> Dictionary:
 	return {"physics": physics, "on_screen": on_screen, "in_range": in_range, "parked": parked,
-			"resting": resting}
+			"resting": resting, "holding": holding}
 
 
 ## The sleepers cost no physics and never rest; On screen and In range
@@ -222,8 +222,8 @@ func test_slime_counts_physics_on_screen_in_range_parked_and_resting() -> void:
 
 
 func test_the_stats_texts() -> void:
-	assert_eq(DebugCounts.slimes_text(_slimes(18, 12, 30, 63, 9)),
-			"Physics 18 : on screen 12 : in range 30 : parked 63")
+	assert_eq(DebugCounts.slimes_text(_slimes(18, 12, 30, 63, 9, 5)),
+			"Physics 18 : on screen 12 : in range 30 : parked 63 : hold 5")
 	assert_eq(DebugCounts.fps_text(59.6), "60 fps", "a whole number")
 	assert_eq(DebugCounts.fps_text(0.0), "0 fps")
 
@@ -238,17 +238,17 @@ func test_the_bar_shows_the_fps_and_the_slime_counts_at_most_every_stats_ms() ->
 	var sim := _placed_sim()
 	assert_true(overlay.update_stats(sim, 58.7, 1000))
 	assert_eq(overlay.fps_label.text, "59 fps")
-	assert_eq(overlay.slimes_label.text, "Physics 0 : on screen 2 : in range 5 : parked 0")
+	assert_eq(overlay.slimes_label.text, "Physics 0 : on screen 2 : in range 5 : parked 0 : hold 0")
 	sim.step()
 	assert_false(overlay.update_stats(sim, 30.0, 1000 + DebugOverlay.STATS_MS - 1), "too soon")
 	assert_eq(overlay.fps_label.text, "59 fps")
-	assert_eq(overlay.slimes_label.text, "Physics 0 : on screen 2 : in range 5 : parked 0")
+	assert_eq(overlay.slimes_label.text, "Physics 0 : on screen 2 : in range 5 : parked 0 : hold 0")
 	assert_true(overlay.update_stats(sim, 30.0, 1000 + DebugOverlay.STATS_MS))
 	assert_eq(overlay.fps_label.text, "30 fps")
-	assert_eq(overlay.slimes_label.text, "Physics 0 : on screen 2 : in range 4 : parked 1")
+	assert_eq(overlay.slimes_label.text, "Physics 0 : on screen 2 : in range 4 : parked 1 : hold 0")
 	assert_true(overlay.update_stats(sim, 30.2, 1000 + 2 * DebugOverlay.STATS_MS))
 	assert_eq(overlay.fps_label.text, "30 fps", "unchanged")
-	assert_eq(overlay.slimes_label.text, "Physics 0 : on screen 2 : in range 4 : parked 1", "unchanged")
+	assert_eq(overlay.slimes_label.text, "Physics 0 : on screen 2 : in range 4 : parked 1 : hold 0", "unchanged")
 
 
 # --- The largest awake cluster --------------------------------------------------
@@ -465,6 +465,45 @@ func test_the_labels_text_is_rebuilt_at_once_for_another_simulation() -> void:
 	assert_false(labels.refresh_text(1003))
 
 
+# --- The hop corridors -----------------------------------------------------------
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_the_corridors_are_off_by_default_and_only_process_while_shown() -> void:
+	var host := GameHost.new()
+	host.simulation = _placed_sim()
+	add_child_autofree(host)
+	var overlay := DebugOverlay.new()
+	host.add_child(overlay)
+	assert_false(overlay.corridors.visible, "hidden until toggled")
+	assert_false(overlay.corridors.is_processing(), "no redraw while hidden")
+	overlay._process(0.0)
+	assert_eq(overlay.corridors.simulation, host.simulation)
+	overlay.show_corridors(true)
+	assert_true(overlay.corridors.visible)
+	assert_true(overlay.corridors_button.button_pressed)
+	assert_true(overlay.corridors.is_processing())
+	overlay.show_corridors(false)
+	assert_false(overlay.corridors.is_processing())
+
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_a_train_slimes_corridor_runs_to_its_hop_target_and_past_it() -> void:
+	var sim := _sim()
+	var slime := _id_of(sim, "start.first-slime")
+	sim.step()
+	assert_true(sim.train.tracks(slime), "the first slime is a followed train slime")
+	var hash_before := sim.state_hash()
+	var corners := DebugCorridors.corridor_of(sim, slime)
+	var from := sim.slimes.centre_of(slime)
+	var progress := sim.train.steering_distance(sim.train.distance_of(slime), from)
+	var target := sim.train.hop_target(progress, Train.hop_reach(sim.slimes.size_of(slime)))
+	assert_eq(corners, TrainHold.corridor_corners(from, target))
+	assert_eq(corners.size(), 4)
+	assert_eq(sim.state_hash(), hash_before, "read only")
+	sim.slimes.set_state(slime, SlimeBodies.FREE)
+	assert_eq(DebugCorridors.corridor_of(sim, slime).size(), 0, "a free slime has none")
+
+
 # --- The bar's per-frame refresh --------------------------------------------------
 
 # @test-link [[req_platform_and_performance_targets]]
@@ -618,7 +657,7 @@ func test_ticks_run_in_batches_give_the_same_hash() -> void:
 func test_code_outside_debug_never_names_it() -> void:
 	var offenders := PackedStringArray()
 	var pattern := RegEx.create_from_string(
-			"\\b(DebugOverlay|DebugCounts|DebugClock|DebugKill|DebugSlimeLabels|PerfLog)\\b")
+			"\\b(DebugOverlay|DebugCounts|DebugClock|DebugKill|DebugSlimeLabels|DebugCorridors|PerfLog)\\b")
 	for path in _gd_files(SRC_ROOT):
 		if path.begins_with(DEBUG_DIR):
 			continue

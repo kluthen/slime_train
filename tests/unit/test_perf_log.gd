@@ -137,7 +137,10 @@ func test_line_is_key_value_numbers_in_the_documented_order() -> void:
 	assert_eq(keys, PackedStringArray(["t", "frames", "fps", "frame_ms_p50", "frame_ms_p95", "frame_ms_max",
 			"process_ms_mean", "ticks", "ticks_per_frame_mean", "ticks_per_frame_max", "tick_ms_mean",
 			"tick_ms_frame_mean", "rest_ms_mean", "physics", "on_screen", "in_range", "parked", "resting",
-			"largest_cluster", "hops", "short_hops", "bodies", "active", "pairs", "section", "zoom", "slimes_ms",
+			"largest_cluster", "hops", "short_hops", "holding", "holding_resting", "contact_resting", "queue_back",
+			"queue_back_held", "hold_ends_clear", "hold_ends_cap", "guard_releases", "hold_ends_other", "front_hops",
+			"queue_hops", "holder_holds", "crowd_holds", "crowded_hops", "bodies", "active", "pairs", "section",
+			"zoom", "slimes_ms",
 			"eyes_ms", "frontier_ms", "hud_ms", "debug_ms",
 			"main_ms", "setup_ms", "render_cpu_ms", "render_gpu_ms", "field_cpu_ms", "field_gpu_ms", "draw_calls",
 			"objects", "primitives"]))
@@ -227,6 +230,39 @@ func test_the_window_counts_the_trains_new_hops() -> void:
 	perf_log._on_process_frame()
 	perf_log._process(0.0)
 	assert_eq([perf_log._hops, perf_log._short_hops], [7, 1])
+
+
+## The line's hold counters are the window's, taken frame by frame from the
+## train's totals (Train.hold_counters()) as the hops: those counted before
+## the log's first frame aren't the window's, and the line resets them.
+# @test-link [[req_platform_and_performance_targets]]
+func test_the_window_counts_the_holds_new_counters() -> void:
+	var game := _game_with_guard(true)
+	assert_eq(game.enable_test_mode({"seed": 1}), PackedStringArray())
+	assert_eq(game.add_perf_log(PackedStringArray(["--perf-log=100"])), PackedStringArray())
+	# The counters live in the train's hold (TrainHold); the test bumps them.
+	var hold: TrainHold = game.simulation.train.hold()
+	var at := func(name: String) -> int: return TrainHold.COUNTERS.find(name)
+	hold.hold_ends_cap += 4
+	var perf_log: PerfLog = game.perf_log
+	perf_log._on_process_frame()
+	perf_log._process(0.0)
+	assert_eq(perf_log._period[at.call("hold_ends_cap")], 0, "counted before the log's first frame")
+	hold.hold_ends_cap += 2
+	hold.front_hops += 3
+	hold.crowded_hops += 1
+	perf_log._on_process_frame()
+	perf_log._process(0.0)
+	hold.front_hops += 1
+	perf_log._on_process_frame()
+	perf_log._process(0.0)
+	var expected := PackedInt32Array()
+	expected.resize(TrainHold.COUNTERS.size())
+	expected[at.call("hold_ends_cap")] = 2
+	expected[at.call("front_hops")] = 4
+	expected[at.call("crowded_hops")] = 1
+	assert_eq(perf_log._period, expected)
+	assert_eq(PerfLog.hold_counters(game.simulation)[at.call("hold_ends_cap")], hold.hold_ends_cap, "the totals")
 
 
 ## The camera's section: that of the current loop's segment nearest the

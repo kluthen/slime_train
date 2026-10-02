@@ -60,7 +60,8 @@ extends RefCounted
 ## early); the session advances (clocks, phases, bedtime and sunrise); the slimes far
 ## from the view park and move at their off-screen pace, the near ones
 ## simulate again (Offscreen); the train steers (aims the coming hops, holds
-## them before a crowd or a jam and lets holders rest, from the last step's
+## them before a crowd or a holder in their hop corridor, read from a
+## snapshot of the holders at the tick's start, and lets holders rest, from the last step's
 ## fusion contacts; carries the slimes on a slide); the free
 ## slimes steer; the slime bodies (free slimes fall the way the tilt says;
 ## hops, then the solver); the free slimes'
@@ -313,7 +314,7 @@ func step() -> void:
 	for parts in split_zones.apply(slimes):
 		identities.split(parts)
 		if train != null:
-			train.inherit(parts)
+			train.inherit(parts, slimes)
 		free_slimes.inherit(parts, tick)
 	fusion.step(self)
 	frontier.step(self)

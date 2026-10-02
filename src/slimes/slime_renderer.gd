@@ -26,6 +26,13 @@ extends Node2D
 ##   each ring drawn on its own in its species colour with a soft edge.
 ##
 ## It draws the state of the last tick (no interpolation between ticks).
+##
+## The celebration's drawn bounce (D147 (6), chunk 22f): the slimes the
+## celebration's burst spares from its double hop (holders and resting train
+## slimes, CelebrationHops) have their drawn shape lifted by their bounce
+## (CelebrationHops.lift_of) while it plays, drawing only. The picture is
+## then handed over every frame, and once more when the bounce ends (back
+## down); outside a bounce nothing changes.
 
 const BLEND := 0
 const DIRECT := 1
@@ -53,6 +60,10 @@ var bodies: SlimeBodies = null:
 	set(value):
 		bodies = value
 		_topology = -1
+## The celebration's double hop of the simulation drawn, read for the drawn
+## bounce of the slimes it spares (see the class doc), or null for none.
+# @spec-link [[req_level_completion_celebration]]
+var celebration: CelebrationHops = null
 ## Resolution of the field viewports relative to the screen (BLEND).
 var field_scale := 0.5
 ## The composite rectangle (BLEND), or null.
@@ -109,6 +120,10 @@ var _screen_rect := Rect2()
 var _screen_field_scale := -1.0
 var _upload_count := 0
 var _paint_count := 0
+## Whether the last picture handed over had a bounce in it (so the frame
+## after the bounce's end hands the slimes over back down).
+# @spec-link [[req_level_completion_celebration]]
+var _bounced := false
 
 ## BLEND on a display, DIRECT when headless (nothing is seen, so the cheapest).
 static func default_mode() -> int:
@@ -199,8 +214,10 @@ func _process(_delta: float) -> void:
 ## - nothing changed (no tick, no move, same screen): nothing is done;
 ## - only the screen changed: the seen mask is redone, the triangles only if
 ##   the seen slimes changed;
-## - the bodies moved: the vertices are rebuilt and handed over again.
+## - the bodies moved, or the celebration's drawn bounce plays or just
+##   ended: the vertices are rebuilt and handed over again.
 # @spec-link [[req_platform_and_performance_targets]]
+# @spec-link [[req_level_completion_celebration]]
 func _render_frame() -> void:
 	if _pipeline_dirty:
 		_build_pipeline()
@@ -214,9 +231,12 @@ func _render_frame() -> void:
 	var screen_changed := _screen_changed(viewport)
 	if screen_changed:
 		_follow_screen(viewport)
+	var bouncing := celebration != null and celebration.bouncing()
+	var bounce := bouncing or _bounced
+	_bounced = bouncing
 	var moved := bodies.pos != _drawn_pos
 	var seen_inputs_changed := moved or bodies.calm != _drawn_calm or bodies.centre != _drawn_centre
-	if not (topology_changed or screen_changed or seen_inputs_changed):
+	if not (topology_changed or screen_changed or seen_inputs_changed or bounce):
 		return
 	if seen_inputs_changed:
 		_drawn_calm = bodies.calm.duplicate()
@@ -228,7 +248,7 @@ func _render_frame() -> void:
 		_seen = _seen_next
 		_seen_next = swap
 		_rebuild_layout()
-	if moved or seen_changed:
+	if moved or seen_changed or bounce:
 		_drawn_pos = bodies.pos.duplicate()
 		_draw_bodies()
 
@@ -480,9 +500,29 @@ func _draw_bodies() -> void:
 			pp = cur
 			cur = nx
 		_verts[2 * m + k] = c / bodies.npts[s]
+	if celebration != null and celebration.bouncing():
+		_lift_spared()
 	for painter in _painters:
 		painter.queue_redraw()
 	_upload_count += 1
+
+
+## Lifts the compact vertices (ring, skirt and centre) of each seen slime the
+## celebration spares by its drawn bounce (CelebrationHops.lift_of).
+# @spec-link [[req_level_completion_celebration]]
+func _lift_spared() -> void:
+	var m := _seen_points
+	for k in _seen_slimes.size():
+		var s := _seen_slimes[k]
+		var lift := celebration.lift_of(bodies.id[s])
+		if lift == 0.0:
+			continue
+		var up := Vector2(0.0, -lift)
+		var ring: int = _seen_ring_start[k]
+		for i in bodies.npts[s]:
+			_verts[ring + i] += up
+			_verts[m + ring + i] += up
+		_verts[2 * m + k] += up
 
 
 ## Draws nothing (no bodies): the painters' redraw adds no triangles

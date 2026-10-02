@@ -1,0 +1,10 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+Slime Train booted (Godot 4.7.2-stable (official)).
+fixture=stress-moving seed=1 tick0=0 slimes=200 loop_len=38297 plain=false
+TOTALS {"crowd_holds":32,"crowded_hops":2,"fixture":"stress-moving","front_hops":92,"guard_releases":0,"hash":"94de4d294a356e7fb0632c6f202b54f67ff67c3869900c5211c07696e80078c2","hold_ends_cap":317,"hold_ends_clear":38,"hold_ends_other":7,"holder_holds":356,"hops":862,"queue_hops":130,"seed":1,"short_hops":818,"stalled":0,"ticks":2400,"uncovered_hops":0}
+RESULT tick=2400 hash=94de4d294a356e7fb0632c6f202b54f67ff67c3869900c5211c07696e80078c2
+
+real	0m26,862s
+user	0m26,735s
+sys	0m0,060s

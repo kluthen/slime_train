@@ -20,17 +20,21 @@ extends CanvasLayer
 ##   level's save through SaveStore (a write over it, never a delete), when
 ##   the game autosaves;
 ## - Labels: DebugSlimeLabels draws each slime's id and state under it;
+## - Corridors (off by default): DebugCorridors outlines the hop corridor of
+##   every labelled train slime (the slimes that can be seen), red while it
+##   holds, green while free (chunk 22f);
 ## - Kill: armed, the next tap on the game is the kill tool's instead of the
 ##   simulation's: the slime under it goes to the start of the loop as a lost
 ##   slime (DebugKill). One use, a tap on no slime, or a click on another
 ##   control disarms it;
 ## - the frame rate ("60 fps", Engine.get_frames_per_second(), rounded);
 ## - the "woken / available" counter (DebugCounts, in base slimes);
-## - the slime counts, "Physics 18 : on screen 12 : in range 30 : parked 63"
-##   (DebugCounts.count_slimes(), in slimes; they overlap): the slimes that
-##   cost physics (calm active, not a sleeper: SlimeBodies.crowd_count());
-##   centre in the visible view, any state; not parked, any state; parked,
-##   moved by Offscreen's proxies. They, the "woken / available" counter and
+## - the slime counts, "Physics 18 : on screen 12 : in range 30 : parked 63
+##   : hold 5" (DebugCounts.count_slimes(), in slimes; they overlap): the
+##   slimes that cost physics (calm active, not a sleeper:
+##   SlimeBodies.crowd_count()); centre in the visible view, any state; not
+##   parked, any state; parked, moved by Offscreen's proxies; the train
+##   slimes holding their hop (chunk 22f). They, the "woken / available" counter and
 ##   the fps refresh at most every STATS_MS (the counts loop over every
 ##   slime), each label's text assigned only when it changes;
 ## - the last action's result.
@@ -83,6 +87,8 @@ var game: Node = null
 var clock: DebugClock = null
 ## The world-space labels (a child of the game root), hidden until toggled.
 var labels: DebugSlimeLabels = null
+## The world-space hop corridors (a child of the game root), hidden until toggled.
+var corridors: DebugCorridors = null
 ## The last action's result ("" when none showing).
 var status := ""
 ## The real time its per-frame refresh (_process) took, microseconds,
@@ -95,6 +101,7 @@ var bar: HBoxContainer = null
 var speed_buttons := {}
 var reset_button: Button = null
 var labels_button: Button = null
+var corridors_button: Button = null
 var kill_button: Button = null
 var fps_label: Label = null
 var counter_label: Label = null
@@ -121,14 +128,21 @@ func _ready() -> void:
 	labels = DebugSlimeLabels.new()
 	labels.name = "DebugSlimeLabels"
 	labels.visible = false
+	corridors = DebugCorridors.new()
+	corridors.name = "DebugCorridors"
+	corridors.visible = false
 	if game != null:
 		game.add_child(labels)
+		game.add_child(corridors)
 	_build()
 
 
+## Frees the world-space labels and corridors with the overlay.
 func _exit_tree() -> void:
 	if labels != null and is_instance_valid(labels):
 		labels.queue_free()
+	if corridors != null and is_instance_valid(corridors):
+		corridors.queue_free()
 
 
 ## Refreshes the bar (the Reset and status timeouts, the labels'
@@ -147,6 +161,8 @@ func _process(_delta: float) -> void:
 	var sim: Simulation = game.get("simulation") if game != null else null
 	if labels != null and labels.simulation != sim:
 		labels.simulation = sim
+	if corridors != null and corridors.simulation != sim:
+		corridors.simulation = sim
 	if sim != null:
 		_place_bar(sim.view)
 		update_stats(sim, Engine.get_frames_per_second(), now)
@@ -159,6 +175,7 @@ func _process(_delta: float) -> void:
 ## when STATS_MS have passed since the last refresh at real time `now_ms` (or
 ## on the first call), assigning only the texts that changed. Returns whether
 ## it refreshed.
+# @spec-link [[req_platform_and_performance_targets]]
 func update_stats(sim: Simulation, fps: float, now_ms: int) -> bool:
 	if _stats_due_ms >= 0 and now_ms < _stats_due_ms:
 		return false
@@ -257,6 +274,13 @@ func show_labels(on: bool) -> void:
 	labels_button.set_pressed_no_signal(on)
 
 
+## Shows or hides the hop corridors.
+func show_corridors(on: bool) -> void:
+	arm_kill(false)
+	corridors.visible = on
+	corridors_button.set_pressed_no_signal(on)
+
+
 func _reset() -> void:
 	game.restart_fresh()
 	if game.autosave.enabled:
@@ -283,7 +307,7 @@ func _buttons() -> Array[Button]:
 	var out: Array[Button] = []
 	for each in speed_buttons:
 		out.append(speed_buttons[each])
-	for button in [reset_button, labels_button, kill_button]:
+	for button in [reset_button, labels_button, corridors_button, kill_button]:
 		if button != null:
 			out.append(button)
 	return out
@@ -334,6 +358,10 @@ func _build() -> void:
 	labels_button.toggle_mode = true
 	labels_button.toggled.connect(show_labels)
 	bar.add_child(labels_button)
+	corridors_button = _button("Corridors")
+	corridors_button.toggle_mode = true
+	corridors_button.toggled.connect(show_corridors)
+	bar.add_child(corridors_button)
 	kill_button = _button(KILL_TEXT)
 	kill_button.toggle_mode = true
 	kill_button.toggled.connect(arm_kill)

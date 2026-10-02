@@ -1,8 +1,9 @@
 extends GutTest
 ## SlimeBodies' "may rest" input (chunk 22e, D145): the behaviour code (the
 ## Train, for a holding train slime) lets a train slime rest under the pile
-## rule; it is an input, not state. Also the read-only crowd count ahead of
-## a hop (awake_count_ahead) and Fusion's "counts toward fusion".
+## rule; it is an input, not state. Also Fusion's "counts toward fusion".
+## (The hop corridor's scan, SlimeBodies.corridor_scan, which replaced the
+## crowd count ahead of a hop in chunk 22f: tests/unit/test_train_hold_corridor.gd.)
 
 const Support := preload("res://tests/unit/slime_test_support.gd")
 const DT := 1.0 / 60.0
@@ -166,50 +167,6 @@ func test_may_rest_stays_with_its_slime_through_removal_merge_and_split() -> voi
 	assert_eq(bodies.may_rest.size(), bodies.slime_count)
 	var fresh := bodies.create(3, 1, Vector2(600, STAND_Y))
 	assert_false(bodies.may_rest_of(fresh), "a new slime starts at 0")
-
-
-# --- The crowd ahead of a hop ----------------------------------------------------
-
-# @test-link [[req_hopping_behavior]]
-func test_awake_count_ahead_counts_only_physics_slimes_out_of_baskets_near_the_target_and_ahead() -> void:
-	var bodies := Support.bodies_on_floor()
-	bodies.auto_hops = false
-	var from := Vector2(-300, STAND_Y)
-	var target := Vector2(0, STAND_Y)
-	var me := bodies.create(0, 1, from)
-	var counted := [
-		bodies.create(1, 1, Vector2(-100, STAND_Y)),
-		bodies.create(2, 1, Vector2(0, STAND_Y)),
-		bodies.create(3, 1, Vector2(150, STAND_Y), SlimeBodies.FREE),
-	]
-	bodies.create(4, 1, Vector2(50, STAND_Y), SlimeBodies.IN_BASKET)
-	bodies.create(5, 1, Vector2(-50, STAND_Y), SlimeBodies.SLEEPER)
-	bodies.create(0, 1, Vector2(400, STAND_Y))
-	var parked := bodies.create(1, 1, Vector2(100, STAND_Y))
-	bodies.park(parked)
-	var resting := bodies.create(2, 1, Vector2(200, STAND_Y))
-	var body := bodies.body_of(resting)
-	body["calm"] = SlimeBodies.RESTING
-	assert_true(bodies.set_body(resting, body))
-	assert_eq(bodies.calm_of(resting), SlimeBodies.RESTING)
-	assert_eq(bodies.awake_count_ahead(target, 240.0, from, me), counted.size(),
-			"two train slimes and a free one; not a basket, sleeper, far, parked or resting slime")
-	assert_eq(bodies.awake_count_ahead(target, 240.0, from, -1), counted.size(),
-			"itself sits at `from`: never ahead")
-	assert_eq(bodies.awake_count_ahead(target, 100.0, from, me), 1, "strictly within the radius: only the one at 0")
-
-
-# @test-link [[req_hopping_behavior]]
-func test_a_crowd_behind_the_slime_counts_zero() -> void:
-	var bodies := Support.bodies_on_floor()
-	bodies.auto_hops = false
-	var from := Vector2(-100, STAND_Y)
-	var target := Vector2(0, STAND_Y)
-	var me := bodies.create(0, 1, from)
-	for k in 4:
-		bodies.create(1, 1, Vector2(-160 - 50 * k, STAND_Y))
-	assert_eq(bodies.awake_count_ahead(target, 240.0, from, me), 0, "within the radius but behind it")
-	assert_eq(bodies.awake_count_ahead(Vector2(-350, STAND_Y), 240.0, from, me), 4, "ahead the other way")
 
 
 # --- Fusion: a contact counting toward fusion ------------------------------------

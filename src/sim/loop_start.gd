@@ -48,9 +48,11 @@ static func move(bodies: SlimeBodies, train: Train, slime_id: int) -> float:
 		body["centre"] = body["centre"] + shift
 		body["supported"] = false
 		bodies.set_body(slime_id, body)
-		# A resting holder (D145) keeps its calm through set_body and is no
-		# state change: woken here, or it would hang at the start as a wall
-		# once track() below ends its hold.
+		# A resting train slime (a holder, D145, or one resting by contact,
+		# D147) keeps its calm through set_body and is no state change:
+		# woken here, or it would hang at the start as a wall once track()
+		# below ends its hold (the Train would wake one resting by contact
+		# on its next steer, a tick late).
 		bodies.wake(slime_id)
 	bodies.set_state(slime_id, SlimeBodies.TRAIN)
 	bodies.set_hop_held(slime_id, false)

@@ -920,8 +920,10 @@ route is pulled towards `SLIDE_SPEED` (360 px/s) by a fifth each tick. The
 real slide comes with the level art.
 
 **The hold (chunk 22e, D145; numbers proposed, calibrated from the logs,
-O107).** When a train slime's hop is due and it stands on something,
-`train.steer(bodies, dt, tick, fusion)` makes two checks first. The crowd
+O107; in `TrainHold`, `src/sim/train_hold.gd`, since chunk 22f: a helper
+the Train owns, sharing its records).** When a train slime's hop is due and
+it stands on something, `train.steer(bodies, dt, tick, fusion)` makes two
+checks first (`TrainHold.holds`). The crowd
 check fails when more than `HOLD_CROWD` (30) Physics slimes out of a
 basket (`SlimeBodies.awake_count_ahead`: calm ACTIVE, not sleepers, not in
 a basket, not itself, any species) have their centres within
@@ -932,15 +934,17 @@ loop, comes within its radius plus the rearmost holder ahead's
 (`SlimeBodies.radius_of`, the rest ring's) plus `JAM_GAP` (24 px) of that
 holder, or past it: it stops short of a queue instead of landing on it. If
 either fails it **holds** where it stands: its record's `"hold"` is the
-tick the hold began, its hop timer is kept at `HOLD_TIMER_SECONDS` (0.25 s)
-at least without a draw (as the dip nudge does), and it isn't aimed. It
+tick the hold began, its hop timer is kept at `HOLD_TIMER_SECONDS` (0.1 s
+since 22f, 0.25 s in 22e) at least without a draw (as the dip nudge does),
+and it isn't aimed. It
 checks again every `HOLD_RECHECK_TICKS` (30, 0.5 s) from the hold's start;
 when both pass, or at `HOLD_CAP_TICKS` (300, 5 s) whatever they say, the
 hold ends: a resting holder is woken (only it), its timer is set to hop
-this tick and it is aimed as usual (one draw per hop, as before). Known
-edge case, left to chunk 22f (which changes the cap): that zero overrides a
-dip nudge's pin set on the tick before (`Fusion._nudge`), so a holder
-waiting on a dip's floor for a partner hops when its hold ends. The hold
+this tick and it is aimed as usual (one draw per hop, as before), unless
+a dip nudge pinned it (D147 (7), since 22f): a timer above the floor was
+raised by `Fusion._nudge` on the tick before, and the pin wins, the slime
+hops when it runs out (its due hop is checked again then, as any slime's).
+The hold
 also ends when the slime is parked, leaves the train (a call, bedtime),
 is moved to the start (stall or stuck: `track()` gives a fresh record) or
 reaches a slide; split parts keep their parent's hold (proposed). A holder
@@ -5861,6 +5865,510 @@ The fixtures: `stress-moving`, `s3-basket-59of60`, `gate2-open`, `fresh`.
 Each run logs to `build/perf/` (git-ignored). The hash command runs once
 per fixture, with `--run-ticks=600` and `2400`. Labels off, one Godot
 process at a time.
+
+## Chunk 22f: the hold, second round
+
+Build plan chunk 22f, D147 (amending D145 and D146), after chunk 22e
+(`req_hopping_behavior`, `rule_dip_may_nudge_fusion`). The measurements,
+the done-when and the known issues are in
+[the perf report](../perf/2026-10-01-chunk-22f.md). The first four
+subsections say how the hold works now; the steps after them are the
+build's history, and where they differ the summary is current
+(`HOLD_OCCUPANCY` 0.5 to 0.7, the guard's waiting slimes: part 2).
+
+### How the hold works now
+
+Code: `src/sim/train_hold.gd` (`TrainHold`, owned by the Train),
+`train_queues.gd` (queues, fronts, the snapshot), `train.gd` (`steer`
+calls it), `slime_bodies.gd` (the corridor scan, on the ground, the wake up
+the stack), `fusion.gd` (the dip wait), `celebration_hops.gd`,
+`src/slimes/slime_renderer.gd` (the bounce).
+
+- **The hop corridor.** When a train slime's hop is due and it stands on
+  something, `TrainHold.holds` runs `check()`: an oriented box from its
+  centre to its hop's target plus 100 px, 75 px either side. Every slime
+  whose centre is in it counts, resting slimes and holders too, but the
+  slime itself, parked slimes, slimes in a basket and sleepers. **The
+  crowd check** fails when the counted area (π · `radius_of`², summed)
+  over the box's is above `HOLD_OCCUPANCY` (0.7). **The holder rule** fails
+  for a holder anywhere in the box, the 100 px past the landing point
+  included, at any occupancy. Either fails: the slime holds where it
+  stands, its hop timer kept at the floor (0.1 s), with no draw.
+- **The stack zone.** A holder whose centre projects onto the hop line
+  less than the two radii from the slime's centre (beside it, above or
+  below) doesn't trigger the holder rule; it still counts toward the
+  occupancy. Two stacked train slimes never hold because of each other.
+- **The snapshot.** `Train.steer` first calls `TrainHold.begin_tick`: the
+  holders (`_holders`) and the holder-like slimes (holders plus train
+  slimes resting by contact, `_holder_like`, read by the holder rule) as
+  they are at the tick's start. A hold started or ended this tick is seen
+  by the others from the next one, whatever the steering order.
+- **Checks and periods.** A holder checks again every 30 ticks, the first
+  at 30 plus a phase (0 to 29, drawn once per hold), and at its period's
+  end: 300 ticks plus an extra of 0 to 60, drawn when the period begins.
+  Still blocked at a period's end, it holds on for a new period: **no
+  forced hop**. A hold ends at a check where both pass (a clear end), by
+  the guard, or otherwise (a slide, parking, a call, bedtime, a stall or
+  stuck move). At a clear end **the dip nudge's pin wins**: a timer above
+  the floor is kept and the slime hops when it runs out.
+- **Derived streams.** The extra and the phase come from `hold:<id>:<p>`
+  (p the tick the period began), derived from the master seed
+  (`Rng.derive`), no draw from any other stream. The schedule is a pure
+  function of (seed, id, the saved `train.hold`, tick): rebuilt after a
+  load, no save key added (format 1); cached in `_periods`, not state.
+- **The hold guard.** Each tick, after the snapshot and before any slime
+  decides: when at least one train slime holds, every simulated train
+  slime is holding, resting, `held` or pinned by the dip nudge
+  (`TrainHold.dip_pinned`), and the latest hold start is 240 ticks old or
+  more, the front-most holder (the longest gap to the next train slime
+  ahead) is released and hops that tick, crowd or not. One release per
+  firing. The stall net is unchanged and hold time counts toward it
+  (O110's default).
+- **The dip wait** (part 2): a slime on a dip's floor waits for a holding
+  partner directly behind it at most `DIP_WAIT_TICKS` (5 s, from its last
+  progress), not for ever (`Fusion._gathering`).
+- **Rest by contact.** `TrainHold.set_rest`, for every simulated train
+  slime each steer: one that isn't holding, isn't on a slide and whose
+  hop isn't due may rest while it touches (radii + 2 px) a holder of the
+  snapshot that is ahead of it along the loop or in its stack zone (taken
+  along the loop's tangent), unless a contact counts toward fusion. The
+  Train wakes it when no such holder touches it or its hop comes due; a
+  holder hopping away wakes it by the local wake.
+- **On the ground.** `SlimeBodies.on_ground`, derived by the solver every
+  tick (not in the dump nor the saves): terrain facing up, or a resting
+  slime below. A may-rest train slime rests only on the ground. Basket and
+  bedtime piles are unchanged.
+- **The wake up the stack.** A slime that wakes wakes the resting train
+  slimes resting on it, up the stack. Scoped to resting train slimes: a
+  basket or bedtime pile never wakes by it, a sleeper never changes
+  (basket 3's drain: still 0 whole-pile wakes, median 3 and max 9 slimes
+  woken a tick).
+- **The celebration** neither wakes nor hops a train slime on screen that
+  holds or rests; it gets a drawing-only bounce, two 16 px arcs of 30
+  ticks (not saved, not hashed).
+- **For probes and tests:** `Train.hold()` reads the Train's `TrainHold`.
+  `Train.inherit(parts, bodies)` now takes the bodies (a holder's split
+  parts get the floor timer). **22e's committed probes**
+  (`docs/perf/2026-10-01-chunk-22e/queue-probe/queue_probe.gd`,
+  `sweep/probe_seed.gd`, `sweep/probe_calib.gd`) call the one-argument
+  form and fail if re-run.
+
+### The hold's constants
+
+| Constant | Value | What it is | Status |
+|---|---|---|---|
+| `TrainHold.CORRIDOR_PAST` | 100 px | How far the corridor reaches past the landing point | the user's (D147) |
+| `TrainHold.CORRIDOR_HALF_WIDTH` | 75 px | The corridor's half width | the user's (D147) |
+| `TrainHold.HOLD_OCCUPANCY` | 0.7 | Above it the crowd check fails (D147 said 0.5; part 2's sweep) | proposed |
+| `TrainHold.HOLD_RECHECK_TICKS` | 30 (0.5 s) | A holder's re-check, from a phase of 0 to 29 | proposed |
+| `TrainHold.HOLD_CAP_TICKS` | 300 (5 s) | A period's base length | the user's |
+| `TrainHold.HOLD_EXTRA_MAX` | 60 (1 s) | A period's extra, 0 to this, uniform | proposed |
+| `TrainHold.HOLD_GUARD_TICKS` | 240 (4 s) | The whole train's wait before the guard releases a holder | proposed |
+| `TrainHold.HOLD_TIMER_SECONDS` | 0.1 s | The floor a holder's hop timer is kept at (22e: 0.25 s) | proposed |
+| `TrainHold.PIN_MARGIN` | 0.000001 s | A timer this far above the floor reads as pinned | implementation |
+| `TrainHold.CONTACT_CELL` | 80 px | The holders' cells for rest by contact | implementation |
+| `TrainQueues.TOUCH_GAP` | 2 px | Touching: centres within the two radii plus this (D143's) | as D143 |
+| `TrainQueues.QUEUE_MIN` | 5 | The smallest touching queue the back-held count reads | proposed |
+| `Fusion.DIP_WAIT_TICKS` | 300 (5 s) | Now also the longest wait for a holding partner directly behind | proposed (part 2) |
+| `CelebrationHops.BOUNCE_HEIGHT` | 16 px | The drawn bounce's arc height | proposed |
+| `CelebrationHops.BOUNCE_ARC_TICKS` | 30 | Each of the two arcs' length | proposed |
+
+### The hold's debug counters
+
+Debug only, read only: no draw, nothing in the dump, the saves or the
+hash (detail in "Step 1" below).
+
+- **The debug bar:** ": hold n", the train slimes holding. **Corridors**
+  (a toggle on the bar, off by default) outlines the seen train slimes'
+  corridors, red while holding, green while free (`DebugCorridors`).
+- **The PERF line**, after `short_hops`: the snapshot (`holding`,
+  `holding_resting`, `contact_resting`, `queue_back`, `queue_back_held`),
+  then the window's counters (`hold_ends_clear`, `hold_ends_cap`,
+  `guard_releases`, `hold_ends_other`, `front_hops`, `queue_hops`,
+  `holder_holds`, `crowd_holds`, `crowded_hops`). Under the rules now,
+  `hold_ends_cap` and `crowded_hops` are 0 by construction;
+  `holder_holds` counts the holds the holder rule starts at or below the
+  threshold, a hold both start is in `crowd_holds`.
+- **`tools/android/perf_summary.py`** prints their min, mean and max and
+  their shares (ends, starts, front, queue and crowded hops, back held).
+
+### The probes: how to run them
+
+In `docs/perf/2026-10-01-chunk-22f/probe/` (its README has the columns),
+from the repository root, one Godot process at a time:
+
+```sh
+P=docs/perf/2026-10-01-chunk-22f/probe
+godot --headless --path . -s $P/hold_probe.gd -- \
+    --fixture=stress-moving --seed=1 --ticks=2400 --out=$P/runs/<label>/stress-moving-seed1.csv
+godot --headless --no-header -- --test-mode --level=test --fixture=stress-moving --seed=1 --run-ticks=2400 | grep '^STATE'
+python3 $P/hold_analyze.py $P/runs/<label>/*-seed?.csv
+godot --headless --path . -s $P/thru.gd -- --fixture=stress-moving --seed=1 --ticks=10000
+```
+
+- **`hold_probe.gd`** replicates `Simulation.step()` and `Train.steer()`
+  call for call and writes a row per hop decision; its `RESULT` hash must
+  equal the plain run's `STATE` hash. **It doesn't for `stress-moving`
+  since part 2 or step 5** (`s3-basket-59of60` still matches): fix it
+  before trusting its `stress-moving` numbers.
+- **`thru.gd`** runs the game's own step and prints a `THRU_WIN` row per
+  600 ticks (crossings of 19,000 and 22,000 px along the loop, stall and
+  stuck moves, hops, the bowl's back half) and a `THRU_TOT` line
+  (`stall=`, `stuck=`, `hops=`, `guard=`, `first_stall=`).
+
+### Step 0: 22e's hand-overs
+
+- **The hold moved** out of `src/sim/train.gd` (417 effective lines, over
+  CODING_RULE's 400) into `TrainHold` (`src/sim/train_hold.gd`), a
+  helper the Train owns and gives its records dictionary (shared, not
+  copied) and, per call, the loop's length. It has the hold's constants
+  (`TrainHold.HOLD_CROWD`, `HOLD_CROWD_RADIUS`, `JAM_GAP`,
+  `HOLD_RECHECK_TICKS`, `HOLD_CAP_TICKS`, `HOLD_TIMER_SECONDS`; no aliases
+  left on `Train`), `holds()` (start, re-check, cap, end), `keep_timer()`
+  (the floor), `jammed()` (the jam check, public for a diagnostic probe)
+  and `end_hold()`. `Train` keeps `is_holding()`, `hold_began_at()`,
+  `steer()` and `_steer_one()`, which call it. Same 17 fixture hashes at
+  600 and 2400 ticks.
+- **The pin wins at a hold's end** (D147 (7)). The hold's end set the hop
+  timer to 0, overriding a dip nudge's pin. Now it sets it to 0 only when
+  the timer is at the hold's floor (`HOLD_TIMER_SECONDS`, plus
+  `PIN_MARGIN` for a saved timer's rounding); above it, a nudge pinned it,
+  so it is left and the slime hops when it runs out. The pin is seen on the
+  tick after it is set, not "the same tick" as D147 words it:
+  `Simulation.step` runs `train.steer` before the bodies tick and
+  `fusion.step` after, so a pin set on tick T meets the hold's end on
+  T + 1. Read from the hop timer, saved state: a save and reload keeps it.
+- **The floor went from 0.25 s to 0.1 s** (proposed): at 0.25 s it was
+  the pin's own value (`Fusion.DIP_HOLD_SECONDS`), so the timer couldn't
+  tell a pin from the floor. 0.1 s is still above `steer()`'s "due" (1.5
+  ticks, 0.025 s), so a holder's hop never fires while it holds. This step
+  changes `stress-moving` and `s3-basket-59of60`'s hashes (holders' timer
+  values), at 600 and 2400 ticks; the 15 others are identical.
+- **A slide ending a hold** gets its own test (stops holding, is woken,
+  is carried: held from hopping, its speed pulled toward `SLIDE_SPEED`).
+- **`SlimeBodies._rest()` left as is**: its per-tick reset of an active
+  slime that may not rest (`still_ticks` 0, `rest_anchor` its centre) is
+  read the first tick it may rest, so skipping it changes when it rests,
+  and it is two array stores beside the `_can_rest` call.
+
+### Step 1, the hold counters
+
+D147 (1) and (8)'s proxies, debug only and read only: no draw from any
+`Rng` stream, nothing in `dump()`, the saves or the state hash (the 17
+fixture hashes at 600 and 2400 ticks are step 0's). Shared words:
+*simulated train slime*: a train slime, not parked. *Touching*: D143's by
+distance, centres within the two `radius_of` plus 2 px
+(`TrainQueues.TOUCH_GAP`, the solver's skin). *Ahead along the loop*: by
+the Train's distances, the forward gap (laps aside, it wraps) above 0 and
+below half the loop; at the same distance the lower id is ahead
+(proposed). *Touching queue*: train slimes consecutive along the loop, each
+touching the next, across the loop's end too; its front is its member
+furthest along; a lone slime is its own front. Only simulated train slimes
+take part in queues, fronts and queue hops (proposed: parking ends a hold).
+
+- **The counters** (`TrainHold`, cumulative, `Train.hold_counters()`
+  reads them by `TrainHold.COUNTERS`):
+  - `hold_ends_clear`: holds ended at a re-check with both checks passing;
+  - `hold_ends_cap`: holds ended by the cap (`HOLD_CAP_TICKS`);
+  - `guard_releases`: holds ended by the hold guard; 0 until it is built;
+  - `hold_ends_other`: holds ended otherwise: a slide (`end_other`),
+    parking, no longer a train slime (a call, bedtime) or gone (`drop`,
+    from `steer` and `follow`), a stall or stuck move (`drop` from
+    `track`). A record restored over a holding one (a gate opening,
+    `FrontierSets`) ends none: `restore_record` drops the old record
+    first;
+  - `holder_holds`, `crowd_holds`: holds started with the crowd check
+    passing (today the jam check started them) and failing; together,
+    every hold started (a split part's inherited hold is no start, so
+    ends can outnumber starts slightly);
+  - `crowded_hops`: train hops taken while the crowd check would fail.
+    Checked at the decision to hop: at the cap the crowd check runs once
+    more (read only); a clear end and a due slime's hop already passed it.
+    Counted when the hop fires that tick (the id in `train_hopped` at
+    `follow`), so a pinned or unsupported slime that hops later isn't;
+  - `front_hops`: train hops taken by the front of their touching queue
+    (no simulated train slime ahead touches it, `TrainQueues.is_front`);
+  - `queue_hops`: train hops taken while the nearest simulated train slime
+    ahead within the hop's reach (`Train.hop_reach`) holds or rests (at
+    the same distance, any of them; `TrainQueues.waits_behind`).
+  The three hop kinds are counted at `follow`'s end (`TrainHold.count_hops`),
+  after every progress is re-derived, from the centres after the take-off
+  tick. O(n) per hop.
+- **The snapshot** (`Train.hold_snapshot()`, `TrainQueues.snapshot`, on
+  demand): `holding` (train slimes holding), `holding_resting` (of them,
+  calm RESTING), `contact_resting` (train slimes calm RESTING, not
+  holding: 0 until rest by contact), `queue_back` (in every touching queue
+  of 5 or more simulated train slimes, the members behind its front),
+  `queue_back_held` (of them, holding or resting). O(n log n).
+- **The debug bar** gains ": hold n" (`DebugCounts.HOLDING`, the
+  snapshot's `holding`): "Physics a : on screen b : in range c : parked d
+  : hold n".
+- **The PERF line**, after `short_hops`: `holding holding_resting
+  contact_resting queue_back queue_back_held` (at the line), then
+  `hold_ends_clear hold_ends_cap guard_releases hold_ends_other front_hops
+  queue_hops holder_holds crowd_holds crowded_hops` (the window's, taken
+  frame by frame and reset like the hops), then `bodies` on as before.
+- **`tools/android/perf_summary.py`** reads them (older logs without them
+  still parse): min, mean and max of the snapshot; totals and shares of
+  the counters: each hold end over all ends, `holder_holds` over all
+  starts, front, queue and crowded hops over the hops of the same lines,
+  and the back-held share, sum(`queue_back_held`) / sum(`queue_back`).
+
+### Step 3, the hop corridor
+
+D147 (4): the hop corridor replaces 22e's crowd check (the 240 px half
+disc, `HOLD_CROWD` 30) and its jam check (`JAM_GAP` 24 px, `jammed()`),
+all removed, with `SlimeBodies.awake_count_ahead` and its tests.
+
+- **The corridor** (`SlimeBodies.corridor_scan`, read only, a scan over
+  the slimes from the exact centres, not the stale pair grid): an oriented
+  box from the hopping slime's centre to its hop's target, extended
+  `TrainHold.CORRIDOR_PAST` (100 px) past it, `CORRIDOR_HALF_WIDTH`
+  (75 px) either side of the line, edges included. **Who counts:** every
+  slime with its centre in it, resting slimes and holders too, any species,
+  but the hopper, parked slimes, slimes in a basket and sleepers.
+  `crowd_count()` is unchanged (ACTIVE only, for Physics).
+- **The crowd check:** the occupancy, the counted slimes' summed area
+  (`PI * radius_of²`) over the box's ((hop length + 100) × 150,
+  `TrainHold.corridor_area`), above `HOLD_OCCUPANCY` (0.5, from the
+  diagnostic's calibration; 0.45 the fallback; 0.7 since part 2) fails it.
+- **The holder rule:** a holder anywhere in the corridor, the 100 px past
+  the landing point included, fails it at any occupancy, except a holder in
+  the hopper's **stack zone**: its centre projects onto the hop line, from
+  the hopper's centre, less than the two `radius_of` apart. A stack-zone
+  holder still counts toward the occupancy. `TrainHold.check()` returns
+  `CROWDED` and/or `HOLDER_AHEAD` (0 when both pass) and keeps
+  `last_occupancy` (debug).
+- **The snapshot:** built. `Train.steer` first calls
+  `TrainHold.begin_tick()`, which records the holders at the start of the
+  tick (a dictionary of ids, rebuilt every tick, not state); the holder
+  rule reads it, not the records as the tick goes on, so a hold started or
+  ended this tick is seen by the others only from the next tick, whatever
+  the steering order. Who counts as a holder is one function,
+  `TrainHold._is_holder_like()` (a simulated train slime holding; D147
+  5 (a)'s train slime resting by contact goes there when built).
+- **Unchanged for now:** the re-check every `HOLD_RECHECK_TICKS`, the cap
+  at `HOLD_CAP_TICKS` (step 4 changes it and adds the guard), the floor,
+  the pin, the ends. Counters: `holder_holds` = holds the holder rule
+  started at an occupancy at or below the threshold, `crowd_holds` = holds
+  started above it, `crowded_hops` = hops taken above it (at the cap).
+- **The debug overlay:** a **Corridors** toggle on the debug bar (off by
+  default; debug builds only) shows `DebugCorridors`
+  (`src/debug/debug_corridors.gd`): the corridor of every train slime that
+  gets a debug label (those that can be seen), outlined, red while it
+  holds, green while free. Read only.
+- **Hashes:** at 600 and 2400 ticks, `stress-moving` and
+  `s3-basket-59of60` change (the fixtures where slimes hold); the 15
+  others are identical. The step-2 probe
+  (`docs/perf/2026-10-01-chunk-22f/probe/`) follows the new hold (it calls
+  `begin_tick` as `steer` does; its corridor columns come from
+  `TrainHold.check`, 22e's disc and jam are computed inside it) and its
+  hash still equals the plain run's.
+
+### Step 4, the period, the phase and the hold guard
+
+D147 (2) and (3), O109's and O110's defaults (proposed). All in
+`TrainHold` (`src/sim/train_hold.gd`); `Train.steer` gains one call.
+
+- **The period:** a hold's period is `HOLD_CAP_TICKS` (300) plus an extra
+  of 0 to `HOLD_EXTRA_MAX` (60) ticks, uniform, whole, drawn when the
+  period begins. At its end the checks run again; still blocked (the crowd
+  check or the holder rule), the slime holds on and a new period begins at
+  that tick with a fresh extra. **No forced hop**, for a crowd hold and a
+  holder-only hold alike: `hold_ends_cap` and `crowded_hops` stay 0 by
+  construction (both kept for the PERF line; the crowded-hop bookkeeping
+  is gone). A hold ends at a check where both pass (`hold_ends_clear`), by
+  the guard, or by the other ends.
+- **The re-check phase:** re-checks every `HOLD_RECHECK_TICKS` (30), the
+  first 30 plus a phase (0 to 29, drawn once per hold) after the hold
+  began; a period's end is a check too. `TrainHold.check_at(bodies, id,
+  tick)` answers `NO_CHECK`, `RECHECK` or `PERIOD_END`;
+  `period_at(bodies, id, tick)` and `phase_of(bodies, id)` read the
+  schedule (tests and the probe).
+- **The streams:** `hold:<id>:<p>`, p the tick the period began (the
+  first period's p is the hold's start), derived from the master seed
+  through `SlimeBodies.derive_stream(name)` (`Rng.derive`: no draw from the
+  master nor from any `slime:<id>` stream). Its first draw is that
+  period's extra; the first period's second draw is the phase. Period k + 1
+  begins at period k's start + 300 + its extra, so the schedule is a pure
+  function of (seed, id, hold start, tick): **rebuilt after a load from the
+  saved `train.hold` alone, no save key added** (format 1 unchanged). It is
+  computed lazily and cached in `TrainHold._periods` (not state; emptied
+  when a hold ends or a record is restored).
+- **The hold guard** (`TrainHold.guard`, `HOLD_GUARD_TICKS` 240):
+  `Train.steer` calls it right after `begin_tick()` (the holder snapshot)
+  and before any slime decides, so the released slime is still a holder in
+  this tick's snapshot for the others, like any hold ending this tick. It
+  fires when at least one simulated train slime holds, every simulated
+  train slime (train, not parked) is holding, resting or `held` (since
+  part 2, or pinned by the dip nudge), and the
+  most recent hold start is at least 240 ticks old (all read from saved
+  state). It then releases the **front-most** holder
+  (`TrainHold.front_most`: the longest gap, by the records' distances round
+  the loop, to the next train slime ahead, simulated or parked; at the same
+  distance the lower id is ahead; a tie to the lower id): its hold ends with
+  no check (woken if resting, the dip nudge's pin kept, the same path as a
+  clear end) and `holds()` lets it hop that tick. One release per firing,
+  counted in `guard_releases`.
+- **The stall:** unchanged. Hold time counts toward it: the hold never
+  touches `marked_at`, so a holder with no progress for 60 s is moved to the
+  loop's start by the stall net (tested with a train slime free to hop
+  elsewhere, so the guard can't fire first).
+- **Hashes:** at 600 and 2400 ticks only `stress-moving` and
+  `s3-basket-59of60` change (the fixtures where slimes hold); the 15
+  others, where no slime holds, are identical (the derived streams shift
+  nothing). The probe (`docs/perf/2026-10-01-chunk-22f/probe/hold_probe.gd`)
+  mirrors the guard call, picks its holder decisions with `check_at`
+  (`check` column), marks guard releases (`guard` column, `guard_log` in
+  the totals) and counts the period-end checks; its hash equals the plain
+  run's (stress-moving, seed 1, 600 ticks).
+
+### Step 5, resting: by contact, on the ground, the wake up the stack
+
+D147 5 (a) to (c), details proposed.
+
+- **Rest by contact** (`TrainHold.set_rest`, called by `Train.steer` for
+  every simulated train slime after its steer, in place of the old
+  `set_may_rest` line; `TrainHold.touches_holder`): a train slime that isn't
+  holding, isn't on a slide and whose hop isn't due (`Train.DUE_TICKS`,
+  1.5 ticks, the "due" `steer` already used) gets may_rest while it touches
+  (`TrainQueues.touches`, geometric: radii + 2 px) a **holder** of the
+  start-of-tick snapshot (holding only: no chain through other slimes
+  resting by contact) that is ahead of it along the loop
+  (`TrainQueues.gap_ahead`) or in its stack zone. **The stack zone here
+  uses the loop's tangent at the slime's progress** (`Train.direction_at`
+  of its record's distance), not the direction to a hop target: no target
+  is aimed for a slime whose hop isn't due. Not while a contact counts
+  toward fusion. The Train wakes it (`SlimeBodies.wake`) on the first steer
+  where it rests with neither a hold nor such a contact (the holder parked,
+  ended its hold gently, or hopped away without a ring contact), or when
+  its hop came due. A holder hopping away while their rings touch wakes it
+  first (the local wake). At `begin_tick` each holder is listed in the
+  3 × 3 cells of 80 px (`CONTACT_CELL`) round its own, so each slime looks
+  up its own cell only.
+- **The holder rule's snapshot:** `TrainHold._is_holder_like` now also
+  takes a simulated train slime resting without holding (only rest by
+  contact lets one rest), so a slime arriving behind it holds.
+  `begin_tick` keeps two sets: `_holders` (holding: the guard, rest by
+  contact) and `_holder_like` (the holder rule; `was_holder()` reads it).
+  `TrainQueues`' `contact_resting` (RESTING, not holding) now counts them.
+- **On the ground** (`SlimeBodies.on_ground`, a per-slime byte, derived by
+  the solver every tick like `supported`, not in `dump()` nor in
+  `body_of()`/saves; `on_ground_of()`): terrain facing up (the terrain
+  support test), or the slime-on-slime support test against a RESTING
+  slime. `_can_rest` requires it for a may-rest train slime only, so an
+  off-ground holder counts no still ticks and joins no group: the slimes
+  under it rest first, then it stands on resting slimes and follows.
+  Basket and bedtime piles are unchanged.
+- **The wake up the stack** (`SlimeBodies._wake_up_stack`, from
+  `_wake_at` whenever a slime actually wakes): every **resting train
+  slime** (a slime resting through may_rest) whose centre is within the two
+  ring radii + 2 px and above the woken one by the support test wakes too,
+  recursively. **Scoped to resting train slimes**, so a basket or bedtime
+  pile never wakes by it (no whole-pile wake back) and a sleeper (a state)
+  never changes. The scan reads a small lazily rebuilt list of the
+  resting train slimes' indices (`_stack`, cleared when a slime starts
+  resting, a body is put back or a slime is removed). A woken slime's
+  `on_ground` is 0 until the next solve.
+- **Hashes:** at 600 and 2400 ticks only `stress-moving` changes (its
+  holders and the slimes resting by contact with them); the 16 others are
+  identical, `s3-basket-59of60` included (no train slime holds in it at
+  seed 909). **The basket check:** 22e's uninstrumented probe
+  (`docs/perf/2026-10-01-chunk-22e/probes/probe_pile_wakes_after.gd`,
+  `s3-basket-59of60`, seed 1, 2400 ticks) gives exactly 22e's numbers:
+  0 whole-pile wakes, basket wakes median 3 and max 9 per tick (67
+  events, 180 basket slimes woken).
+- **Tests:** `tests/unit/test_slime_rest_ground.gd` (on the ground, the
+  wake up the stack, its scope) and `tests/unit/test_train_rest_by_contact.gd`
+  (rest by contact ahead, not behind, on and under a holder in the stack
+  zone, the two wakes, the holder rule, fusion).
+
+### Step 6, the celebration spares holders and resting train slimes
+
+D147 (6), proposed.
+
+- **No hop, no wake** (`CelebrationHops.begin`): a train slime on screen
+  that holds its hop (`Train.is_holding`, resting or awake) or rests (a
+  resting holder, or a train slime resting by contact) is left out of the
+  physical double hop and is no longer woken (22e's wake at the burst's
+  start is gone). Free slimes and the other awake train slimes hop as
+  before. The input, the still camera and the once-per-save burst are
+  untouched.
+- **The drawn bounce: built** (it was cheap). `CelebrationHops` keeps the
+  spared ids and the burst's played ticks (counted by `step()`), not state:
+  not in `dump()`, not saved, not hashed (a reload during the burst drops
+  the bounce). `lift_of(id)` gives two arcs, `BOUNCE_HEIGHT` 16 px high,
+  `BOUNCE_ARC_TICKS` 30 each, back to back from the burst's start (the
+  double hop's timing; both numbers proposed); `bouncing()` is false after
+  them. `SlimeRenderer.celebration` (set by `main.gd` with the bodies)
+  lifts the seen spared slimes' ring, skirt and centre vertices in
+  `_draw_bodies` (`_lift_spared`), and hands the picture over every frame
+  while the bounce plays and once more at its end; with no bounce, no extra
+  work and no extra upload. About 35 lines in the renderer.
+- **Hashes:** at 600 and 2400 ticks all 17 fixtures are identical to step 5.
+- **Tests:** `test_train_hold.gd`'s 22e test (the burst wakes a resting
+  holder) is replaced by two in `test_celebration.gd`:
+  `test_the_celebration_neither_wakes_nor_hops_holders_and_resting_train_slimes`
+  and `test_the_slimes_the_celebration_spares_bounce_in_drawing_only`;
+  `test_slime_renderer.gd` gains
+  `test_a_slime_the_celebration_spares_bounces_in_the_drawing_only`.
+
+### After step 6: three small follow-ups
+
+- **`Train.hold()`**, a read-only accessor to the Train's `TrainHold`: the
+  tests and the 22f probe read the schedule and the counters through it
+  instead of the private `_hold`. Same hashes.
+- **A holder's split parts** (proposed, not intended before): a part
+  created by a split kept the hop timer it was drawn at creation, so when
+  its inherited hold ended clear, `_let_go` read that timer as a dip
+  nudge's pin and the part waited it out (up to seconds). `Train.inherit`
+  (now given the bodies) puts each new part's timer at the hold's floor
+  when the slime held: its hold ends as any holder's and it hops then. Test
+  `test_a_split_holders_parts_hop_when_their_inherited_hold_ends_clear`.
+  The 17 fixtures' hashes are unchanged (none splits a holder).
+- **`holder_holds`** already counts only the holds the holder rule starts
+  at or below the occupancy threshold (D147 (4)); a hold both checks start
+  (a crowd and a holder) is in `crowd_holds` only. Now said at the counter
+  (`TrainHold`), in `PerfLog`'s field doc and in `perf_summary.py`'s "hold
+  starts" label. Same hashes.
+
+### Part 2: the dip pin, the guard's waiting slimes, the occupancy
+
+After step 4, `stress-moving`'s bowl nearly froze: 1 to 5 crowd holds at
+its front (occupancy about 0.55, mostly train slimes climbing the exit
+slope) held some 110 holders behind them, and the guard never fired,
+because 2 to 4 bowl-floor slimes stayed pinned by the dip nudge for ever
+(and climbers were free). 10,000 ticks: 98 / 92 stall moves, 730 / 727
+stuck moves (22e: 20 / 13, 0). Done before step 5.
+
+- **A, the dip pin** (proposed): `Fusion._gathering` waited "as long as
+  it likes" for a partner directly behind, and a holder never comes. A
+  holding partner directly behind is now waited for at most
+  `DIP_WAIT_TICKS` (5 s from the slime's last progress). The guard counts
+  a dip-pinned train slime as waiting (`TrainHold.dip_pinned`: its hop
+  timer at `Fusion.DIP_HOLD_SECONDS`, saved state, no save key). Tests:
+  `test_fusion.gd`'s
+  `test_a_partner_directly_behind_that_holds_is_waited_for_5_s_at_most`,
+  `test_train_hold_period.gd`'s
+  `test_the_guard_counts_a_slime_pinned_by_the_dip_nudge_as_waiting` and
+  `test_the_guard_does_not_fire_with_a_pinned_slime_while_another_is_free_to_hop`.
+  Hashes: `stress-moving` changes, the 16 others don't.
+- **B, `HOLD_OCCUPANCY` 0.7** (proposed): swept 0.5 to 0.7 with `thru.gd`,
+  the rule "the lowest value with no stall, stuck move nor guard release
+  over 10,000 ticks; else the fewest stall moves, then the most hops". None
+  had zero stall moves; stall moves over `stress-moving`'s two seeds: 0.5
+  191 (and about 1,300 stuck moves), 0.6 121, 0.65 86, 0.7 55
+  ([the sweep](../perf/2026-10-01-chunk-22f.md#part-2)). Hashes:
+  `stress-moving` and `s3-basket-59of60` change. **The tests' crowd**
+  moved to `tests/unit/hold_crowd_support.gd`, shared by the four hold test
+  files: base slimes that don't touch fill at most about 0.56 of a
+  corridor, so it adds rows of bigger slimes on shelves;
+  `test_the_hold_tests_crowd_fills_a_corridor_above_the_threshold_and_stays_put`
+  fails loudly if a new threshold is out of its reach.
+- **Where it ends** (the final tree, 10,000 ticks): `stress-moving` 19 / 21
+  stall moves, 0 stuck, 0 guard releases (22e: 20 / 13, 0); the done-when's
+  "no freeze" is not met, nor are the front hops, the back held and the
+  short share. Full suite 1418/1418 green (960 s).
 
 ## Technical choices
 

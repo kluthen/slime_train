@@ -50,6 +50,35 @@ extends Node
 ##                        Train.hop_reach() along the loop past their take-off
 ##                        (Train.hops_taken, short_hops_taken: the perf log
 ##                        takes their new counts frame by frame, train_hops())
+##   holding, holding_resting, contact_resting, queue_back, queue_back_held
+##                        the train's holders and touching queues at the line
+##                        (Train.hold_snapshot(), TrainQueues.snapshot(); 0
+##                        without a train): train slimes holding their hop
+##                        (the bar's "hold"); of them, calm RESTING; train
+##                        slimes calm RESTING but not holding (0 until rest
+##                        by contact); in every touching queue of 5 or more
+##                        simulated train slimes (a chain consecutive along
+##                        the loop, each touching the next: centres within
+##                        the two radii + 2 px), the members behind its
+##                        front; of them, holding or resting
+##   hold_ends_clear, hold_ends_cap, guard_releases, hold_ends_other,
+##   front_hops, queue_hops, holder_holds, crowd_holds, crowded_hops
+##                        the hold's counters in the window
+##                        (Train.hold_counters(), TrainHold.COUNTERS, taken
+##                        frame by frame as the hops, hold_counters()): holds
+##                        ended at a re-check with both checks passing, by
+##                        the cap, by the hold guard (0 until it exists), and
+##                        otherwise (a slide, parking, a call, bedtime, gone,
+##                        a stall or stuck move); train hops taken by the
+##                        front of their touching queue (no simulated train
+##                        slime ahead along the loop touches it), and those
+##                        taken while the nearest simulated train slime
+##                        ahead within the hop's reach holds or rests; holds
+##                        started by the holder rule with the hop corridor's
+##                        occupancy at or below the threshold, and with it
+##                        above (a hold both checks start, a crowd and a
+##                        holder, counts there, in crowd_holds only); train
+##                        hops taken with it above (at the cap)
 ##   bodies               every slime, whatever its state
 ##   active               mean slimes that cost physics, per frame
 ##                        (SlimeBodies.crowd_count(), the same count as
@@ -160,6 +189,11 @@ var _last_tick := 0
 var _hops := 0
 var _short_hops := 0
 var _last_hops := Vector2i.ZERO
+## The hold's counters of the window and the train's totals when last read
+## (hold_counters()), one per TrainHold.COUNTERS, as the hops.
+# @spec-link [[req_platform_and_performance_targets]]
+var _period := PackedInt32Array()
+var _last_period := PackedInt32Array()
 ## Time.get_ticks_usec() at the previous frame, or -1 before the first.
 var _last_usec := -1
 ## The window's sums of take_parts(), one per PART_FIELDS.
@@ -185,6 +219,8 @@ func _ready() -> void:
 	get_tree().process_frame.connect(_on_process_frame)
 	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
 	_part_sums.resize(PART_FIELDS.size())
+	_period.resize(TrainHold.COUNTERS.size())
+	_last_period.resize(TrainHold.COUNTERS.size())
 	print(info_line())
 
 
@@ -201,13 +237,17 @@ func _process(_delta: float) -> void:
 	var sim: Simulation = game.get("simulation")
 	if sim != null:
 		var hops := train_hops(sim)
+		var period := hold_counters(sim)
 		if sim == _sim:
 			_ticks += sim.tick - _last_tick
 			_hops += hops.x - _last_hops.x
 			_short_hops += hops.y - _last_hops.y
+			for i in period.size():
+				_period[i] += period[i] - _last_period[i]
 		_sim = sim
 		_last_tick = sim.tick
 		_last_hops = hops
+		_last_period = period
 	if _last_usec < 0 or _process_start_usec < 0:
 		_last_usec = now
 		return
@@ -226,8 +266,9 @@ func _process(_delta: float) -> void:
 		print(line(Time.get_ticks_msec() / 1000.0, window_stats(_deltas),
 				tick_stats(_deltas, _frame_ticks, _frame_tick_usec, _frame_active, _frame_pairs),
 				_process_s * 1000.0 / _deltas.size(), _ticks, _hops, _short_hops, sim,
-				part_means(_part_sums, _deltas.size())))
+				part_means(_part_sums, _deltas.size()), _period))
 		_part_sums.fill(0.0)
+		_period.fill(0)
 		_deltas = PackedFloat64Array()
 		_frame_ticks = PackedInt32Array()
 		_frame_tick_usec = PackedInt64Array()
@@ -427,21 +468,28 @@ static func _nearest_rank(sorted: PackedFloat64Array, share: float) -> float:
 ## window_stats() `stats` and tick_stats() `ticking` (active and pairs
 ## included), the mean process time `process_ms_mean`, the `ticks` run, the
 ## train `hops` taken and `short_hops` landed in it, `sim`'s slime counts,
-## largest awake cluster, total slimes, camera section and zoom (zeros
-## without a simulation), and the part_means() `parts`. The fields are the
-## class doc's, in its order. Read only.
+## largest awake cluster, holders and touching queues, total slimes, camera
+## section and zoom (zeros without a simulation), the part_means() `parts`
+## and the hold's counters of the window `period` (one per
+## TrainHold.COUNTERS; empty: zeros). The fields are the class doc's, in its
+## order. Read only.
 # @spec-link [[req_platform_and_performance_targets]]
 static func line(t: float, stats: Dictionary, ticking: Dictionary, process_ms_mean: float, ticks: int,
-		hops: int, short_hops: int, sim: Simulation, parts: PackedFloat64Array) -> String:
+		hops: int, short_hops: int, sim: Simulation, parts: PackedFloat64Array,
+		period := PackedInt32Array()) -> String:
 	assert(parts.size() == PART_FIELDS.size(), "PerfLog.line: one mean per part field")
+	assert(period.is_empty() or period.size() == TrainHold.COUNTERS.size(),
+			"PerfLog.line: one count per hold counter")
 	var counts := {DebugCounts.PHYSICS: 0, DebugCounts.ON_SCREEN: 0, DebugCounts.IN_RANGE: 0,
 			DebugCounts.PARKED: 0, DebugCounts.RESTING: 0}
 	var largest_cluster := 0
 	var bodies := 0
 	var section := 0
 	var zoom := 0.0
+	var snapshot := {}
 	if sim != null:
 		counts = DebugCounts.count_slimes(sim)
+		snapshot = sim.train.hold_snapshot(sim.slimes) if sim.train != null else {}
 		largest_cluster = DebugCounts.largest_cluster(sim.slimes)
 		bodies = sim.slimes.slime_count
 		section = camera_section(sim)
@@ -450,15 +498,30 @@ static func line(t: float, stats: Dictionary, ticking: Dictionary, process_ms_me
 			+ " process_ms_mean=%.2f ticks=%d ticks_per_frame_mean=%.2f ticks_per_frame_max=%d"
 			+ " tick_ms_mean=%.2f tick_ms_frame_mean=%.2f rest_ms_mean=%.2f"
 			+ " physics=%d on_screen=%d in_range=%d parked=%d resting=%d largest_cluster=%d"
-			+ " hops=%d short_hops=%d bodies=%d"
+			+ " hops=%d short_hops=%d%s bodies=%d"
 			+ " active=%.1f pairs=%.1f"
 			+ " section=%d zoom=%.3f") % [
 			t, stats["frames"], stats["fps"], stats["p50_ms"], stats["p95_ms"], stats["max_ms"],
 			process_ms_mean, ticks, ticking["ticks_per_frame_mean"], ticking["ticks_per_frame_max"],
 			ticking["tick_ms_mean"], ticking["tick_ms_frame_mean"], ticking["rest_ms_mean"],
 			counts[DebugCounts.PHYSICS], counts[DebugCounts.ON_SCREEN], counts[DebugCounts.IN_RANGE],
-			counts[DebugCounts.PARKED], counts[DebugCounts.RESTING], largest_cluster, hops, short_hops, bodies,
+			counts[DebugCounts.PARKED], counts[DebugCounts.RESTING], largest_cluster, hops, short_hops,
+			_hold_text(snapshot, period), bodies,
 			ticking["active_mean"], ticking["pairs_mean"], section, zoom] + _part_text(parts)
+
+
+## The hold's fields of the PERF line: the snapshot `snapshot`
+## (TrainQueues.SNAPSHOT_FIELDS -> count, a field missing reads 0) and the
+## window's counters `period` (one per TrainHold.COUNTERS; empty: zeros), "
+## key=value" each, whole numbers.
+# @spec-link [[req_platform_and_performance_targets]]
+static func _hold_text(snapshot: Dictionary, period: PackedInt32Array) -> String:
+	var text := ""
+	for field in TrainQueues.SNAPSHOT_FIELDS:
+		text += " %s=%d" % [field, snapshot.get(field, 0)]
+	for i in TrainHold.COUNTERS.size():
+		text += " %s=%d" % [TrainHold.COUNTERS[i], period[i] if not period.is_empty() else 0]
+	return text
 
 
 ## The part fields of the PERF line for the means `parts` (one per
@@ -478,6 +541,20 @@ static func train_hops(sim: Simulation) -> Vector2i:
 	if sim.train == null:
 		return Vector2i.ZERO
 	return Vector2i(sim.train.hops_taken, sim.train.short_hops_taken)
+
+
+## `sim`'s hold counters so far (Train.hold_counters()), one per
+## TrainHold.COUNTERS in its order; zeros without a train (no level).
+# @spec-link [[req_platform_and_performance_targets]]
+static func hold_counters(sim: Simulation) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	out.resize(TrainHold.COUNTERS.size())
+	if sim.train == null:
+		return out
+	var counters := sim.train.hold_counters()
+	for i in TrainHold.COUNTERS.size():
+		out[i] = counters[TrainHold.COUNTERS[i]]
+	return out
 
 
 ## The section the camera is in: that of the current loop's segment (for the

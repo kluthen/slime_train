@@ -741,6 +741,7 @@ func _use_simulation(fresh: Simulation) -> void:
 	fresh.hint.world_shown(fresh.tick)
 	if slime_renderer != null:
 		slime_renderer.bodies = fresh.slimes
+		slime_renderer.celebration = fresh.frontier.hops
 	if tap_feedback != null:
 		tap_feedback.simulation = fresh
 	if frontier_view != null:

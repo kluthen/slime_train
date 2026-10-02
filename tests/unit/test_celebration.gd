@@ -4,14 +4,16 @@ extends GutTest
 ## celebration has played (the level's saved done mark), the mark stands at
 ## the start of the loop, after a reload too, and never on a level whose
 ## celebration hasn't played; when the burst begins, every awake slime on
-## screen hops twice, and nobody else hops for it; the hops still due are
-## saved and hashed.
+## screen hops twice, and nobody else hops for it, but holders and resting
+## train slimes, which it spares (no hop, no wake: a drawn bounce instead,
+## D147 (6)); the hops still due are saved and hashed.
 
 # @test-link [[req_level_completion_celebration]]
 # @test-link [[req_hopping_behavior]]
 # @test-link [[req_persistence_and_saves]]
 
 const F := preload("res://tests/unit/frontier_test_support.gd")
+const DT := Simulation.TICK_SECONDS
 
 
 ## A simulation whose only basket is full and in view, with its reward
@@ -135,3 +137,108 @@ func test_same_seed_same_hash() -> void:
 			sim.step()
 		hashes.append(sim.state_hash())
 	assert_eq(hashes[0], hashes[1])
+
+
+# --- Holders and resting train slimes (D147 (6)) -----------------------------------
+
+## A simulation on test_frontier_sets.gd's level whose celebration begins
+## at its next tick, the bodies and the frontier sets ticked alone (no steer: the holds
+## stay as set, nothing else hops), with on screen, 100 px apart or more: a
+## resting holder, an awake holder, a train slime resting by contact (resting,
+## not holding), an awake train slime that doesn't hold and a free slime.
+## Returns [sim, {name: id}].
+func _burst_with_holders() -> Array:
+	var sim := F.sim(3)
+	sim.frontier.tap_switch(sim, F.SWITCH)
+	F.slime(sim, 3, -750, SlimeBodies.IN_BASKET)
+	sim.slimes.auto_hops = false
+	var ids := {"resting_holder": sim.spawn_train_slime(Species.from_letter("A"), 1, 200.0),
+			"awake_holder": sim.spawn_train_slime(Species.from_letter("A"), 1, 300.0),
+			"by_contact": sim.spawn_train_slime(Species.from_letter("A"), 1, 950.0),
+			"awake": sim.spawn_train_slime(Species.from_letter("A"), 1, 1100.0),
+			"free": F.slime(sim, 1, -250, SlimeBodies.FREE)}
+	for name in ids:
+		assert_true(Fusion.view_rect(sim.view).has_point(sim.slimes.centre_of(ids[name])), "%s on screen" % name)
+	for slime in [ids["resting_holder"], ids["awake_holder"]]:
+		var record := sim.train.record_of(slime)
+		record["hold"] = sim.tick
+		sim.train.restore_record(slime, record)
+	for slime in [ids["resting_holder"], ids["by_contact"]]:
+		sim.slimes.set_may_rest(slime, true)
+	for i in 90:
+		sim.slimes.tick(DT)
+	assert_eq(sim.slimes.calm_of(ids["resting_holder"]), SlimeBodies.RESTING, "a resting holder")
+	assert_ne(sim.slimes.calm_of(ids["awake_holder"]), SlimeBodies.RESTING, "an awake holder")
+	assert_eq(sim.slimes.calm_of(ids["by_contact"]), SlimeBodies.RESTING, "a train slime resting, not holding")
+	assert_false(sim.train.is_holding(ids["by_contact"]))
+	F.frontier_steps(sim, F.REWARD_TICKS + 1)
+	assert_false(sim.frontier.celebration_playing(sim.tick), "the burst begins at the next tick")
+	return [sim, ids]
+
+
+## One burst tick of _burst_with_holders()'s simulation: the bodies, then the
+## frontier sets (Simulation.step's order).
+func _burst_step(sim: Simulation) -> void:
+	sim.slimes.tick(DT)
+	sim.frontier.step(sim)
+	sim.tick += 1
+
+
+# D147 (6): the burst neither wakes nor hops a holder, resting or awake, nor
+# a train slime resting by contact; an awake train slime that doesn't hold
+# and a free slime still double hop.
+# @test-link [[req_level_completion_celebration]]
+# @test-link [[req_hopping_behavior]]
+func test_the_celebration_neither_wakes_nor_hops_holders_and_resting_train_slimes() -> void:
+	var run := _burst_with_holders()
+	var sim: Simulation = run[0]
+	var ids: Dictionary = run[1]
+	var hops := {}
+	for i in F.CELEBRATION_TICKS:
+		_burst_step(sim)
+		if i == 0:
+			assert_true(sim.frontier.celebration_playing(sim.tick), "the burst began")
+			for name in ["resting_holder", "by_contact"]:
+				assert_eq(sim.slimes.calm_of(ids[name]), SlimeBodies.RESTING, "%s: not woken by its start" % name)
+		for slime_id in sim.slimes.hopped:
+			hops[slime_id] = hops.get(slime_id, 0) + 1
+	gut.p("hops %s" % hops)
+	assert_false(sim.frontier.celebration_playing(sim.tick), "the burst is over")
+	assert_eq(hops.get(ids["awake"], 0), CelebrationHops.HOPS, "an awake train slime: the double hop")
+	assert_eq(hops.get(ids["free"], 0), CelebrationHops.HOPS, "a free slime too")
+	for name in ["resting_holder", "awake_holder", "by_contact"]:
+		assert_eq(hops.get(ids[name], 0), 0, "%s: spared the hop" % name)
+	for name in ["resting_holder", "by_contact"]:
+		assert_eq(sim.slimes.calm_of(ids[name]), SlimeBodies.RESTING, "%s: resting throughout" % name)
+	assert_true(sim.train.is_holding(ids["resting_holder"]) and sim.train.is_holding(ids["awake_holder"]),
+			"the holds go on")
+
+
+# D147 (6): the slimes the burst spares bounce in drawing only
+# (CelebrationHops.lift_of: two arcs from the burst's start, timed like the
+# double hop), the others not at all; the bounce is over well inside the
+# burst, and it is no state (the dump and the hash don't see it).
+# @test-link [[req_level_completion_celebration]]
+func test_the_slimes_the_celebration_spares_bounce_in_drawing_only() -> void:
+	var run := _burst_with_holders()
+	var sim: Simulation = run[0]
+	var ids: Dictionary = run[1]
+	var hops := sim.frontier.hops
+	var arcs := CelebrationHops.HOPS * CelebrationHops.BOUNCE_ARC_TICKS
+	var highest := {}
+	var lifted_ticks := {}
+	for i in arcs + 10:
+		_burst_step(sim)
+		for name in ids:
+			var lift := hops.lift_of(ids[name])
+			highest[name] = maxf(highest.get(name, 0.0), lift)
+			lifted_ticks[name] = lifted_ticks.get(name, 0) + (1 if lift > 0.0 else 0)
+	for name in ["resting_holder", "awake_holder", "by_contact"]:
+		assert_almost_eq(highest[name], CelebrationHops.BOUNCE_HEIGHT, 0.5, "%s: lifted at the arcs' tops" % name)
+		assert_between(lifted_ticks[name], arcs - 4, arcs, "%s: for the two arcs" % name)
+	for name in ["awake", "free"]:
+		assert_eq(highest[name], 0.0, "%s hops for real, no drawn bounce" % name)
+	assert_false(hops.bouncing(), "over after its two arcs")
+	assert_true(sim.frontier.celebration_playing(sim.tick), "inside the burst")
+	var dumped := JSON.stringify(sim.dump())
+	assert_false(dumped.contains("spared") or dumped.contains("bounce"), "no state")

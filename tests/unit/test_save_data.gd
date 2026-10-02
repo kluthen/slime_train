@@ -322,7 +322,9 @@ func test_runtime_ids_must_be_given_for_all_slimes_or_none() -> void:
 
 ## The played story on the ground, its first slime (a train slime) holding
 ## since 7 ticks ago (its hold set from a record, as test_train_hold.gd does):
-## its next re-check, 23 ticks on, finds no crowd and no jam and ends it.
+## its first re-check, HOLD_RECHECK_TICKS plus its phase (under
+## HOLD_RECHECK_TICKS) after the hold began, finds its hop corridor clear
+## and ends it.
 func _with_a_holder() -> Simulation:
 	var sim := _played_on_the_ground()
 	var record := sim.train.record_of(1)
@@ -344,8 +346,8 @@ func test_a_holding_slimes_hold_round_trips_and_stays_equal_past_its_end() -> vo
 	assert_eq(reloaded.train.hold_began_at(1), sim.tick - 7, "it holds on after the load")
 	assert_eq(StateHash.canonical_json(reloaded.dump()), StateHash.canonical_json(sim.dump()))
 	assert_eq(reloaded.state_hash(), sim.state_hash())
-	sim.run(Train.HOLD_RECHECK_TICKS)
-	reloaded.run(Train.HOLD_RECHECK_TICKS)
+	sim.run(2 * TrainHold.HOLD_RECHECK_TICKS)
+	reloaded.run(2 * TrainHold.HOLD_RECHECK_TICKS)
 	assert_false(sim.train.is_holding(1), "its re-check ended the hold")
 	assert_false(reloaded.train.is_holding(1))
 	assert_eq(reloaded.state_hash(), sim.state_hash(), "equal past the re-check and the hold's end")

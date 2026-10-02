@@ -37,7 +37,10 @@ extends RefCounted
 ##   in range:  not parked (SlimeBodies.is_parked), any state;
 ##   parked:    parked, neither simulated nor touched, moved by Offscreen's
 ##              proxies;
-##   resting:   calm RESTING (a wall), any state (the PERF line's).
+##   resting:   calm RESTING (a wall), any state (the PERF line's);
+##   holding:   train slimes holding their hop, resting or not
+##              (Train.hold_snapshot()'s holding, the PERF line's too; 0
+##              without a train).
 ##
 ## The largest awake cluster (largest_cluster()): the size, in slimes, of the
 ## biggest group of Physics slimes touching each other, directly or through
@@ -54,6 +57,8 @@ const ON_SCREEN := "on_screen"
 const IN_RANGE := "in_range"
 const PARKED := "parked"
 const RESTING := "resting"
+# @spec-link [[req_platform_and_performance_targets]]
+const HOLDING := "holding"
 ## The extra distance at which two rings count as touching by distance
 ## (touching_by_distance()): the solver's own skin (SlimeBodies.TOUCH_SKIN).
 const TOUCH_GAP := SlimeBodies.TOUCH_SKIN
@@ -117,8 +122,9 @@ static func count(sim: Simulation) -> Dictionary:
 	return {"woken": woken, "available": available}
 
 
-## {PHYSICS, ON_SCREEN, IN_RANGE, PARKED, RESTING} for `sim`: its slimes'
-## counts, in one pass (see the class doc). Read only.
+## {PHYSICS, ON_SCREEN, IN_RANGE, PARKED, RESTING, HOLDING} for `sim`: its
+## slimes' counts, in one pass, and its holders (see the class doc). Read only.
+# @spec-link [[req_platform_and_performance_targets]]
 static func count_slimes(sim: Simulation) -> Dictionary:
 	var shown := Fusion.view_rect(sim.view)
 	var bodies := sim.slimes
@@ -136,8 +142,9 @@ static func count_slimes(sim: Simulation) -> Dictionary:
 			resting += 1
 		if shown.has_point(bodies.centre_of(bodies.id[s])):
 			on_screen += 1
+	var holding: int = sim.train.hold_snapshot(bodies)["holding"] if sim.train != null else 0
 	return {PHYSICS: physics, ON_SCREEN: on_screen, IN_RANGE: bodies.slime_count - parked,
-			PARKED: parked, RESTING: resting}
+			PARKED: parked, RESTING: resting, HOLDING: holding}
 
 
 ## The largest awake cluster of `bodies`: the size, in slimes, of the biggest
@@ -262,11 +269,12 @@ static func _root(parent: PackedInt32Array, i: int) -> int:
 	return root
 
 
-## The bar's text for count_slimes()'s `counts`: the four counts (not
-## Resting, the PERF line's).
+## The bar's text for count_slimes()'s `counts`: the four slime counts and
+## the holders (not Resting, the PERF line's).
+# @spec-link [[req_platform_and_performance_targets]]
 static func slimes_text(counts: Dictionary) -> String:
-	return "Physics %d : on screen %d : in range %d : parked %d" % [
-			counts[PHYSICS], counts[ON_SCREEN], counts[IN_RANGE], counts[PARKED]]
+	return "Physics %d : on screen %d : in range %d : parked %d : hold %d" % [
+			counts[PHYSICS], counts[ON_SCREEN], counts[IN_RANGE], counts[PARKED], counts[HOLDING]]
 
 
 ## The bar's text for `fps` frames per second, rounded to a whole number.
