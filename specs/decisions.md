@@ -4433,3 +4433,75 @@ stalling." Built as a small fix to chunk 22i, then a round of testing.
 D151 (4)'s "the stall net is unchanged" and D147's O110 default are
 amended by this. **Unchanged:** the cap and its numbers, the hold's checks
 and the guard, the stuck and lost nets, D150 and chunk 22h (O113 open).
+
+## D153 — A second stress fixture, `stress-dense`, and fps targets for both; chunk 22j (2026-10-02)
+The user (2026-10-02), on `stress-moving` (200 train slimes, the level's
+maximum, all in section 3's bowl, about 30 to 35 per 300 px bucket):
+"we may have to tone down stress moving test (its got hundreds of slimes
+in a setup we definitely don't want (see level design notes)). We do have
+to do a stress test, agreed, but this one ... may be too much." Then:
+"keep stress moving whose goal is not to crash and keep a minimum of
+15fps", and a new fixture at "what the rules allow + 50% or something like
+that": "stress dense: should have at minimum 30 fps." The coordinator's
+numbers, accepted: the bucket cap's 4 per 100 px (12 per 300 px bucket,
+D151) + 50 % = 6 per 100 px, 18 per bucket. "200 slimes is the maximum
+number of slimes on a level."
+
+1. **`stress-moving` stays unchanged** (its build, its hash): an **abuse
+   test**, beyond any setup the level design wants. Its target: no crash,
+   no freeze, and at least 15 fps. *Proposed reading of "no freeze":* over
+   10,000 ticks the run ends without an error and the train hops in every
+   600-tick window.
+2. **A new fixture, `stress-dense`:** the dense case the rules allow, plus
+   50 %. Its target: at least 30 fps. The user's: 200 size-1 base train
+   slimes at 6 of weight per 100 px of loop (18 per 300 px loop bucket),
+   centred on section 3's bowl, the camera on the bowl, gates 1 and 2 open
+   as in `stress-moving`. *Proposed* (the rest):
+   - **species:** each slime keeps its sleeper's species (the first slime
+     and the 199 sleepers, as `stress-moving`); not at bedtime, no session;
+     switch 3 and basket 3 as in `stress-moving` (untouched, basket 3
+     empty);
+   - **placement:** a size-1 slime is 42 px across, so 6 per 100 px can't
+     lie single file on the loop line; they stack, as `stress-moving`'s do.
+     Candidate spots as `stress-moving`'s (columns 50 px apart, stacked
+     from the ground up, lowest first), over a wider x range; each spot
+     belongs to the loop bucket of its nearest loop distance (buckets cut
+     as the bucket cap cuts them, D151 (1), with gates 1 and 2 open). The
+     centre bucket is the one holding the middle of the loop's stretch
+     through the bowl (13.5 to 15.33 screens); it takes its 18 lowest
+     spots, then the buckets behind and ahead alternately (behind first),
+     18 each, until 200 are placed (11 full buckets and 2 more, about
+     3,300 px of loop). A bucket short of spots takes what it has and the
+     fill carries on outward. No slime past switch 3: if the span would
+     reach it, the rest go behind. Slimes in stable ID order (the first
+     slime first) onto spots in fill order; each follows the loop from its
+     nearest point. Deterministic, no draw;
+   - **in the bowl:** about 110 to 120 of the 200 (the chunk records the
+     count). The user: "currently i don't expect there to be 200 slimes in
+     the bowl"; whether the total should be lower is **O114**.
+3. **Whose fps:** both targets are on the **reference phone** (S20 FE),
+   the camera on the bowl. Until it is measured there, the phone emulation
+   (`tools/perf_slow.sh --pin=main`) stands in, and the record says so.
+   *Proposed:* the target is the mean over a 62 s run; the 5th percentile
+   is reported beside it, not a gate (**O115**). With the bucket cap in
+   whatever state the build ships by default (off today); a measurement
+   round runs both.
+4. **Where they land:** the master spec's Definition of done 30 and §7
+   gain the two targets; `stress-moving` stops being "a measurement, not a
+   target" (D96's wording for it, refined). Today's phone emulation (D152's
+   round, `../docs/perf/2026-10-02-d152.md`): `stress-moving` 13.5 fps
+   cap off, `s3-basket-59of60` 25.4: neither target is expected before 5N;
+   they are checked at chunk 22's repeat, not at 22j.
+5. **Chunk 22j, the `stress-dense` fixture** (S): built with the existing
+   fixture tooling (`tools/make_fixture.gd`, a recipe and a build
+   function), no fixture-format change; its hash recorded with the
+   others'; a scripted test. **Ordered first,** then 22h, then **22k**, a
+   measurement round (the two stress fixtures and `s3-basket-59of60`, the
+   bucket cap off and on), then 19w, 5N, 22c, 22 repeated, the rest of 24,
+   the health review (proposed).
+6. **Rule 23 and the `stress-*` exception:** `stress-dense` falls under
+   level rule 23's "`stress-*` excepted" (no change to the rule).
+
+Flagged for documentalist: DoD 30's new clauses (the performance
+requirement's atom), at 22j's ATD peek. **Unchanged:** `stress-moving`,
+the bucket cap, D152, chunk 22h (O113 open).

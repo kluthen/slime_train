@@ -777,6 +777,10 @@ tests, and the technical choices made while building are in the project's
 - **Performance targets:** 60 frames per second on the reference phone in
   normal play; at least 30 on the floor phone with the level's largest
   realistic pile on one screen (a full basket plus the train, mostly still).
+  Two moving stress cases on the reference phone: at least 30 fps for the
+  dense case (200 train slimes, 6 per 100 px of loop, centred on section
+  3's bowl) and at least 15 fps, with no crash
+  and no freeze, for the abuse case (all 200 piled in the bowl).
   The 200-slime cap stays.
 - **Measured so far:** the reference phone, with 200 slimes all simulated
   and nothing else (see section 6). The floor phone still has to be bought,
@@ -952,7 +956,15 @@ never ships: O101.
 30. At least 60 fps on the reference phone in normal play, and at least 30
     fps on the floor phone with the level's largest realistic pile on one
     screen (a full basket plus the train, mostly still), both cold and after
-    5 minutes of play.
+    5 minutes of play. On the reference phone,
+    with the camera on section 3's bowl: the test level's dense moving
+    case (`stress-dense`: 200 train slimes, 6 per 100 px of loop,
+    centred on the bowl) holds at least 30 fps, and
+    its abuse case (`stress-moving`: all 200 piled in the bowl) at least
+    15 fps, with no crash and no freeze *(proposed: the mean over a 62 s
+    run, the 5th percentile reported)*. Until the reference phone is
+    measured, the slowed desktop run (`tools/perf_slow.sh --pin=main`)
+    stands in.
 31. The automated end-to-end suite on the test level passes on the Linux
     build.
 32. *Deferred, not an objective of the full MVP (D135):* a playtest with

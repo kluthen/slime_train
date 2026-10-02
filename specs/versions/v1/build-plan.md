@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v23 (chunk 22i amended: holding train slimes don't stall, the user's, D152; approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v24 (chunk 22j, the `stress-dense` fixture, first, then 22h, then 22k, a measurement round, the user's, D153; chunk 22i built, e996b8a, with D152's fix, 7d4c702; chunk 22i amended: holding train slimes don't stall, the user's, D152; approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
@@ -188,12 +188,18 @@ technology, not business behaviour:
 - **Chunks 22f** (9be1af7, the hold's second round) **and 22g**
   (6e423b7, experimental, its switch off by default) are committed; their
   as-built records aren't in the decisions log yet.
-- **Next, in this order (proposed, D140, D143, D142, D146, D147, D148, D150, D151):**
-  chunk **22i** (a cap on each loop bucket's load, 12 of weight per 300 px,
-  behind `--bucket-cap`, off by default, measured off against on; the
-  user's: "let's try the bucket cap first", D151), chunk **22h** (moves to the loop start one at a time, 0.5 to 2 s apart,
+- **Chunk 22i** (the bucket cap, behind `--bucket-cap`, off by default,
+  D151) is built (e996b8a), with D152's fix (7d4c702) and its test round
+  (84ab355, `../../../docs/perf/2026-10-02-d152.md`).
+- **Next, in this order (proposed, D140, D143, D142, D146, D147, D148, D150, D151, D153):**
+  chunk **22j** (the `stress-dense` fixture: 200 train slimes at 18 per
+  300 px loop bucket, centred on the bowl, a 30 fps target; `stress-moving`
+  kept as the abuse test, 15 fps, no crash or freeze; the user's, D153),
+  chunk **22h** (moves to the loop start one at a time, 0.5 to 2 s apart,
   to a random free spot, and no stall clock while a train slime is
-  parked; the user's, 2026-10-02, details proposed, D150), chunk **19w**
+  parked; the user's, 2026-10-02, details proposed, D150), chunk **22k**
+  (a measurement round: both stress fixtures and `s3-basket-59of60`, the
+  bucket cap off and on, D153), chunk **19w**
   (a `--wipe-save` launch flag that deletes the level saves in debug
   builds only, for automated testing only, the user's: "we may relax save
   file deletion in testing"; approved in direction, D149; and a save a
@@ -249,8 +255,10 @@ technology, not business behaviour:
 | 22d | Debug counters and the largest awake cluster (proposed, D143) | S | 22b | unit tests of the four counts and the cluster; the PERF line and its summary carry them; same hashes |
 | 22e | Cluster fixes: the local wake and the hold (done, D146, 4750f12; out of 24.3 and 24.8; the short-hop share not reduced, handed to 22f) | S to M | 22d | the blocked-hop counters first; unit tests of the hold, the jam, the cap and the local wake; the bowl's Physics count and short hops drop in the PERF lines; changed hashes listed |
 | 22f | The hold, second round (proposed, D147) | S to M | 22e | the crowd diagnostic first; the hop corridor; no hop through a crowd, the hold guard; at least 90 % of holds end clear; no freeze over 10,000 ticks; the short-hop share drops and the front of a queue takes the hops; changed hashes listed |
-| 22i | The bucket cap: a cap on each loop bucket's load, behind a switch (the user's, details proposed, D151) | S | 22g; runs next, before 22h | off: the 17 hashes unchanged; off against on, `s3-basket-59of60` and `stress-moving`: 10,000-tick stalls, stuck moves, bowl left; the 2400-tick probe with holds by reason; the bucket-load histogram; phone-emulation fps; unit tests of the loads, the full-bucket hold, the overfilled bucket, the parked edge; same hash across a save and reload |
-| 22h | Moves to the loop start one at a time, to a random free spot; no stall clock while parked (the user's, details proposed, D150) | S | 22f, 22i; runs after 22i, before 19w and 5N | `s3-basket-59of60` over 10,000 ticks: no stall move of a parked slime, no stuck move within 10 s of a landing, moves at least 30 ticks apart; unit tests of the queue, the pause, the landing spot; same hash across a save and reload mid-queue; changed hashes listed |
+| 22i | The bucket cap: a cap on each loop bucket's load, behind a switch (the user's, details proposed, D151; built, e996b8a; D152's fix, 7d4c702) | S | 22g; before 22h | off: the 17 hashes unchanged; off against on, `s3-basket-59of60` and `stress-moving`: 10,000-tick stalls, stuck moves, bowl left; the 2400-tick probe with holds by reason; the bucket-load histogram; phone-emulation fps; unit tests of the loads, the full-bucket hold, the overfilled bucket, the parked edge; same hash across a save and reload |
+| 22j | The `stress-dense` fixture (the user's, details proposed, D153) | S | 22i; runs next, before 22h | the fixture built by `tools/make_fixture.gd`, no format change; 200 train slimes, at most 18 of weight per loop bucket at load; its hash at 600 and 2400 ticks recorded with the others', the others unchanged; its scripted test; same hash across a save and reload |
+| 22h | Moves to the loop start one at a time, to a random free spot; no stall clock while parked (the user's, details proposed, D150) | S | 22f, 22i, 22j; runs after 22j, before 22k, 19w and 5N | `s3-basket-59of60` over 10,000 ticks: no stall move of a parked slime, no stuck move within 10 s of a landing, moves at least 30 ticks apart; unit tests of the queue, the pause, the landing spot; same hash across a save and reload mid-queue; changed hashes listed |
+| 22k | Measurement round: the stress fixtures and the bucket cap (D153) | S | 22h | `stress-dense`, `stress-moving`, `s3-basket-59of60`, cap off and on: 10,000-tick runs and phone-emulation fps against D153's targets; a perf report; no code |
 | 22c | Crowd detail only under load (proposed, D141) | S | 5N | the load meter's unit tests; same hashes in `always`; `auto` measured on the desktop |
 | 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
 | 24 | Playtest issues, round 2 (open list; proposed) | S per issue (24.1 may be M) | 22 repeated (after 22b, 22d, 22e, 22f and 5N, D140, D143, D146, D147) | each issue's own done-when |
@@ -266,10 +274,12 @@ remaining chunks, before 18 (D123), and chunk LD runs in parallel with it.
 TL1 ran after both, before 18 (D127; done, D129). After chunk 22, the
 order is 22b, 22d, 22e, 22f (those four done; 22g, experimental, committed
 with its switch off), 22i (the bucket cap, behind its switch, the user's:
-"let's try the bucket cap first"), 22h, 19w, 5N, 22c, 22 repeated, then
+"let's try the bucket cap first"; built), 22j (the `stress-dense`
+fixture, D153), 22h, 22k (a measurement round, D153), 19w, 5N, 22c, 22
+repeated, then
 the rest of chunk 24, the last chunk before the closing health review
-(D128, D140, D141, D143, D146, D147, D148, D150, D151, proposed; O97
-closed by D140).
+(D128, D140, D141, D143, D146, D147, D148, D150, D151, D153, proposed;
+O97 closed by D140).
 
 ## Chunks
 
@@ -1262,6 +1272,62 @@ fix to 22i, then a round of testing.
     reading); optional, one probe column with front-first on and the
     tick-start snapshot kept (D151's 22g hypothesis); the suite passes.
 
+### 22j. The `stress-dense` fixture (S, the user's, details proposed, D153)
+
+The user (2026-10-02): `stress-moving` "may be too much"; keep it as an
+abuse test ("not to crash and keep a minimum of 15fps") and add a fixture
+at "what the rules allow + 50%": "stress dense: should have at minimum 30
+fps." Runs next, before 22h. A test fixture only: no game code, no save
+format change; an ATD peek (`req_test_level_and_test_mode`, the
+performance requirement for DoD 30's new clauses, `rule_max_200_slimes_per_level`
+already on the fixture builder).
+
+- **1. The recipe:** `stress-dense` in `tools/make_fixture.gd` (a recipe
+  and a build function beside `_stress_moving`), with its
+  `.fixture.json` sidecar and save under `levels/test/fixtures/`, as
+  every fixture. Gates 1 and 2 open; the first slime and the 199
+  sleepers woken as size-1 train slimes, each its sleeper's species; not
+  at bedtime, no session; switch 3 and basket 3 untouched; the camera on
+  the bowl (`BOWL_CAMERA`).
+- **2. The placement** (D153 (2)): candidate spots as `_bowl_spots`'s
+  (columns 50 px apart, stacked from the ground up, lowest first) over a
+  wider x range; each spot in the loop bucket of its nearest loop distance
+  (the cap's buckets, gates 1 and 2 open); the centre bucket (the middle
+  of the bowl's loop stretch, 13.5 to 15.33 screens) takes its 18 lowest,
+  then behind and ahead alternately, behind first, 18 each, to 200; a
+  short bucket takes what it has; nothing past switch 3. Stable ID order
+  onto fill order. No draw.
+- **3. The record:** the count per bucket at load and the count in the
+  bowl (about 110 to 120; O114), in the fixture's description and the
+  test level README's row.
+- **Deterministic:** the same build gives the same save; the same seed
+  the same hash, also across a save and reload.
+- **Done when:**
+  - the fixture loads with 200 train slimes, every loop bucket at most 18
+    of weight at load and the filled ones at 18 (bar the last and any
+    short one), none past switch 3;
+  - its hash at 600 and 2400 ticks (seed 909) recorded with the 17
+    others', which don't change;
+  - a scripted test beside `stress-moving`'s
+    (`tests/e2e/test_fixtures_e2e.gd`, `test_fixture_scenarios_e2e.gd`):
+    it loads, runs, keeps 200 slimes and the train hops; the level bench
+    (`tools/bench_level.gd`) and `tools/perf_slow.sh` accept it;
+  - one phone-emulation run (`tools/perf_slow.sh --pin=main --seconds=62
+    stress-dense`), cap off, reported as a first reading, not a gate (the
+    targets are checked at chunk 22's repeat, after 5N); the suite passes.
+
+### 22k. Measurement round: the stress fixtures and the bucket cap (S, D153)
+
+After 22h. No code. `stress-dense`, `stress-moving` and
+`s3-basket-59of60`, seeds 1 and 2, the bucket cap off and on: the
+10,000-tick runs (`thru.gd`: stall, stuck and guard moves, hops, the bowl
+left; for `stress-moving`, a hop in every 600-tick window) and
+`tools/perf_slow.sh --pin=main --seconds=62` (fps mean and p5, tick ms)
+against D153's targets (at least 30 fps `stress-dense`, at least 15
+`stress-moving`; the emulation standing in for the S20 FE). A perf report
+in `docs/perf/` with a short reading for the user (the cap on by default?
+the user's call).
+
 ### 22h. Moves to the loop start one at a time, to a random free spot (S, proposed, D150)
 
 The user (2026-10-02), after chunk 22g's stall diagnostic
@@ -1272,7 +1338,7 @@ and the stall clock paused while a train slime is parked. "Emergency
 teleport" is the **move to the loop start** (`LoopStart.move`), shared by
 lost free slimes, stuck slimes and stalled train slimes (out of bounds
 included). Runs after 22i (the user's: "let's try the bucket cap first",
-D151), before 19w and 5N. With 22i's cap on, a landing spot is free only
+D151) and 22j (D153), before 22k, 19w and 5N. With 22i's cap on, a landing spot is free only
 if its loop bucket has room for the slime (D151 (5)).
 It changes three safety nets' rules, so it **keeps both ATD steps**. It
 must not run while another chunk edits the Train, `StuckSlimes` or
