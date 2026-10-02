@@ -245,15 +245,20 @@ One term per concept, used everywhere in the code and documents.
   sizes adding up to more than 3, or one of them not awake; so a
   same-species sleeper caught inside a train slime counts as stuck.
 - **Stalled:** a train slime whose progress along the loop hasn't
-  advanced 24 px in 60 s, on screen or off, or whose centre leaves the
+  advanced 24 px in 60 s, on screen or off (counting only the time it is
+  simulated: parked, its clock is paused, D150), or whose centre leaves the
   level's bounds, is stalled. It isn't "lost", but has the same effect:
   it is moved to the start of the loop and rides the train again, and each
   case is logged; the 60 s count starts again from the move. A slime asleep
   at bedtime is never counted as stalled. It is a safety net for play, not
   something that happens in normal play (Definition of done 1).
 - A slime moved to the start of the loop, whether lost, stuck or
-  stalled, lands on the first free spot of a short row of spots there, one
-  slime width apart (the numbers are in `tuning.md`).
+  stalled, lands at a random free spot on the loop's first stretch, inside
+  the start's split zone, never onto another slime. The moves go one at a
+  time, the next 0.5 to 2 s (random) after the last, first due first
+  moved; a slime that recovers before its turn isn't moved (D150, the
+  user's; the order, the stretch and what a waiting slime does are
+  proposed; the numbers are in `tuning.md`).
 
 **Waking**
 

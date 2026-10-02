@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v20 (approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v21 (approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
@@ -26,7 +26,8 @@ automated testing only, approved in direction, and 19w also setting aside
 a save a build can't use before the first store release, proposed, D149;
 chunk 22d done, 7437fd0; chunk 22e done, 4750f12, as-built notes in D145
 and D146: the local wake and the Physics drop met, the short-hop share
-not, handed to 22f)
+not, handed to 22f; chunk 22h, moves to the loop start one at a time to a
+random free spot and no stall clock while parked, next, D150)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -183,15 +184,18 @@ technology, not business behaviour:
   crowd check counting the train queue itself and the jam spreading holds
   backwards, which chunk 22f (D147) answers. Only `stress-moving` and
   `s3-basket-59of60` changed hash.
-- **Next, in this order (proposed, D140, D143, D142, D146, D147, D148):** chunk **19w**
+- **Chunks 22f** (9be1af7, the hold's second round) **and 22g**
+  (6e423b7, experimental, its switch off by default) are committed; their
+  as-built records aren't in the decisions log yet.
+- **Next, in this order (proposed, D140, D143, D142, D146, D147, D148, D150):**
+  chunk **22h** (moves to the loop start one at a time, 0.5 to 2 s apart,
+  to a random free spot, and no stall clock while a train slime is
+  parked; the user's, 2026-10-02, details proposed, D150), chunk **19w**
   (a `--wipe-save` launch flag that deletes the level saves in debug
   builds only, for automated testing only, the user's: "we may relax save
   file deletion in testing"; approved in direction, D149; and a save a
   build can't use set aside before the first store release, proposed,
-  D149), chunk **22f**
-  (the hold's second round: no hop through a crowd, the hold guard, the
-  crowd detection, rest by contact and on the ground, the celebration
-  sparing holders, the hold counter; proposed, D147), chunk **5N** (the
+  D149), chunk **5N** (the
   native tick, going ahead: the user's go, "ok schedule work on 5N after
   this chunk", D142; it ports 22e's and 22f's rest and wake rules), chunk **22c**
   (crowd detail only under load, proposed, D141), chunk **22 repeated** on
@@ -242,6 +246,7 @@ technology, not business behaviour:
 | 22d | Debug counters and the largest awake cluster (proposed, D143) | S | 22b | unit tests of the four counts and the cluster; the PERF line and its summary carry them; same hashes |
 | 22e | Cluster fixes: the local wake and the hold (done, D146, 4750f12; out of 24.3 and 24.8; the short-hop share not reduced, handed to 22f) | S to M | 22d | the blocked-hop counters first; unit tests of the hold, the jam, the cap and the local wake; the bowl's Physics count and short hops drop in the PERF lines; changed hashes listed |
 | 22f | The hold, second round (proposed, D147) | S to M | 22e | the crowd diagnostic first; the hop corridor; no hop through a crowd, the hold guard; at least 90 % of holds end clear; no freeze over 10,000 ticks; the short-hop share drops and the front of a queue takes the hops; changed hashes listed |
+| 22h | Moves to the loop start one at a time, to a random free spot; no stall clock while parked (the user's, details proposed, D150) | S | 22f; runs next, before 19w and 5N | `s3-basket-59of60` over 10,000 ticks: no stall move of a parked slime, no stuck move within 10 s of a landing, moves at least 30 ticks apart; unit tests of the queue, the pause, the landing spot; same hash across a save and reload mid-queue; changed hashes listed |
 | 22c | Crowd detail only under load (proposed, D141) | S | 5N | the load meter's unit tests; same hashes in `always`; `auto` measured on the desktop |
 | 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
 | 24 | Playtest issues, round 2 (open list; proposed) | S per issue (24.1 may be M) | 22 repeated (after 22b, 22d, 22e, 22f and 5N, D140, D143, D146, D147) | each issue's own done-when |
@@ -255,9 +260,10 @@ and 11 are independent of each other. Chunk 17 can start as soon as 8 is done, i
 parallel with the camera and objects work. Chunk 23 runs first among the
 remaining chunks, before 18 (D123), and chunk LD runs in parallel with it.
 TL1 ran after both, before 18 (D127; done, D129). After chunk 22, the
-order is 22b, 22d, 22e (those three done), 19w, 22f, 5N, 22c, 22 repeated, then the rest of
+order is 22b, 22d, 22e, 22f (those four done; 22g, experimental, committed
+with its switch off), 22h, 19w, 5N, 22c, 22 repeated, then the rest of
 chunk 24, the last chunk before the closing health review (D128, D140,
-D141, D143, D146, D147, D148, proposed; O97 closed by D140).
+D141, D143, D146, D147, D148, D150, proposed; O97 closed by D140).
 
 ## Chunks
 
@@ -1039,8 +1045,9 @@ body code or the Train. Every rule and number below is D147's, proposed.
   - Move the hold out of `src/sim/train.gd` (417 effective lines, over
     CODING_RULE's 400) into its own file owned by the Train, for example
     `src/sim/train_hold.gd`, its tags moved with it. Same hashes.
-  - The end of a hold no longer overrides a dip-nudge pin set on the same
-    tick: the pin wins. A unit test covers it.
+  - The end of a hold no longer overrides a dip-nudge pin set the tick
+    before (`steer()` runs before fusion's nudge; wording aligned with
+    the code, D150): the pin wins. A unit test covers it.
   - Add the missing unit test for a slide ending a hold.
 - **1. The hold counter (debug builds only, same hash):** the debug bar
   gains **": hold n"** after "Physics a : on screen b : in range c :
@@ -1169,6 +1176,74 @@ body code or the Train. Every rule and number below is D147's, proposed.
     report in `docs/perf/` is extended, or a new one written, with the
     diagnostic, the chosen detection, and the numbers before and after.
     The suite passes.
+
+### 22h. Moves to the loop start one at a time, to a random free spot (S, proposed, D150)
+
+The user (2026-10-02), after chunk 22g's stall diagnostic
+(`../../../docs/perf/2026-10-01-chunk-22g.md`, section 5): "emergency
+teleport should be randomized in position ... emergency teleport should
+have a cooldown. between 0.5s to 2s"; a global queue, one move at a time;
+and the stall clock paused while a train slime is parked. "Emergency
+teleport" is the **move to the loop start** (`LoopStart.move`), shared by
+lost free slimes, stuck slimes and stalled train slimes (out of bounds
+included). Runs next, after 22f and 22g are committed, before 19w and 5N.
+It changes three safety nets' rules, so it **keeps both ATD steps**. It
+must not run while another chunk edits the Train, `StuckSlimes` or
+`Offscreen`. Every rule and number below is D150's, proposed where it
+goes beyond the user's words.
+
+- **Atoms (preflight start):** `rule_stalled_train_slime_moved_to_start`
+  (its "on screen or off" changes), `rule_stuck_slimes_moved_to_start`,
+  `rule_left_alone_and_lost` (the move waits its turn),
+  `req_offscreen_simulation`, `req_slime_states`,
+  `req_persistence_and_saves` (to confirm no save key changes).
+- **1. The stall clock pauses while parked** (O113's default: every
+  parked train slime): each tick a followed slime is parked, its last
+  stall mark's tick moves on by one; progress at the off-screen pace
+  still marks as today; out of bounds unchanged. No new save key (the
+  record's `marked_at` carries it).
+- **2. The loop-start queue:** the nets (`Offscreen`'s lost count,
+  `Train.follow()`, `StuckSlimes.step`) only find the slimes **due**; one
+  queue step, last in `Simulation.step`, moves **one per turn**, the next
+  turn 30 to 120 ticks after the last move (the first draw of
+  `loop_start:gap:<move tick>`). Out of bounds first, then first due
+  first moved, ties by id; a slime whose reason no longer holds at its
+  turn leaves without a move and without spending the wait; a queued
+  slime carries on as it would meanwhile. A stuck pair's count keeps
+  counting while its mover waits. The debug kill tool stays immediate
+  and counts as a move. **Derived, not saved:** who is due and since when
+  from the nets' saved state, the last move's tick from the three move
+  logs; fallback, one additive key (D150, 2).
+- **3. A random free landing spot:** a distance along the loop drawn
+  uniformly in 0 to 240 px from the start, the centre lifted by the
+  slime's size; free when inside a split zone and no ring overlaps (parked
+  ones included); up to 8 draws from `loop_start:spot:<tick>`; all taken,
+  nobody moves and the head tries again on the next multiple of 30
+  ticks. Never onto another slime.
+- **Deterministic:** derived streams only; a run with no move to the
+  loop start and no parked stall keeps its hash; the same seed gives the
+  same moves and spots, also across a save and reload mid-queue.
+- **Done when:**
+  - `s3-basket-59of60`, seeds 1 and 2, 10,000 ticks: 0 stall moves of a
+    slime parked at any tick of its last 60 s; 0 stuck moves of a slime
+    within 600 ticks of landing from a move to the loop start; every two
+    moves at least 30 ticks apart; every landing free at its tick and on
+    the first 240 px of the loop. The stall and stuck counts before (87
+    and 305; 86 and 172) and after are reported, with the bowl's parked
+    line (now waiting, not drained by the stall net: not a failure);
+  - `stress-moving`: the same checks on the moves; its counts reported,
+    never targets (the user's note: a cluster of disproportionate
+    dimensions on purpose);
+  - unit tests: the parked pause and resume; one move per turn and the
+    wait from its stream; the order (out of bounds first, then first
+    due); a recovered slime leaving without a move or a wait; lost and
+    stuck slimes through the queue; the stuck count going on while its
+    mover waits; the spot (first 240 px, free, in a split zone); all 8
+    taken and the retry; the kill tool immediate; the same hash across a
+    save and reload mid-queue;
+  - records: every changed hash listed with its reason; [DoD 1]'s
+    whole-level test unchanged; a short 22h section in the perf report;
+    the suite passes.
 
 ### 22c. Crowd detail only under load (S, proposed, D141)
 

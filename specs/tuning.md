@@ -116,7 +116,7 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | A free slime's route back is near (`ROUTE_NEAR`) | within 288 px; off screen it joins its branch's route back single file, a slime's width behind the one before it; out of any branch, it heads straight for the nearest loop point within that distance; with neither near, it stays put until the lost timer moves it (see §5.3 of the master spec) | D70 |
 | Left alone (`LEFT_ALONE_TICKS`) | 600 ticks (10 s) outside the view, the screen with no margin; the count stops on screen | D10 |
 | Lost (`LOST_TICKS`) | 3600 ticks (1 min) after left alone, so 70 s off screen in all | D10 |
-| A train slime stalls (`Train.LOST_STALL_SECONDS`, `LOST_STALL_ADVANCE`, `BOUNDS_MARGIN`, `BOUNDS_TOP_MARGIN`; chunk 6's placeholder) | its progress along the loop hasn't advanced 24 px in 60 s, on screen or off; or its centre is out of the level's bounds (the terrain and the loop, plus 64 px, plus 2000 px above); it is then moved to the loop start (D121). To recheck on the first level, once real return routes exist | D118, D121 |
+| A train slime stalls (`Train.LOST_STALL_SECONDS`, `LOST_STALL_ADVANCE`, `BOUNDS_MARGIN`, `BOUNDS_TOP_MARGIN`; chunk 6's placeholder) | its progress along the loop hasn't advanced 24 px in 60 s, on screen or off; or its centre is out of the level's bounds (the terrain and the loop, plus 64 px, plus 2000 px above); it is then moved to the loop start (D121). To recheck on the first level, once real return routes exist. *From chunk 22h (D150, the user's):* the 60 s count only the ticks it is simulated; while parked its clock is paused, and resumes where it was (O113: every parked train slime, proposed) | D118, D121, D150 |
 | Dropping into a basket off screen (`ENTRY_REACH`, `SLOT_GAP`) | a parked train slime whose centre is within 64 px above an open trapdoor drops in, into the first clear slot of a grid its own width plus 4 px apart, bottom row first | D70 |
 | A slime is still (`REST_DRIFT`, `REST_TICKS`) | supported and within 1 px of its anchor for 30 ticks; the anchor is where the count started; kept for v1; measured in chunk 22 (open piles of 40 or more rest in minutes or never), revisiting it is O105 | D96, D107, D138 |
 | A pile rests | when every slime of a touching group of pile slimes (in a basket, or asleep at bedtime) is still at once; awake slimes out of a basket hop and never rest, except *(proposed, D145)* a holding train slime | D96, D145 |
@@ -182,12 +182,25 @@ All **to try**: recorded in D124, approved in D125.
 
 | Value | Start at | Source |
 |---|---|---|
-| Landing at the start of the loop (lost, stuck or stalled move) | the first free spot of 8, one slime width apart | D124, D126 |
+| Landing at the start of the loop (lost, stuck or stalled move) | the first free spot of 8, one slime width apart. *Replaced in chunk 22h (D150):* see the loop-start queue below | D124, D126, D150 |
 | Stuck and stalled logs | keep the last 64 cases each | D124 |
 | Millimetres on the desktop and in tests | converted at the reference phone's density; a phone reporting a density of 0 or less logs an error and uses the reference density too | D124 |
 | A resting thumb (about 5 s) | 300 ticks | D110, D124 |
 | Showing a gate open: the glide | a straight line at an even pace, 1.5 s, to the rail point nearest the gate's centre | D124 |
 | Celebration double hop (`CelebrationHops`: `HOPS`, `HOP_STRENGTH`) | 2 hops at 0.6 of a normal hop's strength (about 50 px high, about 0.5 s each) | ux D4, D124 |
+
+### The loop-start queue (D150, chunk 22h)
+
+The user's: one move to the loop start at a time, 0.5 to 2 s apart, to a
+random spot. The rest **proposed**.
+
+| Value | Start at | Source |
+|---|---|---|
+| Wait after a move to the loop start | 30 to 120 ticks (0.5 to 2 s, the user's), uniform, both ends included; the first draw of the derived stream `loop_start:gap:<move tick>` | D150 |
+| Queue order | out of bounds first; then first due, first moved; ties by ascending id (proposed) | D150 |
+| Landing stretch | a distance along the loop drawn uniformly in 0 to 240 px from its start, the centre lifted by the slime's size; inside a split zone (proposed) | D150 |
+| Landing draws per turn | 8, from `loop_start:spot:<tick>`; the first free one (no ring overlapping, parked ones included) is used (proposed) | D150 |
+| No free spot | nobody moves; the head tries again on the next tick that is a multiple of 30 (0.5 s) (proposed) | D150 |
 
 ### Session, wind-down, bedtime and sunrise (chunk 17)
 

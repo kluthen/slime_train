@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v42 (shipped added, save wipe amended to automated testing only, the save format before the first store release, D149, proposed; save wipe added, D148, approved in direction; holder, hold guard and hop corridor added, hold and jam amended, D147, proposed; hold and jam, D145, proposed)
+Status: draft v43 (move to the loop start and loop-start queue added, stalled amended (no clock while parked), lost reworded, D150, the user's, details proposed; shipped added, save wipe amended to automated testing only, the save format before the first store release, D149, proposed; save wipe added, D148, approved in direction; holder, hold guard and hop corridor added, hold and jam amended, D147, proposed; hold and jam, D145, proposed)
 
 ## One-liner
 
@@ -259,9 +259,11 @@ survives the app being killed.
 | lid | the part of a gate that shuts the old return route's entrance once the gate is open (D105) |
 | weight | a slime's size seen as load; what presence objects respond to |
 | left alone | a free slime off screen for more than 10 s |
-| lost | a left-alone slime not back on the loop after 1 min; teleported to the loop start |
+| lost | a left-alone slime not back on the loop after 1 min; moved to the loop start (a **move to the loop start**) |
 | stuck | two slimes that can't fuse, found inside each other for about 2 s; a state of its own, not "lost", with the same effect: the smaller one goes to the loop start (D100) |
-| stalled | a train slime whose progress along the loop hasn't advanced for 60 s, or that left the level's bounds; not "lost", but with the same effect: moved to the loop start and logged (D118, D121). The build says "lost as stalled" |
+| stalled | a train slime whose progress along the loop hasn't advanced for 60 s, or that left the level's bounds; not "lost", but with the same effect: moved to the loop start and logged (D118, D121). The build says "lost as stalled". The 60 s count only while it is simulated: parked, its clock is paused (D150, the user's) |
+| move to the loop start | *(D150, the user's "emergency teleport"; details proposed)* the one move lost, stuck and stalled slimes take: back on the train, at a random free spot on the loop's first 240 px, inside the start's split zone, never onto another slime. Taken one at a time, through the **loop-start queue** |
+| loop-start queue | *(D150, the user's; details proposed)* the slimes due a move to the loop start, waiting their turn: one move at a time, the next 0.5 to 2 s (random) after the last; first due, first moved (out of bounds first). A waiting slime carries on as it was; one that recovers before its turn leaves without a move. Not a train queue (slimes waiting single file on the loop) |
 | free slime | an awake slime attracted away from the loop, driven by physics alone until it rejoins |
 | session | one timed play period (15 min for now) |
 | level | a whole world with its own loop, sections and save file; v1 has the test level only (D134) |

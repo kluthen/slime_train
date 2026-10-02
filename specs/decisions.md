@@ -3527,9 +3527,11 @@ them (the user).
 
 **7. 22e's hand-overs, settled in 22f** (proposed).
 - **The hop timer at a hold's end:** today it is set to 0, which
-  overrides a dip-nudge pin set on the same tick. The dip nudge wins: the
-  end of a hold leaves a pin set that tick in place, and the slime hops
-  when the pin runs out. A unit test covers it.
+  overrides a dip-nudge pin set the tick before (`Simulation.step` runs
+  the Train's `steer()`, where a hold ends, before fusion's nudge, where
+  the pin is set; wording aligned with the code, D150). The dip nudge
+  wins: the end of a hold leaves a pin set the tick before in place, and
+  the slime hops when the pin runs out. A unit test covers it.
 - **A slide ending a hold** gets its unit test: a holder carried onto a
   slide stops holding, is woken if it rests, and is carried.
 - **`train.gd` is over 400 effective lines** (417, CODING_RULE's warning).
@@ -4008,3 +4010,193 @@ wipe is for automated test runs only).
 **Terminology** (`concept.md`): **shipped** added (proposed): the app
 from its first store release on. **Save wipe** amended: for automated
 test runs only.
+
+## D150 — Moves to the loop start one at a time, to a random free spot; no stall clock while parked; chunk 22h (2026-10-02)
+The user's decisions (2026-10-02), after chunk 22g's stall diagnostic
+(`../docs/perf/2026-10-01-chunk-22g.md`, section 5): "2 problems arose:
+first is easy: emergency teleport should be randomized in position.
+Second is quite easy as well: emergency teleport should have a cooldown.
+between 0.5s to 2s." To the coordinator's questions: the cooldown is a
+**global queue**, one move to the loop start at a time, the next waiting a
+random 0.5 to 2 s after each; and the stall clock is **paused while a
+train slime is parked**, resuming when it is simulated again (amends D118).
+The user's "emergency teleport" is the **move to the loop start**
+(`LoopStart.move`), the one move the three safety nets share: lost free
+slimes (D10), stuck slimes (D100) and stalled train slimes (D118, D121;
+out of bounds included). All three go through what follows; that lost
+free slimes take the same move is checked in the code (`Offscreen.lose`),
+so they are included (proposed, as the coordinator suggested). Also the
+user's: `stress-moving` is an intentional cluster of disproportionate
+dimensions, so its numbers are never targets. Proposed where it goes
+beyond the user's words. Opens O113.
+
+**What 22g measured.** In `s3-basket-59of60` over 10,000 ticks (seed 1),
+the stall net moved 87 train slimes, 64 of them at tick 3600, all
+parked; then 305 stuck moves on 61 slimes at the loop start (seed 2: 86
+and 172). Two causes:
+- **Parked slimes stalled.** Parking doesn't freeze a train slime: it
+  moves along the loop at the deterministic off-screen pace (about
+  67 px/s for a size 1), but single file: it never comes closer than the
+  two slimes' widths behind the train slime ahead of it, parked or not,
+  and waits there (`Offscreen`, chunk 15, D69). The 87 were such a line
+  in the bowl before basket 3, about 50 px apart at nearly the same
+  distance along the loop: only its front could move, and the front was
+  itself blocked by the slime ahead. A parked line can so wait more than
+  60 s, and theirs ran out together (D118: "on screen or off").
+- **Landings on one point.** `LoopStart.move` puts a slime on the first
+  free spot of 8 along the loop from its start, and on the start itself
+  when all 8 are taken. 64 moves in one tick took the 8 spots, then piled
+  the rest on one point (x 210, y 409); 2 s later they were stuck (D100),
+  moved again onto the same pile, and so on.
+
+**1. The stall clock pauses while parked (the user's; amends D118).** A
+train slime's 60 s without 24 px of progress counts only the ticks it is
+simulated. While it is parked the clock doesn't run; once simulated again
+it resumes from where it was (not from zero). Progress made while parked
+(at the off-screen pace) still counts as progress, as today. Out of
+bounds is unchanged (a parked slime outside the level's bounds is still
+stalled). *Which parked slimes (O113, proposed: every parked train
+slime, the user's wording):* the alternative pauses only a parked slime
+waiting in the single-file line. In effect the two hardly differ: a
+parked slime that isn't waiting moves at the pace, so it advances 24 px
+in well under a second and its clock never comes near 60 s; "every
+parked slime" is the simpler rule to build and test. *How, proposed:* each tick a followed slime is parked, its last
+stall mark's tick moves on by one, so the time since its last mark stays
+what it was; that tick is already in the saved train record
+(`marked_at`), so a reload resumes the same clock, no new save key.
+*Why this can't leave a train stuck for good:* a parked train slime is
+only ever held up by the train slime ahead of it; the front of any such
+line is simulated (its clock runs, the hold guard and the stall net still
+act on it) or moving. When the front gets going or is moved, the parked
+line follows. A parked line waits as long as its front does, out of
+sight. In `s3-basket-59of60` that means the bowl's parked queue no longer
+drains by the stall net at tick 3600: it waits until the crowd ahead
+moves or the view comes near (reported, not a target).
+
+**2. The loop-start queue (the user's: one at a time, 0.5 to 2 s apart).**
+- A safety net no longer moves a slime itself: it finds the slime **due**
+  a move, and the **loop-start queue** moves the slimes due, **one per
+  turn**. After each move the next turn comes **30 to 120 ticks** later
+  (0.5 to 2 s at 60 Hz, a whole number of ticks, uniform, both ends
+  included). With no move in the last 120 ticks, the head moves at once.
+- **Order (proposed): first due, first moved** (FIFO), by the tick each
+  slime became due, ties by ascending id. A slime **out of the level's
+  bounds** goes first (it is outside the level, falling), ascending id
+  among several. A slime due for two reasons waits once, at its earliest;
+  it is logged under that reason (on a tie: out of bounds, stalled,
+  stuck, lost).
+- **While it waits (proposed):** a queued slime keeps its state and
+  carries on as it would: simulated or parked, holding, resting, hopping.
+  Nothing holds it in place. At its turn its reason is checked again: a
+  stalled slime that has since advanced 24 px, a stuck pair that has come
+  apart, a lost slime back on screen or no longer free, a slime back in
+  bounds, a bedtime-asleep slime: it leaves the queue **without a move**,
+  and the turn passes to the next one in line on the same tick (no wait
+  is spent on it). Each net's log entry is written at the move, as today
+  (its tick is the move's tick).
+- **The debug overlay's kill tool** (debug builds only) keeps its
+  immediate move (`Offscreen.lose`), outside the queue; it counts as a
+  move for the next turn's wait (proposed).
+- **Derived, not saved (proposed; no save change).** The queue is never
+  stored: at each turn it is rebuilt from the nets' own saved state.
+  - *Who is due, and since when:* stalled, from the train record's last
+    mark (its tick plus 60 s); lost, from the off-screen count
+    (`offscreen.away`: its start plus 10 s plus 1 min); stuck, from the
+    pair's saved count, which now **keeps counting while its mover
+    waits** (it reached 4 checks that many checks ago; today it stops
+    there because the move is immediate); out of bounds, from the centre.
+  - *When the next turn is:* the last move's tick is the latest tick in
+    the three move logs (`train.stalled`, the stuck log's entries with
+    `moved`, `offscreen.lost`), all saved today; the wait after it is the
+    first draw of the derived stream `loop_start:gap:<that tick>`. A last
+    move later than the current tick (an old fixture) counts as none.
+  - So a save and reload mid-queue moves the same slimes on the same
+    ticks to the same spots as an unbroken run. If deriving proves
+    awkward in the build, the fallback is one additive key (for example
+    `loop_start: {"next": tick, "queue": [ids]}`, format 1): no special
+    OK before the first store release (D149), but it is recorded.
+- **Where it runs:** once per tick, after the three nets have looked
+  (the off-screen lost count at the tick's start, then the Train's
+  `follow()`, then the stuck check): last in `Simulation.step`, after
+  `stuck_slimes.step`.
+  Where the code lives is the implementer's (for example `LoopStart`
+  gains the queue, or a small `src/sim/loop_start_queue.gd`).
+
+**3. A random free landing spot (the user's: "randomized in
+position").** Replaces "the first free spot of 8, one slime width apart"
+(D124, D126).
+- **Where (proposed):** a point on the loop's **first stretch**, at a
+  distance along the loop drawn uniformly between 0 and **240 px** from
+  the loop's start, the slime's centre lifted by its size above the loop
+  there (as today). On the test level that is the ramp's top and the
+  terrace, inside the start's split zone (x 0.03 to 0.54) and short of
+  its end, so a fused slime is still split at once.
+- **Free:** the spot is taken when it lies outside every split zone, or
+  when the slime's ring there would overlap any other slime's (parked
+  ones included; today's test, `LoopStart._free_spot`). Up to **8 draws**
+  per turn; the first free one is used.
+- **All 8 taken:** nobody moves this turn; the head of the queue tries
+  again, with fresh draws, on the next tick that is a multiple of 30
+  (0.5 s), and so on until a spot is free. Never onto another slime.
+  (The other way, landing at the draw with the most room, is not taken:
+  it is what keeps re-sticking.)
+- **The draws** come from the derived stream `loop_start:spot:<tick of
+  the try>` (`Rng.derive`): no draw from any existing stream, so a run
+  where no slime is moved to the loop start keeps its hash, and the same
+  seed gives the same spots.
+- A move is otherwise as today: a parked slime is translated, a
+  simulated one gets a new body there, unsupported and woken; state
+  train, its hop no longer held, its train record afresh (its hold ended,
+  its stall clock from zero).
+
+**4. Chunk 22h**, next, before 19w, 5N, 22c, 22 repeated, the rest of 24
+and the health review (build plan, "22h"). It changes three safety
+nets' rules, so it **keeps both ATD steps** (preflight:
+`rule_stalled_train_slime_moved_to_start`, whose "on screen or off"
+changes; `rule_stuck_slimes_moved_to_start`; `rule_left_alone_and_lost`,
+whose move now waits its turn; `req_offscreen_simulation`;
+`req_slime_states`; `req_persistence_and_saves`, to confirm no key
+changes). It must not run while another chunk edits the Train, the stuck
+check or the off-screen simulation (5N among them). **Done when:**
+- `s3-basket-59of60`, seeds 1 and 2, 10,000 ticks: **0 stall moves of a
+  slime that was parked** at any tick of its last 60 s, **0 stuck moves
+  of a slime within 600 ticks (10 s) of landing** from a move to the loop
+  start; every two moves at least 30 ticks apart; every landing free at
+  its tick (no ring overlapping) and on the first 240 px of the loop.
+  The stall and stuck counts before (87 and 305; 86 and 172) and after
+  are reported, with the bowl's parked queue (now waiting, not drained:
+  not a failure);
+- `stress-moving`, the same checks on the moves; its counts reported,
+  never targets (the user's note);
+- unit tests: the parked pause and resume (a slime parked 100 s, then
+  simulated, is moved only once its simulated time without progress
+  reaches 60 s); one move per turn, the 30 to 120-tick wait from its
+  derived stream; first due first moved, out of bounds first; a slime
+  that recovers while queued leaves without a move and without spending
+  a wait; lost and stuck slimes going through the queue; the stuck count
+  going on while its mover waits; a spot drawn on the first 240 px, free,
+  inside a split zone; all 8 taken, the retry on the next multiple of 30;
+  the kill tool still immediate; a save and reload mid-queue giving the
+  same hash as an unbroken run;
+- every changed hash listed with its reason (expected: the fixtures with
+  a move to the loop start or a parked stall; the others unchanged);
+  [DoD 1]'s whole-level test unchanged (still failing on any logged
+  case); the suite passes. The perf report gains a short 22h section.
+
+**Numbers** (`tuning.md`): the turns' wait 30 to 120 ticks (the user's
+0.5 to 2 s); the landing stretch 240 px, 8 draws, the retry every 30
+ticks (proposed). **Terminology** (`concept.md`): **move to the loop
+start** and **loop-start queue** added; **stalled** amended (the clock
+paused while parked); **lost** says "moved", not "teleported".
+
+**Unchanged:** the nets' own rules and numbers (60 s and 24 px, 2 s
+stuck, 10 s plus 1 min lost); O110 (hold time still counts toward the
+stall while the slime is simulated); the hold, the guard, 22g's switch.
+
+**Wording fixed in passing (the coordinator's, 2026-10-02):** D147 (7)
+and the build plan's 22f step 0 said the dip-nudge pin overridden at a
+hold's end was set "on the same tick". The code sets it the tick before:
+`Simulation.step` runs the Train's `steer()` (where a hold ends) before
+fusion's step and its nudge (where the pin is set), so the hold's end in
+tick t meets a pin set in tick t − 1. Both texts now say "the tick
+before"; the rule (the pin wins) is unchanged.
