@@ -11,8 +11,9 @@ extends GutTest
 ##   stalled or stuck; some train slimes hold before the crowd (D145), and
 ##   the second run's hash is the first's with holds happening. The wall
 ##   time per tick is printed, never asserted.
-## - `stress-dense` (200 size-1 train slimes at most 18 per loop bucket,
-##   centred on the bowl; chunk 22j, D153): the same run and checks as
+## - `stress-dense` (200 size-1 train slimes along the loop, at most 9 per
+##   loop bucket, 12 in the two at the bowl's bottom; chunk 22j, D153,
+##   rebuilt 2026-10-02): the same run and checks as
 ##   `stress-moving`'s, the holds printed but not required.
 ## - `midair` (four train slimes saved in the air, chunk 19): once loaded they
 ##   play on, landing between hops (never in the air longer than a hop), the

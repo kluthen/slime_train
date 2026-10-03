@@ -4435,6 +4435,9 @@ amended by this. **Unchanged:** the cap and its numbers, the hold's checks
 and the guard, the stuck and lost nets, D150 and chunk 22h (O113 open).
 
 ## D153 — A second stress fixture, `stress-dense`, and fps targets for both; chunk 22j (2026-10-02)
+**Amended by D154 (the user's, 2026-10-02):** `stress-dense` drops to the
+cap − 25 % (9 per bucket), the bowl's two bottom buckets at the cap, laid
+along the loop line, not stacked (2); O114 answered in part.
 The user (2026-10-02), on `stress-moving` (200 train slimes, the level's
 maximum, all in section 3's bowl, about 30 to 35 per 300 px bucket):
 "we may have to tone down stress moving test (its got hundreds of slimes
@@ -4505,3 +4508,47 @@ number of slimes on a level."
 Flagged for documentalist: DoD 30's new clauses (the performance
 requirement's atom), at 22j's ATD peek. **Unchanged:** `stress-moving`,
 the bucket cap, D152, chunk 22h (O113 open).
+
+## D154 — `stress-dense` thinned: cap − 25 %, the bowl's bottom at the cap, along the loop line; amends D153 (2026-10-02)
+The user (2026-10-02), after watching chunk 22j's `stress-dense` (ad8cd36:
+18 per 300 px loop bucket, stacked in columns, 134 of 200 in the bowl;
+first phone-emulation reading 13.9 fps cap off, 14.4 on): "the dense
+setting is quite crowded. 130 slimes. too much, way too much. we were at
+cap + 50%, let's downgrade to a shuffle of cap - 25% with one or two
+segments at 100% and see where it goes? What i expected was a line of
+slime at the bottom and some on the heights. what i saw was a soup of
+slimes, so i didn't quite expect good result." Rebuilt as a redo of 22j.
+
+1. **The density (the user's):** the bucket cap − 25 %: 3 of weight per
+   100 px of loop, **9 per 300 px loop bucket**; the **two buckets at the
+   bottom of the bowl at the cap, 12** (the user's "one or two segments at
+   100%"; two taken, proposed). The rest of D153 (2)'s fill holds: from
+   the bowl outward, behind first, nothing past switch 3.
+2. **Placement along the loop line, not stacked (the user's "a line of
+   slime at the bottom and some on the heights"):** within a bucket the
+   slimes are evenly spaced by loop distance and each is set on the loop
+   as a train slime is spawned; D153 (2)'s columns stacked from the ground
+   up are dropped. *Proposed reading of "shuffle":* the mix of the two
+   densities, deterministic, no draw. *Noted:* a size-1 slime (D153: 42
+   px across) is wider than both spacings (about 33 px at 9 per bucket, 25
+   px at 12), so neighbours overlap at load and push apart in the first
+   ticks; the line may thicken there. The build reports how it settles.
+3. **The total:** 200 size-1 train slimes, the level's maximum, unless the
+   loop before switch 3 can't hold them at this density; then fewer, and
+   the build reports the count. About 65 to 70 in the bowl (the chunk
+   records the count). **O114** answered in part: fewer in the bowl; the
+   total stays 200 (proposed) unless it doesn't fit.
+4. **Unchanged:** the target (at least 30 fps on the S20 FE, the phone
+   emulation standing in, O115 open), the species, gates, switch 3,
+   basket 3, the camera on the bowl, the fixture tooling, `stress-moving`,
+   chunk order (22h, 22k, ...).
+5. **Known issue, found in 22j (a fix pending, no chunk yet):** a
+   fixture's train distances **wrap on load**. Its save has no train
+   section, so the Train is restored on the gates-closed loop and the
+   distances wrap; `stress-moving`, `s3-basket-59of60`, `gate2-open` and
+   `stress-dense` are affected; the Train has caught up by tick 60 (22j's
+   reading; whether anything later is affected is not checked).
+
+Specs: test level README's `stress-dense` row and a known-issue note, the
+build plan's 22j, the master spec's DoD 30 and §7 wording, `tuning.md`,
+O114, README.

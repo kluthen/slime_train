@@ -3719,7 +3719,7 @@ save `<name>.json` in the hand-made form above.
 | `gate2-open` | Gates 1 and 2 open as after baskets 1 and 2 fired (slides 1 and 2 shut): the loop runs through section 3 to slide 3. The same 20 train slimes, spread along the whole outgoing loop; the camera at section 3's start (13.0 S). Added in chunk 16 for the whole loop (DoD 1) |
 | `stress-still` | Gates 1 and 2 open, all 200 base slimes woken, none left asleep: 60 size-1 slimes in basket 3 (switch 3 flipped, the basket full, waiting to be in view: out of it, they park), and 140 piled at the bottom of section 3's bowl, asleep at bedtime (a session at bedtime: outside a basket, a pile rests only asleep); the camera on the bowl (its framing zone zooms to 0.5, so the rings are zoomed-out). The pile comes to rest about 410 ticks (about 7 s) after loading since chunk 19 (670 before) and stays resting (the worst still case on one screen; see below) |
 | `stress-moving` | Gates 1 and 2 open, all 200 base slimes as size-1 train slimes spread through section 3's bowl from its bottom up (the floor, the slopes, the shelves; x 13.5 to 15.33 S, inside the view), each following the loop from its nearest point; the camera on the bowl. The worst moving case: a measurement, not a target (D96) |
-| `stress-dense` | Gates 1 and 2 open, all 200 base slimes as size-1 train slimes (each its sleeper's species), not at bedtime (no session); switch 3 and basket 3 untouched. At most 18 per 300 px loop bucket (the bucket cap's 12 plus 50 %), centred on section 3's bowl: the centre bucket (the one holding the middle of the loop's stretch through x 13.5 to 15.33 S, bucket 55) takes its 18 lowest spots, then the buckets behind and ahead alternately, behind first, 18 each, none past switch 3's near edge. As saved: loop buckets 50 to 60 at 18 each and bucket 49 at 2 (x 12.74 to 15.60 S), 134 in the bowl; the camera on the bowl. The dense moving case: what the rules allow plus 50 %, target at least 30 fps (chunk 22j, D153; see "Chunk 22j") |
+| `stress-dense` | Gates 1 and 2 open, all 200 base slimes as size-1 train slimes (each its sleeper's species), not at bedtime (no session); switch 3 and basket 3 untouched. Along the loop line, not stacked (rebuilt 2026-10-02, the user's word): 9 per 300 px loop bucket (the bucket cap's 12 less 25 %) and 12 (the cap) in the two buckets at the bottom of section 3's bowl (55 and 56), each slime on the loop at its distance, evenly spaced in its bucket; the two bottom buckets first, then the buckets behind and ahead alternately, behind first, none past switch 3's near edge (bucket 60, which it cuts, takes 6). As saved: buckets 55 and 56 at 12, 40 to 54 and 57 to 59 at 9, 60 at 6, 39 at 8 (loop distances 11,719 to 18,197, x 10.08 to 15.62 S: back through gate 2, over basket 2 and past switch 2), 70 in the bowl; the camera on the bowl. The dense moving case, below the bucket cap with the bowl's bottom at it, target at least 30 fps (chunk 22j, D153; see "Chunk 22j") |
 | `s3-basket-59of60` | Gates 1 and 2 open as after baskets 1 and 2 fired, all 200 base slimes woken, not at bedtime (no session): switch 3 flipped (its trapdoor open), basket 3 at 59 of 60 (59 size-1 slimes in it, section 3's last 59 sleepers, laid out as `stress-still`'s) and the other 141 as size-1 train slimes through section 3's bowl (as `stress-moving`'s); the camera on basket 3's framing zone (18288, -150; zoom 0.8). Played on, the basket fills (about 9 s), fires in view and the celebration plays (chunk 22, D128 24.1) |
 | `midair` | The fresh level with four size-1 train slimes saved in mid-air over section 1's ground (`s1.sleeper.01` to `.04`): 4 px above the ground at x 1525, 150 px above it at x 1825, 30 px above it at x 2125, and one 80 px above that one; the camera on them. A fixture keeps only centres, so loaded (test mode or normal play) each is put straight down on what is below it, at rest, none lost (D12, DoD 28; chunk 19) |
 | `old-version` | A save of the test level's **version 1** (its header says so): the fresh level, but the sleeper nearest x 1525 on section 1's ground (`s1.sleeper.03`, on its ledge at (1428, -188) in version 2) sleeps there, at (1525, 0). Loaded, it is migrated: that slime is displaced and lost (to the loop start, in the lost log), all 200 kept; in normal play the file is kept as `test.json.v1` and the next save is at version 2 (D72; chunk 19). Older than the level on purpose: the stale-fixture check exempts it by name |
@@ -3735,9 +3735,10 @@ tests), their builders in `tools/make_fixture/persistence_fixtures.gd`.
 builder shares `_into_basket_3` with `stress-still`'s (moved unchanged;
 `stress-still` was not regenerated).
 `stress-dense` came with chunk 22j (D153); its placement is in
-`tools/make_fixture/stress_fixtures.gd` (`dense_spots`), beside the bowl's
-column scan, moved there from `_bowl_spots` unchanged (`stress-moving` and
-`s3-basket-59of60` rebuilt byte for byte).
+`tools/make_fixture/stress_fixtures.gd` (`dense_distances`, since its
+rebuild; `dense_spots` before), beside the bowl's column scan, moved there
+from `_bowl_spots` unchanged (`stress-moving` and `s3-basket-59of60`
+rebuilt byte for byte).
 **The test level is at version 2 since chunk 19** (`level_version = 2` on
 its root; nothing else changed): so that `old-version` is a genuine save
 of an older version, migrated as a player's would be. Every other fixture
@@ -4482,7 +4483,7 @@ twice on one seed and compares `Simulation.state_hash()`.
 | `s2-cave-return` | `test_offscreen_e2e.gd` (route back, the camera coming back, the save) | off screen the slimes follow the route back and rejoin; a save keeps the off-screen state | yes: `test_offscreen_e2e.gd` `test_the_same_seed_gives_the_same_hash_in_process` |
 | `stress-still` | `test_fixtures_e2e.gd` `test_stress_still_has_60_in_basket_3_and_a_bowl_pile_that_rests`; `test_celebration_e2e.gd`; `test_fixture_scenarios_e2e.gd` `test_stress_still_keeps_its_population_the_same_twice` | the counts, the bowl pile comes to rest; the celebration plays once and its mark survives a reload; the population, the basket's 60 and the asleep pile stay as loaded (300 ticks) | yes: `test_fixture_scenarios_e2e.gd` |
 | `stress-moving` | `test_fixtures_e2e.gd` `test_stress_moving_has_200_train_slimes_in_the_bowl`; `test_fixture_scenarios_e2e.gd` `test_stress_moving_moves_keeping_its_200_and_runs_the_same_twice` | the 200 train slimes load; over 200 ticks never above 200 slimes or size 3, mass 200, the train moves, nothing lost. A measurement, no fps target; about 17 s, the slowest scenario | yes: `test_fixture_scenarios_e2e.gd` |
-| `stress-dense` | `test_fixtures_e2e.gd` `test_stress_dense_has_200_train_slimes_at_most_18_per_loop_bucket_around_the_bowl`, `test_stress_dense_runs_the_same_across_a_save_and_reload`; `test_fixture_scenarios_e2e.gd` `test_stress_dense_moves_keeping_its_200_and_runs_the_same_twice` | 200 train slimes; as saved, at most 18 per loop bucket, side by side, all at 18 but two at most; 134 in the bowl, none past switch 3, the camera on the bowl; saved at load and reloaded, the same hash after 200 ticks; then as `stress-moving`'s run, its holds not required (chunk 22j) | yes: `test_fixture_scenarios_e2e.gd` |
+| `stress-dense` | `test_fixtures_e2e.gd` `test_stress_dense_has_200_train_slimes_along_the_loop_at_most_9_per_bucket_12_at_the_bowls_bottom`, `test_stress_dense_runs_the_same_across_a_save_and_reload`; `test_fixture_scenarios_e2e.gd` `test_stress_dense_moves_keeping_its_200_and_runs_the_same_twice` | 200 train slimes; as saved, on the loop line, at most 9 per loop bucket but 12 in the two at the bowl's bottom (55, 56), side by side, all at 9 but two at most; 70 in the bowl, none past switch 3, the camera on the bowl; saved at load and reloaded, the same hash after 200 ticks; then as `stress-moving`'s run, its holds not required (chunk 22j) | yes: `test_fixture_scenarios_e2e.gd` |
 | `s3-basket-59of60` | `test_frontier_e2e.gd` `test_basket_3_at_59_of_60_fills_fires_and_plays_the_celebration`; `test_fixture_scenarios_e2e.gd` `test_s3_basket_59of60_fills_the_last_basket_and_celebrates_the_same_twice` | 59 of 60 at load, not at bedtime; basket 3 full within 30 s, fires, the celebration plays and ends, the mark shows; mass 200, none above size 3 (1100 ticks, about 18 s) | yes: `test_fixture_scenarios_e2e.gd` |
 | `wind-down` | `test_session_e2e.gd` `test_the_wind_down_turns_to_dusk_then_bedtime_sleeps_saves_and_taps_only_ripple`; `test_camera_bedtime_e2e.gd` | dusk, then bedtime: slimes asleep, a save, taps only ripple; the idle camera at bedtime | yes: `test_camera_bedtime_e2e.gd` `test_a_bedtime_run_is_repeatable` |
 | `bedtime` | `test_session_e2e.gd` `test_the_bedtime_fixture_is_bedtime`; `test_frontier_bedtime_e2e.gd` | the fixture is bedtime; a releasing basket lets nothing go until sunrise | yes: `test_frontier_bedtime_e2e.gd` `test_a_bedtime_run_with_a_releasing_basket_is_repeatable` |
@@ -6465,98 +6466,125 @@ stuck moves (22e: 20 / 13, 0). Done before step 5.
 
 Build plan chunk 22j, D153 (`req_test_level_and_test_mode`,
 `rule_max_200_slimes_per_level`). A test fixture only: no game code, no
-save, fixture or test-mode format change.
+save, fixture or test-mode format change. Rebuilt on 2026-10-02 at the
+user's word, after watching the first build ("a soup of slimes", 130 in
+the bowl at the bucket cap plus 50 %; "what I expected was a line of slime
+at the bottom and some on the heights"): now the bucket cap less 25 %, the
+bowl's bottom at the cap, along the loop line. The first build's placement
+(18 per bucket, stacked in columns from the ground up, 134 in the bowl) is
+in `ad8cd36`.
 
 **The fixture.** `stress-dense` (see "Fixtures"): the whole population (the
 first slime and the 199 sleepers, each its sleeper's species) as size-1
 train slimes, gates 1 and 2 open, not at bedtime, switch 3 and basket 3
 untouched, the camera on the bowl (`BOWL_CAMERA`). Built by
 `_stress_dense` in `tools/make_fixture.gd`, its placement in
-`tools/make_fixture/stress_fixtures.gd` (`dense_spots`):
+`tools/make_fixture/stress_fixtures.gd` (`dense_distances`):
 
-- **Candidate spots:** the bowl's column scan (`column_spots`, moved from
-  `_bowl_spots` unchanged: columns 50 px apart, stacked from each floor
-  up) over x 12.0 to 15.75 S, keeping a spot only when its nearest loop
-  point is on the outgoing loop, it is not below that point by more than a
-  slime's reach (so none in basket 2's pit, under slide 2's lid or in a
-  return route's tunnel, which the terrain scan alone can't tell: trapdoors
-  and lids aren't terrain), and that point is before switch 3's near edge
-  (loop distance 18,215).
-- **Buckets:** each spot in the loop bucket of its nearest loop distance,
-  cut as the bucket cap cuts the loop (`BucketLoads`, 300 px, gates 1 and
-  2 open). The centre bucket holds the middle of the loop's stretch
-  through x 13.5 to 15.33 S (bucket 55); it takes its 18 lowest spots
-  (largest y first, then left first), then the buckets behind and ahead
-  alternately, behind first, 18 each, until 200.
-- **As built:** loop buckets 50 to 60 at 18 each, bucket 49 at 2 (loop
-  distances 14,823 to 18,197, x 12.74 to 15.60 S); none short (bucket 60,
-  cut by switch 3, still has 18 spots, on the ramp and the ledges above
-  it); **134 in the bowl** (x 13.5 to 15.33 S), above D153's estimate of
-  110 to 120 (the bowl's stretch is about 2,120 px of loop, seven buckets).
-  The same build gives the same save (checked).
+- **Buckets:** the loop cut as the bucket cap cuts it (`BucketLoads`, 300
+  px, gates 1 and 2 open). 9 per bucket (`DENSE_PER_BUCKET`, the cap's 12
+  less 25 %); 12 (`DENSE_BOTTOM_PER_BUCKET`, the cap) in the two buckets
+  at the bottom of the bowl (`bottom_buckets`: the one holding the middle
+  of the bowl's bottom, the stretch of the outgoing loop through x 13.5 to
+  15.33 S within 0.5 px of its lowest point, y 76, and its neighbour on
+  the side of the nearer edge: buckets 55 and 56).
+- **Fill order:** the two bottom buckets, then the buckets behind and
+  ahead alternately, behind first, until 200. Only the outgoing loop
+  before switch 3's near edge (loop distance 18,215) is used: bucket 60,
+  which it cuts at 215 of its 300 px, takes 9 in proportion, rounded down
+  (6), and the filling ahead ends there; behind, it goes on alone.
+- **Along the loop line:** in a bucket, its slimes are evenly spaced by
+  loop distance over the part used (spacing = that length / its count: 25
+  px at 12, 33.3 px at 9), the first half a spacing in, so none sits on a
+  bucket's edge; each is put on the loop at its distance as a train slime
+  is spawned (`Simulation.spawn_train_slime`: the route runs at a base
+  slime's centre height, the lift is 0 for size 1), tracked at that
+  distance. Size-1 rings are wider than the spacing, so neighbours overlap
+  a little; loaded, the bodies push apart (a line that partly doubles up).
+- **As built:** buckets 55 and 56 at 12; 40 to 54 and 57 to 59 at 9;
+  bucket 60 at 6; bucket 39 at 8 (the last). Loop distances 11,719 to
+  18,197, x 10.08 to 15.62 S: **70 in the bowl** (x 13.5 to 15.33 S);
+  about 105 in section 3 (past gate 2, loop distance 14,895) and 95 behind
+  it in section 2, on the loop back through gate 2, over basket 2's shut
+  trapdoor and past switch 2 (both spent, as after their baskets fired; 30
+  slimes behind switch 2, x 10.08 to 10.94 S). 200 fit without breaking anything: loaded, all
+  200 are train slimes, none lost, baskets 2 and 3 stay empty (checked for
+  60 ticks); off screen, the section 2 part parks (about 110 parked in the
+  phone runs, about 58 on screen). The same build gives the same save
+  (checked).
 
 **Two things the load does to it (not changed here).**
 
-- *Put down.* A fixture keeps only centres, so loaded, each slime saved a
-  pixel or two above what holds it is put down (`MidairLanding`, D12).
-  Counted by the nearest loop point after that, a few cross a bucket's
-  edge on the ramps: buckets 50 to 60 read 17, 18, 19, 18, 18, 18, 18,
-  18, 20, 17, 17. The test checks the placement as saved.
+- *Overlap.* The slimes are saved on the loop line, their centres the
+  loop's points, a body-less ring each; loaded, a slime not supported is
+  put down (`MidairLanding`, D12) and touching rings push apart. The test
+  checks the placement as saved.
 - *Wrapped train records.* A fixture's save has no `train` section (the
   readable form), so `SaveData.restore` restores each slime's saved
   `train.distance` while the train's loop is still the gates-closed one
   (17,638 px); `Train.track()` wraps any distance beyond it, and the gates
-  then open (`FrontierSets.start`) without re-mapping. The 39 slimes saved
-  past loop distance 17,638 (buckets 59, 60 and 3 of 58) load with records
-  near the loop's start (live bucket loads at load: bucket 0 at 18, bucket
-  1 at 21); their progress catches up by `PROGRESS_WINDOW` a tick and is
-  right again by tick 60. The catch-up counts as progress, so it swells
-  the scenario test's mean advance (`_run_stress_train`). It predates this
-  chunk: `stress-moving` (19 slimes), `s3-basket-59of60` (14) and
-  `gate2-open` (2) load the same way. Fixing it changes their hashes;
-  reported, not fixed here.
+  then open (`FrontierSets.start`) without re-mapping. Here the 17 slimes
+  saved past loop distance 17,638 (2 of bucket 58, 59 and 60) load with
+  records near the loop's start (live bucket loads at load: bucket 0 at 9,
+  bucket 1 at 8); their progress catches up by `PROGRESS_WINDOW` a tick.
+  `stress-moving` (19 slimes), `s3-basket-59of60` (14) and `gate2-open`
+  (2) load the same way. *A builder-side fix was tried and backed out:*
+  writing the save's `train` section (`{"open_gates": [...]}`, optional
+  in a hand-made save) in `_write` restores every distance right (0
+  wrapped in all four), changes only `train` in six fixture files, but
+  fails `_run_stress_train`'s mean advance (more than 200 px in 400
+  ticks, seed 21): `stress-moving` 18 px, `stress-dense` 12 px. That
+  threshold is met only through the wrapped records' catch-up (with the
+  wrap: 1,482 px for `stress-dense`), so fixing the load needs that check
+  re-set; left for a decision, with the hashes of `stress-moving`,
+  `s3-basket-59of60` and `gate2-open` that it changes.
 
 **Tests.** `tests/e2e/test_fixtures_e2e.gd`:
-`test_stress_dense_has_200_train_slimes_at_most_18_per_loop_bucket_around_the_bowl`
+`test_stress_dense_has_200_train_slimes_along_the_loop_at_most_9_per_bucket_12_at_the_bowls_bottom`
 (200 size-1 train slimes, gates 1 and 2 open, not at bedtime, switch 3 and
-basket 3 untouched; as saved, every loop bucket at most 18, the buckets
-used side by side, all at 18 but two at most; 134 in the bowl; none past
-switch 3; the camera on the bowl) and
-`test_stress_dense_runs_the_same_across_a_save_and_reload` (loaded, saved
-at once, reloaded: the same hash, and after 200 more ticks; a save taken
-mid-hop would put the hopping slimes down on reload, D12).
-`tests/e2e/test_fixture_scenarios_e2e.gd`:
-`test_stress_dense_moves_keeping_its_200_and_runs_the_same_twice`, the same
-run and checks as `stress-moving`'s (shared, `_run_stress_train`), its holds
-printed, not required (none in 400 ticks on seed 21).
+basket 3 untouched; as saved, each slime's centre on the loop at its saved
+train distance, before switch 3; per loop bucket of that distance at most
+9, but buckets 55 and 56 at 12; the buckets used side by side, all at 9
+but two at most; the loop at its lowest through the bowl at both bottom
+buckets' middles; 70 in the bowl; none past switch 3 once loaded; the
+camera on the bowl) and
+`test_stress_dense_runs_the_same_across_a_save_and_reload` (unchanged:
+loaded, saved at once, reloaded: the same hash, and after 200 more
+ticks). `tests/e2e/test_fixture_scenarios_e2e.gd`:
+`test_stress_dense_moves_keeping_its_200_and_runs_the_same_twice`
+(unchanged: `stress-moving`'s run and checks, the holds printed, not
+required; none in 400 ticks on seed 21).
 
 **Hashes** (seed 909, 600 and 2400 ticks, headless test mode, as in
 "Chunk 22e"): `stress-dense`
-`f6c03c0dfeb9ae465cd77c87ed1e91d37dda1c831eafb9a751617c9915ffe21f` at 600
-ticks, `d95467bcb64d205cfbf15cf86d929fb9f4ff531fc9e7694fef0540fe7ebb65e6`
-at 2400; the 17 others identical to the run before the chunk (`f26fc7d`).
-Files: [`hashes/`](../perf/2026-10-02-chunk-22j/hashes/).
+`d6fc689a44b0630c52baf72497d0794f4d7edd24aaa9814b93775abacc5e33eb` at 600
+ticks, `95eac821553474cdb34c0bc8d8d852c0ea8208510db330f0caaae53a890c6dae`
+at 2400 (the first build's: `f6c03c0d...` and `d95467bc...`); the 17
+others identical to the first build's. Files:
+[`hashes/`](../perf/2026-10-02-chunk-22j/hashes/) (`off-*-v2.txt`, the
+rebuild; `off-*.txt`, the first build).
 
-**First reading** (not a gate: the targets are checked at chunk 22's
-repeat, after 5N): the phone emulation (`tools/perf_slow.sh --pin=main
+**Reading** (not a gate: the targets are checked at chunk 22's repeat,
+after 5N): the phone emulation (`tools/perf_slow.sh --pin=main
 --seconds=62 stress-dense [--bucket-cap]`, seed 1), counted from the
-`PERF` lines as in D152's round (the first window, before the pin, left out; fps mean =
-frames / time; tick_ms weighted by ticks). Logs and printed summaries:
-[`runs/phone/`](../perf/2026-10-02-chunk-22j/runs/phone/).
+`PERF` lines as in D152's round (the first window, before the pin, left
+out; fps mean = frames / time; tick_ms weighted by ticks; bucket_holds
+summed). Logs and printed summaries:
+[`runs/phone/`](../perf/2026-10-02-chunk-22j/runs/phone/) (`-v2`, the
+rebuild; the others, the first build).
 
-| Bucket cap | fps mean | fps p50 | frame p95 ms (median / max) | tick_ms mean | Physics mean | largest_cluster mean / max | holding mean | bucket_holds |
-|---|---|---|---|---|---|---|---|---|
-| off | 13.9 | 13.9 | 81.1 / 94.3 | 29.26 | 135 | 93 / 131 | 11 | 0 |
-| on | 14.4 | 14.7 | 78.1 / 94.2 | 28.30 | 101 | 46 / 122 | 104 | 124 |
+| Build | Bucket cap | fps mean | fps p50 | frame p95 ms (median / max) | tick_ms mean | Physics mean | largest_cluster mean / max | holding mean | bucket_holds |
+|---|---|---|---|---|---|---|---|---|---|
+| first (18 per bucket) | off | 13.9 | 13.9 | 81.1 / 94.3 | 29.26 | 135 | 93 / 131 | 11 | 0 |
+| first (18 per bucket) | on | 14.4 | 14.7 | 78.1 / 94.2 | 28.30 | 101 | 46 / 122 | 104 | 124 |
+| rebuild (9, bottom 12) | off | 21.2 | 19.7 | 59.0 / 64.5 | 20.06 | 70 | 52 / 77 | 0 | 0 |
+| rebuild (9, bottom 12) | on | 21.3 | 18.8 | 60.3 / 68.8 | 20.29 | 59 | 33 / 77 | 30 | 17 |
 
-About `stress-moving`'s (13.5 off, 14.3 on, D152's round), far below the
-30 fps target. Per 600-tick span, off: 13.4, 13.9, 14.2; on: 13.3, 14.8,
-15.0. The bench (`tools/level.sh bench --fixture=stress-dense
---ticks=120`): 11.5 ms median a tick headless, 164 slimes costing physics,
-200 bodies down to 176 by fusion. In the phone runs about 110 are on
-screen on average; the largest awake cluster averages 93 with the cap off
-(46 on), not much below `stress-moving`'s 72 (62): stacked 18 to a bucket,
-the slimes still touch in one mass.
+Still below the 30 fps target. Per third of the run, off: 24.3, 19.5,
+19.9; on: 25.0, 18.7, 20.5. About 58 are on screen and about 110 parked
+off screen (the section 2 part); the bodies go from 184 to 180 by fusion
+over the run (200 at load). The cap barely matters here: below it
+everywhere but the two bottom buckets, it holds 17 times in the run.
 
 ## Technical choices
 

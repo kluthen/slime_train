@@ -1,30 +1,28 @@
 extends RefCounted
 ## Room for the test level's stress fixtures, for tools/make_fixture.gd:
-##   column_spots  room for size-1 slimes, column by column, found by
-##                 scanning the terrain (chunk 16: the bowl's, _bowl_spots;
-##                 moved here unchanged in chunk 22j);
-##   dense_spots   stress-dense's placement (chunk 22j, D153 (2)): the dense
-##                 case the rules allow plus 50 %, DENSE_PER_BUCKET of
-##                 weight per loop bucket, centred on section 3's bowl.
+##   column_spots    room for size-1 slimes, column by column, found by
+##                   scanning the terrain (chunk 16: the bowl's, _bowl_spots;
+##                   moved here unchanged in chunk 22j);
+##   dense_distances stress-dense's placement (chunk 22j, D153 (2), rebuilt
+##                   2026-10-02 at the user's word): loop distances along
+##                   the outgoing loop, DENSE_PER_BUCKET per loop bucket (the
+##                   bucket cap less 25 %) and DENSE_BOTTOM_PER_BUCKET (the
+##                   cap) in the two buckets at the bottom of section 3's bowl.
 ## Deterministic, no draw: the same level gives the same spots.
 # @spec-link [[req_test_level_and_test_mode]]
 
 ## The columns' pitch and the stacked spots' pitch, px.
 const SPOT_PITCH := 50.0
 ## stress-dense: slimes per loop bucket, the bucket cap's 4 per 100 px of
-## loop (12 per 300 px bucket, D151) plus 50 % (D153).
-const DENSE_PER_BUCKET := 18
-## stress-dense's candidate spots: columns from DENSE_FROM to DENSE_TO
-## (wider than the bowl, x 13.5 to 15.33 screens: about two screens behind
-## it, and up to switch 3), scanned from SCAN_TOP down to SCAN_BOTTOM (the
-## bowl's scan).
-const DENSE_FROM := 12.0 * LevelData.SCREEN
-const DENSE_TO := 15.75 * LevelData.SCREEN
-const SCAN_TOP := -560.0
-const SCAN_BOTTOM := 200.0
-## The step (px) of the walk along the loop that finds its stretch through
-## the bowl.
+## loop (12 per 300 px bucket, D151) less 25 %; the two buckets at the
+## bottom of the bowl hold the cap itself (the user's, 2026-10-02).
+const DENSE_PER_BUCKET := 9
+const DENSE_BOTTOM_PER_BUCKET := 12
+## The step (px) of the walk along the loop that finds the bowl's bottom.
 const WALK_STEP := 4.0
+## How far (px) above the loop's lowest point in the bowl the loop still
+## counts as the bowl's bottom (the flat floor).
+const BOTTOM_TOLERANCE := 0.5
 
 
 ## Room for a size-1 slime in columns SPOT_PITCH px apart from `from_x` to
@@ -70,68 +68,94 @@ static func sort_lowest_first(spots: Array) -> void:
 	spots.sort_custom(func(a: Vector2, b: Vector2): return a.y > b.y or (a.y == b.y and a.x < b.x))
 
 
-## stress-dense's spots, `count` of them in fill order, for `sim` with
-## gates 1 and 2 open (D153 (2)). The candidates are column_spots from
-## DENSE_FROM to DENSE_TO whose nearest point of the loop in use is on its
-## outgoing part, not below that point by more than a slime's reach (so none
-## in a basket's pit, under a slide's lid or in a return route's tunnel) and
-## before `stop` (a level point: none at or past it along the loop). Each
-## belongs to the loop bucket of its nearest loop distance, cut as the
-## bucket cap cuts the loop (BucketLoads, the train's bucket length). The
-## centre bucket (the one holding the middle of the loop's stretch through
-## x `bowl_from` to `bowl_to`) takes its DENSE_PER_BUCKET lowest spots, then
-## the buckets behind and ahead alternately, behind first, as many each; a
-## bucket short of spots takes what it has. [] (and an error) when the
-## candidates run out first.
-static func dense_spots(sim: Simulation, terrain: TerrainSegments, count: int, bowl_from: float,
-		bowl_to: float, stop: Vector2) -> Array:
-	var loop := sim.level.loop
-	var gates := sim.train.open_gates
-	var buckets := BucketLoads.new()
-	buckets.configure(sim.train.length(), sim.train.bucket_length, BucketLoads.DEFAULT_DENSITY, 0)
-	var stop_at: float = loop.closest(stop, gates)["distance"]
-	var reach := SlimeBodies.ring_radius_for(1) + SlimeBodies.EDGE
-	var by_bucket := {}
-	for at: Vector2 in column_spots(terrain, DENSE_FROM, DENSE_TO, SCAN_TOP, SCAN_BOTTOM):
-		var nearest := loop.closest(at, gates)
-		if loop.segment(nearest["segment"])["kind"] != LoopData.OUTGOING:
-			continue
-		if at.y > (nearest["position"] as Vector2).y + reach or nearest["distance"] >= stop_at:
-			continue
-		var b := buckets.bucket_index(nearest["distance"])
-		if not by_bucket.has(b):
-			by_bucket[b] = []
-		by_bucket[b].append(at)
-	var middle := _middle_through(sim, bowl_from, bowl_to)
-	if middle < 0.0:
+## stress-dense's loop distances, `count` of them in fill order, for `sim`
+## with gates 1 and 2 open (D153 (2), rebuilt 2026-10-02): each slime is
+## to be put on the loop at its distance, as a train slime is spawned
+## (Simulation.spawn_train_slime), so they lie along the loop line, not
+## stacked. The loop is cut into loop buckets as the bucket cap cuts it
+## (BucketLoads, the train's bucket length). The two buckets at the bottom
+## of the bowl (bottom_buckets) take DENSE_BOTTOM_PER_BUCKET each, the
+## lower first; then the buckets behind and ahead of them alternately,
+## behind first, DENSE_PER_BUCKET each, until `count`. Only the outgoing
+## loop before `stop_at` (a loop distance) is used: a bucket cut short by
+## it takes DENSE_PER_BUCKET in proportion to what is left of it (rounded
+## down), one cut to nothing ends the filling ahead; behind, the filling
+## ends at the loop's start. In a bucket, its slimes are evenly spaced by
+## loop distance over the part used (spacing = that length / its count),
+## the first half a spacing in, so none is on a bucket's edge; the last
+## bucket filled takes what is left, spread the same way. [] (and an
+## error) when the room runs out first.
+static func dense_distances(sim: Simulation, count: int, bowl_from: float, bowl_to: float,
+		stop_at: float) -> Array:
+	var length := sim.train.bucket_length
+	var end := minf(stop_at, sim.train.outgoing_length())
+	var bottom := bottom_buckets(sim, bowl_from, bowl_to)
+	if bottom.is_empty():
 		push_error("make_fixture: the outgoing loop doesn't run through x %.0f to %.0f" % [bowl_from, bowl_to])
 		return []
-	var centre := buckets.bucket_index(middle)
 	var out := []
-	var step := 0
-	while out.size() < count and step < buckets.count():
-		for b in ([centre] if step == 0 else [centre - step, centre + step]):
-			var room: Array = by_bucket.get(b, [])
-			sort_lowest_first(room)
-			out.append_array(room.slice(0, mini(DENSE_PER_BUCKET, count - out.size())))
-		step += 1
+	for b: int in bottom:
+		_fill(out, b * length, minf((b + 1) * length, end), DENSE_BOTTOM_PER_BUCKET, count)
+	var behind: int = bottom[0] - 1
+	var ahead: int = bottom[1] + 1
+	while out.size() < count and (behind >= 0 or ahead >= 0):
+		if behind >= 0:
+			_fill(out, behind * length, (behind + 1) * length, DENSE_PER_BUCKET, count)
+			behind -= 1
+		if ahead >= 0 and out.size() < count:
+			var to := minf((ahead + 1) * length, end)
+			if to <= ahead * length:
+				ahead = -1
+			else:
+				var room := floori(DENSE_PER_BUCKET * (to - ahead * length) / length + BucketLoads.CAP_EPSILON)
+				_fill(out, ahead * length, to, room, count)
+				ahead += 1
 	if out.size() < count:
 		push_error("make_fixture: stress-dense has room for %d slimes, %d needed" % [out.size(), count])
 		return []
 	return out
 
 
-## The loop distance halfway along the stretch of the outgoing loop in use
-## from where it first reaches x `from_x` to where it first passes `to_x`;
-## -1 when it doesn't run through both.
-static func _middle_through(sim: Simulation, from_x: float, to_x: float) -> float:
-	var enter := -1.0
+## The two loop buckets at the bottom of section 3's bowl, lower index
+## first: the one holding the middle of the bowl's bottom (the stretch of
+## the outgoing loop, between where it first reaches x `bowl_from` and where
+## it first passes `bowl_to`, within BOTTOM_TOLERANCE of its lowest point),
+## and its neighbour on the side of the nearer edge. [] when the loop
+## doesn't run through both.
+static func bottom_buckets(sim: Simulation, bowl_from: float, bowl_to: float) -> Array:
+	var lowest := -INF
+	var first := -1.0
+	var last := -1.0
 	var distance := 0.0
+	var inside := false
 	while distance < sim.train.outgoing_length():
-		var x := sim.train.position_at(distance).x
-		if enter < 0.0 and x >= from_x:
-			enter = distance
-		elif enter >= 0.0 and x > to_x:
-			return (enter + distance) * 0.5
+		var at := sim.train.position_at(distance)
+		if not inside and at.x >= bowl_from:
+			inside = true
+		elif inside and at.x > bowl_to:
+			break
+		if inside:
+			if at.y > lowest + BOTTOM_TOLERANCE:
+				lowest = at.y
+				first = distance
+			if at.y >= lowest - BOTTOM_TOLERANCE:
+				last = distance
 		distance += WALK_STEP
-	return -1.0
+	if first < 0.0 or distance >= sim.train.outgoing_length():
+		return []
+	var length := sim.train.bucket_length
+	var middle := (first + last) * 0.5
+	var b := floori(middle / length)
+	var other := b - 1 if middle - b * length < length * 0.5 else b + 1
+	return [mini(b, other), maxi(b, other)]
+
+
+## Appends to `out` up to `room` loop distances evenly spaced over [`from`,
+## `to`), never past `count` in all.
+static func _fill(out: Array, from: float, to: float, room: int, count: int) -> void:
+	var n := mini(room, count - out.size())
+	if n <= 0:
+		return
+	var spacing := (to - from) / n
+	for i in n:
+		out.append(from + (i + 0.5) * spacing)

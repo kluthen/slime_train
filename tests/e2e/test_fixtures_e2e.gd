@@ -8,8 +8,9 @@ extends GutTest
 ## wakes the whole population (60 in basket 3, full; 140 asleep at bedtime in
 ## section 3's bowl, a pile that comes to rest); `stress-moving` has all 200
 ## as train slimes in the bowl (chunk 16); `stress-dense` has all 200 as
-## train slimes at most 18 per loop bucket, centred on the bowl, none past
-## switch 3 (chunk 22j, D153). Every fixture in the directory
+## train slimes on the loop line, at most 9 per loop bucket but 12 in the
+## two at the bottom of the bowl, none past switch 3 (chunk 22j, D153,
+## rebuilt 2026-10-02). Every fixture in the directory
 ## loads, and none is older than the level (chunk LD3: its save holds every
 ## slime of the level, its sleepers where the level has them), but
 ## old-version, older on purpose. midair and old-version (chunk 19) are
@@ -40,13 +41,17 @@ const BOWL_RIGHT := 15.4 * S
 ## terrain corner fix); the rest is margin. tools/bench_level.gd waits for
 ## the same rest, within the same bound.
 const PILE_RESTS_WITHIN := 900
-## stress-dense (chunk 22j, D153): the most weight a loop bucket holds at
-## load (the bucket cap's 12 per 300 px plus 50 %); how many slimes are in
-## the bowl (x DENSE_BOWL_FROM to DENSE_BOWL_TO, the bowl's stretch the
-## fixture centres on), as its description records; switch 3, which no slime
-## is past; how long its save-and-reload run goes after the reload (ticks).
-const DENSE_PER_BUCKET := 18
-const DENSE_IN_BOWL := 134
+## stress-dense (chunk 22j, D153, rebuilt 2026-10-02): the most weight a
+## loop bucket holds as saved (the bucket cap's 12 per 300 px less 25 %),
+## and in the two loop buckets at the bottom of the bowl (the cap itself),
+## those two as the fixture's description records; how many slimes are in
+## the bowl (x DENSE_BOWL_FROM to DENSE_BOWL_TO), as it records too; switch
+## 3, which no slime is past; how long its save-and-reload run goes after
+## the reload (ticks).
+const DENSE_PER_BUCKET := 9
+const DENSE_BOTTOM_PER_BUCKET := 12
+const DENSE_BOTTOM_BUCKETS := [55, 56]
+const DENSE_IN_BOWL := 70
 const DENSE_BOWL_FROM := 13.5 * S
 const DENSE_BOWL_TO := 15.33 * S
 const SWITCH_3 := "s3.switch"
@@ -211,7 +216,7 @@ func test_stress_moving_has_200_train_slimes_in_the_bowl() -> void:
 
 # @test-link [[rule_max_200_slimes_per_level]]
 # @test-link [[req_test_level_and_test_mode]]
-func test_stress_dense_has_200_train_slimes_at_most_18_per_loop_bucket_around_the_bowl() -> void:
+func test_stress_dense_has_200_train_slimes_along_the_loop_at_most_9_per_bucket_12_at_the_bowls_bottom() -> void:
 	var game := _boot({"fixture": "stress-dense"})
 	var sim: Simulation = game.simulation
 	assert_eq(sim.slimes.slime_count, POPULATION)
@@ -233,29 +238,46 @@ func test_stress_dense_has_200_train_slimes_at_most_18_per_loop_bucket_around_th
 			in_bowl += 1
 	assert_eq(in_bowl, DENSE_IN_BOWL, "in the bowl, as the fixture's description records")
 	# The placement, as saved: each slime in the loop bucket of its saved
-	# centre's nearest loop point, cut as the bucket cap cuts the loop (D153).
-	# Loaded, a slime saved a pixel or two above what holds it is put down
-	# (D12), which can carry it over a bucket's edge.
+	# train distance, cut as the bucket cap cuts the loop (D153), and on the
+	# loop there (its saved centre the loop's point, a size-1 slime riding
+	# the route).
 	var buckets := BucketLoads.new()
 	buckets.configure(sim.train.length(), sim.train.bucket_length, BucketLoads.DEFAULT_DENSITY, 0)
 	for slime: Dictionary in TestMode.load_fixture("stress-dense")["save"]["slimes"]:
-		var saved_at := SaveData.vector_from(slime["centre"])
-		var nearest: float = sim.level.loop.closest(saved_at, sim.train.open_gates)["distance"]
-		buckets.add(buckets.bucket_index(nearest), int(slime["size"]))
+		var distance := SaveData.real(slime["train"]["distance"])
+		assert_lt(distance, stop, "none saved past switch 3")
+		assert_almost_eq(SaveData.vector_from(slime["centre"]), sim.train.position_at(distance),
+				Vector2(0.02, 0.02), "saved on the loop line")
+		buckets.add(buckets.bucket_index(distance), int(slime["size"]))
 	var loads := buckets.loads()
 	var used := []
 	var total := 0
 	for b in loads.size():
-		assert_lte(loads[b], DENSE_PER_BUCKET, "loop bucket %d at most 18" % b)
+		var most := DENSE_BOTTOM_PER_BUCKET if b in DENSE_BOTTOM_BUCKETS else DENSE_PER_BUCKET
+		assert_lte(loads[b], most, "loop bucket %d at most %d" % [b, most])
 		total += loads[b]
 		if loads[b] > 0:
 			used.append(b)
 	assert_eq(total, POPULATION, "every slime counted in a loop bucket")
 	assert_eq(used.size(), used[-1] - used[0] + 1, "the buckets used are side by side")
+	for b in DENSE_BOTTOM_BUCKETS:
+		assert_eq(loads[b], DENSE_BOTTOM_PER_BUCKET, "bottom bucket %d at the cap" % b)
 	var short := used.filter(func(b): return loads[b] < DENSE_PER_BUCKET)
-	assert_lte(short.size(), 2, "every bucket used at 18 but the last and a short one: %s" % [short])
-	gut.p("stress-dense: loop buckets %d to %d, %d at 18; %d in the bowl" % [used[0], used[-1],
-			used.size() - short.size(), in_bowl])
+	assert_lte(short.size(), 2, "every other bucket used at 9 but the last and the one switch 3 cuts: %s" % [short])
+	# The two buckets at 12 are at the bowl's bottom: the loop is at its
+	# lowest through the bowl at both their middles.
+	var lowest := -INF
+	var distance := 0.0
+	while distance < sim.train.outgoing_length():
+		var at := sim.train.position_at(distance)
+		if at.x >= DENSE_BOWL_FROM and at.x <= DENSE_BOWL_TO:
+			lowest = maxf(lowest, at.y)
+		distance += 4.0
+	for b in DENSE_BOTTOM_BUCKETS:
+		assert_almost_eq(sim.train.position_at((b + 0.5) * sim.train.bucket_length).y, lowest, 0.5,
+				"bucket %d at the bowl's bottom" % b)
+	gut.p("stress-dense: loop buckets %d to %d (%s at 12, %d short); %d in the bowl" % [used[0], used[-1],
+			DENSE_BOTTOM_BUCKETS, short.size(), in_bowl])
 	game.sync_view()
 	assert_between(sim.view.centre.x, BOWL_LEFT, BOWL_RIGHT, "the camera on the bowl")
 

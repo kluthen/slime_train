@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v24 (chunk 22j, the `stress-dense` fixture, first, then 22h, then 22k, a measurement round, the user's, D153; chunk 22i built, e996b8a, with D152's fix, 7d4c702; chunk 22i amended: holding train slimes don't stall, the user's, D152; approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v25 (chunk 22j rebuilt: `stress-dense` at 9 per bucket, the bowl's bottom two at 12, along the loop line, the user's, D154; known issue: fixture train distances wrap on load, D154; chunk 22j, the `stress-dense` fixture, first, then 22h, then 22k, a measurement round, the user's, D153; chunk 22i built, e996b8a, with D152's fix, 7d4c702; chunk 22i amended: holding train slimes don't stall, the user's, D152; approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
@@ -192,8 +192,9 @@ technology, not business behaviour:
   D151) is built (e996b8a), with D152's fix (7d4c702) and its test round
   (84ab355, `../../../docs/perf/2026-10-02-d152.md`).
 - **Next, in this order (proposed, D140, D143, D142, D146, D147, D148, D150, D151, D153):**
-  chunk **22j** (the `stress-dense` fixture: 200 train slimes at 18 per
-  300 px loop bucket, centred on the bowl, a 30 fps target; `stress-moving`
+  chunk **22j** (the `stress-dense` fixture, being rebuilt: 200 train
+  slimes at 9 per 300 px loop bucket, the bowl's two bottom buckets at 12,
+  along the loop line, D154; a 30 fps target; `stress-moving`
   kept as the abuse test, 15 fps, no crash or freeze; the user's, D153),
   chunk **22h** (moves to the loop start one at a time, 0.5 to 2 s apart,
   to a random free spot, and no stall clock while a train slime is
@@ -256,7 +257,7 @@ technology, not business behaviour:
 | 22e | Cluster fixes: the local wake and the hold (done, D146, 4750f12; out of 24.3 and 24.8; the short-hop share not reduced, handed to 22f) | S to M | 22d | the blocked-hop counters first; unit tests of the hold, the jam, the cap and the local wake; the bowl's Physics count and short hops drop in the PERF lines; changed hashes listed |
 | 22f | The hold, second round (proposed, D147) | S to M | 22e | the crowd diagnostic first; the hop corridor; no hop through a crowd, the hold guard; at least 90 % of holds end clear; no freeze over 10,000 ticks; the short-hop share drops and the front of a queue takes the hops; changed hashes listed |
 | 22i | The bucket cap: a cap on each loop bucket's load, behind a switch (the user's, details proposed, D151; built, e996b8a; D152's fix, 7d4c702) | S | 22g; before 22h | off: the 17 hashes unchanged; off against on, `s3-basket-59of60` and `stress-moving`: 10,000-tick stalls, stuck moves, bowl left; the 2400-tick probe with holds by reason; the bucket-load histogram; phone-emulation fps; unit tests of the loads, the full-bucket hold, the overfilled bucket, the parked edge; same hash across a save and reload |
-| 22j | The `stress-dense` fixture (the user's, details proposed, D153) | S | 22i; runs next, before 22h | the fixture built by `tools/make_fixture.gd`, no format change; 200 train slimes, at most 18 of weight per loop bucket at load; its hash at 600 and 2400 ticks recorded with the others', the others unchanged; its scripted test; same hash across a save and reload |
+| 22j | The `stress-dense` fixture (the user's, details proposed, D153; built ad8cd36 at 18 per bucket, being rebuilt thinner, D154) | S | 22i; runs next, before 22h | the fixture built by `tools/make_fixture.gd`, no format change; 200 train slimes (fewer only if they don't fit before switch 3, reported), 9 of weight per loop bucket at load, the bowl's two bottom buckets at 12, along the loop line, not stacked; its hash at 600 and 2400 ticks recorded with the others', the others unchanged; its scripted test; same hash across a save and reload |
 | 22h | Moves to the loop start one at a time, to a random free spot; no stall clock while parked (the user's, details proposed, D150) | S | 22f, 22i, 22j; runs after 22j, before 22k, 19w and 5N | `s3-basket-59of60` over 10,000 ticks: no stall move of a parked slime, no stuck move within 10 s of a landing, moves at least 30 ticks apart; unit tests of the queue, the pause, the landing spot; same hash across a save and reload mid-queue; changed hashes listed |
 | 22k | Measurement round: the stress fixtures and the bucket cap (D153) | S | 22h | `stress-dense`, `stress-moving`, `s3-basket-59of60`, cap off and on: 10,000-tick runs and phone-emulation fps against D153's targets; a perf report; no code |
 | 22c | Crowd detail only under load (proposed, D141) | S | 5N | the load meter's unit tests; same hashes in `always`; `auto` measured on the desktop |
@@ -1289,22 +1290,29 @@ already on the fixture builder).
   sleepers woken as size-1 train slimes, each its sleeper's species; not
   at bedtime, no session; switch 3 and basket 3 untouched; the camera on
   the bowl (`BOWL_CAMERA`).
-- **2. The placement** (D153 (2)): candidate spots as `_bowl_spots`'s
-  (columns 50 px apart, stacked from the ground up, lowest first) over a
-  wider x range; each spot in the loop bucket of its nearest loop distance
-  (the cap's buckets, gates 1 and 2 open); the centre bucket (the middle
-  of the bowl's loop stretch, 13.5 to 15.33 screens) takes its 18 lowest,
-  then behind and ahead alternately, behind first, 18 each, to 200; a
-  short bucket takes what it has; nothing past switch 3. Stable ID order
-  onto fill order. No draw.
-- **3. The record:** the count per bucket at load and the count in the
-  bowl (about 110 to 120; O114), in the fixture's description and the
-  test level README's row.
+- **2. The placement** (D153 (2) as amended by D154; the first build,
+  ad8cd36, stacked 18 per bucket in columns, 134 in the bowl, "a soup of
+  slimes", so it is rebuilt): the cap's buckets (gates 1 and 2 open); the
+  two buckets at the bottom of the bowl take 12 each (the cap), then
+  behind and ahead alternately, behind first, 9 each, to 200; a short
+  bucket takes its share; nothing past switch 3 (fewer than 200 only if
+  they don't fit, reported). Within a bucket the slimes are evenly spaced
+  by loop distance and set on the loop as a train slime is spawned, not
+  stacked. Stable ID order onto fill order. No draw.
+- **3. The record:** the count per bucket at load, the total and the
+  count in the bowl (about 65 to 70; O114), and how the line settles
+  (neighbours overlap at these spacings, D154 (2)), in the fixture's
+  description and the test level README's row.
+- **Found in the first build (a fix pending, not this chunk, D154):** a
+  fixture's train distances wrap on load (no train section in its save,
+  the Train restored on the gates-closed loop; `stress-moving`,
+  `s3-basket-59of60`, `gate2-open`, `stress-dense`); caught up by tick 60.
 - **Deterministic:** the same build gives the same save; the same seed
   the same hash, also across a save and reload.
 - **Done when:**
-  - the fixture loads with 200 train slimes, every loop bucket at most 18
-    of weight at load and the filled ones at 18 (bar the last and any
+  - the fixture loads with 200 train slimes (or the reported count),
+    every loop bucket at most its fill (12 for the bowl's bottom two, 9
+    for the rest) at load and the filled ones at it (bar the last and any
     short one), none past switch 3;
   - its hash at 600 and 2400 ticks (seed 909) recorded with the 17
     others', which don't change;

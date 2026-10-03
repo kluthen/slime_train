@@ -50,9 +50,10 @@ Four editor-only files are left out there; the script lists them.
 - `test_fixtures_e2e.gd` loads the test level's fixtures: `bump` has a
   size-3 and a size-2 slime of one species a little apart on the fusion
   dip's floor with the camera on them, `fresh` is the level as new,
-  `stress-dense` (chunk 22j) has its 200 train slimes at most 18 per loop
-  bucket as saved, 134 in the bowl, none past switch 3, the camera on the
-  bowl, and reloads from a save to the same run; and every fixture in
+  `stress-dense` (chunk 22j, rebuilt 2026-10-02) has its 200 train
+  slimes saved on the loop line, at most 9 per loop bucket but 12 in the
+  two at the bowl's bottom, 70 in the bowl, none past switch 3, the camera
+  on the bowl, and reloads from a save to the same run; and every fixture in
   `levels/test/fixtures/` loads.
 - `test_fixture_scenarios_e2e.gd` (chunk 21) runs a scripted scenario
   from each fixture that only had load-time checks or no same-seed hash

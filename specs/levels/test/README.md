@@ -1,6 +1,6 @@
 # Test level
 
-Status: draft v17 (fixture `stress-dense` and the two stress targets, `stress-moving` an abuse test, D153, proposed)
+Status: draft v18 (`stress-dense` thinned to 9 per bucket, the bowl's bottom two at 12, along the loop line, D154; known issue: train distances wrap on load, D154; fixture `stress-dense` and the two stress targets, `stress-moving` an abuse test, D153, proposed)
 
 A compact level that puts nearly every v1 gameplay item in one place (D76).
 It is the testing ground while the game is built, and the level the
@@ -584,7 +584,7 @@ the level is reported by the level's tests (chunk LD3).
 | `stress-still` | 200 woken base slimes (none left a sleeper), 60 in basket 3 and the rest piled in the bowl. Built (chunk 16): gates 1 and 2 open; the 60 in basket 3 are full and waiting to be in view; the 140 in the bowl are **asleep at bedtime** (a session at bedtime), because outside a basket only a bedtime pile rests (see below); the pile was settled until it rests, and rests about 670 ticks (about 11 s) after loading (since chunk 16d, which changed the terrain contact; about 8 s before); about 410 ticks since chunk 19, and the level bench now detects the tick it rests (D138) | the worst still case on one screen (O14, O57) |
 | `s3-basket-59of60` | gates 1 and 2 open, all 200 base slimes woken, not at bedtime (no session); switch 3 flipped and basket 3 at 59 of 60 (59 size-1 slimes resting in it); the other 141 size-1 train slimes spread through the bowl from its bottom up; the camera on basket 3's framing zone, zoom 0.8. Played on, the basket fills (about 9 s), fires in view and the celebration plays (built, chunk 22; proposed, D138) | the section 3 endgame: its frame rate (item 24.1) and a fired basket emptying (item 24.3) |
 | `stress-moving` | 200 train slimes spread through the bowl (built, chunk 16: size 1, lowest spots first, inside the bowl's view; about 30 to 35 per 300 px loop bucket) | the **abuse test**: beyond any setup the level design wants; target no crash, no freeze and at least 15 fps on the reference phone (D153; the phone emulation stands in until measured there) |
-| `stress-dense` | gates 1 and 2 open, all 200 base slimes woken as size-1 train slimes, not at bedtime; 18 per 300 px loop bucket (the bucket cap's 12 plus 50 %), centred on section 3's bowl (about 110 to 120 in it, O114), stacked on the lowest spots of each bucket, the rest behind and ahead; each its sleeper's species; switch 3 and basket 3 as in `stress-moving`; the camera on the bowl (chunk 22j; proposed, D153) | the dense moving case: what the rules allow plus 50 %; target at least 30 fps on the reference phone (D153; the phone emulation stands in until measured there) |
+| `stress-dense` | gates 1 and 2 open, all 200 base slimes woken as size-1 train slimes (fewer only if they don't fit before switch 3; the build reports), not at bedtime; 9 per 300 px loop bucket (the bucket cap's 12 minus 25 %), the bowl's two bottom buckets at the cap (12), filled from the bowl outward, behind first; laid along the loop line, evenly spaced by loop distance within a bucket, not stacked (about 65 to 70 in the bowl, O114); each its sleeper's species; switch 3 and basket 3 as in `stress-moving`; the camera on the bowl (chunk 22j, rebuilt; D153, amended by D154; the first build, ad8cd36, at 18 per bucket stacked in columns, put 134 in the bowl: "a soup of slimes") | the dense moving case: what the rules allow plus 50 %; target at least 30 fps on the reference phone (D153; the phone emulation stands in until measured there) |
 | `lost` | a free slime placed off screen, outside any area's route back (built, chunk 15: a D on the parade's first ledge beyond closed gate 1, the camera on the basin) | left alone at 10 s, then lost 1 min later (70 s off screen) and teleported to the start |
 | `midair` | a save taken with slimes in mid-air | placement on reload (D12) |
 | `old-version` | a save from an earlier test-level version with a moved sleeper | migration: the displaced slime counts as lost (D72) |
@@ -603,6 +603,12 @@ is therefore a bedtime pile. A big pile of size-1 slimes (which don't stack)
 takes a while to rest after it forms; the fixture is saved already settled,
 so it measures the pile at rest, not the minute before (the rest rule is
 kept for v1 (D107); chunk 22 measured it, and revisiting it is O105).
+
+**Known issue: train distances wrap on load** (found in chunk 22j, a fix
+pending, D154). A fixture's save has no train section, so the Train is
+restored on the gates-closed loop and its distances wrap; it has caught up
+by tick 60. Affects `stress-moving`, `s3-basket-59of60`, `gate2-open` and
+`stress-dense`.
 
 **Lost** has its own fixture because the level itself can't produce it: every
 spot a free slime can reach leads back to the loop (rule 7).
