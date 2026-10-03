@@ -923,8 +923,9 @@ route is pulled towards `SLIDE_SPEED` (360 px/s) by a fifth each tick. The
 real slide comes with the level art.
 
 **Stalled (D118, D121; chunk 23A).** A train slime is stalled when its
-progress hasn't advanced `STALL_ADVANCE` (24 px) in `STALL_SECONDS` (60 s),
-on screen or off, or when its centre leaves the level's bounds (the
+progress hasn't advanced `STALL_ADVANCE` (24 px) in `STALL_SECONDS` (60 s)
+of the ticks it is simulated (the clock pauses while it is parked, since
+chunk 22h: see "Chunk 22h"), or when its centre leaves the level's bounds (the
 terrain and the loop, plus 64 px, plus 2000 px above). `train.follow()`
 then moves it to the start of the loop, back on the train (`LoopStart.move`,
 the move lost and stuck slimes take too), and logs the case in
@@ -5942,6 +5943,72 @@ Both run at 2 ticks a frame on every pinned line (the per-frame tick cap),
 so the simulation runs behind real time. `stress-dense`: about 58 slimes
 on screen, about 110 parked off screen (the section 2 part); 180 bodies by
 the end (fusion).
+
+## Chunk 22h
+
+Build plan chunk 22h, D150 (`rule_stalled_train_slime_moved_to_start`,
+`req_offscreen_simulation`, `req_persistence_and_saves`).
+
+### Step A: the stall clock pauses while parked
+
+D150 (1), O113's default (every parked train slime; amends D118's "on
+screen or off"). A train slime's 60 s without 24 px of progress counts
+only the ticks it is simulated.
+
+- **How.** `Train.follow()`, on each tick it finds a followed slime parked
+  (calm `PARKED`, set by `Offscreen.step` at the tick's start), moves the
+  record's `marked_at` on by one tick (`_pause_stall_clock`), before
+  `advance()`: the time since the mark stays what it was, and once the
+  slime is simulated again the clock resumes from there, not from zero. A
+  fresh record (`marked_at` -1) is left alone, and so is a mark already at
+  the current tick (Offscreen's proxy may have just made it): `marked_at`
+  never passes the tick.
+- **Unchanged.** Progress while parked (at the off-screen pace) still
+  marks; out of bounds still moves a parked slime at once; a simulated
+  slime that doesn't advance is stalled at 60 s as before.
+- **Why it can't leave a train stuck for good** (D150): a parked train
+  slime is only ever held by the train slime ahead (single file,
+  `Offscreen`); the front of such a line is simulated (its clock runs) or
+  moving. A parked line so waits as long as its front does, out of sight.
+- **Saves.** No new key: the pause lives in `marked_at`, already in the
+  saved train record, and parking in the body's saved calm (and is
+  re-derived from the saved view at the next tick's start). A save and
+  reload mid-stretch gives the same hash and carries on the same.
+- **The dip wait** (`Fusion._gathering`) reads `marked_at` too, but only
+  for slimes on screen, which are never parked on that tick (the view is
+  inside the near margin, and fusion runs before the camera moves): it
+  is never in force on a parked slime. A slime that comes on screen
+  carries a clock that counted only its simulated ticks.
+- **Tests.** `tests/unit/test_train_stalled.gd`: on a bare Train, parked
+  9000 ticks without moving and never stalled (the time since its mark
+  kept), simulated again it stalls at its 3600th simulated tick since the
+  mark, parked from its first follow its clock never starts, progress
+  while parked still marks, out of bounds while parked moves at once; in a
+  simulation with off-screen simulation on, a parked line behind a wedged
+  simulated front: the front stalls at 60 s, the parked one never, and the
+  line moves on once the front has gone; a save and reload mid-stretch
+  gives the same hash and the same log.
+- **Hashes** (seed 909): every change is `train.slimes[].marked_at` only
+  (the dumps compared with and without the change: no other field, no
+  stall, no dip wait differs within 2400 ticks). Changed at 600 ticks:
+  `bump`, `gate1-open`, `gate2-open`, `midair`, `s1-optout`,
+  `s3-basket-59of60`, `stress-dense`, `stress-moving`; at 2400 also
+  `fresh`, `lost`, `old-version`, `s1-basket-5of6`, `s2-cave-return`.
+  Unchanged at both: `bedtime`, `s2-basket-offscreen`, `stress-still`,
+  `sunrise`, `wind-down`.
+- **Before and after** (`tools/thru.gd`, 10,000 ticks, seed 1):
+
+| Fixture | stall | stuck | hops | bowl_n at the end |
+|---|---|---|---|---|
+| `s3-basket-59of60`, before | 87 | 234 | 1794 | |
+| `s3-basket-59of60`, after | 0 | 65 | 1552 | 0 |
+| `stress-dense`, before | 64 | 0 | | 49 |
+| `stress-dense`, after | 0 | 0 | 2505 | 77 |
+
+  The bowl's parked line in `stress-dense` now waits instead of being
+  drained by the stall net (D150: reported, not a target). The 65 stuck
+  moves left in `s3-basket-59of60` are not looked into here (D150's items
+  2 and 3, the loop-start queue and the random free spot, come next).
 
 ## Technical choices
 

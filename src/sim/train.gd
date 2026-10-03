@@ -44,10 +44,19 @@ extends RefCounted
 ##
 ## Stalled (D118, D121; "lost" is for free slimes only, D10). A train slime
 ## is stalled when its progress hasn't advanced STALL_ADVANCE px in
-## STALL_SECONDS, on screen or off (parked slimes included), or when its
-## centre leaves `bounds` (the level's extent, bounds_for()). follow() then
-## moves it to the start of the loop, back on the train (LoopStart.move, the
-## move lost and stuck slimes take too; its record starts afresh, so the 60 s
+## STALL_SECONDS of the ticks it is simulated, or when its centre leaves
+## `bounds` (the level's extent, bounds_for()). The stall clock pauses while
+## the slime is parked (Offscreen; D150 (1), O113's default: every parked
+## train slime): on each tick follow() finds it parked, its last mark's tick
+## ("marked_at") moves on by one, so the time since the mark stays what it
+## was, and once simulated again the clock resumes from there, not from zero.
+## A parked line in single file (Offscreen) so waits as long as its front
+## does. Progress while parked (at the off-screen pace) still marks, and a
+## parked slime out of bounds is still stalled at once. The pause lives in
+## the saved record (and parking in the saved calm): no save key of its own.
+## Once stalled, follow() moves it to the start of the loop, back on the
+## train (LoopStart.move, the move lost and stuck slimes take too; its record
+## starts afresh, so the 60 s
 ## count starts again from the move) and logs the case in `stalled` with the
 ## reason STALLED or OUT_OF_BOUNDS, every time. A slime asleep at bedtime is
 ## not a train slime: it has no record, so it is never counted nor moved,
@@ -74,6 +83,7 @@ extends RefCounted
 # @spec-link [[rule_loop_travelable_with_no_input]]
 # @spec-link [[rule_all_sizes_travel_loop_v1]]
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
+# @spec-link [[req_offscreen_simulation]]
 # @spec-link [[req_platform_and_performance_targets]]
 
 ## How far ahead of its last progress (px) a slime's progress may move in one
@@ -149,7 +159,8 @@ var stalled: Array[Dictionary] = []
 
 ## Slime id -> {"distance" (px, 0 to length()), "laps", "on_slide",
 ## "mark" (the progress last counted as an advance), "marked_at" (its tick,
-## -1 before the first follow)}.
+## moved on by the ticks parked since, see the class doc; -1 before the
+## first follow)}.
 var _records := {}
 ## The current loop flattened into one closed polyline: points, cumulative
 ## distances, and for each edge whether it is on a return route.
@@ -446,7 +457,8 @@ func advance(slime_id: int, centre: Vector2, tick: int) -> void:
 
 
 ## Why followed slime `slime_id`, its centre at `centre`, is stalled at
-## `tick` (after advance()): STALLED when its last mark is STALL_SECONDS old,
+## `tick` (after advance()): STALLED when its last mark is STALL_SECONDS old
+## (parked ticks not counted, see the class doc),
 ## OUT_OF_BOUNDS when its centre is outside `bounds`, else "".
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
 func stall_of(slime_id: int, centre: Vector2, tick: int) -> String:
@@ -519,6 +531,8 @@ func follow(bodies: SlimeBodies, tick: int) -> void:
 		if not _records.has(slime_id):
 			track(slime_id, _closest_distance(centre))
 		var before := progress_of(slime_id)
+		if bodies.calm[s] == SlimeBodies.PARKED:
+			_pause_stall_clock(slime_id, tick)
 		advance(slime_id, centre, tick)
 		_count_landing(bodies, slime_id, s, before)
 		var reason := stall_of(slime_id, centre, tick)
@@ -557,6 +571,19 @@ func dump() -> Dictionary:
 
 
 # --- Internals --------------------------------------------------------------
+
+## The stall clock's pause (see the class doc) for followed slime `slime_id`,
+## parked at `tick`: its last mark's tick moves on by one, so the time since
+## the mark stays what it was. A fresh record (no mark yet) is left alone,
+## and so is a mark already at `tick` (Offscreen's proxy may have just made
+## it): the mark never goes past the current tick.
+# @spec-link [[rule_stalled_train_slime_moved_to_start]]
+# @spec-link [[req_offscreen_simulation]]
+func _pause_stall_clock(slime_id: int, tick: int) -> void:
+	var record: Dictionary = _records[slime_id]
+	if record["marked_at"] >= 0 and record["marked_at"] < tick:
+		record["marked_at"] += 1
+
 
 ## The hop counters for train slime `slime_id` (index `s`), just advanced
 ## from progress `before`: a hop it took this tick takes off from `before`;
