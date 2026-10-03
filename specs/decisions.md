@@ -2588,6 +2588,11 @@ ATD: 66 `@spec-link` and 19 `@test-link` tags to
 2026-09-30 (D144)**; their numbers stay proposed until calibrated (O107).
 The rest (1, O106's default, section 3 left as is, 3 and 4) stays
 proposed.
+**Item 24.8 (2 (b)): a replacement was tried and withdrawn (D155).** It
+replaced the lean (D145 to D152) on a branch of work that was reverted;
+the lean itself stays as written here, approved in direction and
+unbuilt. O106's default became the local wake (D156,
+chunk 22l).
 Proposed; the user reviews. Four requests from the user (2026-09-30),
 relayed by the coordinator. D142 is reserved for chunk 22b as built,
 recorded once 22b closes. Refinements of the coordinator's defaults say
@@ -2806,3 +2811,915 @@ The user was shown three items and replied, verbatim: "agreed"
   (`level-design.md`), the lean (`slimes.md`), their `tuning.md` rows and
   the build plan's 24.7 and 24.8 read "approved in direction", their
   numbers proposed.
+
+## D145 — Withdrawn: the train holds before a crowd (2026-09-30)
+**Withdrawn by D155 (2026-10-03).** It was the hold: a train slime whose
+hop was due waited while its landing point was crowded or a queue of
+waiting train slimes lay ahead, and such a slime could rest; it replaced
+D143's lean (item 24.8) and proposed the local wake, which D156 keeps.
+Full text on branch `archive/fps-session-2026-10`, commit 59db79b (its
+as-built notes, 9965847; final text at the branch's tip, bcaa8b7).
+
+## D146 — Withdrawn: chunk 22e, the cluster fixes before 5N (2026-09-30)
+**Withdrawn by D155 (2026-10-03).** It moved the hold and the local wake
+into chunk 22e, before 5N, and recorded 22e as built (4750f12). Full text
+on branch `archive/fps-session-2026-10`, commit dc3c69d (as-built notes,
+9965847).
+
+## D147 — Withdrawn: the hold, second round, chunk 22f (2026-10-01)
+**Withdrawn by D155 (2026-10-03).** It reworked the hold (a crowd check
+over a box ahead of the hop, a forced hop when the whole train waits,
+resting by contact); it opened O109 and O110, both withdrawn with it.
+Full text on branch `archive/fps-session-2026-10`, commit 2bb5100
+(amended in ace6202).
+
+## D148 — A save wipe flag for development builds, chunk 19w (2026-10-01)
+*Re-entered by D155 (2026-10-03), edited:* the first text, on branch
+`archive/fps-session-2026-10` (commit ace6202), placed chunk 19w among
+withdrawn chunks; the order is now D155's. The rest is as written there.
+Proposed where it goes beyond the user's words; the user reviews.
+
+**Approved in direction, amended by D149 (the user, 2026-10-01).** The
+user approved the direction: the per-launch flag, for **automated testing
+only** ("the flag is only for automated testing. i've the reset button");
+by hand, a level is started over with the parent's delete of its save.
+O112 is closed (no toggle that stays set) and O111 is answered (the save
+format may break before the first store release; see D149). The details
+below marked proposed still wait for the user. The user also approved
+documentalist's wording for `rule_saves_never_wiped`'s LOGIC ("i agree
+with the wording"), verbatim: "No player's build ever wipes a save: no
+update, migration or load-failure path deletes an existing level save;
+only a parent's explicit delete of one level's save removes it. A
+development aid that exists only in debug builds, is ignored by a release
+build and never reaches a release install, is outside this rule." It
+replaces the bare "Saves are never wiped" this entry's documentalist note
+asked about (written into the atom as `rule_saves_never_wiped` 1.1,
+729fe87, kept through the revert, D155); how it squares with D149's
+pre-store-release rule is checked in D149 (6).
+
+The user's words, verbatim (2026-10-01):
+"Currently we aren't in production, so we may relax save file deletion in
+testing. Ensure that a flag can be set so that if set, the save file is
+automatically deleted at the begining of a test session. Of course, when
+testing save/restore state we need to remove this flag."
+
+**Reading.** "A test session" is read as **one launch of the app for
+testing**. In our terms a *session* is the 15 min play period; the wipe
+acts once per launch, not at each session's start inside a run (a session
+started by the first tap after sunrise doesn't wipe). Relaxed is the
+deletion of saves on a developer's own build, nothing else: the save
+**format** stays a hard contract (format 1, additive keys, older saves
+load), and whether format compatibility is also relaxed in development is
+open (O111). Nothing here changes what a player's build can do. *(D149:
+O111 answered: the format is a hard contract only from the first store
+release; before it, a format change may break older saves, and a save a
+build can't use is set aside and the level starts fresh.)*
+
+**Grounded in the code (read 2026-10-01; the save and startup code is
+unchanged by the revert):** the level saves live in
+`user://saves/` (`SaveStore.DEFAULT_DIRECTORY`): per level
+`<level id>.json`, its backup `.bak`, a write's side files `.new`, files
+set aside as `.unreadable` (`.2`, `.3`...) and version copies `.v<n>`.
+`read()` falls back to the backup when the save is missing, so a save
+deleted alone would come back from its backup. The parent code is
+`user://parent.json` (and its `.bak`). `main.gd` reads the user arguments
+(`OS.get_cmdline_user_args()`) in `_ready`, creates the stores, loads the
+level, then resumes from the save in `_resume_play()` only when test mode
+is off: **a fixture run never reads the player's save**. `--load=PATH`
+and the run configuration's `"load"` key are test mode's (start from the
+save at PATH). The check for debug-only tools is `TestModeGuard.allows()`
+(`OS.is_debug_build()`); the release preset excludes `src/test_mode/*` and
+`src/debug/*`. On Android, `tools/android/perf.sh` passes flags through
+the launch intent's `slime_args` extra, which the SlimePlatform plugin
+reads in a debuggable build only; the debug app is its own package
+(`com.slimetrain.dev`), the release one `com.slimetrain`.
+`tools/perf_slow.sh` always runs a fixture in test mode and forwards its
+extra arguments to the game.
+
+**1. The flag** (name proposed): **`--wipe-save`**, a user argument after
+`--` (on Android, in `slime_args`). Never on by default, in any build.
+Command line only: not a test-mode run configuration key, not a setting,
+and no toggle that stays set across launches (D149, O112 closed: the
+flag is for automated testing only; manual play starts a level over with
+the parent's delete).
+
+**2. What it wipes** (proposed): **every file in `user://saves/`**, every
+level's save with its backup, side files, set-aside files and version
+copies. The backup has to go (the read would bring it back); the others
+go so that the start is a true fresh install for the level saves. The
+directory itself may stay. Every level is then as on a fresh install: the
+first-play hint is due, the celebration can play again, and v1's session,
+which lives in the level's save (D104), starts afresh. Unlike the
+parent's delete (D43, D104), which keeps a running session so deleting
+can't dodge bedtime, the wipe doesn't keep one: it acts at launch, on a
+developer's build, before any session is read.
+- **`user://parent.json` is kept** (proposed), and with it the parent
+  code and setup: a wipe doesn't send the next launch through setup. No
+  `--wipe-parent` in this chunk (proposed): the user asked for the save
+  file only, and a fresh setup is a different test (clearing the app's
+  data does it). If wanted later, it is a second flag beside this
+  one, never part of `--wipe-save`.
+
+**3. When and where** (proposed):
+- **At startup, before anything reads a save:** in the main scene's
+  `_ready`, after the stores are made and before the level loads and
+  `_resume_play()` reads the save. Once per launch.
+- **Only the main scene's default directory** (`user://saves/`). A store
+  a test gives (`SaveStore.new(DIR)`, as every save test does) is never
+  wiped by the flag. The wipe's function takes its directory as an
+  argument so its unit tests run on a scratch directory.
+- **Not a `SaveStore` path.** The store keeps its rule: it never deletes
+  a save except on the parent's explicit delete
+  (`rule_saves_never_wiped`). The wipe lives in a debug-only file, for
+  example `src/debug/save_wipe.gd`, named by path only after the guard
+  allows it (as test mode is), so the release preset leaves it out with
+  `src/debug/*`. `SaveStore`'s header gains a one-line pointer to it.
+
+**4. The guard** (the user's and the coordinator's constraint; the rest
+proposed): **debug builds only**, through the same check as test mode
+(`TestModeGuard.allows()`). In a release build the flag is **ignored**:
+nothing is deleted and one line is logged (`Save wipe: --wipe-save
+ignored, not a debug build.`). On Android a release build doesn't receive
+`slime_args` at all, and a debug install is a different package, so the
+flag can never reach a release install's saves, even on the same phone.
+
+**5. With a save to load: refused** (proposed). When the launch also
+names a save to start from (`--load=PATH`, or a test script whose run
+configuration has `"load"`), the wipe doesn't run, an error is printed,
+and in a debug build the app quits with exit code 1, as a bad test-mode
+or perf-log flag does today (in a release build both flags are already
+ignored). A save/restore run that carries the flag by mistake fails
+loudly instead of silently testing a fresh start, and a `--load` path
+inside `user://saves/` can't be deleted before it is read. The other way
+(ignore the wipe with a log line, load anyway) is the user's call.
+`--fixture` is not a conflict: fixtures are `res://` files. With test
+mode and no load, the wipe runs as asked (harmless: a fixture run doesn't
+read the player's save; it matters only if the run autosaves).
+
+**6. The log line** (proposed): on every wipe, one line on standard
+output (logcat's `godot` tag on Android): `Save wipe (--wipe-save):
+deleted N files from user://saves/; parent.json kept.`, N possibly 0. A
+file that can't be deleted is named in an error line, and the launch
+carries on (a dev aid must not block play).
+
+**7. The tools** (proposed):
+- **`tools/android/perf.sh` gains `--wipe-save`, off by default.**
+  Accepted with `--fixture=none` and `--free-play` (normal play, which
+  reads the device's save); refused with a fixture (exit 2, a bad
+  argument: a fixture run never reads the player's save). It adds
+  `--wipe-save` to `slime_args`; the session's `perf.log` header already
+  records the launch line, so a wiped session shows in its record. Its
+  header's "the player's data is never at risk" paragraph is amended:
+  with `--wipe-save`, the debug app's level saves are deleted at launch,
+  the parent code kept; it still never uninstalls or clears the app's
+  data. **Why off by default:** the user's "a flag can be set" reads as
+  an opt-in per test session, and `--fixture=none` exists to measure the
+  device's own (often late-game) save, which a default wipe would destroy.
+- **`tools/perf_slow.sh`: no new option** (proposed, against the
+  coordinator's suggestion): it always runs a fixture in test mode, which
+  never reads the player's save, so the flag would do nothing there; its
+  extra arguments already pass any flag through.
+- **`docs/dev/README.md`** (the coding chunk writes it): what the flag
+  does and doesn't wipe, that it is for automated test runs only (D149),
+  how a test run passes it on the desktop (`godot --path . --
+  --wipe-save`) and on the phone (`perf.sh --free-play --wipe-save`),
+  that manual play starts a level over with the parent's delete instead,
+  and the rule in 8. *(D149: the hand-typed adb launch line first planned
+  here is dropped.)*
+
+**8. Save and restore tests never pass it** (the user's: "when testing
+save/restore state we need to remove this flag"). The kill-and-reload
+tests, the delete-save tests, the persistence fixtures (`midair`,
+`old-version`), every fixture and its sidecar, the test scripts and the
+end-to-end suite never carry `--wipe-save`. A guard test (proposed)
+checks that no file under `tests/`, `levels/*/fixtures/` or the test
+scripts names it, the flag's own tests apart. A manual save and restore
+check on the phone or the desktop is run without it; `docs/dev/README.md`
+says so.
+
+**9. What doesn't change:** the save format (format 1, additive only; a
+hard contract *until the first store release, D149*); `rule_saves_never_wiped` and the contract's guarantee ("a
+level's save is never wiped by an app update"): a release build can't
+wipe, and no update, migration or load-failure path gains a delete; the
+parent's delete (D43, D104); the simulation (same hashes).
+
+**10. Chunk 19w** (name proposed: a small add-on to chunk 19's
+persistence, S). **Order:** D155's (19w first among the remaining
+chunks). It shares `main.gd`'s startup and `docs/dev/README.md` with the
+chunks around it, so it doesn't run while another chunk edits them. It
+**keeps both ATD steps**: documentalist preflights it against
+`rule_saves_never_wiped` (STABLE, on the contract's surface) before any
+code, with `req_persistence_and_saves`, `domain_saves_per_level`,
+`rule_released_level_stable_with_migration`,
+`req_test_level_and_test_mode` and `domain_testability`.
+- **Done when:**
+  - **unit tests** (on a scratch directory and an explicit guard):
+    - *the flag wipes:* with two levels' saves, their backups, a side
+      file, a set-aside file and a version copy, the wipe leaves the
+      directory empty, leaves a `parent.json` (and its `.bak`) beside it
+      untouched, and logs one line with the count;
+    - *no flag keeps:* a launch without it leaves every file
+      byte-identical;
+    - *a release build ignores it:* a guard answering "not a debug
+      build" deletes nothing and logs the ignored line;
+    - *with a load, refused:* `--wipe-save` with `--load=PATH`, and with
+      a test script holding `"load"`, deletes nothing and returns the
+      error that makes a debug launch exit 1;
+    - *before any read:* a game started with the flag on a directory
+      holding a save starts fresh (the first-play hint due);
+    - *only the default directory:* a store a test gives is never wiped
+      by the flag;
+    - the guard test of 8, and the release preset's exclude filter
+      covering the wipe's file (as `test_test_mode_guard.gd` checks
+      `src/test_mode/`);
+  - **perf.sh**, checked by hand on the emulator or the phone:
+    `--free-play --wipe-save` starts fresh and its log line is in
+    `logcat.txt`; `--fixture=<name> --wipe-save` is refused with exit 2;
+    without the flag, the device's save is resumed as before;
+  - **same hashes:** every fixture's hash unchanged; the full suite
+    green;
+  - `docs/dev/README.md` and `SaveStore`'s header carry their notes.
+
+**For documentalist (preflight, before coding).** No conflict found with
+the contract or `rule_saves_never_wiped`'s intent and expectation (an app
+update never wipes a parent's save): the flag is no update path, exists
+only in debug builds, and acts on the debug package's own data. The
+rule's LOGIC now carries the user-approved wording (1.1, above).
+`req_persistence_and_saves` may gain a technical-interface
+line (a third way saves go, debug only), and the wipe's file is tagged to
+`req_test_level_and_test_mode` or a new ARCHITECTURE atom, documentalist's
+call.
+
+**Open:** O111 (is save-format compatibility also relaxed in
+development?), O112 (a per-launch flag, or also a toggle that stays set
+across launches?). *Both resolved in D149.*
+
+**Terminology** (`concept.md`): **save wipe** added (proposed), kept apart
+from the parent's *delete* of one level's save.
+
+## D149 — The save format before the first store release; the save wipe for automated testing only (2026-10-01)
+*Re-entered by D155 (2026-10-03), edited:* the first text, on branch
+`archive/fps-session-2026-10` (commit d4fe7a9), also qualified passages
+of withdrawn decisions and placed chunk 19w among withdrawn chunks; those
+mentions are left out, the order is D155's. The rest is as written there.
+The user's answers to D148's open questions, verbatim (2026-10-01): "the
+flag is only for automated testing. i've the reset button. save format may
+break between version. That's our prerogative to ensure migration (if the
+app has been shipped, otherwise, we just wipe). i agree with the wording."
+Resolves **O111** and **O112**. Approves D148 in direction (the flag, for
+automated testing only) and documentalist's wording for
+`rule_saves_never_wiped` (quoted in D148's head). Proposed where it goes
+beyond the user's words; the user reviews.
+
+**1. The save wipe is for automated testing only (O112; the user's).**
+The per-launch `--wipe-save` is enough: no toggle that stays set across
+launches, no marker file, no debug-overlay switch. It is passed by the
+test tools (`tools/android/perf.sh --wipe-save`, a scripted desktop
+launch), not used in manual play. To start a level over by hand, the user
+uses the parent's **delete** of that level's save (D43, D104; the user's
+"reset button"). D148's items 1 and 7 are amended: `docs/dev/README.md`
+presents the flag as an option of automated test runs and points manual
+play to the parent's delete; the hand-typed adb launch line is dropped.
+Everything else in D148 stands as written.
+
+**2. The save format may break before the first store release (O111; the
+user's).** Keeping a player's save across a save-format change, with a
+migration, is owed only once the app has **shipped**: once a build has
+gone out in a store, at the first store release (probably v4, D137; v1 is
+never in a store, D135). Until then, a save a build can't use because of
+a format change is discarded ("we just wipe"), not migrated. So, until
+the first store release:
+- A save-format change may be additive or breaking. It needs **no
+  migration and no special approval**; it is recorded like any other
+  choice (the chunk's record, `docs/dev/README.md`'s save section, the
+  atoms).
+- *(proposed)* A breaking change **bumps the format number** (`format`
+  2, 3...), so an old save is refused plainly rather than misread. An
+  additive change with safe defaults may keep the number, as chunk 23's
+  three did (D125): cheaper, and it keeps the developer's own saves.
+- No format migration code is kept before shipping.
+- From the first store release on, every save-format change ships with
+  its migration, and the format is a hard contract again (what the spec
+  said before this entry, now dated).
+
+**3. A save a build can't use, before the first store release**
+(proposed). *Today* (`main.gd`'s `_resume_play`, chunks 8 and 19, D131):
+a file that isn't JSON is set aside as `.unreadable` and the backup is
+tried; a save that parses but `SaveData.problems()` refuses (a format
+newer than the build's, a newer level version, another level, a bad
+shape) is **left untouched, the level starts fresh, and the store blocks
+writes for that level**. That keeps the file, but it isn't "we just wipe":
+the level would start fresh at every launch and never save again until
+someone removes the file. Proposed instead, before the first store
+release:
+- The refused save is **set aside** with the store's existing suffix
+  (`.unreadable`, then `.2`, `.3`... if taken), its backup with it, and
+  the level **starts fresh with autosave on** (no write block). Its
+  session starts afresh with it (v1's session lives in the level's save,
+  D104), as on a save wipe.
+- **One log line** on the error output, for example: `Save: <path> can't
+  be used (<reasons>); not shipped yet, so it is set aside as <set-aside
+  path> and the level starts fresh.`
+- **A format other than the build's own** is refused, older or newer.
+  (`problems()` today accepts any format from 1 up to the build's own;
+  with only format 1 there is nothing older yet.)
+- **Why set aside, not delete:** the same effect in play (the level
+  starts fresh, as the user asked); the file stays for a look when a
+  refusal is a bug rather than a planned change; `--wipe-save` and the
+  parent's delete already clear set-aside files; and the approved wording
+  of `rule_saves_never_wiped` holds as written (see 6). A real delete
+  instead is the user's call, and needs one more clause in that atom.
+- **Unchanged:** a file that isn't JSON is set aside as today; a save of
+  an **older level version** is still migrated as it loads, displaced
+  slimes lost (D72, D131, the `old-version` fixture, item 24.4). That is
+  a level change, not a format change, and it already works; this entry
+  doesn't touch it.
+- **One switch.** Whether the app has shipped is a single value in the
+  code (its name the implementer's, for example `SaveData.SHIPPED`),
+  false until the first store release. Turning it on is part of that
+  release (noted in `versions/v4/README.md`). From then on, a refused save
+  is handled as today (left untouched, the level starts fresh, writes
+  blocked), and format changes ship with their migrations.
+- **Where it is built** (proposed): in **chunk 19w**, beside the wipe. It
+  touches the same code (`main.gd`'s startup and `_resume_play`,
+  `SaveStore`, `SaveData`) and has the same preflight atoms. Order:
+  D155's. Extra done-when items:
+  - before shipping (the switch off), a save with another format number
+    (newer, and older with a test-only number), and a format-1 save
+    that fails the shape check, are each set aside with their backup; the
+    level starts fresh; the next autosave writes a new save; one log line;
+  - with the switch on, the same saves are left untouched and writes are
+    blocked (today's tests, kept and run with the switch on);
+  - a file that isn't JSON behaves as today; an older level version still
+    migrates (`old-version`); every fixture's hash unchanged.
+
+**4. Fixtures and test-mode scripts: unchanged.** The user said nothing
+about them, so their formats stay hard contracts as they are
+(`CODING_RULE.md` §4). One consequence to keep in mind (flagged, not
+decided): fixtures *are* saves (build plan, principle 4), so a breaking
+save-format change can't land without converting every fixture in the
+same change. That conversion falls under the fixture format's own rule.
+In practice the relaxed rule frees the players' and developers' saves on
+devices, not the fixtures in the repository.
+
+**5. Qualified "until the first store release".** Passages that called
+the save format a hard contract or asked a migration for every format
+change now hold until the first store release: D148 (the reading and
+item 9), `tech-direction.md`'s Saving and Save wipe, the build plan's
+chunk 19w, `concept.md`'s Persistence, the master spec's 5.10, and
+`README.md`. **Not changed:** "saves are never wiped", which is about a
+player's build (see 6); level rule 20 and
+`rule_released_level_stable_with_migration`, since a released level is a
+shipped one and the rule already starts at release; D124 and D125, a
+record of what was done then. **Outside `specs/`, not edited:**
+`CODING_RULE.md` §4 says "the save format ... [is a] hard contract" and
+names "left untouched, the level starts fresh, writes are blocked" as the
+one sanctioned fallback; both need "until the first store release" (and 3's
+set-aside) if this is approved. That is the user's file, used by the
+health review.
+
+**6. Squared with `rule_saves_never_wiped`'s approved wording.** "No
+player's build ever wipes a save: no update, migration or load-failure
+path deletes an existing level save; only a parent's explicit delete of
+one level's save removes it." Before the first store release there is no
+player's build, and 3's set-aside deletes nothing: set-aside files are
+already part of this rule (D131). So the load-failure clause holds as
+written. Two points flagged, not resolved:
+- **(a) If the user wants a real delete before shipping**, the wording
+  conflicts: a release-preset build made before shipping would delete on
+  a load failure, and the development-aid exception covers only aids that
+  exist in debug builds alone. The fix would be one more clause, for
+  example: "Before the first store release there is no player's build,
+  and a build may discard a save it can't use."
+- **(b) The contract** (`contract_atd`) guarantees for v1 that "a level's
+  save is never wiped by an app update". Nothing is deleted, but before
+  shipping a format change starts the level fresh, which a parent would
+  see as a wipe, for example on the family phones where the children play
+  development builds. v1 never ships, and the user accepts it ("otherwise,
+  we just wipe"). The guarantee's wording may still want "once shipped".
+  It is on the contract's surface, so documentalist proposes and the user
+  confirms.
+
+**For documentalist** (with chunk 19w's preflight, before its code):
+`rule_saves_never_wiped` (the approved LOGIC, now 1.1; 6), `req_persistence_and_saves`
+("additions ... keep format 1, so older saves still load" holds until the
+first store release; the pre-store-release set-aside and the shipped
+switch; the wipe as a third, debug-only way saves go),
+`rule_released_level_stable_with_migration` (unchanged in substance;
+released means shipped), `domain_saves_per_level` ("level updates migrate
+saves rather than breaking them": still true of level versions; format
+changes before the first store release don't migrate), `contract_atd`
+(6 (b)), and `req_test_level_and_test_mode` or `domain_testability` (the
+wipe is for automated test runs only).
+
+**Terminology** (`concept.md`): **shipped** added (proposed): the app
+from its first store release on. **Save wipe** amended: for automated
+test runs only.
+
+## D150 — Moves to the loop start one at a time, to a random free spot; no stall clock while parked; chunk 22h (2026-10-02)
+*Re-entered by D155 (2026-10-03), edited:* the first text, on branch
+`archive/fps-session-2026-10` (commit 25ef5ae), also covered withdrawn
+rules (a train slime waiting before a crowd, the safety catch against a
+frozen train) and a wording fix in a withdrawn decision; those are left
+out, and the order is D155's. The rest is as written there.
+The user's decisions (2026-10-02), after chunk 22g's stall diagnostic
+(withdrawn code, D155; its report, `docs/perf/2026-10-01-chunk-22g.md`,
+section 5, is on branch `archive/fps-session-2026-10`): "2 problems arose:
+first is easy: emergency teleport should be randomized in position.
+Second is quite easy as well: emergency teleport should have a cooldown.
+between 0.5s to 2s." To the coordinator's questions: the cooldown is a
+**global queue**, one move to the loop start at a time, the next waiting a
+random 0.5 to 2 s after each; and the stall clock is **paused while a
+train slime is parked**, resuming when it is simulated again (amends D118).
+The user's "emergency teleport" is the **move to the loop start**
+(`LoopStart.move`), the one move the three safety nets share: lost free
+slimes (D10), stuck slimes (D100) and stalled train slimes (D118, D121;
+out of bounds included). All three go through what follows; that lost
+free slimes take the same move is checked in the code (`Offscreen.lose`),
+so they are included (proposed, as the coordinator suggested). Also the
+user's: `stress-moving` is an intentional cluster of disproportionate
+dimensions, so its numbers are never targets (D153 later gave it an abuse
+test's floor, not a target to aim at). Proposed where it goes beyond the
+user's words. Opens O113.
+
+**What 22g measured** (on the withdrawn build, D155). In
+`s3-basket-59of60` over 10,000 ticks (seed 1), the stall net moved 87
+train slimes, 64 of them at tick 3600, all parked; then 305 stuck moves on
+61 slimes at the loop start (seed 2: 86 and 172). Two causes:
+- **Parked slimes stalled.** Parking doesn't freeze a train slime: it
+  moves along the loop at the deterministic off-screen pace (about
+  67 px/s for a size 1), but single file: it never comes closer than the
+  two slimes' widths behind the train slime ahead of it, parked or not,
+  and waits there (`Offscreen`, chunk 15, D69). The 87 were such a line
+  in the bowl before basket 3, about 50 px apart at nearly the same
+  distance along the loop: only its front could move, and the front was
+  itself blocked by the slime ahead. A parked line can so wait more than
+  60 s, and theirs ran out together (D118: "on screen or off").
+- **Landings on one point.** `LoopStart.move` puts a slime on the first
+  free spot of 8 along the loop from its start, and on the start itself
+  when all 8 are taken. 64 moves in one tick took the 8 spots, then piled
+  the rest on one point (x 210, y 409); 2 s later they were stuck (D100),
+  moved again onto the same pile, and so on.
+- **Likely on main too (to check when 22h is built).** Both causes are in
+  code the revert kept (the single-file parked line, chunk 15; the first
+  free spot of 8, D124, D126), not in the withdrawn rules, so the bug
+  most likely exists on 0196c25's base as well. Chunk 22h first measures
+  the same runs on main (its "before") and records whether they show it.
+
+**1. The stall clock pauses while parked (the user's; amends D118).** A
+train slime's 60 s without 24 px of progress counts only the ticks it is
+simulated. While it is parked the clock doesn't run; once simulated again
+it resumes from where it was (not from zero). Progress made while parked
+(at the off-screen pace) still counts as progress, as today. Out of
+bounds is unchanged (a parked slime outside the level's bounds is still
+stalled). *Which parked slimes (O113, proposed: every parked train
+slime, the user's wording):* the alternative pauses only a parked slime
+waiting in the single-file line. In effect the two hardly differ: a
+parked slime that isn't waiting moves at the pace, so it advances 24 px
+in well under a second and its clock never comes near 60 s; "every
+parked slime" is the simpler rule to build and test. *How, proposed:*
+each tick a followed slime is parked, its last stall mark's tick moves on
+by one, so the time since its last mark stays what it was; that tick is
+already in the saved train record (`marked_at`), so a reload resumes the
+same clock, no new save key.
+*Why this can't leave a train stuck for good:* a parked train slime is
+only ever blocked by the train slime ahead of it; the front of any such
+line is simulated (its clock runs and the stall net still acts on it) or
+moving. When the front gets going or is moved, the parked line follows. A
+parked line waits as long as its front does, out of sight. In
+`s3-basket-59of60` that means the bowl's parked line no longer drains by
+the stall net at tick 3600: it waits until the crowd ahead moves or the
+view comes near (reported, not a target).
+
+**2. The loop-start queue (the user's: one at a time, 0.5 to 2 s apart).**
+- A safety net no longer moves a slime itself: it finds the slime **due**
+  a move, and the **loop-start queue** moves the slimes due, **one per
+  turn**. After each move the next turn comes **30 to 120 ticks** later
+  (0.5 to 2 s at 60 Hz, a whole number of ticks, uniform, both ends
+  included). With no move in the last 120 ticks, the head moves at once.
+- **Order (proposed): first due, first moved** (FIFO), by the tick each
+  slime became due, ties by ascending id. A slime **out of the level's
+  bounds** goes first (it is outside the level, falling), ascending id
+  among several. A slime due for two reasons waits once, at its earliest;
+  it is logged under that reason (on a tie: out of bounds, stalled,
+  stuck, lost).
+- **While it waits (proposed):** a queued slime keeps its state and
+  carries on as it would: simulated or parked, resting, hopping. Nothing
+  keeps it in place. At its turn its reason is checked again: a stalled
+  slime that has since advanced 24 px, a stuck pair that has come apart, a
+  lost slime back on screen or no longer free, a slime back in bounds, a
+  bedtime-asleep slime: it leaves the queue **without a move**, and the
+  turn passes to the next one in line on the same tick (no wait is spent
+  on it). Each net's log entry is written at the move, as today (its tick
+  is the move's tick).
+- **The debug overlay's kill tool** (debug builds only) keeps its
+  immediate move (`Offscreen.lose`), outside the queue; it counts as a
+  move for the next turn's wait (proposed).
+- **Derived, not saved (proposed; no save change).** The queue is never
+  stored: at each turn it is rebuilt from the nets' own saved state.
+  - *Who is due, and since when:* stalled, from the train record's last
+    mark (its tick plus 60 s); lost, from the off-screen count
+    (`offscreen.away`: its start plus 10 s plus 1 min); stuck, from the
+    pair's saved count, which now **keeps counting while its mover
+    waits** (it reached 4 checks that many checks ago; today it stops
+    there because the move is immediate); out of bounds, from the centre.
+  - *When the next turn is:* the last move's tick is the latest tick in
+    the three move logs (`train.stalled`, the stuck log's entries with
+    `moved`, `offscreen.lost`), all saved today; the wait after it is the
+    first draw of the derived stream `loop_start:gap:<that tick>`. A last
+    move later than the current tick (an old fixture) counts as none.
+  - So a save and reload mid-queue moves the same slimes on the same
+    ticks to the same spots as an unbroken run. If deriving proves
+    awkward in the build, the fallback is one additive key (for example
+    `loop_start: {"next": tick, "queue": [ids]}`, format 1): no special
+    OK before the first store release (D149), but it is recorded.
+- **Where it runs:** once per tick, after the three nets have looked
+  (the off-screen lost count at the tick's start, then the Train's
+  `follow()`, then the stuck check): last in `Simulation.step`, after
+  `stuck_slimes.step`.
+  Where the code lives is the implementer's (for example `LoopStart`
+  gains the queue, or a small `src/sim/loop_start_queue.gd`).
+
+**3. A random free landing spot (the user's: "randomized in
+position").** Replaces "the first free spot of 8, one slime width apart"
+(D124, D126).
+- **Where (proposed):** a point on the loop's **first stretch**, at a
+  distance along the loop drawn uniformly between 0 and **240 px** from
+  the loop's start, the slime's centre lifted by its size above the loop
+  there (as today). On the test level that is the ramp's top and the
+  terrace, inside the start's split zone (x 0.03 to 0.54) and short of
+  its end, so a fused slime is still split at once.
+- **Free:** the spot is taken when it lies outside every split zone, or
+  when the slime's ring there would overlap any other slime's (parked
+  ones included; today's test, `LoopStart._free_spot`). Up to **8 draws**
+  per turn; the first free one is used.
+- **All 8 taken:** nobody moves this turn; the head of the queue tries
+  again, with fresh draws, on the next tick that is a multiple of 30
+  (0.5 s), and so on until a spot is free. Never onto another slime.
+  (The other way, landing at the draw with the most room, is not taken:
+  it is what keeps re-sticking.)
+- **The draws** come from the derived stream `loop_start:spot:<tick of
+  the try>` (`Rng.derive`): no draw from any existing stream, so a run
+  where no slime is moved to the loop start keeps its hash, and the same
+  seed gives the same spots.
+- A move is otherwise as today: a parked slime is translated, a
+  simulated one gets a new body there, unsupported and woken; state
+  train, its hop no longer held back (`set_hop_held(false)`, as today),
+  its train record afresh (its stall clock from zero). With the local
+  wake (D156) the resting slimes it touched where it was wake too, and no
+  others.
+
+**4. Chunk 22h**, in D155's order (after 19w, before 22l, 22m, 5N, 22c,
+22 repeated, the rest of 24 and the health review; build plan, "22h"). It
+changes three safety nets' rules, so it **keeps both ATD steps**
+(preflight: `rule_stalled_train_slime_moved_to_start`, whose "on screen
+or off" changes; `rule_stuck_slimes_moved_to_start`;
+`rule_left_alone_and_lost`, whose move now waits its turn;
+`req_offscreen_simulation`; `req_slime_states`;
+`req_persistence_and_saves`, to confirm no key changes). It must not run
+while another chunk edits the Train, the stuck check or the off-screen
+simulation (5N among them). **Done when:**
+- `s3-basket-59of60`, seeds 1 and 2, 10,000 ticks (the run tool of chunk
+  22m): **0 stall moves of a slime that was parked** at any tick of its
+  last 60 s, **0 stuck moves of a slime within 600 ticks (10 s) of
+  landing** from a move to the loop start; every two moves at least 30
+  ticks apart; every landing free at its tick (no ring overlapping) and on
+  the first 240 px of the loop. The stall and stuck counts before
+  (measured on main first; the withdrawn build's were 87 and 305, 86 and
+  172) and after are reported, with the bowl's parked line (now waiting,
+  not drained: not a failure);
+- `stress-moving`, the same checks on the moves; its counts reported,
+  never targets (the user's note);
+- unit tests: the parked pause and resume (a slime parked 100 s, then
+  simulated, is moved only once its simulated time without progress
+  reaches 60 s); one move per turn, the 30 to 120-tick wait from its
+  derived stream; first due first moved, out of bounds first; a slime
+  that recovers while queued leaves without a move and without spending
+  a wait; lost and stuck slimes going through the queue; the stuck count
+  going on while its mover waits; a spot drawn on the first 240 px, free,
+  inside a split zone; all 8 taken, the retry on the next multiple of 30;
+  the kill tool still immediate; a save and reload mid-queue giving the
+  same hash as an unbroken run;
+- every changed hash listed with its reason (expected: the fixtures with
+  a move to the loop start or a parked stall; the others unchanged);
+  [DoD 1]'s whole-level test unchanged (still failing on any logged
+  case); the suite passes. The perf report gains a short 22h section.
+
+**Numbers** (`tuning.md`): the turns' wait 30 to 120 ticks (the user's
+0.5 to 2 s); the landing stretch 240 px, 8 draws, the retry every 30
+ticks (proposed). **Terminology** (`concept.md`): **move to the loop
+start** and **loop-start queue** added; **stalled** amended (the clock
+paused while parked); **lost** says "moved", not "teleported".
+
+**Unchanged:** the nets' own rules and numbers (60 s and 24 px, 2 s
+stuck, 10 s plus 1 min lost).
+
+## D151 — Withdrawn: a density cap on the loop (2026-10-02)
+**Withdrawn by D155 (2026-10-03).** It cut the loop into 300 px stretches
+and capped the weight each could take from hops (chunk 22i, behind a
+switch); it had no effect on the frame rate and jammed `stress-moving`.
+Full text on branch `archive/fps-session-2026-10`, commit d7f7c5a.
+
+## D152 — Withdrawn: waiting train slimes don't stall (2026-10-02)
+**Withdrawn by D155 (2026-10-03).** It paused the stall clock while a
+train slime waited under D147 or D151, answering O110; without those
+rules it has nothing to act on. Full text on branch
+`archive/fps-session-2026-10`, commit 7d4c702.
+
+## D153 — A second stress fixture, `stress-dense`, and fps targets for both (2026-10-02)
+*Re-entered by D155 (2026-10-03), edited:* the first text, on branch
+`archive/fps-session-2026-10` (commit f26fc7d), stated the density
+against a withdrawn decision's numbers and placed the fixture in chunk
+22j, withdrawn with its build; here the density is in slimes per 100 px
+of loop, as D154 amended it, and the fixture is chunk 22m's.
+**Amended by D154 (the user's, 2026-10-02):** `stress-dense` is thinner
+and laid along the loop line, not stacked (2); O114 answered in part.
+The user (2026-10-02), on `stress-moving` (200 train slimes, the level's
+maximum, all in section 3's bowl, about 10 to 12 per 100 px of loop):
+"we may have to tone down stress moving test (its got hundreds of slimes
+in a setup we definitely don't want (see level design notes)). We do have
+to do a stress test, agreed, but this one ... may be too much." Then:
+"keep stress moving whose goal is not to crash and keep a minimum of
+15fps", and a new fixture at "what the rules allow + 50% or something like
+that": "stress dense: should have at minimum 30 fps." The coordinator's
+first numbers, accepted that day: 6 per 100 px of loop, 50 % above a
+reference density of 4 per 100 px proposed the same day (D151, since
+withdrawn; D154 replaced the 6 by 3). "200 slimes is the maximum number
+of slimes on a level."
+
+1. **`stress-moving` stays unchanged** (its build, its hash): an **abuse
+   test**, beyond any setup the level design wants. Its target: no crash,
+   no freeze, and at least 15 fps. *Proposed reading of "no freeze":* over
+   10,000 ticks the run ends without an error and the train hops in every
+   600-tick window.
+2. **A new fixture, `stress-dense`:** the dense case the rules allow, plus
+   a margin. Its target: at least 30 fps. The user's: 200 size-1 base
+   train slimes, centred on section 3's bowl, the camera on the bowl,
+   gates 1 and 2 open as in `stress-moving`. Its density and placement
+   are D154's (the first, 6 per 100 px stacked in columns from the ground
+   up, was dropped there). *Proposed* (the rest):
+   - **species:** each slime keeps its sleeper's species (the first slime
+     and the 199 sleepers, as `stress-moving`); not at bedtime, no session;
+     switch 3 and basket 3 as in `stress-moving` (untouched, basket 3
+     empty);
+   - **fill:** from the bowl outward, behind first; no slime past switch
+     3 (if the span would reach it, the rest go behind); slimes in stable
+     ID order (the first slime first) onto spots in fill order; each
+     follows the loop from its nearest point. Deterministic, no draw;
+   - **in the bowl:** the user: "currently i don't expect there to be 200
+     slimes in the bowl"; whether the total should be lower is **O114**.
+3. **Whose fps:** both targets are on the **reference phone** (S20 FE),
+   the camera on the bowl. Until it is measured there, the phone emulation
+   (`tools/perf_slow.sh --pin=main`) stands in, and the record says so.
+   *Proposed:* the target is the mean over a 62 s run; the 5th percentile
+   is reported beside it, not a gate (**O115**).
+4. **Where they land:** the master spec's Definition of done 30 and §7
+   gain the two targets; `stress-moving` stops being "a measurement, not a
+   target" (D96's wording for it, refined). A reading on the withdrawn
+   build (D155; phone emulation, its experimental switch off;
+   `docs/perf/2026-10-02-d152.md` on branch `archive/fps-session-2026-10`):
+   `stress-moving` 13.5 fps, `s3-basket-59of60` 25.4; to be measured
+   again on main. Neither target is expected before 5N; they are checked
+   at chunk 22's repeat.
+5. **Chunk 22m, the `stress-dense` fixture** (S; it was 22j, D155):
+   built with the existing fixture tooling (`tools/make_fixture.gd`, a
+   recipe and a build function), no fixture-format change; its hash
+   recorded with the others'; a scripted test. Order: D155's.
+6. **Rule 23 and the `stress-*` exception:** `stress-dense` falls under
+   level rule 23's "`stress-*` excepted" (no change to the rule).
+
+Flagged for documentalist: DoD 30's new clauses (the performance
+requirement's atom), at 22m's ATD peek. **Unchanged:** `stress-moving`,
+chunk 22h (O113 open).
+
+## D154 — `stress-dense` thinned: 3 per 100 px of loop, the bowl's bottom at 4, along the loop line; amends D153 (2026-10-02)
+*Re-entered by D155 (2026-10-03), edited:* the first text, on branch
+`archive/fps-session-2026-10` (commit bcaa8b7), stated the density
+against a withdrawn decision's numbers; here it is in plain loop
+distances, the measured number kept is the one that doesn't depend on
+withdrawn code being switched on, and the known issue moved to O116.
+The user (2026-10-02), after watching chunk 22j's first `stress-dense`
+(ad8cd36: 6 per 100 px stacked in columns, 134 of 200 in the bowl; a
+first phone-emulation reading of 13.9 fps): "the dense setting is quite
+crowded. 130 slimes. too much, way too much. we were at cap + 50%, let's
+downgrade to a shuffle of cap - 25% with one or two segments at 100%
+and see where it goes? What i expected was a line of slime at the bottom
+and some on the heights. what i saw was a soup of slimes, so i didn't
+quite expect good result." (The user's "cap" is the reference density of
+4 per 100 px of loop, D153's head: withdrawn as a rule, D155, kept here
+as a number only.) Rebuilt then as a redo of 22j; built on main by chunk
+22m.
+
+1. **The density (the user's):** 3 slimes of weight per 100 px of loop
+   (the reference's 4 minus 25 %). The loop is cut into **300 px
+   stretches** of loop distance, counted from the loop's start with gates
+   1 and 2 open (a slime's stretch is its distance along the loop divided
+   by 300, rounded down): **9 per stretch**, and the **two stretches at
+   the bottom of the bowl at 4 per 100 px, 12 each** (the user's "one or
+   two segments at 100%"; two taken, proposed). Filled from the bowl
+   outward, behind first, nothing past switch 3.
+2. **Placement along the loop line, not stacked (the user's "a line of
+   slime at the bottom and some on the heights"):** within a stretch the
+   slimes are evenly spaced by loop distance and each is set on the loop
+   as a train slime is spawned; D153's first columns stacked from the
+   ground up are dropped. *Proposed reading of "shuffle":* the mix of the
+   two densities, deterministic, no draw. *Noted:* a size-1 slime (42 px
+   across) is wider than both spacings (about 33 px at 9 per stretch, 25
+   px at 12), so neighbours overlap at load and push apart in the first
+   ticks; the line may thicken there. The build reports how it settles.
+3. **The total:** 200 size-1 train slimes, the level's maximum, unless the
+   loop before switch 3 can't hold them at this density; then fewer, and
+   the build reports the count. Built so on the withdrawn branch
+   (bcaa8b7): 200, **70 in the bowl** (105 in section 3, 95 back through
+   gate 2 in section 2), none past switch 3; chunk 22m records its own
+   count. **O114** answered in part: fewer in the bowl; the total stays
+   200 (proposed) unless it doesn't fit.
+4. **Unchanged:** the target (at least 30 fps on the S20 FE, the phone
+   emulation standing in, O115 open), the species, gates, switch 3,
+   basket 3, the camera on the bowl, the fixture tooling, `stress-moving`.
+5. **Measured on withdrawn code** (bcaa8b7; phone emulation, 62 s, its
+   experimental switch off): 21.2 fps, tick 20.1 ms (target 30). That
+   build carried rules D155 withdrew, so the number is a hint only;
+   `stress-dense` is measured again on main once chunk 22m has rebuilt
+   it.
+6. **Known issue, found in 22j:** a fixture's train distances wrap on
+   load. Now **O116** (it predates the session).
+
+Specs: test level README's `stress-dense` row, the build plan's 22m, the
+master spec's DoD 30 and §7 wording, `tuning.md`, O114, README.
+
+## D155 — The fps session reverted to 0196c25: what was kept, what was dropped (2026-10-03)
+The user's direction, 2026-10-03 (plan approved: "as you recommend",
+after the review of the session, 2026-10-03). The user, verbatim: "prior
+going native, we will revert to that commit, reapply the fps fixes worth
+keeping, gather back other non fps fixes we should keep as well. update
+the specs as appropriate and only then move on native." And: "we should
+probably have marked this whole session as a throwaway".
+
+**What is reverted.** The work after 0196c25 up to bcaa8b7: D145 to D154
+and chunks 22d to 22j. Its frame-rate part grew a set of train rules (a
+train slime waiting before a crowd, then a second round of it, a safety
+catch, a front-first order, a cap on how many slimes a stretch of loop
+may take) whose measurements didn't pay for them, while a few pieces
+inside it did.
+
+**1. The base: 0196c25.** The last commit before the session's first,
+59db79b (D145). Its code is chunk 22b's (5d9533a): chunk 22's engineering
+passes (the dip nudge rewrite, `stress-moving` 27.6 -> 12.0 ms a tick;
+door bounding boxes and the pair loop, 18 to 25 % off; the off-screen
+step; the centre cache; drawing culled to the near view; the cap of 2
+ticks per frame, never measured on the phone), crowd detail (582c897),
+22b's drawing pass (draw calls 482 -> 84, drawing 3.21 -> 1.43 ms) and
+its cached labels; its specs are D138 to D144. The history is linear, so
+going back to the S20 FE report (ec623c0) and reapplying those passes
+gives this same tree.
+
+**2. The method.** The whole session is kept verbatim on branch
+`archive/fps-session-2026-10` (at bcaa8b7, pushed). On main, one restore
+commit (3b7e7a1) sets the tree back to 0196c25's: no force push, no
+history rewritten. Then three cherry-picks: 1a539db (chunk 22d's debug
+counters, from 7437fd0), 931c53b (`domain_architecture_rationale` split
+into 11 child atoms, D144, from df4c4eb) and 729fe87
+(`rule_saves_never_wiped` 1.1, the user's wording, from de8ae14). The
+withdrawn decisions keep their numbers as stubs pointing at the branch.
+
+**3. Kept.**
+- Base 0196c25's engineering passes (1).
+- Chunk 22d's counters (Physics, On screen, In range, Parked; `resting`
+  and `largest_cluster` on the PERF line), the atom split, and
+  `rule_saves_never_wiped` 1.1 (2).
+- D148, D149, D150, D153 and D154, re-entered by hand and edited: the
+  save wipe and the save format before the first store release (chunk
+  19w, not built), the loop-start queue (chunk 22h, not built), the
+  `stress-dense` fixture and the two stress targets.
+- **The local wake** (D156), re-implemented without the rest of the code
+  it was built with, in chunk 22l, with the `hops` and `short_hops`
+  counters (debug builds, the PERF line only).
+- **The `stress-dense` fixture**, re-implemented in chunk 22m with a
+  300 px constant for its stretches instead of the withdrawn code's, and
+  the **10,000-tick run tool** (the branch's `thru.gd`) without the
+  fields of withdrawn rules.
+- As tools, already in the base or rebuilt with 22l and 22m: the perf
+  log, `tools/android/perf.sh`, `perf_summary.py`, `tools/perf_slow.sh`,
+  `compare_frames.py`, the bench's rest detection, `s3-basket-59of60`.
+- Left for native (5N): crowd detail's `auto` mode stays chunk 22c,
+  after 5N (D141); the bounding-box and centre-cache ideas are ported by
+  5N.
+
+**4. Dropped, and why** (the review's numbers; every number from the
+phone emulation or the desktop):
+- the waiting rule's first round (D145, chunk 22e): the tick got 5 %
+  dearer;
+- its second round (D147, chunk 22f): no fps gain, and resting by contact
+  never happened (0 slimes);
+- the front-first order (chunk 22g): worse;
+- the density cap (D151, chunk 22i): no effect on the frame rate, and it
+  jams `stress-moving`;
+- D152 (waiting slimes don't stall): it only mattered with the waiting
+  rules;
+- 22f's fix of the dip-nudge pin at a wait's end: moot without them;
+- the `counts_toward_fusion` cache: dropped by the review with the rest
+  of that code;
+- with them: the save key `train.hold`, the per-slime "may rest" input,
+  the celebration waking waiting slimes, and v3's idle animations for
+  waiting train slimes (D145 (8)).
+
+**5. The local wake's numbers** (`s3-basket-59of60`, the withdrawn 22e
+build, where no slime waited on seed 1, so the gain is the local wake's
+alone): Physics 80 -> 51; phone emulation 22.6 -> 27.1 fps; tick 15.27 ->
+13.22 ms; whole-pile wakes during basket 3's drain 6 -> 0. Chunk 22l
+measures them again on main.
+
+**6. No phone number.** No number since ec623c0 (the S20 FE session of
+2026-09-30) comes from the real S20 FE: everything since is the phone
+emulation (`tools/perf_slow.sh --pin=main`) or a desktop estimate.
+Chunk 22's repeat on the real phone is still owed, and decides DoD 30.
+
+**7. Questions.** O109 (what the waiting rule's time limit was for) and
+O110 (whether waiting time counts toward the stall net) are withdrawn
+with D147 and D152. O111 and O112 stay closed by D149. O113 (D150), O114
+and O115 (D153, D154) stay open. O106 is answered by D156. New: **O116**,
+the fixture-load wrap, found in 22j and older than the session.
+
+**8. Terminology.** The session's terms are withdrawn and were never on
+main's table: hold, jam, holder, hold guard, hop corridor, stack zone,
+loop bucket, bucket cap, overfilled. Re-added: **save wipe**, **shipped**
+(D148, D149), **move to the loop start**, **loop-start queue** (D150);
+**stalled** amended by D150 only (no clock while parked); **lost** says
+"moved". Added: **local wake** (D156).
+
+**9. Order from here:** 19w, 22h, 22l (the local wake), 22m (the
+`stress-dense` fixture and the 10,000-tick tool), 5N, 22c, 22 repeated on
+the real S20 FE, the rest of chunk 24, the health review. 22l and 22m are
+being built now, with the revert itself. Chunks 22e, 22f, 22g, 22i, 22j
+and 22k are withdrawn (the branch keeps them); their ids aren't reused.
+
+**10. Lesson.** The session should have been marked a throwaway from its
+start. An experiment whose rules aren't settled goes on a branch, and
+only what its measurements justify comes to main, through the spec.
+
+**For documentalist:** after 22l, `req_offscreen_simulation` 1.2 gains
+a local-wake paragraph (no "may rest"); `req_persistence_and_saves` stays
+1.2 and `req_hopping_behavior` 1.1 (the withdrawn rules never reach
+them); then `atd lint` and `atd check --full`.
+
+**Where:** this log (stubs D145, D146, D147, D151, D152; D148, D149,
+D150, D153, D154 re-entered; D143's 24.8 note), `open-questions.md`,
+`concept.md`'s Persistence and Terminology, `slimes.md`,
+`tech-direction.md`, `tuning.md`, the master spec (header, 5.2, 5.10, §7,
+DoD 30), the build plan (Progress, the overview, 19w, 22h, 22l, 22m, the
+withdrawn chunks, 24.3, 24.8, 5N), `levels/test/README.md`,
+`versions/v4/README.md` and the index.
+
+## D156 — The local wake: a disturbance wakes only the resting slimes it touches (2026-10-03)
+The user's direction, 2026-10-03 (plan approved, D155). From D145 (3)
+and chunk 22e's build (4750f12), without the rules D155 withdrew.
+Answers **O106** (D138; D143's default, widened). Proposed where the
+detail goes beyond what was built and measured.
+
+**1. The rule.** A resting pile no longer wakes whole (D96). Three
+disturbances wake **only the resting slimes they touch**; the rest of the
+pile stays resting:
+- **a release:** a basket letting a slime go (D91, D105) wakes the
+  resting slimes the released slime touches, not the basket's whole pile;
+- **a fast touch:** a slime touching a resting one faster than
+  `WAKE_SPEED` (30 px/s: a hop, a landing, a neighbour moving) wakes the
+  ones it touches;
+- **a move to the loop start:** the moved slime is woken where it lands,
+  as today, and the resting slimes that touched it where it was wake too,
+  so none is left leaning on an empty spot.
+It **never wakes a sleeper**: sleepers wake as they always have (D13, on
+contact with an awake slime), and the local wake is about resting slimes
+only. The other wakes stay as `tuning.md` lists them (a call wakes the
+resting slimes within its radius, a tilt change wakes them all, bedtime,
+sunrise and a basket catching).
+
+**2. What doesn't come with it.** Which slimes may rest is unchanged:
+pile slimes only (in a basket, or asleep at bedtime, D96); an awake train
+or free slime never rests. No per-slime "may rest" input, no train
+waiting rule, no `train.hold` save key. **The save format is unchanged.**
+
+**3. If piles churn** (D96's reason for waking piles whole: half a pile
+resting could jolt and wake again): the fallback is to wake the touched
+slimes' touching neighbours too, one step, never the whole pile
+(proposed). It wasn't needed on the withdrawn build: basket 3's drain
+showed 0 whole-pile wakes against 6, at most 9 pile slimes woken in a
+tick, Physics during the drain 84 -> 48.
+
+**4. Counters, debug only** (from D145 (7)): the PERF line gains `hops`
+(train hops taken in the period) and `short_hops` (train hops whose
+landing advanced the slime along the loop by less than half its hop
+reach, `Train.hop_reach`); `perf_summary.py` reports them. Read only: no
+state change, same hashes.
+
+**5. Hashes.** A fixture whose resting slimes are disturbed within the
+hashed ticks may change; the chunk lists every changed hash and why. The
+numbers to beat are D155 (5)'s.
+
+**6. Chunk 22l** (build plan, "22l"). It changes how piles wake, so it
+**keeps both ATD steps**: preflight from `req_offscreen_simulation` (its
+resting text), `req_slime_states`, `req_waking_sleepers` and
+`req_switch_basket_gate_set` (the release). **5N ports it:** the native
+rest pass wakes locally, the GDScript behaviour its reference.
+
+**Terminology** (`concept.md`): **local wake** added.

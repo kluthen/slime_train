@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v23
+Status: draft v24 (the fps session after 0196c25 reverted, D155: the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE; the local wake, D156, chunk 22l; `stress-moving` an abuse test and `stress-dense`'s target, D153, D154; the save format before the first store release and a save a build can't use set aside, proposed, D149; the save wipe for automated testing only, chunk 19w, D148, approved in direction, D149)
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -190,15 +190,23 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   `off` (the ceiling at 0). No new save key: the ceiling isn't saved.
 - **The realistic worst case in play is a mostly still pile** (level rule
   16): a full basket plus the train, not 200 moving slimes. The
-  `stress-moving` fixture stays as a measurement, not a target. *Under
+  `stress-moving` fixture is the **abuse test** (no crash, no freeze, at
+  least 15 fps), and `stress-dense` the dense moving case (at least
+  30 fps), both on the reference phone (D153, D154). *Under
   question (D140, O105, O106):* open piles rest slowly or never, and a
-  fired basket's releases keep its pile awake. *Proposed (D143):* level
+  fired basket's releases keep its pile awake. *D156 (the local wake,
+  chunk 22l):* a release, a fast touch and a move to the loop start wake
+  only the resting slimes they touch, never the whole pile (basket 3's
+  drain on the withdrawn build: 0 whole-pile wakes against 6; Physics
+  80 -> 51 on `s3-basket-59of60`). *Proposed (D143):* level
   rule 23 keeps levels free of spots where many slimes gather awake, and
-  the train leans away from clusters (chunk 24, items 24.7 and 24.8); a
+  the train leans away from clusters (chunk 24, items 24.7 and 24.8; a
+  replacement for the lean was tried and withdrawn, D155); a
   cluster the player builds stays possible, covered by crowd detail and
   the tick cap.
 - **Native code was the documented, verified contingency; it is now
-  adopted as chunk 5N, after chunk 22d** (D140, D143; the user's explicit
+  adopted as chunk 5N, after chunk 22d and, in D155's order, 19w, 22h,
+  22l and 22m** (D140, D143, D155; the user's explicit
   go after chunk 22b, D142: "ok schedule work on 5N after this chunk").
   A GDExtension in C++ (godot-cpp), built with `-ffp-contract=off` so ticks
   repeat from one build to another, for the Linux desktop and, through the
@@ -243,9 +251,17 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   throttled (the GDScript tick's factors; the engine's C++ and the phone
   driver may scale otherwise). The phone's perf log settles every number
   (D138).
-- **Next (proposed order, D140, D143, D142):** chunk 22d, the debug counters (D143): Physics,
-  On screen, In range and Parked on the bar, and the same plus `resting`
-  and the largest awake cluster on the PERF line. Then chunk 5N: results deterministic within one build
+- **Chunk 22d done** (1a539db, D143): Physics, On screen, In range and
+  Parked on the bar, and the same plus `resting` and the largest awake
+  cluster on the PERF line.
+- **The fps session after 0196c25 was reverted** (D155, 2026-10-03; kept
+  on branch `archive/fps-session-2026-10`): its train rules gave no
+  frame-rate gain worth their cost; the local wake (D156) and the
+  `stress-dense` fixture (D153, D154) come back on their own. No number
+  since the S20 FE session of 2026-09-30 comes from the phone itself.
+- **Next (D155's order):** chunks 19w, 22h, 22l (the local wake, with
+  the `hops` and `short_hops` PERF fields), 22m (`stress-dense` and the
+  10,000-tick run tool), then chunk 5N, which ports the local wake: results deterministic within one build
   (not bit-equal to the GDScript tick); saves load under either tick; the
   GDScript tick stays as a fallback. Then chunk 22c, crowd detail only
   under load (D141). Then chunk 22 repeated on the reference phone with
@@ -297,6 +313,22 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
 - Saves are written atomically (write a new file, then swap it in),
   and the previous save is kept as one backup. A save that can't be read falls
   back to the backup, and only then to a fresh start for that level.
+- **The save format before the first store release** (D149; the user's:
+  "save format may break between version ... if the app has been shipped,
+  otherwise, we just wipe"). Until the app has shipped, a save-format
+  change may break older saves: no migration, no special approval. From
+  the first store release on, the format is a hard contract and every
+  change ships with its migration. *(Proposed:)* a breaking change bumps
+  the format number; before shipping, a save a build refuses (another
+  format, or any other reason `SaveData` gives) is set aside with its
+  backup as `.unreadable`, the level starts fresh with autosave on, and
+  one log line says so. After shipping, such a save is left untouched and
+  that level's writes are blocked, as today. Whether the app has shipped
+  is one switch in the code, turned on at the first store release. An
+  older level version is still migrated (above). Fixture and test-mode
+  script formats are unchanged (still hard contracts); a breaking save
+  change also has to convert the fixtures, which are saves. Built in
+  chunk 19w.
 
 ## Testability (D76, D91)
 
@@ -312,6 +344,18 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   timer, cooldown, phase timers), and inject taps and tilt from a script.
   End-to-end tests drive the test level (`levels/test/`) this way.
 - Fixture saves for the test level are listed in `levels/test/README.md`.
+- **Save wipe** *(D148, chunk 19w, approved in direction, D149; its
+  details proposed; the user: "the flag is only for automated testing")*:
+  in a debug build only, the launch flag `--wipe-save` deletes every file
+  in `user://saves/` at startup, before any save is read;
+  `user://parent.json` is kept. **For automated test runs only**
+  (`perf.sh --wipe-save`, a scripted desktop launch); in manual play, a
+  level is started over with the parent's delete of its save. A
+  per-launch flag, nothing that stays set. Ignored with a log line in a
+  release build, refused with a save to load (`--load`), never on by
+  default, never passed by save and restore tests. It is not a save store
+  path and no update path: saves are still never wiped in a player's
+  build. The format rule is in Saving (D149).
 
 ## Camera (D33, D60)
 

@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v17 (approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v18 (the fps session after 0196c25 reverted, D155: chunks 22e, 22f, 22g, 22i, 22j and 22k withdrawn, kept on branch `archive/fps-session-2026-10`; chunk 22d done, 1a539db; new chunks 22l, the local wake, D156, and 22m, the `stress-dense` fixture and the 10,000-tick run tool, D153, D154, both being built with the revert; chunk 19w, the save wipe and the save format before the first store release, D148, D149, and chunk 22h, the loop-start queue, D150, re-entered; the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE, the rest of 24, the health review, D155; approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
@@ -158,19 +158,42 @@ technology, not business behaviour:
   cold, over it throttled (4.2 to 5.3 ms); only chunk 22's repeat closes
   it. Item 24.6 (the debug labels) done with it. The slowed-CPU method is
   now `tools/perf_slow.sh --pin=main`.
-- **Next, in this order (proposed, D140, D143, D142):** chunk **22d** (the
-  debug counters, D143), chunk **5N** (the native tick, going ahead: the
-  user's go, "ok schedule work on 5N after this chunk", D142), chunk
-  **22c** (crowd detail only under load, proposed, D141), chunk **22
-  repeated** on the reference phone with the perf log, chunk **24**, then
-  the closing health review.
+- **Chunk 22d** done (1a539db, cherry-picked from 7437fd0 after the
+  revert, D155; suite 1330/1330, the 17 hashes unchanged): the debug
+  counters (Physics, On screen, In range, Parked on the bar; `resting`
+  and `largest_cluster` on the PERF line). Numbers in
+  `docs/dev/README.md`, "Chunk 22d". Its as-built record isn't in the
+  decisions log.
+- **The fps session after 0196c25 was reverted** (D155, 2026-10-03, the
+  user's direction): chunks 22e, 22f, 22g, 22i, 22j and 22k are
+  withdrawn ("Withdrawn chunks" below), kept verbatim on branch
+  `archive/fps-session-2026-10` (at bcaa8b7). Kept from it: 22d, the
+  atom split, `rule_saves_never_wiped` 1.1, chunks 19w and 22h (not
+  built), the local wake (now 22l) and the `stress-dense` fixture (now
+  22m). No number since the S20 FE session of 2026-09-30 comes from the
+  phone itself.
+- **Next, in this order (D155):** chunk **19w** (a `--wipe-save` launch
+  flag for automated testing, debug builds only, and a save a build can't
+  use set aside before the first store release; D148, approved in
+  direction, D149), chunk **22h** (moves to the loop start one at a time,
+  0.5 to 2 s apart, to a random free spot, and no stall clock while a
+  train slime is parked; the user's, details proposed, D150), chunk
+  **22l** (the local wake, with the `hops` and `short_hops` counters;
+  D156), chunk **22m** (the `stress-dense` fixture and the 10,000-tick
+  run tool; D153, D154), chunk **5N** (the native tick, going ahead: the
+  user's go, "ok schedule work on 5N after this chunk", D142; it ports
+  the local wake), chunk **22c** (crowd detail only under load, proposed,
+  D141), chunk **22 repeated** on the real S20 FE with the perf log, the
+  rest of chunk **24**, then the closing health review. **22l and 22m are
+  being built now, with the revert itself**, ahead of their place.
 - **Chunk L01** (the first real level) is **v2**, not this plan (D134):
   v1 is the test level only. The release preset stays as built, with the
   test level left out; v1 (full MVP) is never published (D135).
 - **Chunk 24** (the user's second round of playtest issues, an open list;
   proposed, D128): after chunk 22's repeat (D140), the last chunk
   before the closing step, as the user asked. The user's next play
-  reports go there.
+  reports go there. O106, 24.3's question, is answered by the local
+  wake (D156, chunk 22l); 24.8 stays the lean, unbuilt (D155).
 - **Closing step, last of all:** the coding-rule health review
   (`CODING_RULE.md`'s health and clean-up list), after every other chunk,
   chunk 24 included (D122, kept by D123 and D128).
@@ -185,7 +208,7 @@ technology, not business behaviour:
 | 3 | Test backbone | M | 0 | two identical scripted runs give identical state |
 | 4 | Level scaffolding and Meadow greybox | M | 3 | the loop, terrain and IDs load in a test |
 | 5 | Slime body | L | 1, 4 | unit tests on rings; a visual demo |
-| 5N | Native simulation tick (going ahead after 22d, D140, D143, D142) | M | 22d | the whole suite on the native tick; saves load under either tick; chunk 22 repeated |
+| 5N | Native simulation tick (going ahead after 22d and, in D155's order, 19w, 22h, 22l and 22m; D140, D143, D142, D155) | M | 22m | the whole suite on the native tick; saves load under either tick; chunk 22 repeated |
 | 6 | Train and split zone | M | 5 | [DoD 1 partial, 7] |
 | 7 | Taps and the call | L | 6 | [DoD 3, 4, 15, 17] |
 | 8 | Save format and fixtures | M | 7 | kill-and-reload tests; the first fixtures load [DoD 28 partial] |
@@ -200,27 +223,35 @@ technology, not business behaviour:
 | 17 | Session, wind-down, bedtime, sunrise | M | 8 | [DoD 20, 21, 22]; `wind-down`, `bedtime`, `sunrise` |
 | 18 | Parent gate and settings (placeholder UI) | M | 17 | [DoD 23, 24, 29] |
 | 19 | Persistence hardening | M | 16, 18 | [DoD 28]; `midair`, `old-version` |
+| 19w | Save wipe flag for development builds, for automated testing (D148, approved in direction, D149), and a save a build can't use set aside before the first store release (proposed, D149) | S | 19; first in D155's order | unit tests: the flag wipes, no flag keeps, a release build ignores it, refused with a save to load; before shipping a refused save is set aside and the level saves again, after shipping it is kept and writes blocked; perf.sh's option checked by hand; same hashes |
 | 20 | Android build and platform integration | L | 18 | [DoD 25, 26, 27]; emulator |
 | 21 | End-to-end suite | M | 19 | [DoD 31] |
 | 22 | Performance pass on phones (repeated after 5N and 22c, D140, D141) | M | 20, 23 (repeat: 5N, 22c) | [DoD 30] |
 | 22b | Drawing pass (done, D142) | M | 22 | the frame's cost outside the tick measured per part and cut; same hash |
-| 22d | Debug counters and the largest awake cluster (proposed, D143) | S | 22b | unit tests of the four counts and the cluster; the PERF line and its summary carry them; same hashes |
+| 22d | Debug counters and the largest awake cluster (done, 1a539db, D143) | S | 22b | unit tests of the four counts and the cluster; the PERF line and its summary carry them; same hashes |
+| 22h | Moves to the loop start one at a time, to a random free spot; no stall clock while parked (the user's, details proposed, D150) | S | 19w; 22m's run tool | first the same runs on main (the bug likely there too); `s3-basket-59of60` over 10,000 ticks: no stall move of a parked slime, no stuck move within 10 s of a landing, moves at least 30 ticks apart; unit tests of the queue, the pause, the landing spot; same hash across a save and reload mid-queue; changed hashes listed |
+| 22l | The local wake, with the `hops` and `short_hops` counters (the user's direction, D156; being built with the revert, D155) | S | 22d | the counters first; unit tests: a release, a fast touch and a move to the loop start wake only the resting slimes touched, never a sleeper; `s3-basket-59of60`'s drain without a whole-pile wake, its Physics and phone-emulation fps against the same build without it; changed hashes listed |
+| 22m | The `stress-dense` fixture and the 10,000-tick run tool (the user's, details proposed, D153, D154; being built with the revert, D155) | S | 22d | the fixture built by `tools/make_fixture.gd`, no format change; 200 train slimes (fewer only if they don't fit before switch 3, reported), 9 per 300 px stretch, the bowl's bottom two at 12, along the loop line; its hash at 600 and 2400 ticks recorded with the others'; its scripted test; the run tool over 10,000 ticks; a first phone-emulation reading |
+| 22e–22k | Withdrawn with the fps session (22e, 22f, 22g, 22i, 22j, 22k; D155); kept on branch `archive/fps-session-2026-10`; their ids aren't reused | — | — | — |
 | 22c | Crowd detail only under load (proposed, D141) | S | 5N | the load meter's unit tests; same hashes in `always`; `auto` measured on the desktop |
 | 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
-| 24 | Playtest issues, round 2 (open list; proposed) | S per issue (24.1 may be M) | 22 repeated (after 22b, 22d and 5N, D140, D143) | each issue's own done-when |
+| 24 | Playtest issues, round 2 (open list; proposed) | S per issue (24.1 may be M) | 22 repeated (after 22b, 22d, 19w, 22h, 22l, 22m and 5N, D140, D143, D155) | each issue's own done-when |
 | LD | Level-design toolkit (technical) | L | 16 | the checker agrees with the level-rule tests on the test level; a scaffolded level loads, passes its generated tests and appears in test mode |
 | TL1 | Test level finishable from fresh (done, D129) | S | LD, R22 | the checker gives 0 warnings on the test level; a scripted play from `fresh` fills basket 1 |
 
 Chunks 1 and 2 can run in parallel with 3. Chunk 22 failed DoD 30, so
-chunk 5N now runs (D96, D140; the user's go, D142): after chunks 22b (done)
-and 22d, before chunk 22's repeat. Chunks 9, 10
+chunk 5N now runs (D96, D140; the user's go, D142): after chunks 22b and
+22d (done) and, in D155's order, 19w, 22h, 22l and 22m, before chunk 22's
+repeat. Chunks 9, 10
 and 11 are independent of each other. Chunk 17 can start as soon as 8 is done, in
 parallel with the camera and objects work. Chunk 23 runs first among the
 remaining chunks, before 18 (D123), and chunk LD runs in parallel with it.
 TL1 ran after both, before 18 (D127; done, D129). After chunk 22, the
-order is 22b, 22d, 5N, 22c, 22 repeated, then chunk 24, the last chunk
-before the closing health review (D128, D140, D141, D143, proposed; O97
-closed by D140).
+order is 22b, 22d (both done), then 19w, 22h, 22l, 22m, 5N, 22c, 22
+repeated on the real S20 FE, then the rest of chunk 24, the last chunk
+before the closing health review (D128, D140, D141, D143, D155; O97
+closed by D140). The fps session after 0196c25 (22e to 22k) was
+withdrawn (D155); 22l and 22m are being built now, with the revert.
 
 ## Chunks
 
@@ -491,6 +522,116 @@ closed by D140).
 - **Built** (D131): done; the choices marked proposed there wait for the
   user.
 
+### 19w. Save wipe flag for development builds (S, D148, approved in direction, D149)
+
+The user (2026-10-01): "Currently we aren't in production, so we may
+relax save file deletion in testing. Ensure that a flag can be set so
+that if set, the save file is automatically deleted at the begining of a
+test session. Of course, when testing save/restore state we need to
+remove this flag." And (2026-10-01, D149): "the flag is only for
+automated testing. i've the reset button. save format may break between
+version. That's our prerogative to ensure migration (if the app has been
+shipped, otherwise, we just wipe)." A launch aid for automated test runs
+(`perf.sh`, scripted desktop launches), never in a player's build and
+never used in manual play: by hand, a level is started over with the
+parent's delete of its save. It runs first in D155's order (it shares
+`main.gd`'s startup and `docs/dev/README.md` with the chunks around it,
+so it doesn't run while another chunk edits them). It touches the persistence
+contract's neighbourhood, so it **keeps both ATD steps**. Every rule
+below is D148's (approved in direction, D149) or D149's, proposed where
+it goes beyond the user's words.
+
+- **Atoms (preflight start, before any code):** `rule_saves_never_wiped`
+  (STABLE, on the contract's surface: documentalist checks it first),
+  `req_persistence_and_saves`, `domain_saves_per_level`,
+  `rule_released_level_stable_with_migration`,
+  `req_test_level_and_test_mode`, `domain_testability`, and
+  `contract_atd` for D149 (6 (b)). `rule_saves_never_wiped`'s LOGIC
+  already carries the wording the user approved (D148's head; the atom's
+  1.1, 729fe87).
+- **The flag:** `--wipe-save`, a user argument after `--` (on Android,
+  in `slime_args`). Never on by default. Per launch, command line only:
+  no toggle that stays set (D149, O112 closed).
+- **What it wipes:** every file in `user://saves/` (each level's save,
+  its `.bak`, `.new` side files, `.unreadable` set-aside files, `.v<n>`
+  version copies). `user://parent.json` and its backup are kept. No
+  `--wipe-parent`.
+- **When:** once per launch, in the main scene's `_ready`, after the
+  stores are made and before the level loads and `_resume_play()` reads
+  the save. Only the default directory: a store a test gives is never
+  wiped by it.
+- **Where the code lives:** a debug-only file, for example
+  `src/debug/save_wipe.gd`, named by path after `TestModeGuard.allows()`,
+  so the release preset leaves it out with `src/debug/*`. Not a
+  `SaveStore` method: the store still deletes only on the parent's
+  delete; its header gains a pointer to the wipe.
+- **Release builds:** the flag is ignored, nothing deleted, one log line
+  (`Save wipe: --wipe-save ignored, not a debug build.`).
+- **With a save to load** (`--load=PATH`, or a test script's `"load"`):
+  refused. Nothing deleted, an error printed, and a debug launch quits
+  with exit code 1, like a bad test-mode flag. `--fixture` is no
+  conflict.
+- **The log line**, on every wipe: `Save wipe (--wipe-save): deleted N
+  files from user://saves/; parent.json kept.` A file that can't be
+  deleted gets an error line; the launch carries on.
+- **`tools/android/perf.sh`:** a `--wipe-save` option, off by default,
+  accepted with `--fixture=none` and `--free-play` only (refused with a
+  fixture, exit 2); it adds the flag to `slime_args`. Its header's "the
+  player's data is never at risk" paragraph is amended for it.
+  `tools/perf_slow.sh` gets no option: it only runs fixtures, which never
+  read the player's save, and its extra arguments already pass flags
+  through.
+- **`docs/dev/README.md`:** what the flag wipes and keeps, that it is
+  for automated test runs only, how a test run passes it on the desktop
+  and through `perf.sh` (no hand-typed adb launch), that manual play
+  starts a level over with the parent's delete, and that save and
+  restore checks run without it. Its save section also states D149's
+  format rule.
+- **Save and restore tests never pass it:** the kill-and-reload and
+  delete-save tests, `midair`, `old-version`, every fixture, sidecar and
+  test script, the end-to-end suite. A guard test checks that no file
+  under `tests/`, `levels/*/fixtures/` or the test scripts names the
+  flag, its own tests apart.
+- **A save a build can't use, before the first store release** (D149,
+  proposed): a save `SaveData` refuses (another format number, older or
+  newer, or any other reason it gives) is set aside with its backup as
+  `.unreadable` (`.2`, `.3`... if taken), the level starts fresh with
+  autosave on (no write block), and one log line says so. One switch in
+  the code says whether the app has shipped (for example
+  `SaveData.SHIPPED`, false until the first store release); with it on,
+  today's behaviour stays: the save is left untouched and writes are
+  blocked. A file that isn't JSON is set aside as today; an older level
+  version still migrates.
+- **Unchanged:** the save format itself (still format 1; it may change
+  without a migration until the first store release, D149, but this
+  chunk doesn't change it), the fixture and test-mode script formats,
+  the parent's delete, the simulation.
+- **Done when:**
+  - **unit tests** (a scratch directory, an explicit guard): the flag
+    wipes every kind of file in the directory and leaves `parent.json`
+    and its backup, logging one line with the count; no flag keeps every
+    file byte-identical; a guard answering "not a debug build" deletes
+    nothing and logs the ignored line; with `--load=PATH`, or a test
+    script holding `"load"`, nothing is deleted and the error that makes
+    a debug launch exit 1 is returned; a game started with the flag on a
+    directory holding a save starts fresh (the first-play hint due); a
+    store a test gives is never wiped; the guard test above; the release
+    preset's exclude filter covers the wipe's file;
+  - **unit tests for a save a build can't use** (D149): with the switch
+    off, a save of another format number (newer, and older with a
+    test-only number) and a format-1 save failing the shape check are
+    each set aside with their backup, the level starts fresh, the next
+    autosave writes a new save, one log line; with the switch on, the
+    same saves are left untouched and writes blocked (today's tests,
+    kept); a file that isn't JSON behaves as today; `old-version` still
+    migrates;
+  - **perf.sh**, by hand on the emulator or the phone: `--free-play
+    --wipe-save` starts fresh with the log line in `logcat.txt`;
+    `--fixture=<name> --wipe-save` exits 2; without the flag the device's
+    save resumes as before;
+  - **same hashes** for every fixture; the full suite green;
+  - `docs/dev/README.md` and `SaveStore`'s header carry their notes.
+
 ### 20. Android build and platform integration (L)
 
 - Android export, landscape lock, the screen kept on during a session, and
@@ -575,7 +716,7 @@ closed by D140).
   with crowd detail in `auto` (the shipping behaviour; DoD 30 is judged on
   it); the PERF lines show where the device is pressed and the ceiling it
   reaches. The done-when above is unchanged. It records which of 24.3 and
-  O106's changes to the endgame have landed by then. It also closes
+  the local wake (22l, D156, O106) have landed by then. It also closes
   chunk 22b's drawing verdict (D142): the PERF line's per-part fields
   give drawing's cost on the phone against the 4 ms, cold and throttled;
   the phone's GPU time can't be read (O14), so the frame rate shows it;
@@ -624,7 +765,12 @@ frame on its own (mostly the slowdown method's, as 22b found; see
   lower field resolution; each a spec change), the skirt loop and the
   render recording (recorded, not scheduled).
 
-### 22d. Debug counters and the largest awake cluster (S, proposed, D143)
+### 22d. Debug counters and the largest awake cluster (S, done, 1a539db, D143)
+
+**Built** (7437fd0, cherry-picked onto main after the revert as
+1a539db, D155; suite 1330/1330, the 17 hashes unchanged): as below; the
+section 3 numbers are in `docs/dev/README.md`, "Chunk 22d" (the first
+data for O107).
 
 The user: "try to do these debug changes prior working on 5N", and
 "ensure these informations are also available regularily in the logs for
@@ -659,6 +805,202 @@ must not run while another chunk edits the debug overlay or the perf log.
   windowed run's PERF lines through section 3 are recorded in the project
   documentation, the first numbers for O107; the suite passes with
   identical hashes.
+
+### 22h. Moves to the loop start one at a time, to a random free spot (S, proposed, D150)
+
+The user (2026-10-02), after chunk 22g's stall diagnostic (withdrawn
+code, D155; its report, `docs/perf/2026-10-01-chunk-22g.md`, section 5,
+is on branch `archive/fps-session-2026-10`): "emergency teleport should
+be randomized in position ... emergency teleport should have a cooldown.
+between 0.5s to 2s"; a global queue, one move at a time; and the stall
+clock paused while a train slime is parked. "Emergency teleport" is the
+**move to the loop start** (`LoopStart.move`), shared by lost free
+slimes, stuck slimes and stalled train slimes (out of bounds included).
+Runs after 19w, before 22l, 22m and 5N (D155's order); its 10,000-tick
+runs use 22m's run tool, which is being built now. It changes three
+safety nets' rules, so it **keeps both ATD steps**. It must not run while
+another chunk edits the Train, `StuckSlimes` or `Offscreen`. Every rule
+and number below is D150's, proposed where it goes beyond the user's
+words.
+
+- **Atoms (preflight start):** `rule_stalled_train_slime_moved_to_start`
+  (its "on screen or off" changes), `rule_stuck_slimes_moved_to_start`,
+  `rule_left_alone_and_lost` (the move waits its turn),
+  `req_offscreen_simulation`, `req_slime_states`,
+  `req_persistence_and_saves` (to confirm no save key changes).
+- **0. Measure on main first.** The withdrawn build showed the bug (87
+  and 305 moves on seed 1); its causes are in code the revert kept (the
+  single-file parked line, the first free spot of 8), so it most likely
+  exists on main too (D150). The same runs on main are 22h's "before",
+  and the record says whether they show it.
+- **1. The stall clock pauses while parked** (O113's default: every
+  parked train slime): each tick a followed slime is parked, its last
+  stall mark's tick moves on by one; progress at the off-screen pace
+  still marks as today; out of bounds unchanged. No new save key (the
+  record's `marked_at` carries it).
+- **2. The loop-start queue:** the nets (`Offscreen`'s lost count,
+  `Train.follow()`, `StuckSlimes.step`) only find the slimes **due**; one
+  queue step, last in `Simulation.step`, moves **one per turn**, the next
+  turn 30 to 120 ticks after the last move (the first draw of
+  `loop_start:gap:<move tick>`). Out of bounds first, then first due
+  first moved, ties by id; a slime whose reason no longer holds at its
+  turn leaves without a move and without spending the wait; a queued
+  slime carries on as it would meanwhile. A stuck pair's count keeps
+  counting while its mover waits. The debug kill tool stays immediate
+  and counts as a move. **Derived, not saved:** who is due and since when
+  from the nets' saved state, the last move's tick from the three move
+  logs; fallback, one additive key (D150, 2).
+- **3. A random free landing spot:** a distance along the loop drawn
+  uniformly in 0 to 240 px from the start, the centre lifted by the
+  slime's size; free when inside a split zone and no ring overlaps (parked
+  ones included); up to 8 draws from `loop_start:spot:<tick>`; all taken,
+  nobody moves and the head tries again on the next multiple of 30
+  ticks. Never onto another slime. With the local wake (22l), the move
+  wakes only the resting slimes it touched where it was.
+- **Deterministic:** derived streams only; a run with no move to the
+  loop start and no parked stall keeps its hash; the same seed gives the
+  same moves and spots, also across a save and reload mid-queue.
+- **Done when:**
+  - `s3-basket-59of60`, seeds 1 and 2, 10,000 ticks: 0 stall moves of a
+    slime parked at any tick of its last 60 s; 0 stuck moves of a slime
+    within 600 ticks of landing from a move to the loop start; every two
+    moves at least 30 ticks apart; every landing free at its tick and on
+    the first 240 px of the loop. The stall and stuck counts before (on
+    main, step 0) and after are reported, with the bowl's parked line
+    (now waiting, not drained by the stall net: not a failure);
+  - `stress-moving`: the same checks on the moves; its counts reported,
+    never targets (the user's note: a cluster of disproportionate
+    dimensions on purpose);
+  - unit tests: the parked pause and resume; one move per turn and the
+    wait from its stream; the order (out of bounds first, then first
+    due); a recovered slime leaving without a move or a wait; lost and
+    stuck slimes through the queue; the stuck count going on while its
+    mover waits; the spot (first 240 px, free, in a split zone); all 8
+    taken and the retry; the kill tool immediate; the same hash across a
+    save and reload mid-queue;
+  - records: every changed hash listed with its reason; [DoD 1]'s
+    whole-level test unchanged; a short 22h section in the perf report;
+    the suite passes.
+
+### 22l. The local wake (S, the user's direction, D156; being built with the revert, D155)
+
+The local wake, re-implemented from chunk 22e's build (4750f12, on
+branch `archive/fps-session-2026-10`) without the rules D155 withdrew.
+Being built now, with the revert, ahead of its place in the order (19w,
+22h, **22l**, 22m, 5N). It changes how piles wake, so it **keeps both ATD
+steps**. It must not run while another chunk edits the slime body code.
+
+- **Atoms (preflight start):** `req_offscreen_simulation` (its resting
+  text), `req_slime_states`, `req_waking_sleepers`,
+  `req_switch_basket_gate_set` (the release).
+- **1. The counters first** (debug builds, the PERF line only, read
+  only): `hops` and `short_hops` (D156 (4)); `perf_summary.py` reports
+  them; the same hashes. Built before the wake changes, so the "before"
+  numbers come from the same build.
+- **2. The local wake** (D156 (1)): a release, a touch faster than
+  `WAKE_SPEED` and a move to the loop start wake only the resting slimes
+  they touch; never the whole pile, never a sleeper. Where the code
+  changes is the implementer's (on the branch: the slime bodies' wake
+  path, the frontier sets' release and disturbance, the wake in
+  `LoopStart.move`).
+- **3. Not part of it** (D156 (2)): which slimes rest doesn't change
+  (pile slimes only), there is no new save key and the save format is
+  unchanged. The one-step-neighbour fallback only if piles churn
+  (D156 (3)).
+- **Done when:**
+  - unit tests: a release wakes only the resting slimes the released
+    slime touches; a fast touch wakes only those touched; a move to the
+    loop start wakes the moved slime and the resting slimes that touched
+    it where it was, no others; a sleeper touched by any of them stays
+    asleep; a call and a tilt change wake as before;
+  - the counters' tests: `hops` and `short_hops` on the PERF line and in
+    `perf_summary.py`'s report;
+  - `s3-basket-59of60` (seed 1; phone emulation, `tools/perf_slow.sh
+    --pin=main --seconds=62`), against the same build without the wake:
+    basket 3's drain shows no whole-pile wake, the Physics count drops and
+    the fps rises, recorded in the project documentation. The branch's
+    numbers (6 -> 0 whole-pile wakes, Physics 80 -> 51, 22.6 -> 27.1 fps,
+    tick 15.27 -> 13.22 ms) are what to compare with, not the result;
+  - every changed hash listed with its reason; [DoD 1] and the suite
+    pass; `docs/dev/README.md` gains a local-wake section.
+
+### 22m. The `stress-dense` fixture and the 10,000-tick run tool (S, the user's, details proposed, D153, D154; being built with the revert, D155)
+
+The user (2026-10-02): `stress-moving` "may be too much"; keep it as an
+abuse test ("not to crash and keep a minimum of 15fps") and add a fixture
+at "what the rules allow + 50%": "stress dense: should have at minimum 30
+fps", then thinned (D154). Rebuilt from chunk 22j (ad8cd36, bcaa8b7, on
+the branch) with a 300 px constant for its stretches. Being built now,
+with the revert, ahead of its place in the order. A test fixture and a
+measurement tool only: no game code, no save format change; an ATD peek
+(`req_test_level_and_test_mode`, the performance requirement for DoD 30's
+new clauses, `rule_max_200_slimes_per_level` on the fixture builder).
+
+- **1. The recipe:** `stress-dense` in `tools/make_fixture.gd` (a recipe
+  and a build function beside `stress-moving`'s), with its
+  `.fixture.json` sidecar and save under `levels/test/fixtures/`, as
+  every fixture. Gates 1 and 2 open; the first slime and the 199
+  sleepers woken as size-1 train slimes, each its sleeper's species; not
+  at bedtime, no session; switch 3 and basket 3 untouched; the camera on
+  the bowl.
+- **2. The placement** (D154): the loop's distance from its start (gates
+  1 and 2 open) cut into 300 px stretches (a slime's stretch is its
+  distance divided by 300, rounded down; a constant in the builder, no
+  game code); the two stretches at the bottom of the bowl take 12 each,
+  then behind and ahead alternately, behind first, 9 each, to 200; a
+  short stretch takes its share; nothing past switch 3 (fewer than 200
+  only if they don't fit, reported). Within a stretch the slimes are
+  evenly spaced by loop distance and set on the loop as a train slime is
+  spawned, not stacked. Stable ID order onto fill order. No draw. The
+  branch's save and sidecar use base save keys only and may be taken
+  over as they are, if the builder gives them again byte for byte.
+- **3. The record:** the count per stretch at load, the total and the
+  count in the bowl (70 on the branch; O114), and how the line settles
+  (neighbours overlap at these spacings, D154 (2)), in the fixture's
+  description and the test level README's row.
+- **4. The 10,000-tick run tool** (the branch's `thru.gd`, without the
+  fields of the withdrawn rules): runs a fixture headless for a number
+  of ticks (10,000 by default) on a seed and reports the stall, stuck and
+  lost moves, the train's hops (and whether it hopped in every 600-tick
+  window) and the slimes left in the bowl. Debug tooling; where it lives
+  is the implementer's, and `docs/dev/README.md` says how to run it. It
+  serves D153's "no freeze" reading and 22h's done-when.
+- **Known issue (O116):** the fixture-load wrap is not fixed here; the
+  scenario test's stress advance check stays as it is.
+- **Done when:**
+  - the fixture loads with 200 train slimes (or the reported count),
+    every stretch at most its fill (12 for the bowl's bottom two, 9 for
+    the rest) at load and the filled ones at it (bar the last and any
+    short one), none past switch 3;
+  - its hash at 600 and 2400 ticks (seed 909) recorded with the others',
+    which this chunk doesn't change;
+  - a scripted test beside `stress-moving`'s
+    (`tests/e2e/test_fixtures_e2e.gd`, `test_fixture_scenarios_e2e.gd`):
+    it loads, runs, keeps 200 slimes and the train hops; the level bench
+    (`tools/bench_level.gd`) and `tools/perf_slow.sh` accept it;
+  - the run tool over 10,000 ticks on `stress-dense` and `stress-moving`
+    (seeds 1 and 2), its output recorded;
+  - one phone-emulation run (`tools/perf_slow.sh --pin=main --seconds=62
+    stress-dense`), reported as a first reading, not a gate (the targets
+    are checked at chunk 22's repeat, after 5N); the suite passes.
+
+### Withdrawn chunks: 22e, 22f, 22g, 22i, 22j, 22k (D155)
+
+Built or planned during the fps session after 0196c25 and withdrawn by
+the revert (D155, 2026-10-03). Kept verbatim on branch
+`archive/fps-session-2026-10` (at bcaa8b7); their ids aren't reused.
+- **22e** (4750f12): the local wake and the train's first waiting rule
+  (D145, D146). The local wake comes back as 22l (D156); the rest is
+  dropped.
+- **22f** (9be1af7): the waiting rule's second round (D147). Dropped.
+- **22g** (6e423b7): a front-first train order behind a switch, and the
+  stall diagnostic D150 starts from. Dropped.
+- **22i** (e996b8a, with D152's fix, 7d4c702): a density cap on the loop
+  (D151, D152). Dropped.
+- **22j** (ad8cd36, bcaa8b7): the `stress-dense` fixture (D153, D154).
+  Rebuilt as 22m.
+- **22k** (planned, never built): a measurement round of 22i's cap off
+  and on. Dropped; the stress targets are checked at chunk 22's repeat.
 
 ### 22c. Crowd detail only under load (S, proposed, D141)
 
@@ -902,7 +1244,7 @@ as chunk 23 did. The first three come from the user's own testing
 (2026-09-29): nothing major gameplay-wise, but a frame-rate drop in the
 last section, an unreadable basket display for a large quota, and a
 basket that keeps its slimes once it has fired. The chunk runs **after
-chunks 22b, 22d, 5N, 22c and chunk 22's repeat, the last chunk before the closing
+chunks 22b, 22d, 19w, 22h, 22l, 22m, 5N, 22c and chunk 22's repeat, the last chunk before the closing
 health review**, as the user asked (D128; the order is D140's, which
 closes O97). Each item is small (S) unless its
 investigation says otherwise, and can land on its own. All three items
@@ -914,8 +1256,8 @@ proposed, D139); 24.4 changes save behaviour and 24.5 the frame rate, so
 both keep both ATD steps; 24.6 is debug tooling only. Items 24.7 and
 24.8 are cluster avoidance (the user, 2026-09-30; D143, approved in
 direction, D144, their numbers proposed); they
-run after 24.3, which settles O106 first, since a draining basket is
-today's biggest awake cluster; 24.8 changes hopping behaviour, so it
+run after 24.3 and the local wake (chunk 22l, D156, which answers
+O106), since a draining basket is today's biggest awake cluster; 24.8 changes hopping behaviour, so it
 keeps both ATD steps, and 24.7's rule goes to documentalist once
 built (a rule atom under `req_level_design_rules`).
 
@@ -1023,9 +1365,11 @@ basket" and 5.4; D86, D91, D105).
   released slime that lands on an open trapdoor falls back into the
   basket, which releases it again, so the basket may never empty. Basket
   2's pit, under its gate, may do the same.
-- **With O106 (D138):** each release wakes the basket's whole pile, which
-  then never rests during the drain; how releases and resting interact is
-  settled with this item.
+- **With O106 (D138), answered by D156:** each release woke the basket's
+  whole pile, which then never rested during the drain. The local wake
+  (chunk 22l) makes a release wake only the resting slimes it touches;
+  this item uses it when it measures the drain, and keeps the emptying
+  fix.
 - **Proposed (D128):** a fired basket always empties: no released slime
   falls back into it (its trapdoor is shut, or its outlet is off the
   trapdoor, before the next release), and it is empty within its quota
@@ -1130,7 +1474,8 @@ The user saw "piles of active slimes" next to basket 3, "legit slow fps".
 **24.8 The train leans away from clusters** (the user, 2026-09-30;
 D143, approved in direction, D144, the numbers proposed;
 `req_hopping_behavior`, O107). "we could favor cluster
-reducing activity".
+reducing activity". *D155:* a replacement for this item was tried and
+withdrawn; it stays as written below, unbuilt.
 - **Proposed:** when a train slime's hop timer runs out, it counts the
   slimes that cost physics within 96 px (2 base-slime diameters) of its
   hop's target that it can't fuse with (another species, or past the
@@ -1234,14 +1579,14 @@ behaviour, so no ATD steps; it still goes test first.
   `gate1-open` and `gate2-open` baskets 2 and 3; the fixtures are
   regenerated and the whole suite passes (DoD 1 included).
 
-### 5N. Native simulation tick (going ahead after 22d, D140, D143, D142)
+### 5N. Native simulation tick (going ahead after 22d and, in D155's order, 19w, 22h, 22l and 22m; D140, D143, D142, D155)
 
 Size M. **Chunk 22 was its trigger** (D96): it failed DoD 30 (D138), and
 crowd detail was not enough on its own, which meets the user's
 conditional go ("Should it prove unsufficient, we will see how it goes
 with 5N"). After chunk 22b the user gave the go outright: "ok schedule
-work on 5N after this chunk" (D142). It runs after chunks 22b (done) and
-22d (D143); chunk 22c follows (D141), and chunk
+work on 5N after this chunk" (D142). It runs after chunks 22b and 22d
+(done) and, in D155's order, 19w, 22h, 22l and 22m; chunk 22c follows (D141), and chunk
 22 is then repeated (D140, proposed order). Technical: no ATD steps. It must not run while another
 chunk edits the slime body code.
 
@@ -1253,6 +1598,10 @@ chunk edits the slime body code.
   `TerrainSegments` (D97).
 - The simulation keeps its GDScript interface. Behaviour code (hops, phases,
   calls, fusion timing) stays in GDScript, unchanged.
+- **It ports the local wake** (D156, chunk 22l): the native rest pass
+  wakes only the resting slimes touched, the GDScript behaviour its
+  reference; chunk 22's bounding-box and centre-cache ideas carry over
+  (D155).
 - Built with `-ffp-contract=off`, for the Linux desktop and, through the
   Android NDK, for Android arm64, both from one build script, and included
   in the Android export.

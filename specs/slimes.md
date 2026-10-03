@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v21 (the train leans away from clusters, D143, approved in direction, D144; its numbers proposed, O107)
+Status: draft v22 (moves to the loop start one at a time, 0.5 to 2 s apart, to a random free spot, and no stall clock while parked, chunk 22h, D150, the user's, details proposed; the local wake, chunk 22l, D156; the fps session after 0196c25 withdrawn, D155: the lean stays as approved in direction, unbuilt; the train leans away from clusters, D143, approved in direction, D144; its numbers proposed, O107)
 
 ## States
 
@@ -35,6 +35,11 @@ and it may roll downhill. Phase names were adopted in D75.
   near; with neither near, it stays put until the lost timer (D10) moves it
   to the start of the loop.
 - Fusion and waking happen only on screen.
+- **Resting piles** (D96): a still, touching group of pile slimes (in a
+  basket, or asleep at bedtime) rests and costs no physics until
+  disturbed. *The local wake (D156, chunk 22l):* a release, a touch
+  faster than 30 px/s or a move to the loop start wakes only the resting
+  slimes it touches, not the whole pile. It never wakes a sleeper.
 
 ## Stuck slimes (D100)
 
@@ -72,6 +77,17 @@ and it may roll downhill. Phase names were adopted in D75.
   23A, D124): it lands as a stuck slime does, and the log keeps
   the last 64 cases. A lost free slime (D10) lands the same way too: the
   build uses one move to the start of the loop for all three (D126).
+- **From chunk 22h (D150, the user's; details proposed):** the 60 s
+  count only the ticks a train slime is simulated: while it is parked
+  (moving single file at the off-screen pace) its clock is paused, and
+  it resumes where it was (O113). And every move to the loop start, lost,
+  stuck or stalled, goes through the **loop-start queue**: one at a time,
+  the next 0.5 to 2 s (random) after the last, first due first moved, out
+  of bounds first; a waiting slime carries on as it was, and one that
+  recovers before its turn leaves without a move. It lands at a random
+  free spot on the loop's first 240 px, inside the start's split zone,
+  never onto another slime (replacing the first free spot of 8); with
+  none free, nobody moves and the queue tries again 0.5 s later.
 - DoD 1's "no slime ever becomes lost" includes stalled train slimes: the
   safety net is for play, and a stall in the DoD 1 test is still a failure.
 
@@ -92,7 +108,8 @@ Slimes move only by hopping.
 - *(D143, approved in direction, D144, item 24.8; its numbers proposed, O107):* a train slime whose landing spot is
   crowded by slimes it can't fuse with waits a little before hopping (at
   most 2 s), so crowds thin out instead of growing. Same-species crowds
-  don't delay it: they fuse.
+  don't delay it: they fuse. *(D155: a replacement for this rule was
+  tried and withdrawn; this one stays as written, unbuilt.)*
 - The numbers are in `tuning.md`.
 
 ## Size and weight (D24, D16)

@@ -21,7 +21,15 @@ user approves them, as are the basket's quota pies and its always
 emptying once fired, from the user's second round of playtest reports
 (5.4, D128). Definition of done 24's line on the time left now matches
 5.8 (never on the parent buttons): a wording fix, not a behaviour change
-(D130).
+(D130). The save format may change without a migration until the first
+store release (5.10, the user's, D149); how a build sets aside a save it
+can't use is tagged (proposed). Moves to the loop start go one at a time
+to a random free spot, and a parked train slime's stall clock is paused
+(5.2, the user's, D150; its details proposed). A disturbed resting pile
+wakes only the slimes touched (5.3, D156). Definition of done 30 and
+section 7 carry the two stress targets (D153, D154; how they are measured
+proposed). A frame-rate experiment run from 2026-09-30 to 2026-10-02
+was withdrawn; only the points above came back from it (D155).
 
 ## 1. Concept and objective
 
@@ -243,15 +251,20 @@ One term per concept, used everywhere in the code and documents.
   sizes adding up to more than 3, or one of them not awake; so a
   same-species sleeper caught inside a train slime counts as stuck.
 - **Stalled:** a train slime whose progress along the loop hasn't
-  advanced 24 px in 60 s, on screen or off, or whose centre leaves the
+  advanced 24 px in 60 s, on screen or off (counting only the time it is
+  simulated: parked, its clock is paused, D150), or whose centre leaves the
   level's bounds, is stalled. It isn't "lost", but has the same effect:
   it is moved to the start of the loop and rides the train again, and each
   case is logged; the 60 s count starts again from the move. A slime asleep
   at bedtime is never counted as stalled. It is a safety net for play, not
   something that happens in normal play (Definition of done 1).
 - A slime moved to the start of the loop, whether lost, stuck or
-  stalled, lands on the first free spot of a short row of spots there, one
-  slime width apart (the numbers are in `tuning.md`).
+  stalled, lands at a random free spot on the loop's first stretch, inside
+  the start's split zone, never onto another slime. The moves go one at a
+  time, the next 0.5 to 2 s (random) after the last, first due first
+  moved; a slime that recovers before its turn isn't moved (D150, the
+  user's; the order, the stretch and what a waiting slime does are
+  proposed; the numbers are in `tuning.md`).
 
 **Waking**
 
@@ -319,7 +332,9 @@ minute of a session every slime hops more slowly.
   (section 6). A pile rests once every slime in it has stayed within about a
   pixel of where it started counting; a big pile of base slimes in the open
   may take about a minute to rest, which the performance pass on the phones
-  looks at again.
+  looks at again. A release from a basket, a fast touch or a move to the
+  loop start wakes only the resting slimes it touches, never the whole
+  pile, and never a sleeper (D156).
 - Sleepers don't simulate until something touches them, slimes in
   a full basket use a simplified state, and slimes on screen may use fewer
   points when zoomed out.
@@ -625,6 +640,13 @@ reopening the app → the state the stored timers give
 - Saves are written atomically, and the previous one is kept as a
   backup that is used if the latest can't be read. If neither can be read,
   that level starts fresh.
+- **The save format before the first store release** (D149). v1 is never
+  in a store, so in v1 the save format may change from one build to the
+  next without a migration. A save a build can't use is set aside with
+  its backup, that level starts fresh and saves again, and one log line
+  says so (proposed). Migrations for every format change are owed from
+  the first store release on. Level-version migration (above) is
+  unchanged.
 
 ### 5.11 Level rules
 
@@ -764,6 +786,11 @@ tests, and the technical choices made while building are in the project's
   normal play; at least 30 on the floor phone with the level's largest
   realistic pile on one screen (a full basket plus the train, mostly still).
   The 200-slime cap stays.
+  Two moving stress cases on the reference phone: at least 30 fps for the
+  dense case (200 train slimes, 3 per 100 px of loop along the loop line,
+  the bottom of section 3's bowl at 4, filled from the bowl outward) and
+  at least 15 fps, with no crash and no freeze, for the abuse case (all
+  200 piled in the bowl).
 - **Measured so far:** the reference phone, with 200 slimes all simulated
   and nothing else (see section 6). The floor phone still has to be bought,
   and the whole game at the endgame is measured on both phones. The
@@ -938,7 +965,15 @@ never ships: O101.
 30. At least 60 fps on the reference phone in normal play, and at least 30
     fps on the floor phone with the level's largest realistic pile on one
     screen (a full basket plus the train, mostly still), both cold and after
-    5 minutes of play.
+    5 minutes of play. On the reference phone,
+    with the camera on section 3's bowl: the test level's dense moving
+    case (`stress-dense`: 200 train slimes, 3 per 100 px of loop along
+    the loop line, the bowl's bottom at 4, filled from the bowl outward)
+    holds at least 30 fps, and its abuse case (`stress-moving`: all 200
+    piled in the bowl) at least 15 fps, with no crash and no freeze
+    *(proposed: the mean over a 62 s run, the 5th percentile reported)*.
+    Until the reference phone is measured, the slowed desktop run
+    (`tools/perf_slow.sh --pin=main`) stands in.
 31. The automated end-to-end suite on the test level passes on the Linux
     build.
 32. *Deferred, not an objective of the full MVP (D135):* a playtest with
