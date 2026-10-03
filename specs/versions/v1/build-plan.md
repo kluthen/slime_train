@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v21 (5N next, after 22h, for headroom, D158; 19w done, fdae364; 22h step A done, fccbb8e; 22m part 2 done, 3b765f3; the real S20 FE of 2026-10-03; earlier, v20: 22l done, 600de6b, 5f6a6b0; 22m's fixture done, 4aac65a, its run tool being built; DoD 30's status on the phone emulation; earlier, v19: 22l: every wake local, D156 (7); `stress-moving`'s abuse target in chunk 22 and 24.1, D153; earlier, v18: the fps session after 0196c25 reverted, D155: chunks 22e, 22f, 22g, 22i, 22j and 22k withdrawn, kept on branch `archive/fps-session-2026-10`; chunk 22d done, 1a539db; new chunks 22l, the local wake, D156, and 22m, the `stress-dense` fixture and the 10,000-tick run tool, D153, D154, both being built with the revert; chunk 19w, the save wipe and the save format before the first store release, D148, D149, and chunk 22h, the loop-start queue, D150, re-entered; the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE, the rest of 24, the health review, D155; approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v22 (22h done, fccbb8e, 96725f1, as-built note under D150; 19w's as-built note under D149; 5N next, D158; earlier, v21: 5N next, after 22h, for headroom, D158; 19w done, fdae364; 22h step A done, fccbb8e; 22m part 2 done, 3b765f3; the real S20 FE of 2026-10-03; earlier, v20: 22l done, 600de6b, 5f6a6b0; 22m's fixture done, 4aac65a, its run tool being built; DoD 30's status on the phone emulation; earlier, v19: 22l: every wake local, D156 (7); `stress-moving`'s abuse target in chunk 22 and 24.1, D153; earlier, v18: the fps session after 0196c25 reverted, D155: chunks 22e, 22f, 22g, 22i, 22j and 22k withdrawn, kept on branch `archive/fps-session-2026-10`; chunk 22d done, 1a539db; new chunks 22l, the local wake, D156, and 22m, the `stress-dense` fixture and the 10,000-tick run tool, D153, D154, both being built with the revert; chunk 19w, the save wipe and the save format before the first store release, D148, D149, and chunk 22h, the loop-start queue, D150, re-entered; the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE, the rest of 24, the health review, D155; approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
@@ -181,18 +181,21 @@ technology, not business behaviour:
   percentile 13.0 (abuse target 15: met on the mean only, O115). Part 2,
   `tools/thru.gd`, the 10,000-tick run tool, done (3b765f3).
 - **Chunk 19w** done (fdae364; suite 1365/1365): `--wipe-save` and the
-  pre-release set-aside (D148, D149). Its on-device check is left to the
-  user (`docs/perf/2026-10-03-s20fe-session.md`, item 7).
-- **Chunk 22h**, step A done (fccbb8e; suite 1372/1372): no stall clock
-  while parked. Step B (the loop-start queue, random free landings)
-  being built.
+  pre-release set-aside (D148, D149; as-built note under D149, with its
+  deviations). Its on-device check (`perf.sh --wipe-save`) is left to
+  the user (`docs/perf/2026-10-03-s20fe-session.md`, item 7).
+- **Chunk 22h** done (step A fccbb8e, step B 96725f1; suite 1383/1383;
+  as-built note under D150): no stall clock while parked; the
+  loop-start queue and random free landings. `s3-basket-59of60`, 10,000
+  ticks: stall 87 -> 0, stuck 234 -> 11; only `old-version`'s hash
+  changed in step B. The start basin crowds when slimes come home:
+  evidence for rule 24 (D157) and O117.
 - **The real S20 FE, 2026-10-03** (build fdae364,
   `docs/perf/2026-10-03-s20fe-session.md`): DoD 30's three targets pass
   in the first 60 s (55.8, 41.3 and 22.6 fps); a warm section 1 crowd
   of 80 to 100 in `s3-basket-59of60` drops to 18–23 fps after ~151 s,
   and a tick costs ~11 ms even with 20 to 30 physics slimes.
-- **Next, in this order (D158):** finish chunk **22h** (D150), then
-  chunk **5N** (the native tick, now, for headroom, not a missed target:
+- **Next, in this order (D158):** chunk **5N** (the native tick, now, for headroom, not a missed target:
   the user, "go native"; it ports the local wake), chunk **22c** (crowd
   detail only under load, proposed, D141), chunk **22 repeated** on the
   real S20 FE with the perf log, the rest of chunk **24**, then the
@@ -219,7 +222,7 @@ technology, not business behaviour:
 | 3 | Test backbone | M | 0 | two identical scripted runs give identical state |
 | 4 | Level scaffolding and Meadow greybox | M | 3 | the loop, terrain and IDs load in a test |
 | 5 | Slime body | L | 1, 4 | unit tests on rings; a visual demo |
-| 5N | Native simulation tick (next, after 22h, for headroom, D158; D140, D142, D143, D155) | M | 22h | the whole suite on the native tick; saves load under either tick; chunk 22 repeated |
+| 5N | Native simulation tick (next, for headroom, D158; D140, D142, D143, D155) | M | 22h | the whole suite on the native tick; saves load under either tick; chunk 22 repeated |
 | 6 | Train and split zone | M | 5 | [DoD 1 partial, 7] |
 | 7 | Taps and the call | L | 6 | [DoD 3, 4, 15, 17] |
 | 8 | Save format and fixtures | M | 7 | kill-and-reload tests; the first fixtures load [DoD 28 partial] |
@@ -240,7 +243,7 @@ technology, not business behaviour:
 | 22 | Performance pass on phones (repeated after 5N and 22c, D140, D141) | M | 20, 23 (repeat: 5N, 22c) | [DoD 30] |
 | 22b | Drawing pass (done, D142) | M | 22 | the frame's cost outside the tick measured per part and cut; same hash |
 | 22d | Debug counters and the largest awake cluster (done, 1a539db, D143) | S | 22b | unit tests of the four counts and the cluster; the PERF line and its summary carry them; same hashes |
-| 22h | Moves to the loop start one at a time, to a random free spot; no stall clock while parked (the user's, details proposed, D150) | S | 19w; 22m's run tool | first the same runs on main (the bug likely there too); `s3-basket-59of60` over 10,000 ticks: no stall move of a parked slime, no stuck move within 10 s of a landing, moves at least 30 ticks apart; unit tests of the queue, the pause, the landing spot; same hash across a save and reload mid-queue; changed hashes listed |
+| 22h | Moves to the loop start one at a time, to a random free spot; no stall clock while parked (the user's, details proposed, D150; done, fccbb8e, 96725f1) | S | 19w; 22m's run tool | first the same runs on main (the bug likely there too); `s3-basket-59of60` over 10,000 ticks: no stall move of a parked slime, no stuck move within 10 s of a landing, moves at least 30 ticks apart; unit tests of the queue, the pause, the landing spot; same hash across a save and reload mid-queue; changed hashes listed |
 | 22l | The local wake, with the `hops` and `short_hops` counters (the user's direction, D156; done, 600de6b, 5f6a6b0) | S | 22d | the counters first; unit tests: a release, a fast touch and a move to the loop start wake only the resting slimes touched, never a sleeper, and every other wake is local too (D156 (7)); `s3-basket-59of60`'s drain without a whole-pile wake, its Physics and phone-emulation fps against the same build without it; changed hashes listed |
 | 22m | The `stress-dense` fixture and the 10,000-tick run tool (the user's, details proposed, D153, D154; fixture done, 4aac65a; run tool done, 3b765f3) | S | 22d | the fixture built by `tools/make_fixture.gd`, no format change; 200 train slimes (fewer only if they don't fit before switch 3, reported), 9 per 300 px stretch, the bowl's bottom two at 12, along the loop line; its hash at 600 and 2400 ticks recorded with the others'; its scripted test; the run tool over 10,000 ticks; a first phone-emulation reading |
 | 22e–22k | Withdrawn with the fps session (22e, 22f, 22g, 22i, 22j, 22k; D155); kept on branch `archive/fps-session-2026-10`; their ids aren't reused | — | — | — |
@@ -252,14 +255,13 @@ technology, not business behaviour:
 
 Chunks 1 and 2 can run in parallel with 3. Chunk 22 failed DoD 30, so
 chunk 5N now runs (D96, D140; the user's go, D142; now, for headroom,
-D158): after chunks 22b, 22d, 19w, 22l and 22m (done) and 22h (being
-finished), before chunk 22's repeat. Chunks 9, 10
+D158): after chunks 22b, 22d, 19w, 22l, 22m and 22h (all done), before
+chunk 22's repeat. Chunks 9, 10
 and 11 are independent of each other. Chunk 17 can start as soon as 8 is done, in
 parallel with the camera and objects work. Chunk 23 runs first among the
 remaining chunks, before 18 (D123), and chunk LD runs in parallel with it.
 TL1 ran after both, before 18 (D127; done, D129). After chunk 22, the
-order is 22b, 22d, 19w, 22l, 22m (all done), then 22h (step A done),
-5N, 22c, 22 repeated on the real S20 FE, then the rest of chunk 24, the
+order is 22b, 22d, 19w, 22l, 22m, 22h (all done), then 5N, 22c, 22 repeated on the real S20 FE, then the rest of chunk 24, the
 last chunk before the closing health review (D128, D140, D141, D143,
 D155, D158; O97 closed by D140). The fps session after 0196c25 (22e to
 22k) was withdrawn (D155).
@@ -643,6 +645,12 @@ it goes beyond the user's words.
   - **same hashes** for every fixture; the full suite green;
   - `docs/dev/README.md` and `SaveStore`'s header carry their notes.
 
+**As built** (fdae364, suite 1365/1365): see D149's as-built note. Two
+departures: the release build's "ignored" line is logged from `main.gd`
+(the wipe's file isn't exported); a test script that can't be read also
+refuses the wipe (proposed). `perf.sh --wipe-save` not yet checked on a
+device (the user's).
+
 ### 20. Android build and platform integration (L)
 
 - Android export, landscape lock, the screen kept on during a session, and
@@ -825,7 +833,7 @@ must not run while another chunk edits the debug overlay or the perf log.
   documentation, the first numbers for O107; the suite passes with
   identical hashes.
 
-### 22h. Moves to the loop start one at a time, to a random free spot (S, proposed, D150; step A done, fccbb8e; step B being built)
+### 22h. Moves to the loop start one at a time, to a random free spot (S, proposed, D150; done: step A fccbb8e, step B 96725f1)
 
 The user (2026-10-02), after chunk 22g's stall diagnostic (withdrawn
 code, D155; its report, `docs/perf/2026-10-01-chunk-22g.md`, section 5,
@@ -900,6 +908,13 @@ words.
   - records: every changed hash listed with its reason; [DoD 1]'s
     whole-level test unchanged; a short 22h section in the perf report;
     the suite passes.
+
+**As built** (step A fccbb8e, step B 96725f1; suite 1383/1383; reviewer
+OKAY): see D150's as-built note. Two exceptions to the rules above: the
+kill tool and losses found at load time move at once (`spot_now`) and may
+land on another slime ("never onto another slime" covers queue moves
+only); a save taken while an out-of-bounds slime waits is moved at once
+on load (D12), the one exception to "same moves across a reload".
 
 ### 22l. The local wake (S, the user's direction, D156; done, 600de6b, 5f6a6b0)
 
@@ -1619,7 +1634,7 @@ behaviour, so no ATD steps; it still goes test first.
   `gate1-open` and `gate2-open` baskets 2 and 3; the fixtures are
   regenerated and the whole suite passes (DoD 1 included).
 
-### 5N. Native simulation tick (next, after 22h; D158; D140, D142, D143, D155)
+### 5N. Native simulation tick (next; D158; D140, D142, D143, D155)
 
 Size M. **Chunk 22 was its trigger** (D96): it failed DoD 30 (D138), and
 crowd detail was not enough on its own, which meets the user's
@@ -1631,7 +1646,7 @@ rather than later. The reasons are headroom, not a missed target: the
 user's wish for maximum performance before animations and music, the
 warm section 1 crowd (18–23 fps), the ~11 ms per-tick floor, the floor
 phone still unmeasured. It runs after chunks 22b, 22d, 19w, 22l, 22m
-(done) and 22h (being finished); chunk 22c follows (D141), and chunk 22
+and 22h (all done); chunk 22c follows (D141), and chunk 22
 is then repeated (D140, proposed order). **Scope unchanged:** the
 preflight notes that the ~11 ms floor may lie partly in behaviour code
 (the train, the loop, hops), which stays in GDScript; porting it would

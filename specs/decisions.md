@@ -3061,6 +3061,9 @@ across launches?). *Both resolved in D149.*
 **Terminology** (`concept.md`): **save wipe** added (proposed), kept apart
 from the parent's *delete* of one level's save.
 
+*As built (chunk 19w, on main, fdae364, 2026-10-03):* see the as-built
+note under D149, which covers both.
+
 ## D149 — The save format before the first store release; the save wipe for automated testing only (2026-10-01)
 *Re-entered by D155 (2026-10-03), edited:* the first text, on branch
 `archive/fps-session-2026-10` (commit d4fe7a9), also qualified passages
@@ -3219,6 +3222,32 @@ wipe is for automated test runs only).
 **Terminology** (`concept.md`): **shipped** added (proposed): the app
 from its first store release on. **Save wipe** amended: for automated
 test runs only.
+
+*As built (chunk 19w, on main, fdae364, 2026-10-03; covers D148 too):*
+- **The wipe (D148):** `--wipe-save`, debug builds only, per launch, in
+  the main scene only, before the level loads and any save is read. It
+  is refused, nothing deleted, exit 1, with `--load`, or with a test
+  script that names a save to load **or can't be read** (the last is the
+  build's own choice, **proposed**: an unreadable script can't prove it
+  loads nothing). A release build logs it as ignored. `perf.sh
+  --wipe-save` is accepted with `--free-play` or `--fixture=none` only,
+  exit 2 with a fixture.
+- **Deviation:** the release build's "ignored" branch lives in `main.gd`,
+  not in the wipe's own file: `src/debug/save_wipe.gd` is left out of the
+  release export, so it can't log there. Behaviour as specified.
+- **The set-aside (D149, 3):** one switch, `SaveData.SHIPPED`, false.
+  With it off, a save of another format number (older or newer) or one
+  failing the shape check is renamed `.unreadable` with its backup, the
+  level starts fresh and saves again. With it on: keep-and-block, as
+  before.
+- **Not verified on a device:** `perf.sh --wipe-save` (the agent's run was
+  refused by the permission system; the user runs it,
+  `docs/perf/2026-10-03-s20fe-session.md`, item 7).
+- **Still flagged (5):** `CODING_RULE.md` §4 still names keep-and-block as
+  the only fallback; it needs "until the first store release" (the
+  user's file).
+- Suite 1365/1365. D148's and D149's proposed details still wait for the
+  user's approval.
 
 ## D150 — Moves to the loop start one at a time, to a random free spot; no stall clock while parked; chunk 22h (2026-10-02)
 *Re-entered by D155 (2026-10-03), edited:* the first text, on branch
@@ -3418,6 +3447,44 @@ paused while parked); **lost** says "moved", not "teleported".
 
 **Unchanged:** the nets' own rules and numbers (60 s and 24 px, 2 s
 stuck, 10 s plus 1 min lost).
+
+*As built (chunk 22h, on main, 2026-10-03; reviewer OKAY):*
+- **Step A (fccbb8e), 1:** while a followed train slime is parked, its
+  `marked_at` moves on by one per tick (O113's default, every parked
+  train slime); no save key. Fixture hashes change only through
+  `marked_at`. Suite 1372/1372.
+- **Step B (96725f1), 2 and 3:** `LoopStartQueue`
+  (`src/sim/loop_start_queue.gd`, last in `Simulation.step`), rebuilt
+  each tick from saved state, no new save key (the fallback key not
+  needed). The wait 30 to 120 ticks from `loop_start:gap:<tick>`; out of
+  bounds first, then first due, ties by id; a recovered slime leaves
+  without a move or a wait; a slime due for two reasons waits once, at
+  its earliest. `LoopStart.free_spot`: up to 8 draws over 0 to 240 px
+  from `loop_start:spot:<tick>`, free = inside a split zone and no ring
+  overlapping; all taken, the retry on the next multiple of 30, but an
+  out-of-bounds slime with no saved due tick retries every tick.
+- **Two exceptions to the text above, as built:**
+  - *"Never onto another slime"* (3) covers **queue moves only**. The
+    debug kill tool and losses found at load time stay immediate
+    (`spot_now`) and may land on another slime.
+  - *"A save and reload mid-queue moves the same slimes on the same
+    ticks"* (2) has one exception: a save taken while an out-of-bounds
+    slime waits; on load, D12's handling moves it at once.
+- **Hashes:** in step B only `old-version`'s changed (its displaced
+  sleeper lands on a random free spot).
+- **Measured** (`tools/thru.gd`, 10,000 ticks): `s3-basket-59of60`
+  (seed 1; step B's 11 on seeds 1 and 2): stall moves 87 on main before
+  22h (so the bug was on main too) -> 0; stuck moves 234 -> 65 (step A)
+  -> 11 (step B). `stress-dense`:
+  stall 64 -> 0; its bowl's parked line now waits (`bowl_n` 49 -> 77,
+  not a failure). Every landing free, within 240 px, moves at least 30
+  ticks apart, 0 re-stuck within 600 ticks.
+- **For rule 24 (D157) and O117:** the start basin crowds when slimes
+  come home (about 36 near the start at tick 9500; queue waits up to 516
+  ticks). This is the test level's first rule 24 evidence, and an input
+  for the geyser.
+- Suite 1383/1383. D150's proposed details and O113 still wait for the
+  user's approval.
 
 ## D151 — Withdrawn: a density cap on the loop (2026-10-02)
 **Withdrawn by D155 (2026-10-03).** It cut the loop into 300 px stretches
