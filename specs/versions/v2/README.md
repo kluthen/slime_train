@@ -1,6 +1,6 @@
 # v2 — Content, level design and music
 
-Status: themes only (D134); no spec yet; two cluster aids proposed (D143)
+Status: themes only (D134); no spec yet; two cluster aids proposed (D143); one idea parked, the geyser (D157, O117)
 
 Themes, set by the user (D134):
 
@@ -59,3 +59,11 @@ gather awake):
   sends a dense clump one way, this spreads a crowd over both. To settle
   when v2 is scoped: slimes or weight, which stretch it counts, off
   screen (D70), which branch the camera follows.
+
+An idea, not proposed (D157), serving level rule 24 (arrivals clear
+faster than they come):
+
+- **The geyser** (O117, parked; the user: "not urgent"): a return
+  route's end launches arriving slimes high and wide, so they come down
+  spread over the start area. A throwaway experiment on a branch first,
+  measured, before any spec commitment.

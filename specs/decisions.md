@@ -3775,3 +3775,88 @@ largest cluster 47.8 -> 26.0. Phone emulation (`tools/perf_slow.sh
 --pin=main --seconds=62`, pinned lines): 25.4 -> 35.0 fps, tick 15.0 ->
 10.5 ms, Physics 74 -> 43, cluster 47 -> 20. Only `s3-basket-59of60`'s
 hash changed. Suite 1339/1339.
+
+## D157 — Level rule 24: where slimes arrive fast, they get away faster than they arrive; the geyser, an idea (2026-10-03)
+The user's words (2026-10-03), on the test level: "for the test level
+design, the way back is fully automated, which is nice with slimes
+gliding back. maybe ensure that they are 'geysered' high with a wide
+dispersion, ensuring that they don't get too stalled at start point."
+Then: "the geyser option is not urgent, but would probably help
+preventing cluster at start. Slimes comes in fast, if they can't get away
+from start point quickly enough it will build a self feeding cluster (we
+need to add this as a level building rule)". The rule is the user's; its
+wording, reading and check are proposed. The geyser is an idea, not
+scheduled (O117).
+
+**1. Level rule 24 (the user's; wording proposed).** Where slimes arrive
+fast (the end of a return route at the loop's start, a slide's end, a
+basket's outlet), the place they land lets them move away faster than
+they arrive: enough room and a clear way onward. Otherwise each arrival
+lands on the ones before it, and the pile feeds itself.
+
+**2. How it sits with the other rules.**
+- **Rule 23** (D143): a special case of it. Rule 23 keeps apart the
+  spots the layout makes; rule 24 is a gathering spot the flow itself
+  makes, wherever arrivals outpace departures.
+- **Rule 22** (D117, D123) says where a return route comes home (behind
+  the loop's start, the loop's way); rule 24 says that place must also
+  clear fast enough.
+- **Rule 4** (proposed reading): where a split zone meets the arrivals,
+  count them in base slimes; a size 3 coming home lands as three.
+- **D150, the loop-start queue:** moves to the loop start (lost, stuck,
+  stalled) come one at a time, 0.5 to 2 s apart, onto a random free spot
+  on the loop's first 240 px. That paces the safety nets only. A level's
+  own arrivals (a return route, a slide, an outlet) come at the flow's
+  pace, and nothing paces them; rule 24 is about those.
+
+**3. A consequence to keep in view (proposed reading; no number).** "A
+clear way onward" counts by its pace, not only its room. At the loop's
+start slimes leave by joining the train, whose slimes hop every 1.5 to
+3 s (`slimes.md`). A return route that brings them faster than the
+train carries them off the first stretch fills the start however wide
+it is. So a designer reads the rule as a rate (arrivals against
+departures), not as a size alone.
+
+**4. How it is checked (proposed).**
+- **By eye, in test mode:** watch each arrival spot while slimes come
+  home: they spread and leave, and no pile there grows while arrivals
+  go on. An item in each level's rules checklist.
+- **Largest awake cluster at the arrival:** the largest awake cluster
+  with a slime within 240 px of where the slimes land (at the loop's
+  start, D150's stretch), held to rule 23's limit (O107) over the
+  level's own scripted runs, the `stress-*` fixtures excepted.
+- **Stuck moves at the arrival,** over a 10,000-tick `tools/thru.gd`
+  run: none stuck again within 600 ticks (10 s) of landing there (chunk
+  22h's measure for moves to the loop start). `thru.gd`'s `stuck` count
+  is level-wide today; telling the arrival spot apart is a small tool
+  addition, not scheduled.
+- **The level-rules checker has no automatic check in v1.** The rule
+  hangs on arrival and departure rates, which only a run shows; the
+  checker reads the scene. The checker and the level review list rule
+  24 as a by-eye item.
+
+**5. The geyser: an idea, not urgent, not scheduled (O117, parked; a v2
+candidate).** At a return route's end, the arriving slimes are launched
+high with a wide dispersion, so they come down spread over the start
+area instead of on one point. It would be tried first as a **throwaway
+experiment on a branch** (the user's working rule; D155's lesson),
+measured with section 4's checks against the same runs without it,
+before any spec commitment. No term in `concept.md` until it is
+proposed.
+
+**6. The test level.** Whether its loop's start meets rule 24 is
+**unknown until chunk 22h's measurements**. After 22h step A (fccbb8e,
+the stall clock paused while parked), `s3-basket-59of60`, seed 1,
+10,000 ticks: 65 stuck moves (234 before), mostly a re-stuck loop at
+the loop's start; step B (the loop-start queue and random free
+landings) is being built. Whether the slides' arrivals into the pocket
+pile up is not measured apart. The test level's checklist gains the
+by-eye item; no level edit proposed before 22h's numbers.
+
+**Documents:** `level-design.md` rule 24; `levels/test/README.md`
+checklist (rule 24's row, and rule 23's row, which was missing: it
+restates D143 and O107 (c), no new content); `open-questions.md` O117,
+O107 (d); `versions/v2/README.md` lists the idea. **Flagged:** for
+documentalist, a rule 24 atom beside rule 23's under
+`req_level_design_rules`; outside `specs/`, the `level-review` skill and
+`docs/level-design/` list rules only up to 22 (23 and 24 missing).

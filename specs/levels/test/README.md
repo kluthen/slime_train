@@ -1,6 +1,6 @@
 # Test level
 
-Status: draft v18 (`stress-dense` built on main, chunk 22m, 4aac65a; 17 of its slimes wrap at load, O116; v17: fixture `stress-dense`, rebuilt in chunk 22m: 3 per 100 px of loop along the loop line, the bowl's bottom two 300 px stretches at 4, D153, D154; `stress-moving` the abuse test, D153; known issue: a fixture's train distances wrap on load, O116; the fps session after 0196c25 withdrawn, D155)
+Status: draft v19 (rules checklist: rule 24's row, unknown until chunk 22h's measurements, a by-eye check, D157; rule 23's row added, restating D143 and O107 (c); v18: `stress-dense` built on main, chunk 22m, 4aac65a; 17 of its slimes wrap at load, O116; v17: fixture `stress-dense`, rebuilt in chunk 22m: 3 per 100 px of loop along the loop line, the bowl's bottom two 300 px stretches at 4, D153, D154; `stress-moving` the abuse test, D153; known issue: a fixture's train distances wrap on load, O116; the fps session after 0196c25 withdrawn, D155)
 
 A compact level that puts nearly every v1 gameplay item in one place (D76).
 It is the testing ground while the game is built, and the level the
@@ -643,6 +643,8 @@ spot a free slime can reach leads back to the loop (rule 7).
 | 20 No changes after release | not applicable: never released. The `old-version` fixture exercises migrations. |
 | 21 Objects below the parent zone | every switch, basket and gate is below the parent zone in the outgoing routes' rail views (D111; chunk 23E's reading, D126, proposed). Seen from the slides' rails, the tops of `s1.basket`, `s1.gate`, `s2.gate`, `s2.switch` and `s3.switch` are in the band or off the screen; those views aren't checked |
 | 22 Where slimes come home; no low overhang on the loop | 1.1 as built (D116): the slides' tail runs under the terrace and up the ramp into the pocket behind the loop's start, so slimes coming home join behind the train; the first sleeper's ledge overhangs the terrace only inside the split zone's reach, where only base slimes pass (D117). The second dip's hollow, which broke (b), sits over the dip's far slope since chunk R22 (section 2, D127): the checker passes. Since chunk TL1 every ledge a base slime is called up to keeps its underside at least 130 px over the loop's ground under it (D129, proposed house style) |
+| 23 No spot where many slimes gather awake | the bowl next to basket 3 (section 3) is the stress area, DoD 30's worst case, and gathers slimes on purpose (D143); proposed, no edit unless it still breaks the limit in normal play once 24.3, the local wake (D156) and the lean have landed (O107 (c)) |
+| 24 Arrivals clear faster than they come | **unknown until chunk 22h's measurements** (D157). After 22h step A, `s3-basket-59of60` seed 1, 10,000 ticks: 65 stuck moves (234 before), mostly a re-stuck loop at the loop's start; step B (the loop-start queue, random free landings, D150) is being built; the slides' own arrivals into the pocket aren't measured apart. *By eye, in test mode:* with slimes coming home down the slides (for example `s3-basket-59of60`, or any play where the train runs home along a slide), watch the pocket, the ramp's top and the terrace: the slimes coming home spread and hop on after the train; no pile there grows while more keep arriving |
 
 ## What this level does not settle
 
