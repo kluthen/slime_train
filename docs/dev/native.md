@@ -61,6 +61,7 @@ See `specs/decisions.md` and "Simulation performance" in
 | `tools/build_native.sh` | The one build script |
 | `tests/unit/test_native_extension.gd`, `tests/unit/native_check.{gd,tscn}` | The toolchain test, and `native_check`, which prints a report (in the default suite) |
 | `tests/unit/test_native_solver.gd`, `tests/unit/test_tick_choice.gd` | The solver's boundary, the tick switch |
+| `tests/unit/native_equivalence_support.gd`, `tests/unit/native_equivalence_scenes.gd` | The equivalence harness: one pass, GDScript against native, on copies of five scenes (see "Testing") |
 
 ## godot-cpp version
 
@@ -255,6 +256,25 @@ tests are then pending if it is missing.
   source with one change); `use_native` on, off and refused; the stub
   passes falling back (native on and off, 240 ticks: the same arrays and
   dump).
+- The equivalence harness (`native_equivalence_support.gd`, not a test
+  script), for the pass-by-pass tests (units U1 to U5): a copy of a scene
+  brought in GDScript to the moment of a tick when a pass runs
+  (`prepared(scene, phase, substep, iteration)`), then the GDScript pass on
+  one copy and the native one on another (`check`), every field of
+  `SlimeBodies` compared: the positions, centres, angles, drifts and rest
+  anchors within 1e-3 px by default (overridable per field), everything
+  else exactly; a problem names the scene, the field, the index (and its
+  slime) and both values. `phase_supported(phase)` / `skip_reason(phase)`
+  keep a test pending while its native pass is a stub. The scenes
+  (`native_equivalence_scenes.gd`, built once per run on the GDScript
+  tick): the fixtures `stress-moving`, `s3-basket-59of60`, `gate2-open`
+  (shut doors), `stress-still` once its pile rests, and a synthetic box
+  (detail-3 rings, sleepers and a resting pile with active slimes on them,
+  parked slimes, slimes at the first and last index, a point on a segment's
+  end, doors shut, far and empty). `test_native_equivalence_harness.gd`
+  checks the harness itself: GDScript against GDScript is exact for every
+  scene and every pass of a tick, its walk of a tick is `tick()` bit for
+  bit, a difference is reported, the copies share no array.
 
 ## Determinism: `-ffp-contract=off`
 
