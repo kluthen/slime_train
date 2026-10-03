@@ -8,6 +8,7 @@ parents:
   - [[req_scope_one_level_four_sections]]
 dependents:
   - [[rule_all_sizes_travel_loop_v1]]
+  - [[rule_arrivals_clear_faster_than_they_arrive]]
   - [[rule_dip_may_nudge_fusion]]
   - [[rule_exploration_branch_has_route_back]]
   - [[rule_first_section_species_count]]
@@ -32,7 +33,7 @@ dependents:
   - [[rule_tilt_never_required]]
 human_name: Level design rules
 tags: [level-rules]
-version: 1.1
+version: 1.2
 ---
 
 # Level design rules
@@ -45,6 +46,8 @@ Every level built for Slime Train, the test level included, must follow the full
 
 ## TECHNICAL INTERFACE
 Parented to req_scope_one_level_four_sections. Each child RULE atom states one of the 22 level rules; level rule 22 joins two constraints and so has two child atoms.
+
+Pending the user's sign-off (proposed, not settled; the 22 rules above are what is settled until then): the level rules now number 24. Rule 23, no spot where many slimes gather awake (approved by the user in direction, its measure and limit proposed), has no child atom yet: it gets one once its limit is calibrated. Rule 24, where slimes arrive fast they get away faster than they arrive (the user's rule, its wording and checks proposed), has a DRAFT child, rule_arrivals_clear_faster_than_they_arrive. Neither has an automatic level-rules checker check in v1.
 
 ## EXPECTATION
 v1 is done only when the real first level (designed later) passes the level-rules check against every child rule of this atom.
