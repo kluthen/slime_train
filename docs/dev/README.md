@@ -76,6 +76,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `tools/bench_level.gd`, `tools/bench_level/` | Times a whole level: the test level with its 200 slimes (see "Off-screen simulation (chunk 15)"), or any level with `--level` (chunk LD3); `stress-still` from its pile's rest (see "Chunk 22: performance") |
 | `tools/bench_rest.gd`, `tools/bench_rest/` | The resting-pile rule measured on the test level (`tools/level.sh rest`, see "Resting piles (D107)") |
 | `tools/perf_slow.sh` | A windowed perf-log run of a fixture on the desktop, slowed or at full speed, and its summary (see "Chunk 22b: drawing", "How to measure the parts"; the counts and the largest awake cluster: "Chunk 22d: debug counters and the largest awake cluster") |
+| `tools/thru.gd` | The train's throughput over a long run (10,000 ticks by default) of a test-level fixture, headless: stalls, stuck moves, hops and the bowl's count per 600 ticks (see "How to measure the parts") |
 | `tools/compare_frames.py` | Compares two sets of movie frames pixel by pixel (see "Chunk 22b: drawing", "The look") |
 | `tools/make_fixture.gd` | Writes a level's fixtures (see "Saves and fixtures") |
 | `tools/check_level.gd`, `tools/level_check/` | The level-rules checker, rules 1 to 22, on any level (see [level-tooling.md](level-tooling.md)) |
@@ -2613,7 +2614,8 @@ native sort: a first version with `sort_custom` cost about 1 ms a tick in
 `stress-still` resting costs about as much as the level's start (a first
 reading of 8.5 ms/tick, before 16b, was the pile not resting yet).
 `stress-moving` is the worst moving case, a measurement rather than a
-target (D96): beyond what normal play produces.
+target (D96): beyond what normal play produces. Since D153 it is an abuse
+test: no crash, no freeze, at least 15 fps.
 
 **DoD 1 over the whole level** (`tests/e2e/test_level_dod1_e2e.gd`, 4
 tests). A 15-minute session with no input, through the game scene and test
@@ -3582,7 +3584,7 @@ save `<name>.json` in the hand-made form above.
 | `gate1-open` | Gate 1 open as after basket 1 fired (switch 1 inert, slide 1 shut): the loop runs into section 2. 20 size-1 train slimes (the first slime and `s1.sleeper.01` to `.19`) spread along the outgoing loop from 60 px past the split zone to 400 px before its end; the other 180 asleep; the camera at section 2's start (8.3 S) |
 | `gate2-open` | Gates 1 and 2 open as after baskets 1 and 2 fired (slides 1 and 2 shut): the loop runs through section 3 to slide 3. The same 20 train slimes, spread along the whole outgoing loop; the camera at section 3's start (13.0 S). Added in chunk 16 for the whole loop (DoD 1) |
 | `stress-still` | Gates 1 and 2 open, all 200 base slimes woken, none left asleep: 60 size-1 slimes in basket 3 (switch 3 flipped, the basket full, waiting to be in view: out of it, they park), and 140 piled at the bottom of section 3's bowl, asleep at bedtime (a session at bedtime: outside a basket, a pile rests only asleep); the camera on the bowl (its framing zone zooms to 0.5, so the rings are zoomed-out). The pile comes to rest about 410 ticks (about 7 s) after loading since chunk 19 (670 before) and stays resting (the worst still case on one screen; see below) |
-| `stress-moving` | Gates 1 and 2 open, all 200 base slimes as size-1 train slimes spread through section 3's bowl from its bottom up (the floor, the slopes, the shelves; x 13.5 to 15.33 S, inside the view), each following the loop from its nearest point; the camera on the bowl. The worst moving case: a measurement, not a target (D96) |
+| `stress-moving` | Gates 1 and 2 open, all 200 base slimes as size-1 train slimes spread through section 3's bowl from its bottom up (the floor, the slopes, the shelves; x 13.5 to 15.33 S, inside the view), each following the loop from its nearest point; the camera on the bowl. The worst moving case, an abuse test: no crash, no freeze, at least 15 fps (D153) |
 | `stress-dense` | Gates 1 and 2 open, all 200 base slimes as size-1 train slimes (each its sleeper's species), not at bedtime (no session), switch 3 and basket 3 untouched: laid along the loop line, not stacked, 9 per 300 px stretch of loop (a slime's stretch: its loop distance / 300, rounded down) and 12 in stretches 55 and 56, the two at the bottom of section 3's bowl; 70 in the bowl, 105 in section 3, 95 back through gate 2 in section 2, none past switch 3; the camera on the bowl. The dense moving case, target at least 30 fps (chunk 22m; D153 as amended by D154; see "Chunk 22m: stress-dense") |
 | `s3-basket-59of60` | Gates 1 and 2 open as after baskets 1 and 2 fired, all 200 base slimes woken, not at bedtime (no session): switch 3 flipped (its trapdoor open), basket 3 at 59 of 60 (59 size-1 slimes in it, section 3's last 59 sleepers, laid out as `stress-still`'s) and the other 141 as size-1 train slimes through section 3's bowl (as `stress-moving`'s); the camera on basket 3's framing zone (18288, -150; zoom 0.8). Played on, the basket fills (about 9 s), fires in view and the celebration plays (chunk 22, D128 24.1) |
 | `midair` | The fresh level with four size-1 train slimes saved in mid-air over section 1's ground (`s1.sleeper.01` to `.04`): 4 px above the ground at x 1525, 150 px above it at x 1825, 30 px above it at x 2125, and one 80 px above that one; the camera on them. A fixture keeps only centres, so loaded (test mode or normal play) each is put straight down on what is below it, at rest, none lost (D12, DoD 28; chunk 19) |
@@ -5261,6 +5263,24 @@ doc defines each):
   no busy loop. `--max-fps=60`: at 60 fps a frame the game keeps up with
   holds one tick, as on a 60 Hz phone, so the parts are the cost of a real
   frame (see "Before and after"). Run it with labels off, and no other Godot running.
+- **The throughput over a long run: `tools/thru.gd`** (chunk 22m, D153).
+
+  ```sh
+  godot --headless --no-header --path . -s res://tools/thru.gd -- [--fixture=stress-moving] [--seed=1] [--ticks=10000]
+  ```
+
+  It steps a test-level fixture headless with the game's own step (as
+  `--run-ticks` does) and counts what the train does. Every 600 ticks a
+  `THRU_WIN` line: train slimes crossing loop distances 19,000 and 22,000,
+  stalled moves to the loop start (`stall`), other refused moves (`oob`),
+  stuck moves, hops, train slimes (not parked, all), `bowl_n` (train slimes
+  in section 3's bowl, loop distances 14,000 to 18,000) and the bowl's back
+  half (its mean distance and advance). At the end `THRU_TOT` (the totals,
+  hops taken and the first stalled tick, -1 for none), `THRU_HIST` (the
+  train slimes by 2000 px of loop, parked in brackets) and the `STATE`
+  line. Read only: its hash is a plain run's (`--test-mode --level=test
+  --fixture=F --seed=N --run-ticks=T`). An unknown or malformed argument
+  exits 2.
 
 ### The method: what the slowed runs got wrong
 

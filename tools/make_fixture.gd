@@ -235,24 +235,21 @@ const FIXTURES := {
 	"stress-moving": {"description": ("Gates 1 and 2 open and all 200 base slimes woken as size-1 "
 			+ "train slimes, spread through section 3's bowl from its bottom up (on the floor, the "
 			+ "slopes and the shelves), each following the loop from its nearest point. The camera "
-			+ "on the bowl. The worst moving case: a measurement, not a target (chunk 16; "
-			+ "tools/bench_level.gd)."),
+			+ "on the bowl. The worst moving case, an abuse test: no crash, no freeze, at least 15 fps "
+			+ "(chunk 16; D153; tools/bench_level.gd)."),
 			"camera": [BOWL_CAMERA.x, BOWL_CAMERA.y], "build": "_stress_moving"},
-	# The description is the one saved on branch archive/fps-session-2026-10
-	# (bcaa8b7), kept word for word so that the sidecar is rebuilt byte for
-	# byte; its "loop bucket" is a 300 px stretch of loop (D154).
 	"stress-dense": {"description": ("Gates 1 and 2 open and all 200 base slimes woken as size-1 "
 			+ "train slimes, each its sleeper's species, not at bedtime (no session); switch 3 and "
-			+ "basket 3 untouched. Along the loop line, not stacked: 9 per 300 px loop bucket (the bucket "
-			+ "cap's 12 less 25 %), and 12 (the cap) in the two buckets at the bottom of section 3's bowl, "
-			+ "each slime on the loop, evenly spaced in its bucket. The two bottom buckets first, then the "
-			+ "buckets behind and ahead alternately, behind first, none past switch 3 (the bucket it cuts "
-			+ "takes 9 in proportion). As saved, loop buckets 55 and 56 hold 12, 40 to 54 and 57 to 59 hold "
-			+ "9, bucket 60 holds 6 and bucket 39 the last 8 (loop distances 11,719 to 18,197, x 10.08 to "
-			+ "15.62 screens: back through gate 2, over basket 2 and past switch 2); 70 are in the bowl "
-			+ "(x 13.5 to 15.33 screens). The camera on the bowl. The dense moving case, below the bucket "
-			+ "cap with the bowl's bottom at it, target at least 30 fps (chunk 22j, D153; rebuilt "
-			+ "2026-10-02)."),
+			+ "basket 3 untouched. Along the loop line, not stacked, in 300 px stretches of loop (a "
+			+ "slime's stretch: its loop distance / 300, rounded down): 3 per 100 px (9 a stretch), the "
+			+ "bowl's bottom two stretches at 4 per 100 px (12 each), each slime on the loop, evenly "
+			+ "spaced in its stretch. The bowl's bottom two stretches first, then the stretches behind and "
+			+ "ahead alternately, behind first, none past switch 3 (the stretch it cuts takes 9 in "
+			+ "proportion). As saved, stretches 55 and 56 have 12, 40 to 54 and 57 to 59 have 9, stretch "
+			+ "60 has 6 and stretch 39 the last 8 (loop distances 11,719 to 18,197, x 10.08 to 15.62 "
+			+ "screens: back through gate 2, over basket 2 and past switch 2); 70 are in the bowl (x 13.5 "
+			+ "to 15.33 screens). The camera on the bowl. The dense moving case, target at least 30 fps "
+			+ "(chunk 22m; D153 as amended by D154)."),
 			"camera": [BOWL_CAMERA.x, BOWL_CAMERA.y], "build": "_stress_dense"},
 	"s3-basket-59of60": {"description": ("Gates 1 and 2 open as after baskets 1 and 2 fired, all "
 			+ "200 base slimes woken (no sleeper left), not at bedtime (no session). Switch 3 "
