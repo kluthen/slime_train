@@ -92,16 +92,27 @@ extends Node
 ##                        the frame's Performance.RENDER_TOTAL_*_IN_FRAME
 ##                        (%.0f)
 ##
+## Last, only when the phase timers are on (the game root's --phase-timers,
+## src/debug/phase_timers.gd, chunk 5N U0a), one compact field:
+##
+##   phases               the window's mean µs per tick by phase, in tick
+##                        order, "name:µs,name:µs,..." (whole µs;
+##                        PhaseTimers.field() of PhaseTimers.take(): the
+##                        timers are read and cleared at each line, so a
+##                        simulation replaced mid-window, a reset, loses
+##                        its part of the window). The phases add up to the
+##                        whole step; the solver's are PhaseTimers.SOLVER_PHASES
+##
 ## A _draw runs after every _process (the redraw is deferred), so a node's
 ## draw is counted on the next frame's take: the sums over a window are
 ## right, a frame's own split is not. A measurement this renderer doesn't
 ## support reads 0.
 ##
-## Every field but the first is a number; zeros without a simulation. The
-## tick fields come from the game root's own record of each frame
-## (frame_ticks, frame_tick_usec: the ticks it ran and the real time around
-## their step_simulation() calls), see tick_stats(); active and pairs are read
-## after each frame's ticks. At start it prints one "PERF_INFO" line: the
+## Every field but the first and `phases` is a number; zeros without a
+## simulation. The tick fields come from the game root's own record of each
+## frame (frame_ticks, frame_tick_usec: the ticks it ran and the real time
+## around their step_simulation() calls), see tick_stats(); active and pairs
+## are read after each frame's ticks. At start it prints one "PERF_INFO" line: the
 ## window, the model, the renderer, the refresh rate, the cap on ticks per
 ## frame at 1x.
 ##
@@ -223,10 +234,11 @@ func _process(_delta: float) -> void:
 	for i in parts.size():
 		_part_sums[i] += parts[i]
 	if _window_s >= seconds:
+		var phases := PhaseTimers.field(PhaseTimers.take(sim)) if sim != null else ""
 		print(line(Time.get_ticks_msec() / 1000.0, window_stats(_deltas),
 				tick_stats(_deltas, _frame_ticks, _frame_tick_usec, _frame_active, _frame_pairs),
 				_process_s * 1000.0 / _deltas.size(), _ticks, _hops, _short_hops, sim,
-				part_means(_part_sums, _deltas.size())))
+				part_means(_part_sums, _deltas.size()), phases))
 		_part_sums.fill(0.0)
 		_deltas = PackedFloat64Array()
 		_frame_ticks = PackedInt32Array()
@@ -428,11 +440,12 @@ static func _nearest_rank(sorted: PackedFloat64Array, share: float) -> float:
 ## included), the mean process time `process_ms_mean`, the `ticks` run, the
 ## train `hops` taken and `short_hops` landed in it, `sim`'s slime counts,
 ## largest awake cluster, total slimes, camera section and zoom (zeros
-## without a simulation), and the part_means() `parts`. The fields are the
-## class doc's, in its order. Read only.
+## without a simulation), the part_means() `parts`, and the phase timers'
+## field value `phases` (PhaseTimers.field(); "": no phases field). The
+## fields are the class doc's, in its order. Read only.
 # @spec-link [[req_platform_and_performance_targets]]
 static func line(t: float, stats: Dictionary, ticking: Dictionary, process_ms_mean: float, ticks: int,
-		hops: int, short_hops: int, sim: Simulation, parts: PackedFloat64Array) -> String:
+		hops: int, short_hops: int, sim: Simulation, parts: PackedFloat64Array, phases := "") -> String:
 	assert(parts.size() == PART_FIELDS.size(), "PerfLog.line: one mean per part field")
 	var counts := {DebugCounts.PHYSICS: 0, DebugCounts.ON_SCREEN: 0, DebugCounts.IN_RANGE: 0,
 			DebugCounts.PARKED: 0, DebugCounts.RESTING: 0}
@@ -446,7 +459,7 @@ static func line(t: float, stats: Dictionary, ticking: Dictionary, process_ms_me
 		bodies = sim.slimes.slime_count
 		section = camera_section(sim)
 		zoom = sim.view.zoom
-	return ("PERF t=%.1f frames=%d fps=%.1f frame_ms_p50=%.2f frame_ms_p95=%.2f frame_ms_max=%.2f"
+	var text := ("PERF t=%.1f frames=%d fps=%.1f frame_ms_p50=%.2f frame_ms_p95=%.2f frame_ms_max=%.2f"
 			+ " process_ms_mean=%.2f ticks=%d ticks_per_frame_mean=%.2f ticks_per_frame_max=%d"
 			+ " tick_ms_mean=%.2f tick_ms_frame_mean=%.2f rest_ms_mean=%.2f"
 			+ " physics=%d on_screen=%d in_range=%d parked=%d resting=%d largest_cluster=%d"
@@ -459,6 +472,9 @@ static func line(t: float, stats: Dictionary, ticking: Dictionary, process_ms_me
 			counts[DebugCounts.PHYSICS], counts[DebugCounts.ON_SCREEN], counts[DebugCounts.IN_RANGE],
 			counts[DebugCounts.PARKED], counts[DebugCounts.RESTING], largest_cluster, hops, short_hops, bodies,
 			ticking["active_mean"], ticking["pairs_mean"], section, zoom] + _part_text(parts)
+	if phases != "":
+		text += " phases=" + phases
+	return text
 
 
 ## The part fields of the PERF line for the means `parts` (one per

@@ -35,7 +35,9 @@
 #                   a tick (the redraw-on-change nodes skip those)
 #   <fixture>       a fixture of the test level, played in test mode
 #   extra arguments go to the game after the others (for example
-#                   --max-ticks-per-frame=1)
+#                   --max-ticks-per-frame=1, or --phase-timers: each PERF
+#                   line then carries the mean us per tick by phase, and the
+#                   summary splits the tick into solver and behaviour)
 #
 # It runs, windowed (DISPLAY, default :0):
 #   godot --path . --disable-vsync --max-fps <N> -- --test-mode --fixture=<fixture> --seed=1

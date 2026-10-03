@@ -52,7 +52,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `src/sim/` | The simulation core: pure logic, with no scene dependencies, so it can be unit tested |
 | `src/test_mode_guard.gd` | The one check that keeps test mode out of release builds |
 | `src/test_mode/` | Test mode: scripted input, time control, fixtures and saves to start from, the on-screen marker |
-| `src/debug/` | The debug overlay, debug builds only: speed, reset, slime labels, the kill tool, the fps, the woken/available counter, the slime counts (see "Debug overlay"); the perf log (`PerfLog`, see "Measuring on the phone"); the largest awake cluster (`DebugCounts.largest_cluster()`, see "Chunk 22d: debug counters and the largest awake cluster"); the save wipe (`SaveWipe`, `--wipe-save`, see "Chunk 19w: the save wipe") |
+| `src/debug/` | The debug overlay, debug builds only: speed, reset, slime labels, the kill tool, the fps, the woken/available counter, the slime counts (see "Debug overlay"); the perf log (`PerfLog`, see "Measuring on the phone"); the largest awake cluster (`DebugCounts.largest_cluster()`, see "Chunk 22d: debug counters and the largest awake cluster"); the save wipe (`SaveWipe`, `--wipe-save`, see "Chunk 19w: the save wipe"); the phase timers (`PhaseTimers`, `--phase-timers`, see "Chunk 5N: U0a phase timers") |
 | `src/save/` | The save files (`SaveStore`: one per level, never wiped), autosave timing (`Autosave`), the real clocks sessions count on (`SessionClock`) and the app's parent code (`ParentStore`, see "Parent gate and settings (chunk 18)"); the save format itself is `src/sim/save_data.gd` (see "Saves and fixtures") |
 | `src/parent/` | The parent layer: the parent buttons, the code prompt, settings and setup (`ParentGate` and its surfaces), their strings (`ParentText`) and sizes (`ParentLayout`) (see "Parent gate and settings (chunk 18)") |
 | `src/session/` | The session's screen effects (`SessionScreen`: the dusk tint, keeping the screen on); the session logic itself is `src/sim/session.gd` (see "Sessions (chunk 17)") |
@@ -276,9 +276,10 @@ Flags: `--test-script=PATH` (res:// or a file path), `--seed=N`,
 print the hash, quit), `--print-state` (also print the state as JSON) and
 `--save=PATH` (with `--run-ticks`: then save to PATH, for kill-and-reload
 across processes). Test mode leaves the perf log's flags, `--perf-log` and
-`--max-ticks-per-frame` (chunk 22), to the perf log, and `--wipe-save` to
+`--max-ticks-per-frame` (chunk 22), to the perf log, `--wipe-save` to
 the save wipe (chunk 19w; refused with `--load` or a script's `"load"`, see
-"Chunk 19w: the save wipe"). A run that can't start
+"Chunk 19w: the save wipe"), and `--phase-timers` to the game root's phase
+timers (see "Chunk 5N: U0a phase timers"). A run that can't start
 quits with code 1. Without `--run-ticks`, in a window, the game plays the
 script in real time (scaled) with a pink "TEST MODE" banner and a ring on
 every finger down. To record a debug run without a screen, use Godot's movie
@@ -3372,7 +3373,9 @@ camera's section and the zoom (the fields: "Measuring on the phone"
 under [Chunk 22: performance](#chunk-22-performance)).
 `--max-ticks-per-frame=N`, read with it, sets the fixed step's cap for the
 run. The lint above covers `PerfLog` too. Tests:
-`tests/unit/test_perf_log.gd`.
+`tests/unit/test_perf_log.gd`. With `--phase-timers` (chunk 5N U0a, also
+by path, after the guard) the line ends with a `phases=` field: see "Chunk
+5N: U0a phase timers".
 
 ## Saves and fixtures
 
@@ -5067,6 +5070,10 @@ What exists now:
     `--fixture=none` only (refused with a fixture, exit 2), it adds the
     game's `--wipe-save` to `slime_args`, so the session starts from fresh
     level saves (see "Chunk 19w: the save wipe").
+  - **`--phase-timers`** (chunk 5N U0a, off by default, either mode): adds
+    the game's `--phase-timers` to `slime_args`, so every `PERF` line
+    carries `phases=` and the summary splits the tick into solver and
+    behaviour (see "Chunk 5N: U0a phase timers").
   - **Ctrl-C** (in either mode) stops the recording cleanly, summarises
     what was recorded and exits 0. Otherwise: exit 0; 2 on bad arguments
     or no single device; 1 when the build or install fails, no `PERF` line
@@ -6119,6 +6126,170 @@ makes now waits its turn, one at a time, and lands on a random free spot.
   state hash is step A's). In `s3-basket-59of60` (seed 1) the start basin
   is crowded by the homecoming train: a due slime waited up to 516 ticks
   (265 on average) for a free spot, and 2 were still waiting at the end.
+
+## Chunk 5N: U0a phase timers
+
+Build plan chunk 5N (D158), unit U0a (`req_platform_and_performance_targets`).
+Debug measurement only: no game behaviour, save, fixture or test-mode format
+change. It splits the tick into what 5N ports to native code (the solver)
+and what stays GDScript (the behaviour), before any porting.
+
+- **The timers** (`src/debug/phase_timers.gd`, `PhaseTimers`).
+  `PhaseTimers.attach(sim)` sets `Simulation.phases` and
+  `SlimeBodies.phases` (both null by default: off).
+  - `Simulation.step` times each phase of `Simulation.StepPhase`, in tick
+    order: input, session, offscreen, train_steer, free_steer, bodies,
+    sleepers, free_paced, face_hops, split_zones, fusion, frontier,
+    free_follow, train_follow, stuck, loop_start_queue, camera (the watch,
+    the gates shown open, the camera's move), tidy (the spent ripples and
+    the hint).
+  - `SlimeBodies.tick` times each pass of `SlimeBodies.TickPhase`:
+    auto_hops (the hop clears too), integrate, pairs, contacts, rings,
+    terrain, doors (the passes in `_solve_terrain`), rest (the touching list
+    and `_rest`, `_rest_piles`, the local wake), tick_other (the support
+    reset, the centre cache cleared).
+  - Each `start()` and `lap(phase)` reads `Time.get_ticks_usec()` and adds
+    the time since the last read to the phase. The laps chain, so the
+    phases add up to the whole step. `means()` puts the bodies' passes in
+    place of `bodies`.
+  - Solver = `PhaseTimers.SOLVER_PHASES` (integrate, pairs, contacts,
+    rings, terrain, doors, rest). Behaviour = every other phase, the
+    tick's GDScript glue (auto_hops, tick_other) included.
+- **Off costs nothing measurable.** Each phase costs one null check and no
+  clock read. src/sim names nothing in src/debug (the `phases` fields are
+  untyped). The release lint in `test_debug_overlay.gd` now covers
+  `PhaseTimers`. Nothing reads the timers back, so the state is the same
+  with them on or off.
+- **Hashes** (seed 909, headless test mode): all 18 fixtures at 600 and 2400
+  ticks are the same as before the change, with the timers off and with
+  `--phase-timers` on.
+- **Overhead on:** within noise. `stress-dense` 5.85 and 5.67 ms with the
+  timers, against 5.67 and 5.69 ms without (A/B, interleaved, 600 ticks).
+- **How to run:**
+  - `tools/level.sh bench --fixture=NAME --lead-in=3600 --phases`. After
+    each case's `RESULT` line it prints a `PHASES` line (step, solver and
+    behaviour µs, the solver's share) and a table: one row per phase, with
+    its kind, mean µs per tick and share of the step.
+  - In the game: `--phase-timers` (debug builds only). The game root loads
+    the script by path after `TestModeGuard` (`use_phase_timers()`), and
+    every simulation it runs gets timers (`_use_simulation`, test mode's
+    included). A release build ignores the flag and prints
+    `Phase timers: --phase-timers ignored, not a debug build.`
+  - Every `PERF` line then ends with
+    `phases=input:0,session:2,offscreen:1295,...`: the window's mean µs per
+    tick by phase. The timers are taken and cleared at each line.
+  - `tools/android/perf.sh --phase-timers` adds the flag to `slime_args`.
+    For `tools/perf_slow.sh`, pass `--phase-timers` as an extra argument.
+  - `perf_summary.py` prints `phases us/tick` (step, solver with its share,
+    behaviour) and every phase. Each is weighted by ticks over the lines
+    that carry the field.
+- **Tests.** `tests/unit/test_phase_timers.gd` (11) covers:
+  - off by default;
+  - every timer call in src/sim sits under its null check, and src/sim
+    reads no clock;
+  - one lap per phase, in order, in the step and in the bodies' tick;
+  - the same hash timed or not;
+  - the means, the split, the field and the table;
+  - take() clearing;
+  - the flag in test mode, in a debug game (the running simulation, test
+    mode's and a fresh start's all timed) and in a release game (ignored);
+  - the load by path after the guard;
+  - the PERF line's field, last.
+
+  `tests/e2e/test_phase_timers_e2e.gd` (3) covers:
+  - `gate2-open` (doors shut) timed and untimed for 300 ticks: the same
+    hash, every phase timed;
+  - the bench printing every phase;
+  - `--phases=yes` refused.
+
+  `perf_summary.py --self-test` covers the field.
+
+**The split, desktop, headless.** `tools/level.sh bench
+--fixture=stress-dense,s3-basket-59of60,stress-moving,stress-still
+--lead-in=3600 --phases`, seed 909, 600 timed ticks after a 3600-tick
+lead-in.
+- The lead-in replaces `stress-still`'s rest detection, but its pile has
+  rested by then (140 resting).
+- The idle camera's cue has zoomed the other three out (`camera_steady`
+  false).
+- Mean µs per tick (share of the step):
+
+| Phase | Kind | `stress-dense` | `s3-basket-59of60` | `stress-moving` | `stress-still` |
+|---|---|---|---|---|---|
+| input | behaviour | 0 (0.0 %) | 0 (0.0 %) | 0 (0.0 %) | 0 (0.0 %) |
+| session | behaviour | 2 (0.0 %) | 2 (0.0 %) | 2 (0.0 %) | 1 (0.1 %) |
+| offscreen | behaviour | 1295 (23.0 %) | 1334 (25.9 %) | 468 (6.1 %) | 304 (30.2 %) |
+| train_steer | behaviour | 258 (4.6 %) | 166 (3.2 %) | 501 (6.6 %) | 1 (0.1 %) |
+| free_steer | behaviour | 1 (0.0 %) | 1 (0.0 %) | 1 (0.0 %) | 1 (0.1 %) |
+| auto_hops | behaviour | 28 (0.5 %) | 30 (0.6 %) | 24 (0.3 %) | 25 (2.5 %) |
+| integrate | solver | 156 (2.8 %) | 147 (2.9 %) | 255 (3.3 %) | 51 (5.0 %) |
+| pairs | solver | 108 (1.9 %) | 198 (3.8 %) | 224 (2.9 %) | 43 (4.3 %) |
+| contacts | solver | 462 (8.2 %) | 689 (13.4 %) | 1300 (17.0 %) | 1 (0.1 %) |
+| rings | solver | 396 (7.0 %) | 362 (7.0 %) | 780 (10.2 %) | 16 (1.6 %) |
+| terrain | solver | 337 (6.0 %) | 285 (5.5 %) | 626 (8.2 %) | 18 (1.8 %) |
+| doors | solver | 182 (3.2 %) | 212 (4.1 %) | 249 (3.3 %) | 82 (8.1 %) |
+| rest | solver | 24 (0.4 %) | 73 (1.4 %) | 48 (0.6 %) | 6 (0.6 %) |
+| tick_other | behaviour | 4 (0.1 %) | 5 (0.1 %) | 4 (0.1 %) | 4 (0.4 %) |
+| sleepers | behaviour | 32 (0.6 %) | 32 (0.6 %) | 83 (1.1 %) | 1 (0.1 %) |
+| free_paced | behaviour | 1 (0.0 %) | 1 (0.0 %) | 1 (0.0 %) | 0 (0.0 %) |
+| face_hops | behaviour | 1 (0.0 %) | 1 (0.0 %) | 1 (0.0 %) | 0 (0.0 %) |
+| split_zones | behaviour | 50 (0.9 %) | 41 (0.8 %) | 73 (1.0 %) | 40 (4.0 %) |
+| fusion | behaviour | 1181 (21.0 %) | 436 (8.5 %) | 2156 (28.2 %) | 4 (0.4 %) |
+| frontier | behaviour | 253 (4.5 %) | 375 (7.3 %) | 201 (2.6 %) | 249 (24.7 %) |
+| free_follow | behaviour | 36 (0.6 %) | 39 (0.7 %) | 26 (0.3 %) | 37 (3.7 %) |
+| train_follow | behaviour | 597 (10.6 %) | 539 (10.5 %) | 441 (5.8 %) | 36 (3.6 %) |
+| stuck | behaviour | 3 (0.0 %) | 4 (0.1 %) | 4 (0.1 %) | 5 (0.5 %) |
+| loop_start_queue | behaviour | 161 (2.9 %) | 110 (2.1 %) | 90 (1.2 %) | 5 (0.5 %) |
+| camera | behaviour | 5 (0.1 %) | 5 (0.1 %) | 5 (0.1 %) | 28 (2.8 %) |
+| tidy | behaviour | 65 (1.1 %) | 65 (1.3 %) | 69 (0.9 %) | 48 (4.8 %) |
+| **solver** |  | 1665 (29.5 %) | 1966 (38.2 %) | 3483 (45.6 %) | 217 (21.5 %) |
+| **behaviour** |  | 3973 (70.5 %) | 3187 (61.8 %) | 4151 (54.4 %) | 791 (78.5 %) |
+| **whole step** |  | 5638 (100.0 %) | 5152 (100.0 %) | 7634 (100.0 %) | 1008 (100.0 %) |
+
+The cases at the end of the timed ticks:
+
+| Fixture | Bodies | Physics | Parked | Active | Pairs |
+|---|---|---|---|---|---|
+| `stress-dense` | 175 | 56 | 119 | 57.7 | 59.4 |
+| `s3-basket-59of60` | 200 | 98 | 99 | 47.6 | 96.3 |
+| `stress-moving` | 128 | 103 | 25 | 108.8 | 190.9 |
+| `stress-still` | 200 | 0 | 60 | 0 | 0 |
+
+The bench's own mean ms per tick matches the step within 0.01 ms. An
+earlier run on a busier machine read 25 to 27 % higher on `stress-dense`
+and `s3-basket-59of60`, with every share within about 2 points.
+
+**Reading.**
+- **The solver is 30 to 46 % of the tick when slimes move** (`stress-dense`
+  29.5 %, `s3-basket-59of60` 38.2 %, `stress-moving` 45.6 %), and 21.5 % on
+  the resting pile. The rest, 54 to 79 %, is behaviour that 5N leaves in
+  GDScript.
+- **If the solver ran 20 times faster** (the plan's 20 to 25 times), the
+  desktop tick would go:
+
+  | Fixture | Today | With 5N | Change |
+  |---|---|---|---|
+  | `stress-dense` | 5.64 ms | 4.06 ms | -28 % |
+  | `s3-basket-59of60` | 5.15 ms | 3.29 ms | -36 % |
+  | `stress-moving` | 7.63 ms | 4.33 ms | -43 % |
+  | `stress-still` | 1.01 ms | 0.80 ms | -21 % |
+
+  The behaviour is then about 95 % of what is left.
+- **The behaviour floor** is mostly four phases:
+  - `offscreen` (`Offscreen.step`): 1.3 ms with a parked train;
+  - `fusion` (`Fusion.step`): 1.2 ms on `stress-dense`, 2.2 ms on
+    `stress-moving`;
+  - `train_follow` (`Train.follow`): 0.4 to 0.6 ms;
+  - `frontier` (`FrontierSets.step`): 0.2 to 0.4 ms.
+
+  Then `train_steer` (0.2 to 0.5 ms) and `loop_start_queue` (0.1 to
+  0.16 ms). This is consistent with the S20 FE session's tick floor of
+  about 11 ms with 20 to 30 physics slimes (`docs/perf/2026-10-03-s20fe-session.md`):
+  the floor is not the solver.
+- **Not measured here: the phone's own split.** Next is a phone session
+  with `tools/android/perf.sh --phase-timers`. Porting behaviour code
+  would need its own decision (preflight "must not change" 3), so it is
+  not 5N's.
 
 ## Technical choices
 

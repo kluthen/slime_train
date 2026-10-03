@@ -52,6 +52,8 @@ extends Node2D
 ## The save wipe (chunk 19w, D148): in a debug build, --wipe-save deletes
 ## every file in the main scene's user://saves/ at launch, before anything
 ## reads a save (src/debug/save_wipe.gd, named by path; see wipe_saves()).
+## Likewise --phase-timers times every tick phase by phase for the perf log
+## (src/debug/phase_timers.gd; see use_phase_timers()).
 ##
 ## A build exported with the "spike_soft_slimes" feature tag (the "Android
 ## spike: soft slimes" preset) runs spike 1's phone benchmark instead of the
@@ -96,6 +98,14 @@ const PERF_LOG_REFUSED := ("The perf log and its measurement flags are not avail
 const SAVE_WIPE_SCRIPT := "res://src/debug/save_wipe.gd"
 const SAVE_WIPE_FLAG := "--wipe-save"
 const SAVE_WIPE_IGNORED := "Save wipe: --wipe-save ignored, not a debug build."
+## The phase timers (--phase-timers, chunk 5N U0a): every tick timed phase by
+## phase (src/debug/phase_timers.gd), the perf log's PERF line carrying the
+## window's means. Debug builds only, named by path like the perf log (see
+## use_phase_timers()). A release build ignores the flag, saying so.
+const PHASE_TIMERS_SCRIPT := "res://src/debug/phase_timers.gd"
+const PHASE_TIMERS_FLAG := "--phase-timers"
+const PHASE_TIMERS_ON := "Phase timers: on (--phase-timers)."
+const PHASE_TIMERS_IGNORED := "Phase timers: --phase-timers ignored, not a debug build."
 
 var simulation: Simulation
 ## The loaded level, or null (a release build has none yet).
@@ -173,6 +183,10 @@ var debug_overlay: Node = null
 ## The perf log, or null (not asked for, a release build, or a game a test
 ## adds). Loosely typed: src/debug/ is named by path only.
 var perf_log: Node = null
+## The phase timers' script when --phase-timers turned them on (a debug
+## build), else null: every simulation the game runs gets timers
+## (_use_simulation). Loosely typed: src/debug/ is named by path only.
+var phase_timers: GDScript = null
 ## The most ticks a frame runs at 1x (FixedStep.max_ticks_for scales it with
 ## the speed): MAX_TICKS_PER_FRAME, unless a debug measurement set another
 ## (--max-ticks-per-frame, read by add_perf_log()).
@@ -262,6 +276,9 @@ func _ready() -> void:
 	add_child(safe_area)
 	if get_tree().current_scene == self:
 		add_debug_overlay()
+	var timers_line := use_phase_timers(user_args)
+	if timers_line != "":
+		print(timers_line)
 	_use_simulation(_new_simulation(Rng.random_seed()))
 	if get_tree().current_scene == self:
 		var perf_errors := add_perf_log(user_args)
@@ -726,6 +743,23 @@ func add_perf_log(user_args: PackedStringArray) -> PackedStringArray:
 	return PackedStringArray()
 
 
+## Turns the phase timers on when `user_args` hold --phase-timers (chunk 5N
+## U0a): in a debug build (TestModeGuard), loads src/debug/phase_timers.gd
+## into `phase_timers`, so every simulation from then on is timed (the one
+## running too); in a release build the flag is ignored. Returns the line to
+## print: PHASE_TIMERS_ON, PHASE_TIMERS_IGNORED, or "" without the flag.
+# @spec-link [[req_platform_and_performance_targets]]
+func use_phase_timers(user_args: PackedStringArray) -> String:
+	if PHASE_TIMERS_FLAG not in user_args:
+		return ""
+	if not test_mode_guard.allows():
+		return PHASE_TIMERS_IGNORED
+	phase_timers = load(PHASE_TIMERS_SCRIPT)
+	if simulation != null:
+		phase_timers.attach(simulation)
+	return PHASE_TIMERS_ON
+
+
 ## The save wipe `user_args` ask for (--wipe-save, chunk 19w, D148), on
 ## `directory`: in a debug build (TestModeGuard), src/debug/save_wipe.gd's
 ## run() (every file in the directory deleted, unless the launch also names a
@@ -818,11 +852,14 @@ func _new_simulation(seed_value: int) -> Simulation:
 	return fresh
 
 
-## Makes `fresh` the running simulation, and the one drawn.
+## Makes `fresh` the running simulation, and the one drawn (timed phase by
+## phase when the phase timers are on, use_phase_timers()).
 func _use_simulation(fresh: Simulation) -> void:
 	simulation = fresh
 	# The game simulates only near the screen (chunk 15).
 	fresh.offscreen.enabled = true
+	if phase_timers != null:
+		phase_timers.attach(fresh)
 	# The world shows: a due first-play hint counts its 10 s from here.
 	fresh.hint.world_shown(fresh.tick)
 	if slime_renderer != null:

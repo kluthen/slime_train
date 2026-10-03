@@ -7,9 +7,10 @@
 #   tools/android/perf.sh [--serial=S] [--fixture=NAME|none] [--seconds=N]
 #                         [--warm-minutes=M] [--period=P] [--no-build]
 #                         [--no-install] [--label=TEXT] [--wipe-save]
+#                         [--phase-timers]
 #   tools/android/perf.sh --free-play [--minutes=N] [--serial=S] [--period=P]
 #                         [--no-build] [--no-install] [--label=TEXT]
-#                         [--wipe-save]
+#                         [--wipe-save] [--phase-timers]
 #
 #   --serial=S        the device (adb serial); default: the only one attached
 #   --fixture=NAME    fixture mode: a fixture of the test level, played in test
@@ -37,6 +38,11 @@
 #                     deleted at launch and the level starts fresh. Off by
 #                     default. For automated test runs; never with a save and
 #                     restore check
+#   --phase-timers    the game's phase timers (--phase-timers added to
+#                     slime_args, chunk 5N U0a): every PERF line also carries
+#                     its window's mean us per tick by phase (phases=), and
+#                     the summary splits the tick into solver and behaviour.
+#                     The timers cost a few us a tick
 #
 # It exports and installs the debug APK, clears logcat, starts the app with
 # the perf log (the launch intent's "slime_args" extra, read by the
@@ -104,9 +110,10 @@ build=1
 install=1
 label=run
 wipe_save=0
+phase_timers=0
 
 usage() {
-	sed -n '7,39p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
+	sed -n '7,45p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
 	exit 2
 }
 
@@ -128,6 +135,7 @@ for arg in "$@"; do
 	--no-install) install=0 ;;
 	--label=*) label="${arg#*=}" ;;
 	--wipe-save) wipe_save=1 ;;
+	--phase-timers) phase_timers=1 ;;
 	-h | --help) usage ;;
 	*) fail_args "unknown argument '$arg' (--help lists them)" ;;
 	esac
@@ -226,6 +234,7 @@ if [ "$free_play" = 1 ] || [ "$fixture" = none ]; then
 else
 	slime_args="--test-mode,--fixture=$fixture,--seed=1,--perf-log=$period"
 fi
+[ "$phase_timers" = 0 ] || slime_args="$slime_args,--phase-timers"
 
 stamp="$(date +%Y%m%d-%H%M%S)"
 out_dir="$root/build/perf/$label-$mode-$stamp"

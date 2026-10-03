@@ -5,7 +5,7 @@ extends SceneTree
 ## whole level, 200 slimes"); on another level it measures what level rule
 ## 16 asks a person to look at (piles mostly still).
 ##
-## Run:   tools/level.sh bench [--level=<id>] [--ticks=600] [--fixture=NAME[,NAME...]] [--lead-in=N]
+## Run:   tools/level.sh bench [--level=<id>] [--ticks=600] [--fixture=NAME[,NAME...]] [--lead-in=N] [--phases]
 ##   (or godot --headless --path . -s res://tools/bench_level.gd -- [...])
 ##
 ##   --level=<id>     the level (LevelCatalog; default "test")
@@ -20,6 +20,13 @@ extends SceneTree
 ##                    included); to time a later moment of a fixture, e.g.
 ##                    s3-basket-59of60's basket releasing (full about tick
 ##                    554, fired about 2 s later): --lead-in=700
+##   --phases         also times each case's timed ticks phase by phase (the
+##                    debug phase timers, src/debug/phase_timers.gd, chunk 5N
+##                    U0a): after its RESULT line, a case prints a PHASES line
+##                    (whole step, solver and behaviour, mean µs per tick)
+##                    and a table, one row per phase (mean µs per tick, kind,
+##                    share of the step). The timers cost a few µs a tick,
+##                    inside the RESULT line's times
 ##
 ## Exit code: 0; 2 on a bad argument, an unknown level or fixture; 3 when
 ## stress-still's pile doesn't rest within REST_WITHIN ticks (nothing timed:
@@ -58,7 +65,8 @@ extends SceneTree
 ## the solver's candidate pairs (pairs: SlimeBodies.candidate_pair_count).
 # @spec-link [[req_platform_and_performance_targets]]
 
-const USAGE := "usage: tools/level.sh bench [--level=<id>] [--ticks=N] [--fixture=NAME[,NAME...]] [--lead-in=N]"
+const USAGE := ("usage: tools/level.sh bench [--level=<id>] [--ticks=N] [--fixture=NAME[,NAME...]] [--lead-in=N]"
+		+ " [--phases]")
 const SEED := 909
 ## When stress-still's pile rests (the lead-in until it does).
 const PILE_REST := preload("res://tools/bench_level/pile_rest.gd")
@@ -78,6 +86,8 @@ var level_id := LevelCatalog.DEFAULT_ID
 var fixtures: PackedStringArray = []
 ## The lead-in asked for (--lead-in), ticks, or -1: each case's own.
 var lead_in_override := -1
+## Whether each case's timed ticks are also timed phase by phase (--phases).
+var time_phases := false
 var level: Level
 var terrain: TerrainSegments
 var rows: Array[String] = []
@@ -141,6 +151,10 @@ func _parse() -> String:
 				if not value.is_valid_int() or value.to_int() < 0:
 					return "--lead-in wants a whole number of ticks, 0 or more (got '%s')" % value
 				lead_in_override = value.to_int()
+			"--phases":
+				if parts.size() > 1:
+					return "--phases takes no value (got '%s')" % arg
+				time_phases = true
 			_:
 				return "unknown argument '%s'" % arg
 	return ""
@@ -246,6 +260,8 @@ func _case(case_name: String, sim: Simulation, lead_in: int) -> bool:
 	spent.resize(ticks)
 	var active_sum := 0
 	var pairs_sum := 0
+	if time_phases:
+		PhaseTimers.attach(sim)
 	for t in ticks:
 		var start := Time.get_ticks_usec()
 		_step(sim)
@@ -276,7 +292,22 @@ func _case(case_name: String, sim: Simulation, lead_in: int) -> bool:
 	rows.append("| %s | %d | %s | %d | %d | %.3f | %.3f | %.3f | %.3f | %d | %d | %d |" % [case_name,
 			_base_slimes(sim), bodies, ticks, lead_in, median, p95, worst, mean, counts[DebugCounts.ON_SCREEN],
 			counts[DebugCounts.IN_RANGE], counts[DebugCounts.PARKED]])
+	if time_phases:
+		_print_phases(case_name, sim)
 	return true
+
+
+## Prints `sim`'s phase timers (attached for the timed ticks): the PHASES
+## line and the per-phase table (PhaseTimers.table()).
+func _print_phases(case_name: String, sim: Simulation) -> void:
+	var means := PhaseTimers.means(sim)
+	var split := PhaseTimers.split(means)
+	var total := split.x + split.y
+	print("PHASES case=%s ticks=%d step_us=%.1f solver_us=%.1f solver_share=%.1f behaviour_us=%.1f" % [case_name,
+			sim.phases.ticks, total, split.x, 100.0 * split.x / total if total > 0.0 else 0.0, split.y])
+	for line in PhaseTimers.table(means):
+		print(line)
+	PhaseTimers.detach(sim)
 
 
 ## One tick as the game runs it: the view follows the camera first.

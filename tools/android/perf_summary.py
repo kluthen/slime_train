@@ -24,7 +24,10 @@ since chunk 22l: their mean per line, and the short hops' share of the hops
 over the lines, a percentage), the sections the camera was in (lines in each: seconds at --perf-log=1), the
 zoom range, and the frame's parts outside the ticks (weighted by frames: each
 node's ms, the rendering server's setup and render times, the draw calls,
-objects and primitives), when the lines carry them (older logs don't).
+objects and primitives), when the lines carry them (older logs don't). With
+the game's --phase-timers (chunk 5N U0a), the lines' `phases` field (mean us
+per tick by phase) is summarised too, weighted by ticks: the whole step, the
+solver's part (SOLVER_PHASES) and the behaviour's, then every phase.
 
 --thermal=FILE reads perf.sh's thermal.log (one sample a line:
 "<date> elapsed_s=<s> thermal_status=<0..6|unavailable> battery_c=<C|unavailable>")
@@ -66,6 +69,13 @@ PART_ROWS = (
     ("  render ms/frame ", ("setup_ms", "render_cpu_ms", "render_gpu_ms", "field_cpu_ms", "field_gpu_ms"), "%.2f"),
     ("  render /frame   ", ("draw_calls", "objects", "primitives"), "%.0f"),
 )
+# The phase timers' field (src/debug/phase_timers.gd, the game's
+# --phase-timers): "name:us,name:us,..." mean us per tick by phase, in tick
+# order; the only PERF field that isn't a number.
+PHASES = "phases"
+# The solver's phases (PhaseTimers.SOLVER_PHASES): what chunk 5N moves to
+# native code; every other phase is behaviour.
+SOLVER_PHASES = ("integrate", "pairs", "contacts", "rings", "terrain", "doors", "rest")
 # Android's thermal status names (PowerManager.THERMAL_STATUS_*).
 THERMAL_NAMES = {0: "none", 1: "light", 2: "moderate", 3: "severe", 4: "critical", 5: "emergency",
                  6: "shutdown"}
@@ -83,11 +93,24 @@ def parse_perf_line(text):
         key, sep, value = part.partition("=")
         if not sep:
             raise ValueError("PERF field without '=': %r in %r" % (part, text.strip()))
-        fields[key] = float(value)
+        fields[key] = parse_phases(value, text) if key == PHASES else float(value)
     missing = [key for key in REQUIRED if key not in fields]
     if missing:
         raise ValueError("PERF line without %s: %r" % (", ".join(missing), text.strip()))
     return fields
+
+
+def parse_phases(value, text):
+    """The phases field's `value` ("name:us,...") as an ordered dict of floats.
+
+    A malformed entry (not name:number) raises ValueError, as a malformed field does."""
+    phases = {}
+    for item in value.split(","):
+        name, sep, us = item.partition(":")
+        if not sep or not name:
+            raise ValueError("phases entry without 'name:us': %r in %r" % (item, text.strip()))
+        phases[name] = float(us)
+    return phases
 
 
 def read_log(lines):
@@ -163,7 +186,18 @@ def summarise(records):
         "sections": {},
         "parts": {},
         "hops": None,
+        "phases": None,
     }
+    having = [r for r in records if PHASES in r]
+    ticks = sum(r["ticks"] for r in having)
+    if having and ticks > 0:
+        names = []
+        for r in having:
+            names += [name for name in r[PHASES] if name not in names]
+        means = {name: sum(r[PHASES].get(name, 0.0) * r["ticks"] for r in having) / ticks for name in names}
+        solver = sum(us for name, us in means.items() if name in SOLVER_PHASES)
+        out["phases"] = {"lines": len(having), "means": means, "solver": solver,
+                         "behaviour": sum(means.values()) - solver}
     having = [r for r in records if all(key in r for key in HOPS)]
     if having:
         hops = sum(r["hops"] for r in having)
@@ -217,6 +251,12 @@ def format_summary(title, records):
     if s["sections"]:
         lines.append("  section (lines) " + "  ".join(
             "s%d %d" % (section, n) for section, n in sorted(s["sections"].items())))
+    if s["phases"] is not None:
+        p = s["phases"]
+        step = p["solver"] + p["behaviour"]
+        lines.append("  phases us/tick  step %.0f  solver %.0f (%.1f %%)  behaviour %.0f  (%d lines)" % (
+            step, p["solver"], 100.0 * p["solver"] / step if step > 0 else 0.0, p["behaviour"], p["lines"]))
+        lines.append("  phases          " + "  ".join("%s %.0f" % item for item in p["means"].items()))
     lines.append("  zoom            %.3f..%.3f" % (s["zoom_min"], s["zoom_max"]))
     for title, keys, number in PART_ROWS:
         present = [key for key in keys if key in s["parts"]]
@@ -290,7 +330,8 @@ def report(log_lines, cold=None, warm=None, thermal_lines=None):
 
 # The self-test's log: a threadtime logcat prefix on some lines, a header, a
 # PERF_INFO line, a noise line, and six PERF lines a second apart, the last
-# two with the frame's parts (the first four have none, as an older log's).
+# two with the frame's parts and the phase timers' field (the first four
+# have neither, as an older log's).
 # Hops: 54 in all, 12 short.
 CANNED_LOG = """# device test: Canned Phone
 09-30 17:00:00.000  100  101 I godot   : PERF_INFO seconds=1 model=Canned renderer=mobile
@@ -299,8 +340,8 @@ PERF t=10.0 frames=30 fps=30.0 frame_ms_p50=33.00 frame_ms_p95=40.00 frame_ms_ma
 PERF t=11.0 frames=60 fps=60.0 frame_ms_p50=16.00 frame_ms_p95=17.00 frame_ms_max=20.00 process_ms_mean=8.00 ticks=60 ticks_per_frame_mean=1.00 ticks_per_frame_max=1 tick_ms_mean=2.00 tick_ms_frame_mean=2.00 rest_ms_mean=14.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=4 hops=12 short_hops=3 bodies=35 active=10.0 pairs=20.0 section=1 zoom=1.000
 PERF t=12.0 frames=45 fps=45.0 frame_ms_p50=22.00 frame_ms_p95=30.00 frame_ms_max=35.00 process_ms_mean=10.00 ticks=60 ticks_per_frame_mean=1.33 ticks_per_frame_max=2 tick_ms_mean=3.00 tick_ms_frame_mean=4.00 rest_ms_mean=18.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=4 hops=8 short_hops=1 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800
 09-30 17:00:13.000  100  101 I godot   : PERF t=13.0 frames=20 fps=20.0 frame_ms_p50=50.00 frame_ms_p95=60.00 frame_ms_max=90.00 process_ms_mean=40.00 ticks=60 ticks_per_frame_mean=3.00 ticks_per_frame_max=4 tick_ms_mean=10.00 tick_ms_frame_mean=30.00 rest_ms_mean=20.00 physics=30 on_screen=30 in_range=30 parked=5 resting=0 largest_cluster=22 hops=4 short_hops=4 bodies=35 active=30.0 pairs=100.0 section=2 zoom=0.800
-PERF t=14.0 frames=50 fps=50.0 frame_ms_p50=20.00 frame_ms_p95=25.00 frame_ms_max=30.00 process_ms_mean=9.00 ticks=60 ticks_per_frame_mean=1.20 ticks_per_frame_max=2 tick_ms_mean=2.50 tick_ms_frame_mean=3.00 rest_ms_mean=17.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=5 hops=9 short_hops=0 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800 slimes_ms=2.00 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=40 objects=30 primitives=900
-PERF t=15.0 frames=40 fps=40.0 frame_ms_p50=25.00 frame_ms_p95=28.00 frame_ms_max=40.00 process_ms_mean=11.00 ticks=60 ticks_per_frame_mean=1.50 ticks_per_frame_max=2 tick_ms_mean=3.50 tick_ms_frame_mean=5.25 rest_ms_mean=19.75 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=5 hops=11 short_hops=2 bodies=35 active=10.0 pairs=20.0 section=3 zoom=0.800 slimes_ms=4.25 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=49 objects=30 primitives=900
+PERF t=14.0 frames=50 fps=50.0 frame_ms_p50=20.00 frame_ms_p95=25.00 frame_ms_max=30.00 process_ms_mean=9.00 ticks=60 ticks_per_frame_mean=1.20 ticks_per_frame_max=2 tick_ms_mean=2.50 tick_ms_frame_mean=3.00 rest_ms_mean=17.00 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=5 hops=9 short_hops=0 bodies=35 active=10.0 pairs=20.0 section=2 zoom=0.800 slimes_ms=2.00 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=40 objects=30 primitives=900 phases=input:1,offscreen:500,integrate:300,contacts:700,rest:100,train_follow:400
+PERF t=15.0 frames=40 fps=40.0 frame_ms_p50=25.00 frame_ms_p95=28.00 frame_ms_max=40.00 process_ms_mean=11.00 ticks=60 ticks_per_frame_mean=1.50 ticks_per_frame_max=2 tick_ms_mean=3.50 tick_ms_frame_mean=5.25 rest_ms_mean=19.75 physics=10 on_screen=12 in_range=17 parked=18 resting=7 largest_cluster=5 hops=11 short_hops=2 bodies=35 active=10.0 pairs=20.0 section=3 zoom=0.800 slimes_ms=4.25 eyes_ms=0.50 frontier_ms=0.30 hud_ms=0.05 debug_ms=0.00 main_ms=0.10 setup_ms=0.20 render_cpu_ms=3.00 render_gpu_ms=4.00 field_cpu_ms=1.00 field_gpu_ms=2.00 draw_calls=49 objects=30 primitives=900 phases=input:3,offscreen:700,integrate:500,contacts:900,rest:300,train_follow:600
 """
 
 # An older log (before chunk 22d): on_screen, simulated, off_screen and no
@@ -360,7 +401,16 @@ def self_test():
     assert s["parts"]["field_gpu_ms"] == 2.0 and len(s["parts"]) == 14, s["parts"]
     old = format_summary("old", records[:4])
     assert not any(text.startswith(("  parts", "  render")) for text in old), old
+    assert s["phases"] == {"lines": 2, "means": {"input": 2.0, "offscreen": 600.0, "integrate": 400.0,
+                                                 "contacts": 800.0, "rest": 200.0, "train_follow": 500.0},
+                           "solver": 1400.0, "behaviour": 1102.0}, s["phases"]
+    assert records[4][PHASES] == {"input": 1.0, "offscreen": 500.0, "integrate": 300.0, "contacts": 700.0,
+                                  "rest": 100.0, "train_follow": 400.0}, records[4]
+    assert not any(text.startswith("  phases") for text in format_summary("old", records[:4]))
     new = format_summary("new", records[4:])
+    assert new[-6] == "  phases us/tick  step 2502  solver 1400 (56.0 %)  behaviour 1102  (2 lines)", new
+    assert new[-5] == ("  phases          input 2  offscreen 600  integrate 400  contacts 800  rest 200  "
+                       "train_follow 500"), new
     assert new[-3] == "  parts ms/frame  slimes 3.00  eyes 0.50  frontier 0.30  hud 0.05  debug 0.00  main 0.10", new
     assert new[-1] == "  render /frame   draw_calls 44  objects 30  primitives 900", new
     _, _, old_records = read_log(CANNED_OLD_LOG.splitlines())
@@ -388,6 +438,12 @@ def self_test():
         pass
     else:
         raise AssertionError("a malformed PERF line must fail")
+    try:
+        parse_phases("input:1,rest", "PERF t=1 phases=input:1,rest")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("a malformed phases field must fail")
     assert report(["no perf here"]) is None
     print("\n".join(report(CANNED_LOG.splitlines(), cold=2, warm=2, thermal_lines=CANNED_THERMAL.splitlines())))
     print("perf_summary self-test: OK")

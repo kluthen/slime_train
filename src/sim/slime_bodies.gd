@@ -78,6 +78,14 @@ const IN_BASKET := STATE_IN_BASKET
 ## The state names, as dump() writes them.
 const STATE_NAMES: PackedStringArray = ["sleeper", "train", "free", "bedtime_asleep", "in_basket"]
 
+## The passes of tick(), as the debug phase timers (`phases`) time them:
+## the hop clears and automatic hops; integrate; the pair grid (PAIRS,
+## first substep); slime contacts; rings; the terrain pass and the door
+## passes (_solve_terrain); the touching list and the rest pass (REST: _rest,
+## _rest_piles, the local wake); TICK_OTHER, the rest of tick() (the
+## support reset, the centre cache cleared).
+enum TickPhase { AUTO_HOPS, INTEGRATE, PAIRS, CONTACTS, RINGS, TERRAIN, DOORS, REST, TICK_OTHER }
+
 const MAX_SIZE := 3
 ## Ring points per size (index 0 unused).
 const POINTS_BY_SIZE: Array[int] = [0, 12, 15, 18]
@@ -175,6 +183,13 @@ var terrain: TerrainSegments = null
 var doors: Array[TerrainSegments] = []
 ## Whether settled pile slimes rest (the resting-pile rule, see the class doc).
 var rest_enabled := true
+## The debug phase timers of tick() (chunk 5N, U0a: src/debug/phase_timers.gd,
+## PhaseTimers.attach), or null: off, as in every normal run (one null check
+## per pass, no clock read). Measurement only: tick() and _solve_terrain()
+## hand it start() and lap(TickPhase), nothing reads it back, so the state
+## and its hash are the same either way. Not in dump(). Untyped: src/sim
+## names nothing in src/debug (left out of release).
+var phases = null
 
 # Per point.
 var pos := PackedVector2Array()
@@ -856,31 +871,52 @@ func set_active_detail(level: int) -> int:
 
 # --- Ticking ----------------------------------------------------------------
 
-## Advances every body by `dt` seconds (the simulation's fixed tick).
+## Advances every body by `dt` seconds (the simulation's fixed tick). With
+## the debug phase timers on (`phases`), each pass (TickPhase) is timed as it
+## ends.
 func tick(dt: float) -> void:
+	var ph = phases
+	if ph != null:
+		ph.start()
 	_h = dt / substeps
 	hopped.clear()
 	train_hopped.clear()
 	if auto_hops:
 		_auto_hops(dt)
+	if ph != null:
+		ph.lap(TickPhase.AUTO_HOPS)
 	# A resting or parked slime keeps its support: nothing moves it.
 	for s in slime_count:
 		if calm[s] == ACTIVE:
 			supported[s] = 0
+	if ph != null:
+		ph.lap(TickPhase.TICK_OTHER)
 	for sub in substeps:
 		_integrate(_h)
+		if ph != null:
+			ph.lap(TickPhase.INTEGRATE)
 		if sub == 0:
 			_build_pairs()
+			if ph != null:
+				ph.lap(TickPhase.PAIRS)
 		for it in iterations:
 			_solve_contacts()
+			if ph != null:
+				ph.lap(TickPhase.CONTACTS)
 			_solve_rings()
+			if ph != null:
+				ph.lap(TickPhase.RINGS)
 			_solve_terrain()
 	_centre_ok.fill(0)
+	if ph != null:
+		ph.lap(TickPhase.TICK_OTHER)
 	_touching.clear()
 	for k in _pair_touch.size():
 		if _pair_touch[k] != 0:
 			_touching.append(Vector2i(id[_pairs[2 * k]], id[_pairs[2 * k + 1]]))
 	_rest()
+	if ph != null:
+		ph.lap(TickPhase.REST)
 
 
 ## The resting-pile rule (see the class doc), after the tick. A resting
@@ -1594,10 +1630,14 @@ func _solve_terrain() -> void:
 	if terrain != null and not terrain.is_empty():
 		_solve_against(terrain, door_shut, false)
 		measured = door_shut
+	if phases != null:
+		phases.lap(TickPhase.TERRAIN)
 	for door in doors:
 		if door != null and not door.is_empty():
 			_solve_against(door, not measured, measured)
 			measured = true
+	if phases != null:
+		phases.lap(TickPhase.DOORS)
 
 
 ## One pass of ring points against `tf` (see _solve_terrain). `measure`:

@@ -96,6 +96,14 @@ const TAP_LOG_SIZE := 16
 ## D110; to check in a playtest).
 const RESTING_THUMB_TICKS := 5 * TICK_RATE
 
+## The phases of step(), in tick order, as the debug phase timers (`phases`)
+## time them. BODIES is the slime bodies' tick, timed again pass by pass
+## inside (SlimeBodies.TickPhase); CAMERA holds the watch, the gates shown
+## open and the camera's move; TIDY the spent ripples, the tick count and the
+## hint.
+enum StepPhase { INPUT, SESSION, OFFSCREEN, TRAIN_STEER, FREE_STEER, BODIES, SLEEPERS, FREE_PACED, FACE_HOPS,
+		SPLIT_ZONES, FUSION, FRONTIER, FREE_FOLLOW, TRAIN_FOLLOW, STUCK, LOOP_START_QUEUE, CAMERA, TIDY }
+
 ## Ticks run since the simulation started.
 var tick := 0
 ## The master random generator. All gameplay randomness comes from it or from
@@ -199,6 +207,13 @@ var stuck_slimes := StuckSlimes.new()
 # @spec-link [[rule_stuck_slimes_moved_to_start]]
 # @spec-link [[rule_left_alone_and_lost]]
 var loop_start_queue := LoopStartQueue.new()
+## The debug phase timers of step() (chunk 5N, U0a: src/debug/phase_timers.gd,
+## PhaseTimers.attach), or null: off, as in every normal run, and then each
+## phase costs one null check and no clock is read. Measurement only: step()
+## hands it start() and lap(StepPhase), and nothing reads it back, so the
+## state and its hash are the same with it on or off. Not in dump() nor
+## saves. Untyped: src/sim names nothing in src/debug (left out of release).
+var phases = null
 
 var _pending_input: Array[Dictionary] = []
 
@@ -298,44 +313,84 @@ func spawn_train_slime(slime_species: int, slime_size: int, distance: float) -> 
 	return slime
 
 
-## Advances the simulation by one tick.
+## Advances the simulation by one tick. With the debug phase timers on
+## (`phases`), each phase (StepPhase) is timed as it ends.
 # @spec-link [[req_hopping_behavior]]
 # @spec-link [[req_camera_shows_gate_opening]]
 func step() -> void:
+	var ph = phases
+	if ph != null:
+		ph.start()
 	for event in _pending_input:
 		_apply_input(event)
 	_pending_input.clear()
+	if ph != null:
+		ph.lap(StepPhase.INPUT)
 	session.advance(self)
+	if ph != null:
+		ph.lap(StepPhase.SESSION)
 	offscreen.step(self)
+	if ph != null:
+		ph.lap(StepPhase.OFFSCREEN)
 	var gates: Array = train.open_gates if train != null else []
 	if train != null:
 		train.steer(slimes, TICK_SECONDS)
+	if ph != null:
+		ph.lap(StepPhase.TRAIN_STEER)
 	free_slimes.steer(slimes, TICK_SECONDS, level, gates)
+	if ph != null:
+		ph.lap(StepPhase.FREE_STEER)
 	slimes.free_down = phone_tilt.down()
 	slimes.tick(TICK_SECONDS)
+	if ph != null:
+		ph.lap(StepPhase.BODIES)
 	Sleepers.wake(self)
+	if ph != null:
+		ph.lap(StepPhase.SLEEPERS)
 	free_slimes.paced(slimes)
+	if ph != null:
+		ph.lap(StepPhase.FREE_PACED)
 	_face_hops()
+	if ph != null:
+		ph.lap(StepPhase.FACE_HOPS)
 	for parts in split_zones.apply(slimes):
 		identities.split(parts)
 		if train != null:
 			train.inherit(parts)
 		free_slimes.inherit(parts, tick)
+	if ph != null:
+		ph.lap(StepPhase.SPLIT_ZONES)
 	fusion.step(self)
+	if ph != null:
+		ph.lap(StepPhase.FUSION)
 	frontier.step(self)
+	if ph != null:
+		ph.lap(StepPhase.FRONTIER)
 	gates = train.open_gates if train != null else []
 	free_slimes.follow(slimes, tick, level, gates)
+	if ph != null:
+		ph.lap(StepPhase.FREE_FOLLOW)
 	if train != null:
 		train.follow(slimes, tick)
+	if ph != null:
+		ph.lap(StepPhase.TRAIN_FOLLOW)
 	stuck_slimes.step(self)
+	if ph != null:
+		ph.lap(StepPhase.STUCK)
 	loop_start_queue.step(self)
+	if ph != null:
+		ph.lap(StepPhase.LOOP_START_QUEUE)
 	camera.watch(slimes, not fingers_down.is_empty(), screensaver, session.phase == Session.BEDTIME)
 	for gate_id in frontier.gates_fired_open(self):
 		camera.show_gate(level.gates[gate_id]["box"], view, level.loop, gates, tick)
 	camera.step(level.loop if level != null else null, gates, TICK_SECONDS, tick)
+	if ph != null:
+		ph.lap(StepPhase.CAMERA)
 	_tidy()
 	tick += 1
 	hint.update(tick)
+	if ph != null:
+		ph.lap(StepPhase.TIDY)
 
 
 ## Carries `old`'s session into this simulation, a fresh one of the same
