@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v18 (the fps session after 0196c25 reverted, D155: chunks 22e, 22f, 22g, 22i, 22j and 22k withdrawn, kept on branch `archive/fps-session-2026-10`; chunk 22d done, 1a539db; new chunks 22l, the local wake, D156, and 22m, the `stress-dense` fixture and the 10,000-tick run tool, D153, D154, both being built with the revert; chunk 19w, the save wipe and the save format before the first store release, D148, D149, and chunk 22h, the loop-start queue, D150, re-entered; the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE, the rest of 24, the health review, D155; approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v19 (22l: every wake local, D156 (7); `stress-moving`'s abuse target in chunk 22 and 24.1, D153; earlier, v18: the fps session after 0196c25 reverted, D155: chunks 22e, 22f, 22g, 22i, 22j and 22k withdrawn, kept on branch `archive/fps-session-2026-10`; chunk 22d done, 1a539db; new chunks 22l, the local wake, D156, and 22m, the `stress-dense` fixture and the 10,000-tick run tool, D153, D154, both being built with the revert; chunk 19w, the save wipe and the save format before the first store release, D148, D149, and chunk 22h, the loop-start queue, D150, re-entered; the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE, the rest of 24, the health review, D155; approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
@@ -230,7 +230,7 @@ technology, not business behaviour:
 | 22b | Drawing pass (done, D142) | M | 22 | the frame's cost outside the tick measured per part and cut; same hash |
 | 22d | Debug counters and the largest awake cluster (done, 1a539db, D143) | S | 22b | unit tests of the four counts and the cluster; the PERF line and its summary carry them; same hashes |
 | 22h | Moves to the loop start one at a time, to a random free spot; no stall clock while parked (the user's, details proposed, D150) | S | 19w; 22m's run tool | first the same runs on main (the bug likely there too); `s3-basket-59of60` over 10,000 ticks: no stall move of a parked slime, no stuck move within 10 s of a landing, moves at least 30 ticks apart; unit tests of the queue, the pause, the landing spot; same hash across a save and reload mid-queue; changed hashes listed |
-| 22l | The local wake, with the `hops` and `short_hops` counters (the user's direction, D156; being built with the revert, D155) | S | 22d | the counters first; unit tests: a release, a fast touch and a move to the loop start wake only the resting slimes touched, never a sleeper; `s3-basket-59of60`'s drain without a whole-pile wake, its Physics and phone-emulation fps against the same build without it; changed hashes listed |
+| 22l | The local wake, with the `hops` and `short_hops` counters (the user's direction, D156; being built with the revert, D155) | S | 22d | the counters first; unit tests: a release, a fast touch and a move to the loop start wake only the resting slimes touched, never a sleeper, and every other wake is local too (D156 (7)); `s3-basket-59of60`'s drain without a whole-pile wake, its Physics and phone-emulation fps against the same build without it; changed hashes listed |
 | 22m | The `stress-dense` fixture and the 10,000-tick run tool (the user's, details proposed, D153, D154; being built with the revert, D155) | S | 22d | the fixture built by `tools/make_fixture.gd`, no format change; 200 train slimes (fewer only if they don't fit before switch 3, reported), 9 per 300 px stretch, the bowl's bottom two at 12, along the loop line; its hash at 600 and 2400 ticks recorded with the others'; its scripted test; the run tool over 10,000 ticks; a first phone-emulation reading |
 | 22e–22k | Withdrawn with the fps session (22e, 22f, 22g, 22i, 22j, 22k; D155); kept on branch `archive/fps-session-2026-10`; their ids aren't reused | — | — | — |
 | 22c | Crowd detail only under load (proposed, D141) | S | 5N | the load meter's unit tests; same hashes in `always`; `auto` measured on the desktop |
@@ -674,7 +674,10 @@ it goes beyond the user's words.
   reference phone and the floor phone, each cold and after 5 minutes of play
   (once the phone has throttled), plus normal play.
 - `stress-still` and `stress-moving` are measured too and recorded; they are
-  measurements, not targets (D96).
+  measurements, not targets (D96). *Since D153:* `stress-moving` (200
+  moving slimes) has an abuse target, not a 30 fps target (no crash, no
+  freeze, at least 15 fps), and `stress-dense` a 30 fps target, both in
+  [DoD 30], checked at this chunk's repeat on the reference phone.
 - **Resting piles (D107):** measure a bedtime pile in the open (it may take
   about a minute to rest with the fixed anchor), and how often an awake slime
   hopping against a pile wakes it; revisit the rest rule if either costs
@@ -899,7 +902,11 @@ steps**. It must not run while another chunk edits the slime body code.
   numbers come from the same build.
 - **2. The local wake** (D156 (1)): a release, a touch faster than
   `WAKE_SPEED` and a move to the loop start wake only the resting slimes
-  they touch; never the whole pile, never a sleeper. Where the code
+  they touch; never the whole pile, never a sleeper. Every other wake is
+  local too (D156 (7)): a fusion, a split, a slime taken out of the
+  level, a call, a trapdoor, gate or lid opening or shutting, and a tilt
+  change wake only the resting slimes they reach, a state change only the
+  slime itself. Where the code
   changes is the implementer's (on the branch: the slime bodies' wake
   path, the frontier sets' release and disturbance, the wake in
   `LoopStart.move`).
@@ -912,7 +919,9 @@ steps**. It must not run while another chunk edits the slime body code.
     slime touches; a fast touch wakes only those touched; a move to the
     loop start wakes the moved slime and the resting slimes that touched
     it where it was, no others; a sleeper touched by any of them stays
-    asleep; a call and a tilt change wake as before;
+    asleep; a call wakes the resting slimes within its radius and a tilt
+    change every resting slime, as before, but none of them wakes the rest
+    of a pile it didn't reach (D156 (7));
   - the counters' tests: `hops` and `short_hops` on the PERF line and in
     `perf_summary.py`'s report;
   - `s3-basket-59of60` (seed 1; phone emulation, `tools/perf_slow.sh
@@ -1299,7 +1308,8 @@ and slime counts (built 2026-09-29).
   1152 × 648 window), a steady 60 fps on the overlay through section 3
   in normal play, and the section 3 bench cases at most 8 ms per tick at
   p95 (half the frame, leaving the rest to drawing), `stress-moving`
-  excepted (a measurement, not a target, D96). The phones' targets stay
+  excepted (no desktop tick budget: its target is [DoD 30]'s abuse
+  target on the reference phone, not a 30 fps target, D153). The phones' targets stay
   chunk 22's [DoD 30].
 - **Done when:** the before and after numbers (overlay readings and bench
   table) are in `docs/dev/`; the section 3 bench cases hold the tick

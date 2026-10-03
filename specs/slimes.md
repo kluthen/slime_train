@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v22 (moves to the loop start one at a time, 0.5 to 2 s apart, to a random free spot, and no stall clock while parked, chunk 22h, D150, the user's, details proposed; the local wake, chunk 22l, D156; the fps session after 0196c25 withdrawn, D155: the lean stays as approved in direction, unbuilt; the train leans away from clusters, D143, approved in direction, D144; its numbers proposed, O107)
+Status: draft v23 (every wake local: a fusion, a split, a slime taken out of the level, a call, a trapdoor, gate or lid opening or shutting, and a tilt change too, D156 (7); earlier, v22: moves to the loop start one at a time, 0.5 to 2 s apart, to a random free spot, and no stall clock while parked, chunk 22h, D150, the user's, details proposed; the local wake, chunk 22l, D156; the fps session after 0196c25 withdrawn, D155: the lean stays as approved in direction, unbuilt; the train leans away from clusters, D143, approved in direction, D144; its numbers proposed, O107)
 
 ## States
 
@@ -37,9 +37,12 @@ and it may roll downhill. Phase names were adopted in D75.
 - Fusion and waking happen only on screen.
 - **Resting piles** (D96): a still, touching group of pile slimes (in a
   basket, or asleep at bedtime) rests and costs no physics until
-  disturbed. *The local wake (D156, chunk 22l):* a release, a touch
-  faster than 30 px/s or a move to the loop start wakes only the resting
-  slimes it touches, not the whole pile. It never wakes a sleeper.
+  disturbed. *The local wake (D156, chunk 22l):* every wake is local. A
+  release, a touch faster than 30 px/s, a move to the loop start, a
+  fusion, a split, a slime taken out of the level, a call, a trapdoor,
+  gate or lid opening or shutting, and a tilt change wake only the
+  resting slimes they reach (a state change, only the slime itself), not
+  the whole pile. It never wakes a sleeper.
 
 ## Stuck slimes (D100)
 

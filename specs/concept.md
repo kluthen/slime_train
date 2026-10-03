@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v39 (the fps session after 0196c25 withdrawn, D155, its terms with it; local wake added, D156; move to the loop start and loop-start queue added, stalled amended (no clock while parked), lost reworded, D150, the user's, details proposed; shipped added, save wipe for automated testing only, the save format before the first store release, D149, proposed; save wipe added, D148, approved in direction)
+Status: draft v40 (local wake widened to every wake, D156 (7); earlier, v39: the fps session after 0196c25 withdrawn, D155, its terms with it; local wake added, D156; move to the loop start and loop-start queue added, stalled amended (no clock while parked), lost reworded, D150, the user's, details proposed; shipped added, save wipe for automated testing only, the save format before the first store release, D149, proposed; save wipe added, D148, approved in direction)
 
 ## One-liner
 
@@ -247,7 +247,7 @@ survives the app being killed.
 | quota pie | *(proposed, D128)* how a basket with a quota above 10 shows it: one pie per 10 of weight, the last holding the rest, a slice filling per unit of weight |
 | debug overlay | developer tools over the game, in debug builds only: speed, reset, slime labels, the kill tool, the fps and the **slime counts**: Physics (the slimes that cost physics), On screen, In range (not parked) and Parked (D143, proposed, chunk 22d; before it: on screen : simulated off screen : parked) |
 | awake cluster | *(proposed, D143)* a group of touching slimes that all cost physics (awake, not resting, not parked); the **largest awake cluster** is its biggest, in slimes, in the perf log and in level rule 23. Not a resting pile, which costs little |
-| local wake | *(D156, chunk 22l)* how a resting pile wakes: a release, a touch faster than 30 px/s or a move to the loop start wakes only the resting slimes it touches, never the whole pile, and never a sleeper (replaces D96's whole-pile wake for those three) |
+| local wake | *(D156, chunk 22l)* how a resting pile wakes: every disturbance (a release, a touch faster than 30 px/s, a move to the loop start, a fusion, a split, a slime taken out of the level, a call, a trapdoor, gate or lid opening or shutting, a tilt change, a state change) wakes only the resting slimes it reaches, never the whole pile, and never a sleeper (replaces D96's whole-pile wake) |
 | crowd detail | *(proposed, D140, D141)* fewer ring points per slime when many slimes are active (20, 30, 40 or more) or when zoomed out; a size-1 slime goes from 12 points down to 10, 8 or 6. A detail level: 0 (full) to 3. In play, the crowd's part applies only when the device can't keep up: a **detail ceiling** set by the device's load caps it (a good device keeps full points); test mode applies it always |
 | frontier set | the signpost, switch, basket and gate that end a section: flip the switch, fill the basket, the gate opens (D14). Inert once its gate is open (D86) |
 | trapdoor | the part of a frontier switch that covers its basket: solid while the switch sends the flow onward, open while it is flipped, dropping slimes into the basket |

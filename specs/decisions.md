@@ -905,6 +905,10 @@ phone is measured; the floor phone is not). Measurement: chunk 1,
 - **The realistic worst case in play is a mostly still pile** (level rule
   16), such as a full basket plus the train, not 200 moving slimes. The
   `stress-moving` fixture stays as a measurement, not a target.
+  *Refined by D153 (2026-10-02):* 200 moving slimes (`stress-moving`) is
+  an abuse test with an abuse target, not a 30 fps target: on the
+  reference phone it must not crash or freeze and must keep at least
+  15 fps. The 30 fps target is the dense moving case's (`stress-dense`).
 - **Amends D82 (floor phone):** at least 30 fps on the floor phone with the
   level's largest realistic pile on one screen (a full basket plus the
   train, mostly still), instead of "200 slimes on one screen". 60 fps on the
@@ -3238,8 +3242,9 @@ out of bounds included). All three go through what follows; that lost
 free slimes take the same move is checked in the code (`Offscreen.lose`),
 so they are included (proposed, as the coordinator suggested). Also the
 user's: `stress-moving` is an intentional cluster of disproportionate
-dimensions, so its numbers are never targets (D153 later gave it an abuse
-test's floor, not a target to aim at). Proposed where it goes beyond the
+dimensions, so its numbers are never targets to tune the rules to (D153
+later gave it an abuse target: no crash, no freeze, at least 15 fps; not
+a 30 fps target). Proposed where it goes beyond the
 user's words. Opens O113.
 
 **What 22g measured** (on the withdrawn build, D155). In
@@ -3721,5 +3726,23 @@ numbers to beat are D155 (5)'s.
 resting text), `req_slime_states`, `req_waking_sleepers` and
 `req_switch_basket_gate_set` (the release). **5N ports it:** the native
 rest pass wakes locally, the GDScript behaviour its reference.
+
+**7. Every wake is local** (2026-10-03, a follow-up: how chunk 22l builds
+(1)). Every way a resting slime wakes goes through one wake, which wakes
+that slime alone: never the rest of its pile, never a sleeper. So
+(1)'s "the other wakes stay as `tuning.md` lists them" keeps their
+triggers, each made local:
+- a release, a touch faster than `WAKE_SPEED`, a move to the loop start
+  (1), a fusion, a split, and a slime taken out of the level wake the
+  resting slimes touching the slime concerned;
+- a call wakes the resting slimes within its radius;
+- a trapdoor, gate or lid opening or shutting wakes the resting slimes
+  within 80 px of it (`DOOR_WAKE_REACH`);
+- a state change (bedtime, sunrise, a basket catching or releasing)
+  wakes the slime whose state changed;
+- a tilt change wakes every resting slime, each by itself (in effect all
+  of them, as before).
+The rest of a pile wakes only if a woken slime then touches it faster
+than `WAKE_SPEED`. No new value, no save change.
 
 **Terminology** (`concept.md`): **local wake** added.

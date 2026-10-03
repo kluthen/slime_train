@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v24 (the fps session after 0196c25 reverted, D155: the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE; the local wake, D156, chunk 22l; `stress-moving` an abuse test and `stress-dense`'s target, D153, D154; the save format before the first store release and a save a build can't use set aside, proposed, D149; the save wipe for automated testing only, chunk 19w, D148, approved in direction, D149)
+Status: draft v25 (every wake local, D156 (7); `stress-moving`'s abuse target of 15 fps, not a 30 fps target, D153; earlier, v24: the fps session after 0196c25 reverted, D155: the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE; the local wake, D156, chunk 22l; `stress-moving` an abuse test and `stress-dense`'s target, D153, D154; the save format before the first store release and a save a build can't use set aside, proposed, D149; the save wipe for automated testing only, chunk 19w, D148, approved in direction, D149)
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -145,8 +145,10 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   - As built (chunk 15; values in `tuning.md`): slimes beyond a margin
     around the view are parked (not simulated, not even as walls). A pile
     rests only when it is made of slimes in a basket or asleep at bedtime
-    (awake slimes hop); a resting slime is a wall to the others, and the
-    whole touching pile wakes together when disturbed. Slimes in a full basket
+    (awake slimes hop); a resting slime is a wall to the others. Chunk 15
+    woke the whole touching pile together when disturbed; from chunk 22l
+    every wake is local (D156): only the resting slimes a disturbance
+    reaches wake, never the rest of their pile. Slimes in a full basket
     rest as a pile rather than getting a state of their own. Measured on the
     desktop (headless): a full basket of 60 with 20 train slimes beside it,
     3.8 ms per tick with resting off, 0.97 ms with it on (0.81 ms zoomed
@@ -190,13 +192,17 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   `off` (the ceiling at 0). No new save key: the ceiling isn't saved.
 - **The realistic worst case in play is a mostly still pile** (level rule
   16): a full basket plus the train, not 200 moving slimes. The
-  `stress-moving` fixture is the **abuse test** (no crash, no freeze, at
-  least 15 fps), and `stress-dense` the dense moving case (at least
-  30 fps), both on the reference phone (D153, D154). *Under
-  question (D140, O105, O106):* open piles rest slowly or never, and a
-  fired basket's releases keep its pile awake. *D156 (the local wake,
-  chunk 22l):* a release, a fast touch and a move to the loop start wake
-  only the resting slimes they touch, never the whole pile (basket 3's
+  `stress-moving` fixture (200 moving slimes) is the **abuse test**, with
+  an abuse target, not a 30 fps target: no crash, no freeze, at least
+  15 fps; `stress-dense` is the dense moving case (at least 30 fps); both
+  on the reference phone (D153, D154). *Under question (D140, O105):*
+  open piles rest slowly or never. A fired basket's releases kept its
+  pile awake (O106, answered by D156). *D156 (the local wake, chunk
+  22l):* every wake is local: a release, a fast touch, a move to the loop
+  start, a fusion, a split, a slime taken out of the level, a call, a
+  trapdoor, gate or lid opening or shutting, and a tilt change wake only
+  the resting slimes they reach (a state change, only the slime itself),
+  never the whole pile (basket 3's
   drain on the withdrawn build: 0 whole-pile wakes against 6; Physics
   80 -> 51 on `s3-basket-59of60`). *Proposed (D143):* level
   rule 23 keeps levels free of spots where many slimes gather awake, and

@@ -25,10 +25,11 @@ emptying once fired, from the user's second round of playtest reports
 store release (5.10, the user's, D149); how a build sets aside a save it
 can't use is tagged (proposed). Moves to the loop start go one at a time
 to a random free spot, and a parked train slime's stall clock is paused
-(5.2, the user's, D150; its details proposed). A disturbed resting pile
-wakes only the slimes touched (5.3, D156). Definition of done 30 and
-section 7 carry the two stress targets (D153, D154; how they are measured
-proposed). A frame-rate experiment run from 2026-09-30 to 2026-10-02
+(5.2, the user's, D150; its details proposed). Every wake of a resting
+pile is local: only the slimes reached wake, never the whole pile (5.3,
+D156). Definition of done 30 and section 7 carry the two stress targets,
+the abuse case's an abuse target of 15 fps, not 30 (D153, D154; how they
+are measured proposed). A frame-rate experiment run from 2026-09-30 to 2026-10-02
 was withdrawn; only the points above came back from it (D155).
 
 ## 1. Concept and objective
@@ -332,9 +333,13 @@ minute of a session every slime hops more slowly.
   (section 6). A pile rests once every slime in it has stayed within about a
   pixel of where it started counting; a big pile of base slimes in the open
   may take about a minute to rest, which the performance pass on the phones
-  looks at again. A release from a basket, a fast touch or a move to the
-  loop start wakes only the resting slimes it touches, never the whole
-  pile, and never a sleeper (D156).
+  looks at again. Every wake is local (D156): it wakes only the resting
+  slimes it reaches, never the rest of their pile, and never a sleeper. A
+  release from a basket, a fast touch, a move to the loop start, a fusion,
+  a split or a slime taken out of the level wakes the resting slimes
+  touching the slime concerned; a call, those within its radius; a
+  trapdoor, gate or lid opening or shutting, those within 80 px of it; a
+  change of state, the slime itself; a tilt change, each resting slime.
 - Sleepers don't simulate until something touches them, slimes in
   a full basket use a simplified state, and slimes on screen may use fewer
   points when zoomed out.
@@ -788,9 +793,9 @@ tests, and the technical choices made while building are in the project's
   The 200-slime cap stays.
   Two moving stress cases on the reference phone: at least 30 fps for the
   dense case (200 train slimes, 3 per 100 px of loop along the loop line,
-  the bottom of section 3's bowl at 4, filled from the bowl outward) and
-  at least 15 fps, with no crash and no freeze, for the abuse case (all
-  200 piled in the bowl).
+  the bottom of section 3's bowl at 4, filled from the bowl outward) and,
+  for the abuse case (200 moving slimes, all piled in the bowl), an abuse
+  target, not a 30 fps target: no crash, no freeze and at least 15 fps.
 - **Measured so far:** the reference phone, with 200 slimes all simulated
   and nothing else (see section 6). The floor phone still has to be bought,
   and the whole game at the endgame is measured on both phones. The
@@ -969,8 +974,9 @@ never ships: O101.
     with the camera on section 3's bowl: the test level's dense moving
     case (`stress-dense`: 200 train slimes, 3 per 100 px of loop along
     the loop line, the bowl's bottom at 4, filled from the bowl outward)
-    holds at least 30 fps, and its abuse case (`stress-moving`: all 200
-    piled in the bowl) at least 15 fps, with no crash and no freeze
+    holds at least 30 fps, and its abuse case (`stress-moving`: 200
+    moving slimes, all piled in the bowl) meets an abuse target, not a
+    30 fps target: no crash, no freeze and at least 15 fps
     *(proposed: the mean over a 62 s run, the 5th percentile reported)*.
     Until the reference phone is measured, the slowed desktop run
     (`tools/perf_slow.sh --pin=main`) stands in.
