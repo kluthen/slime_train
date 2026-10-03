@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v19 (22l: every wake local, D156 (7); `stress-moving`'s abuse target in chunk 22 and 24.1, D153; earlier, v18: the fps session after 0196c25 reverted, D155: chunks 22e, 22f, 22g, 22i, 22j and 22k withdrawn, kept on branch `archive/fps-session-2026-10`; chunk 22d done, 1a539db; new chunks 22l, the local wake, D156, and 22m, the `stress-dense` fixture and the 10,000-tick run tool, D153, D154, both being built with the revert; chunk 19w, the save wipe and the save format before the first store release, D148, D149, and chunk 22h, the loop-start queue, D150, re-entered; the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE, the rest of 24, the health review, D155; approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v20 (22l done, 600de6b, 5f6a6b0; 22m's fixture done, 4aac65a, its run tool being built; DoD 30's status on the phone emulation; earlier, v19: 22l: every wake local, D156 (7); `stress-moving`'s abuse target in chunk 22 and 24.1, D153; earlier, v18: the fps session after 0196c25 reverted, D155: chunks 22e, 22f, 22g, 22i, 22j and 22k withdrawn, kept on branch `archive/fps-session-2026-10`; chunk 22d done, 1a539db; new chunks 22l, the local wake, D156, and 22m, the `stress-dense` fixture and the 10,000-tick run tool, D153, D154, both being built with the revert; chunk 19w, the save wipe and the save format before the first store release, D148, D149, and chunk 22h, the loop-start queue, D150, re-entered; the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE, the rest of 24, the health review, D155; approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
@@ -172,6 +172,14 @@ technology, not business behaviour:
   built), the local wake (now 22l) and the `stress-dense` fixture (now
   22m). No number since the S20 FE session of 2026-09-30 comes from the
   phone itself.
+- **Chunk 22l** done (600de6b, 5f6a6b0; suite 1339/1339): the local
+  wake (D156's as-built note). `s3-basket-59of60`, phone emulation: 25.4
+  -> 35.0 fps; only its hash changed.
+- **Chunk 22m**, part 1 done (4aac65a; suite 1342/1342): `stress-dense`
+  on main, byte for byte the branch's. Phone emulation: `stress-dense`
+  22.9 fps (target 30, not met); `stress-moving` 16.1 mean, 5th
+  percentile 13.0 (abuse target 15: met on the mean only, O115). Part 2,
+  the 10,000-tick run tool, being built.
 - **Next, in this order (D155):** chunk **19w** (a `--wipe-save` launch
   flag for automated testing, debug builds only, and a save a build can't
   use set aside before the first store release; D148, approved in
@@ -184,8 +192,9 @@ technology, not business behaviour:
   user's go, "ok schedule work on 5N after this chunk", D142; it ports
   the local wake), chunk **22c** (crowd detail only under load, proposed,
   D141), chunk **22 repeated** on the real S20 FE with the perf log, the
-  rest of chunk **24**, then the closing health review. **22l and 22m are
-  being built now, with the revert itself**, ahead of their place.
+  rest of chunk **24**, then the closing health review. **22l is done
+  and 22m's fixture too** (its run tool being built), ahead of their
+  place; 19w and 22h are next.
 - **Chunk L01** (the first real level) is **v2**, not this plan (D134):
   v1 is the test level only. The release preset stays as built, with the
   test level left out; v1 (full MVP) is never published (D135).
@@ -230,8 +239,8 @@ technology, not business behaviour:
 | 22b | Drawing pass (done, D142) | M | 22 | the frame's cost outside the tick measured per part and cut; same hash |
 | 22d | Debug counters and the largest awake cluster (done, 1a539db, D143) | S | 22b | unit tests of the four counts and the cluster; the PERF line and its summary carry them; same hashes |
 | 22h | Moves to the loop start one at a time, to a random free spot; no stall clock while parked (the user's, details proposed, D150) | S | 19w; 22m's run tool | first the same runs on main (the bug likely there too); `s3-basket-59of60` over 10,000 ticks: no stall move of a parked slime, no stuck move within 10 s of a landing, moves at least 30 ticks apart; unit tests of the queue, the pause, the landing spot; same hash across a save and reload mid-queue; changed hashes listed |
-| 22l | The local wake, with the `hops` and `short_hops` counters (the user's direction, D156; being built with the revert, D155) | S | 22d | the counters first; unit tests: a release, a fast touch and a move to the loop start wake only the resting slimes touched, never a sleeper, and every other wake is local too (D156 (7)); `s3-basket-59of60`'s drain without a whole-pile wake, its Physics and phone-emulation fps against the same build without it; changed hashes listed |
-| 22m | The `stress-dense` fixture and the 10,000-tick run tool (the user's, details proposed, D153, D154; being built with the revert, D155) | S | 22d | the fixture built by `tools/make_fixture.gd`, no format change; 200 train slimes (fewer only if they don't fit before switch 3, reported), 9 per 300 px stretch, the bowl's bottom two at 12, along the loop line; its hash at 600 and 2400 ticks recorded with the others'; its scripted test; the run tool over 10,000 ticks; a first phone-emulation reading |
+| 22l | The local wake, with the `hops` and `short_hops` counters (the user's direction, D156; done, 600de6b, 5f6a6b0) | S | 22d | the counters first; unit tests: a release, a fast touch and a move to the loop start wake only the resting slimes touched, never a sleeper, and every other wake is local too (D156 (7)); `s3-basket-59of60`'s drain without a whole-pile wake, its Physics and phone-emulation fps against the same build without it; changed hashes listed |
+| 22m | The `stress-dense` fixture and the 10,000-tick run tool (the user's, details proposed, D153, D154; fixture done, 4aac65a; run tool being built) | S | 22d | the fixture built by `tools/make_fixture.gd`, no format change; 200 train slimes (fewer only if they don't fit before switch 3, reported), 9 per 300 px stretch, the bowl's bottom two at 12, along the loop line; its hash at 600 and 2400 ticks recorded with the others'; its scripted test; the run tool over 10,000 ticks; a first phone-emulation reading |
 | 22e–22k | Withdrawn with the fps session (22e, 22f, 22g, 22i, 22j, 22k; D155); kept on branch `archive/fps-session-2026-10`; their ids aren't reused | — | — | — |
 | 22c | Crowd detail only under load (proposed, D141) | S | 5N | the load meter's unit tests; same hashes in `always`; `auto` measured on the desktop |
 | 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
@@ -251,7 +260,8 @@ order is 22b, 22d (both done), then 19w, 22h, 22l, 22m, 5N, 22c, 22
 repeated on the real S20 FE, then the rest of chunk 24, the last chunk
 before the closing health review (D128, D140, D141, D143, D155; O97
 closed by D140). The fps session after 0196c25 (22e to 22k) was
-withdrawn (D155); 22l and 22m are being built now, with the revert.
+withdrawn (D155); 22l is done and 22m's fixture too (its run tool being
+built), both ahead of their place.
 
 ## Chunks
 
@@ -726,6 +736,11 @@ it goes beyond the user's words.
   what is left above 4 ms is recorded, and O108's levers are the user's
   call. It takes item 24.6's phone number too (labels on against off, in
   the same scene).
+- **DoD 30's status after 22l and 22m** (phone emulation only, not the
+  phone; still not met): `s3-basket-59of60`, the basket scene, reaches
+  35.0 fps, past 30 (the floor phone unmeasured, O14); `stress-dense`
+  22.9 fps, short of 30; `stress-moving` 16.1 fps on the mean, 13.0 at
+  the 5th percentile, so its abuse target hangs on O115.
 
 ### 22b. Drawing pass (M, done, D142)
 
@@ -885,7 +900,7 @@ words.
     whole-level test unchanged; a short 22h section in the perf report;
     the suite passes.
 
-### 22l. The local wake (S, the user's direction, D156; being built with the revert, D155)
+### 22l. The local wake (S, the user's direction, D156; done, 600de6b, 5f6a6b0)
 
 The local wake, re-implemented from chunk 22e's build (4750f12, on
 branch `archive/fps-session-2026-10`) without the rules D155 withdrew.
@@ -932,8 +947,15 @@ steps**. It must not run while another chunk edits the slime body code.
     tick 15.27 -> 13.22 ms) are what to compare with, not the result;
   - every changed hash listed with its reason; [DoD 1] and the suite
     pass; `docs/dev/README.md` gains a local-wake section.
+- **Built** (600de6b the counters, 5f6a6b0 the wake; suite 1339/1339):
+  every wake goes through `SlimeBodies._wake_at`, one slime, never a
+  sleeper; no separate `LoopStart` wake (the state change wakes the moved
+  slime); the fallback not built. Basket 3's drain: whole-pile wakes 6 ->
+  0; phone emulation 25.4 -> 35.0 fps, tick 15.0 -> 10.5 ms, Physics 74
+  -> 43. Only `s3-basket-59of60`'s hash changed. Details: D156's as-built
+  note.
 
-### 22m. The `stress-dense` fixture and the 10,000-tick run tool (S, the user's, details proposed, D153, D154; being built with the revert, D155)
+### 22m. The `stress-dense` fixture and the 10,000-tick run tool (S, the user's, details proposed, D153, D154; part 1 done, 4aac65a; part 2, the run tool, being built)
 
 The user (2026-10-02): `stress-moving` "may be too much"; keep it as an
 abuse test ("not to crash and keep a minimum of 15fps") and add a fixture
@@ -992,6 +1014,13 @@ new clauses, `rule_max_200_slimes_per_level` on the fixture builder).
   - one phone-emulation run (`tools/perf_slow.sh --pin=main --seconds=62
     stress-dense`), reported as a first reading, not a gate (the targets
     are checked at chunk 22's repeat, after 5N); the suite passes.
+- **Part 1 built** (4aac65a; suite 1342/1342): the fixture, its
+  placement, save/reload and scenario tests; 200, 70 in the bowl; the 17
+  other hashes unchanged. First reading (phone emulation, local wake on):
+  `stress-dense` 22.9 fps, tick 16.3 ms; `stress-moving` 16.1 fps mean,
+  5th percentile 13.0; both at the tick cap. O116 still open (17 slimes
+  wrap). **Part 2** (the run tool, 4 above) being built. Details: D154's
+  as-built note.
 
 ### Withdrawn chunks: 22e, 22f, 22g, 22i, 22j, 22k (D155)
 

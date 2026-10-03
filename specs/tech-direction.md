@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v25 (every wake local, D156 (7); `stress-moving`'s abuse target of 15 fps, not a 30 fps target, D153; earlier, v24: the fps session after 0196c25 reverted, D155: the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE; the local wake, D156, chunk 22l; `stress-moving` an abuse test and `stress-dense`'s target, D153, D154; the save format before the first store release and a save a build can't use set aside, proposed, D149; the save wipe for automated testing only, chunk 19w, D148, approved in direction, D149)
+Status: draft v26 (chunks 22l and 22m's fixture built on main, their phone-emulation readings; v25: every wake local, D156 (7); `stress-moving`'s abuse target of 15 fps, not a 30 fps target, D153; earlier, v24: the fps session after 0196c25 reverted, D155: the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE; the local wake, D156, chunk 22l; `stress-moving` an abuse test and `stress-dense`'s target, D153, D154; the save format before the first store release and a save a build can't use set aside, proposed, D149; the save wipe for automated testing only, chunk 19w, D148, approved in direction, D149)
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -265,9 +265,12 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   frame-rate gain worth their cost; the local wake (D156) and the
   `stress-dense` fixture (D153, D154) come back on their own. No number
   since the S20 FE session of 2026-09-30 comes from the phone itself.
-- **Next (D155's order):** chunks 19w, 22h, 22l (the local wake, with
-  the `hops` and `short_hops` PERF fields), 22m (`stress-dense` and the
-  10,000-tick run tool), then chunk 5N, which ports the local wake: results deterministic within one build
+- **Chunks 22l and 22m on main** (D156's and D154's as-built notes):
+  the local wake took `s3-basket-59of60` 25.4 -> 35.0 fps on the phone
+  emulation; `stress-dense` reads 22.9 fps (target 30) and
+  `stress-moving` 16.1 on the mean, 13.0 at the 5th percentile (O115).
+- **Next (D155's order):** chunks 19w, 22h, 22m's run tool (being
+  built), then chunk 5N, which ports the local wake: results deterministic within one build
   (not bit-equal to the GDScript tick); saves load under either tick; the
   GDScript tick stays as a fallback. Then chunk 22c, crowd detail only
   under load (D141). Then chunk 22 repeated on the reference phone with

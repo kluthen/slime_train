@@ -3439,6 +3439,8 @@ against a withdrawn decision's numbers and placed the fixture in chunk
 of loop, as D154 amended it, and the fixture is chunk 22m's.
 **Amended by D154 (the user's, 2026-10-02):** `stress-dense` is thinner
 and laid along the loop line, not stacked (2); O114 answered in part.
+*Built on main by chunk 22m (4aac65a); as-built note and readings under
+D154.*
 The user (2026-10-02), on `stress-moving` (200 train slimes, the level's
 maximum, all in section 3's bowl, about 10 to 12 per 100 px of loop):
 "we may have to tone down stress moving test (its got hundreds of slimes
@@ -3552,6 +3554,20 @@ as a number only.) Rebuilt then as a redo of 22j; built on main by chunk
 
 Specs: test level README's `stress-dense` row, the build plan's 22m, the
 master spec's DoD 30 and §7 wording, `tuning.md`, O114, README.
+
+*As built (chunk 22m part 1, on main, 4aac65a, 2026-10-03; covers D153
+too):* the fixture is the branch's, copied verbatim and rebuilt byte for
+byte by `tools/make_fixture.gd` (300 px stretches, 9 each, the bowl's
+bottom two at 12, no withdrawn code): 200, 70 in the bowl, 105 in
+section 3, 95 in section 2. The 17 other hashes unchanged. Phone
+emulation, with the local wake (D156): `stress-dense` 22.9 fps (tick
+16.3 ms, Physics 69), **its 30 fps target not met**; `stress-moving`
+16.1 fps mean, 5th percentile 13.0, minimum 12.6: **its 15 fps abuse
+target met on the mean, not at every moment**, so O115 now decides it.
+Both run at the cap of 2 ticks per frame. O116 still open: 17 of
+`stress-dense`'s slimes wrap at load, and the scenario test's advance
+check passes only thanks to it. Part 2, the 10,000-tick run tool, is
+being built. Suite 1342/1342.
 
 ## D155 — The fps session reverted to 0196c25: what was kept, what was dropped (2026-10-03)
 The user's direction, 2026-10-03 (plan approved: "as you recommend",
@@ -3746,3 +3762,16 @@ The rest of a pile wakes only if a woken slime then touches it faster
 than `WAKE_SPEED`. No new value, no save change.
 
 **Terminology** (`concept.md`): **local wake** added.
+
+*As built (chunk 22l, on main, 2026-10-03):* 600de6b, the counters
+(`hops=` and `short_hops=` on the PERF line, debug only, the same 17
+hashes); 5f6a6b0, the wake: `SlimeBodies._wake_at` wakes only that slime,
+every wake path goes through it, never a sleeper; no separate wake added
+in `LoopStart` (the state change already wakes the moved slime). The
+one-step-neighbour fallback (3) was not needed and is not built. Basket
+3's drain (`s3-basket-59of60`, seed 1, 2400 ticks, headless): whole-pile
+wakes 6 -> 0, woken per tick median 3, max 9; Physics 75.5 -> 51.8;
+largest cluster 47.8 -> 26.0. Phone emulation (`tools/perf_slow.sh
+--pin=main --seconds=62`, pinned lines): 25.4 -> 35.0 fps, tick 15.0 ->
+10.5 ms, Physics 74 -> 43, cluster 47 -> 20. Only `s3-basket-59of60`'s
+hash changed. Suite 1339/1339.
