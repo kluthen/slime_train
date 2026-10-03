@@ -6,7 +6,10 @@
 #   tools/linux/export.sh    build/linux/slime-train-debug.x86_64
 #                            and its build/linux/slime-train-debug.pck
 #
-# A debug build: test mode and the debug overlay only run in one. The export
+# A debug build: test mode and the debug overlay only run in one. It builds
+# the slime_native extension's Linux debug library first (tools/build_native.sh)
+# and imports, so the build ships the native tick (the library goes next to
+# the binary). The export
 # log goes to build/linux/export.log (shown when the export fails); the path
 # of the binary is printed on success.
 # Environment: GODOT (default: godot on the PATH, version 4.7.2, with the
@@ -22,8 +25,18 @@ pck="$out_dir/slime-train-debug.pck"
 log="$out_dir/export.log"
 
 mkdir -p "$out_dir"
-rm -f "$binary" "$pck"
-if ! "$GODOT" --headless --path "$root" --export-debug "$preset" "$binary" >"$log" 2>&1; then
+rm -f "$binary" "$pck" "$out_dir"/libslime_native.*.so
+"$root/tools/build_native.sh" >"$log" 2>&1 || {
+	tail -n 30 "$log"
+	echo "tools/linux/export.sh: building the native library failed (full log: $log)." >&2
+	exit 1
+}
+"$GODOT" --headless --path "$root" --import >>"$log" 2>&1 || {
+	tail -n 30 "$log"
+	echo "tools/linux/export.sh: the Godot import failed (full log: $log)." >&2
+	exit 1
+}
+if ! "$GODOT" --headless --path "$root" --export-debug "$preset" "$binary" >>"$log" 2>&1; then
 	tail -n 30 "$log"
 	echo "tools/linux/export.sh: the export failed (full log: $log)." >&2
 	exit 1

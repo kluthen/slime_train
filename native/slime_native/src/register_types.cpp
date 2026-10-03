@@ -1,4 +1,4 @@
-// Entry point of the slime_native GDExtension (native/slime_native.gdextension).
+// Entry point of the slime_native GDExtension (addons/slime_native/slime_native.gdextension).
 
 #include "register_types.h"
 
@@ -8,6 +8,7 @@
 #include <godot_cpp/godot.hpp>
 
 #include "slime_native.h"
+#include "slime_solver.h"
 
 using namespace godot;
 
@@ -16,6 +17,7 @@ void initialize_slime_native_module(ModuleInitializationLevel p_level) {
 		return;
 	}
 	GDREGISTER_CLASS(SlimeNative);
+	GDREGISTER_CLASS(SlimeSolver);
 }
 
 void uninitialize_slime_native_module(ModuleInitializationLevel p_level) {

@@ -25,9 +25,11 @@ __pycache__/
 # ATD local caches
 docs/.atd_audit.db
 
-# Native tick (docs/dev/native.md): built libraries and SCons state.
-# native/godot-cpp is a submodule; its own .gitignore covers its gen/ and bin/.
-/native/bin/
+# Native tick (docs/dev/native.md): built libraries, SCons state and the
+# build lock. native/godot-cpp is a submodule; its own .gitignore covers its
+# gen/ and bin/.
+/addons/slime_native/bin/
+/native/.build.lock
 /native/slime_native/**/*.os
 /native/slime_native/**/*.o
 /native/slime_native/.sconsign*.dblite

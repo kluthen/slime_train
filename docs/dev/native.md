@@ -1,15 +1,18 @@
-# Native tick (contingency, deferred by D96)
+# Native tick (chunk 5N)
 
-The slime simulation tick runs in GDScript. Moving it to native code (a
-GDExtension in C++) is the **documented, verified contingency** of D96, not
-something the game uses. This document covers why it was measured, what
-would fire it, how to build and test it, and how the port would be done.
+The slime simulation tick is moving to native code: a GDExtension in C++,
+`slime_native`, with the GDScript tick kept as the fallback (chunk 5N, D158;
+D140, D142). D96 first kept it as a documented, verified contingency; after
+chunk 22 the user gave the go (D142), and on 2026-10-03 chose to go native
+now, for headroom (D158). This document covers why it was measured, how the
+extension is built, loaded and chosen, how to test it, and how the port is
+done.
 
-What is checked in: the toolchain (godot-cpp as a git submodule, an SCons
-build, one build script) and a trivial extension, `SlimeNative`, verified on
-the desktop and on the reference phone. It is kept out of the test suite and
-the exports: `native/` holds a `.gdignore`, so Godot never registers the
-extension on its own.
+Where the port stands (unit U0b): the toolchain, the loading, the tick
+switch and the fallback are in place. The native solver, `SlimeSolver`,
+reads and writes a `SlimeBodies` (the marshalling) and checks it can; its
+passes are stubs that return false, so every pass still runs in GDScript and
+the results are the GDScript tick's, bit for bit.
 
 ## Why it was measured
 
@@ -27,19 +30,18 @@ The phone runs the GDScript tick 2.0–2.1× slower than the desktop cold, 3.4×
 once it throttles (after about 4.5 minutes of load). At 60 fps the frame is
 16.7 ms, so 200 simulated slimes in GDScript don't fit; in C++ they would.
 
-D96 still keeps the tick in GDScript: in play most of a big crowd rests in a
+D96 first kept the tick in GDScript: in play most of a big crowd rests in a
 pile or a basket, and the cheaper fallbacks of chunk 15 (resting slimes and
 sleepers stop simulating, fewer points when zoomed out, simplified baskets)
 remove most of that cost.
 
-## What would fire it
+## What fired it
 
-Chunk 22 measures the real game at the endgame (the bowl, a full basket, the
-train) on both phones, cold and after 5 minutes. If either phone misses its
-target (60 fps on the reference phone in normal play; at least 30 fps on the
-floor phone with the level's largest realistic pile), chunk 5N moves the
-tick to native code, as described in "The port" below, and chunk 22 is
-repeated. See D96 in `specs/decisions.md` and "Simulation performance" in
+Chunk 22 measured the real game at the endgame (the bowl, a full basket,
+the train) and failed DoD 30 (D138); crowd detail was not enough on its own,
+so the user scheduled chunk 5N (D142). The real S20 FE later passed DoD 30's
+targets cold, and the user chose to go native anyway, for headroom (D158).
+See `specs/decisions.md` and "Simulation performance" in
 `specs/tech-direction.md`.
 
 ## Layout
@@ -47,12 +49,18 @@ repeated. See D96 in `specs/decisions.md` and "Simulation performance" in
 | Path | What it holds |
 |---|---|
 | `native/godot-cpp/` | godot-cpp, the C++ bindings, as a git submodule (see below) |
-| `native/slime_native/` | The extension: `SConstruct` and `src/` (`SlimeNative`, the entry point) |
-| `native/slime_native.gdextension` | The extension's descriptor: entry symbol and one library per platform |
-| `native/bin/` | The built libraries (gitignored) |
-| `native/.gdignore` | Keeps Godot from scanning `native/`, so the extension stays out of the tests and exports |
+| `native/slime_native/` | The extension's sources: `SConstruct` and `src/` |
+| `native/slime_native/src/slime_solver.{h,cpp}` | `SlimeSolver`, the native solver: `step`, the passes, `check_schema`, `probe_marshal` |
+| `native/slime_native/src/solver_state.{h,cpp}` | The marshalling: the schema (the fields and constants the solver relies on), `SolverState` (`load`, `store`) |
+| `native/slime_native/src/solver_*.cpp` | One pass per file: `solver_integrate`, `solver_contacts` (the pair grid and the contacts), `solver_rings`, `solver_terrain` (with the doors), `solver_rest` (with the local wake) |
+| `native/slime_native/src/slime_native.{h,cpp}` | `SlimeNative`, the toolchain check (the build's name, the multiply-add probe) |
+| `native/.gdignore` | Keeps Godot from scanning `native/` (sources, objects, the godot-cpp checkout) |
+| `addons/slime_native/slime_native.gdextension` | The extension's descriptor: entry symbol and one library per platform; Godot registers it at startup |
+| `addons/slime_native/bin/` | The built libraries (gitignored) |
+| `src/sim/tick_choice.gd` | `TickChoice`: which tick a run uses (see "The tick switch and the fallback") |
 | `tools/build_native.sh` | The one build script |
-| `tests/native/` | The extension's GUT test and `native_check`, which loads it and prints a report (not in `.gutconfig.json`) |
+| `tests/unit/test_native_extension.gd`, `tests/unit/native_check.{gd,tscn}` | The toolchain test, and `native_check`, which prints a report (in the default suite) |
+| `tests/unit/test_native_solver.gd`, `tests/unit/test_tick_choice.gd` | The solver's boundary, the tick switch |
 
 ## godot-cpp version
 
@@ -94,48 +102,159 @@ tools/build_native.sh                     # Linux x86_64, debug (tests, editor)
 tools/build_native.sh --release           # Linux x86_64, release
 tools/build_native.sh --android           # Android arm64-v8a, debug (the phone)
 tools/build_native.sh --android --release
-tools/build_native.sh --test              # Linux debug, then the GUT test
+tools/build_native.sh --android --arch=x86_64   # Android x86_64, debug (the emulator)
+tools/build_native.sh --all               # all five, in that order
+tools/build_native.sh --test              # Linux debug, then the native tests
 tools/build_native.sh -- verbose=yes      # after --, arguments go to SCons
 ```
 
-The libraries go to `native/bin/libslime_native.<platform>.<target>.<arch>.so`
-(`target` is `template_debug` or `template_release`), which is what
-`native/slime_native.gdextension` lists (`linux.debug.x86_64`,
-`linux.release.x86_64`, `linux.x86_64` as a fallback, `android.debug.arm64`,
-`android.release.arm64`). godot-cpp's own static library goes to
-`native/godot-cpp/bin/` (ignored by godot-cpp's `.gitignore`).
+The libraries go to
+`addons/slime_native/bin/libslime_native.<platform>.<target>.<arch>.so`
+(`target` is `template_debug` or `template_release`), which is what the
+descriptor lists (`linux.debug.x86_64`, `linux.release.x86_64`,
+`android.debug.arm64`, `android.release.arm64`, `android.debug.x86_64`).
+godot-cpp's own static library goes to `native/godot-cpp/bin/` (ignored by
+godot-cpp's `.gitignore`).
 
-The first build of each platform and target compiles godot-cpp: about 2
-minutes on this machine (12 cores). After that, only the extension's files
-rebuild.
+- **Incremental.** The first build of each platform, target and arch
+  compiles godot-cpp: about 2 minutes on this machine (12 cores). After
+  that only the extension's changed files rebuild; `--all` with nothing to
+  do takes about 11 s (SCons reading godot-cpp's build five times).
+- **One build at a time.** The script takes a lock (`native/.build.lock`,
+  `flock`, gitignored) around its builds, so builds started in parallel (two
+  test runs, two agents) run one after the other instead of writing the same
+  objects. It lets go before `--test` runs the tests.
+- **Who builds.** `tools/test.sh` builds the Linux debug library when it is
+  missing or older than its sources; `tools/linux/export.sh` builds it before
+  the Linux export; `tools/android/export.sh` builds the Android libraries
+  (`debug`: arm64 and x86_64; `release`: arm64). Each then imports
+  (`godot --headless --import`), which lists the extension in
+  `.godot/extension_list.cfg`, so it loads at startup and the export ships
+  it.
 
 Android: the script finds the SDK at `$ANDROID_HOME`, or `~/Android/Sdk`,
-and uses the newest NDK under its `ndk/` folder (set `ANDROID_NDK_VERSION`
-to choose one). godot-cpp 10 defaults to NDK 28.1.13356709, which isn't the
-one installed here (28.2.13676358), so the script always passes
-`ndk_version`. The target is API level 24, the minimum SDK of the exports.
-The C++ runtime is linked statically (`-static-libstdc++`), so the extension
-doesn't depend on the `libc++_shared.so` of Godot's Android template.
+and uses NDK 28.2.13676358 (set `ANDROID_NDK_VERSION` to choose another; it
+must be installed under the SDK's `ndk/`). It doesn't take the newest NDK
+installed: 29.0.14206865 is there for the Gradle build of the exports, and
+the extension stays on the NDK it was verified with. godot-cpp 10 defaults
+to NDK 28.1.13356709, so the script always passes `ndk_version`. The target
+is API level 24, the minimum SDK of the exports. The C++ runtime is linked
+statically (`-static-libstdc++`), so the extension doesn't depend on the
+`libc++_shared.so` of Godot's Android template: the libraries need only
+`libc`, `libm` and `libdl`.
+
+## The tick switch and the fallback
+
+`TickChoice` (`src/sim/tick_choice.gd`) picks the tick of a run, in order:
+
+1. `--tick=gdscript` or `--tick=native` among the user arguments (after
+   `--`), in a debug build only. A release build ignores it and prints
+   `TICK --tick=<value> ignored, not a debug build.`
+2. The environment variable `SLIME_TICK` (`gdscript` or `native`), in any
+   build.
+3. The default: native when the extension is loaded (`SlimeSolver` is a
+   class), else GDScript.
+
+Every run prints one line, `TICK <kind> (<reason>)`, to stderr (a
+diagnostic: a tool's stdout, such as `tools/level.sh report --json`, stays
+its own), when its first `SlimeBodies` is made: for example `TICK native (default)`,
+`TICK gdscript (--tick=gdscript)`, `TICK gdscript (extension missing)`.
+A native tick asked for (1 or 2) without the extension gives
+`TICK gdscript (extension missing, --tick=native not met)` and an error; an
+unknown value is an error and is ignored (the next source decides).
+`TickChoice.resolve()` is a pure function of the arguments, the variable,
+the build and the extension (tested in `tests/unit/test_tick_choice.gd`);
+`TickChoice.current()` is the run's, resolved once.
+
+- **The fallback.** When the library is missing or doesn't load, Godot logs
+  an error at startup and goes on; the run gets the GDScript tick
+  (`extension missing`), in a release build too. Nothing in the scripts
+  names the solver's class but through `ClassDB`, so they parse without the
+  extension.
+- **Per bodies.** `SlimeBodies.use_native(on) -> bool` switches one
+  `SlimeBodies` between the ticks at any time (A/B runs, cross-tick tests);
+  `uses_native()` reads it. A new `SlimeBodies` takes the run's tick. It
+  returns false, with an error, when the extension is missing or when
+  `SlimeSolver.check_schema()` finds a field or constant it can't rely on;
+  the GDScript tick then runs on.
+- **The dispatch.** `SlimeBodies.tick()` runs the hops and the support
+  reset in GDScript, then calls `SlimeSolver.step(bodies, h)`: true, the
+  native solver ran the whole solver part of the tick. False, the passes run
+  one by one (`_solve`, `_solve_iteration`), and each native pass that
+  returns false (`integrate`, `build_pairs`, `solve_contacts`,
+  `solve_rings`, `solve_terrain`, `rest`) is replaced by its GDScript pass.
+  With the debug phase timers on, a native terrain pass is timed as
+  `terrain` (doors included), and a native `step` isn't timed pass by pass.
+- **Saves.** The solver keeps no state between calls (only scratch), and no
+  save says which tick wrote it: a save loads and runs on under either tick.
+
+## The marshalling (the copy-on-write boundary)
+
+godot-cpp passes a method's `const PackedXArray &` arguments as copies
+(`native/godot-cpp/include/godot_cpp/core/method_ptrcall.hpp`): what C++
+writes into an argument array never reaches GDScript. So `SlimeSolver`
+takes the `SlimeBodies` object itself and:
+
+- reads each array once per call with `bodies->get(StringName)`
+  (`SolverState::load`): the read shares the member's buffer, packed arrays
+  being copy-on-write;
+- writes through `ptrw()`, which copies a shared buffer once (one copy per
+  written array per call);
+- writes the read-write arrays back with `bodies->set()`
+  (`SolverState::store`): the member then holds the new buffer. A copy of
+  the array taken in GDScript before the call keeps the old values.
+
+`SlimeSolver.probe_marshal(bodies, delta)` does exactly that and moves every
+point by `delta`; `tests/unit/test_native_solver.gd` checks GDScript sees
+the move. The fields are listed once, in `solver_state.cpp`:
+
+- read only: `slime_count`, `first`, `npts`, `state`, `id`, `bound_r`,
+  `rest_edge`, `rest_area`, `rest_off`, the tuning scalars (`gravity`,
+  `free_down`, `substeps`, `iterations`, the stiffnesses,
+  `internal_damping`, `air_drag`, the frictions, `terrain_skin`,
+  `max_speed`, `rest_enabled`), `terrain` and `doors` (each
+  `TerrainSegments`' `seg_a`, `seg_d`, `seg_inv_len2`, `seg_n`, `seg_na`,
+  `seg_nb`, `cell_start`, `cell_items`, `origin`, `inv_cell`, `grid_w`,
+  `grid_h`);
+- read and written: `pos`, `prev`, `centre`, `angle0`, `_drift`,
+  `supported`, `calm`, `still_ticks`, `rest_anchor`, `pile`, `_pairs`,
+  `_pair_touch`, `_touching`, `_centre_cache`, `_centre_ok`;
+- the constants: the states, the calms, `SUPPORT_NORMAL_Y`, `TOUCH_SKIN`,
+  `REST_DRIFT`, `REST_TICKS`, `WAKE_SPEED`.
+
+`SlimeSolver.check_schema(bodies)` returns the problems: a missing field
+(`_drift: missing (PackedVector2Array)`), a retyped one
+(`calm: PackedInt32Array, expected PackedByteArray`), a missing or changed
+constant, a terrain or door missing a field. So renaming or retyping one of
+these in `slime_bodies.gd` makes `use_native` refuse the bodies, and the
+tests fail, instead of the solver reading an empty array.
 
 ## Testing
 
 ```sh
-tools/build_native.sh --test
+tools/test.sh                         # the whole suite, on the native tick
+SLIME_TICK=gdscript tools/test.sh     # the whole suite, on the GDScript tick
+tools/build_native.sh --test          # Linux debug build, then test_native_*
 ```
 
-builds the Linux debug library, then runs `tests/native/` through
-`tools/test.sh -gdir=res://tests/native/`, so it keeps `tools/test.sh`'s
-guarantees (import first, run marker, exit code). The test loads the
-extension at runtime (`GDExtensionManager.load_extension`, in
-`tests/native/native_check.gd`), since Godot doesn't register it by itself,
-and checks `version()`, `sum()` and the multiply-add probe. It fails, never
-skips, when the library is missing or doesn't load.
+`tools/test.sh` sets `SLIME_TICK=native` unless the environment says
+otherwise, builds the Linux debug library when it is missing or older than
+its sources, and fails (exit code 2) when it can't: it never runs the suite
+on the fallback on its own. `test_tick_choice.gd` checks the run's tick is
+the one asked for, so a library that is built but doesn't load fails the
+suite too. With `SLIME_TICK=gdscript` no library is needed; the native
+tests are then pending if it is missing.
 
-`tools/test.sh` doesn't build or load the extension, and the default suite
-passes without SCons, a compiler or the submodule. The post-run hook of the
-default suite still loads `tests/native/test_native_extension.gd` to check
-that it parses; it refers to `SlimeNative` only through `ClassDB`, so it
-parses without the extension.
+- `test_native_extension.gd`: the extension registered at startup (never
+  loaded by hand: that would hide a build where it doesn't load),
+  `version()`, `sum()`, the multiply-add probe.
+- `test_native_solver.gd`: the native write reaching GDScript;
+  `check_schema` passing on `SlimeBodies` (with a terrain, a door, none) and
+  failing on a renamed field, a renamed or changed constant, a retyped
+  field and a door of another class (scripts made from `slime_bodies.gd`'s
+  source with one change); `use_native` on, off and refused; the stub
+  passes falling back (native on and off, 240 ticks: the same arrays and
+  dump).
 
 ## Determinism: `-ffp-contract=off`
 
@@ -171,29 +290,22 @@ equality would also need our own `atan2`, `sin` and `cos`.
 
 ## Checking on the phone
 
-The game's export doesn't contain the extension (the `.gdignore`), so
-checking it on the phone takes a temporary export, reverted afterwards:
+Every export ships the extension now (the descriptor sits in
+`addons/slime_native/`, outside `native/.gdignore`), so the game's own APK
+is the check: its log starts with the `TICK` line (`adb logcat -v time -s
+godot:*`). The debug APK holds
+`lib/arm64-v8a/libslime_native.android.template_debug.arm64.so`, the x86_64
+one for the emulator, `assets/addons/slime_native/slime_native.gdextension`
+and `assets/.godot/extension_list.cfg`; the release APK the arm64 release
+library.
 
-1. `tools/build_native.sh --android`.
-2. Remove `native/.gdignore`.
-3. In `project.godot`, under `run/main_scene`, add
-   `run/main_scene.native_check="res://tests/native/native_check.tscn"`.
-4. In `export_presets.cfg`, add a copy of the spike preset with its own name,
-   `custom_features="native_check"`, another package (for example
-   `com.slimetrain.nativecheck`) and another export path.
-5. Export it, install it, start it
-   (`adb shell am start -n <package>/com.godot.game.GodotAppLauncher`), and
-   read `adb logcat -v time -s godot:*`.
-6. Put back `.gdignore`, `project.godot` and `export_presets.cfg`, then run
-   `godot --headless --import` so `.godot/extension_list.cfg` drops the
-   extension. Uninstall the check app.
-
-Done on 2026-09-28 on the Galaxy S20 FE 5G (Android 13), Godot 4.7.2 debug
-template:
+The one-off toolchain check of 2026-09-28 (before chunk 5N) went through a
+temporary export whose main scene was `native_check` (now
+`tests/unit/native_check.tscn`), on the Galaxy S20 FE 5G (Android 13),
+Godot 4.7.2 debug template:
 
 - the APK held `lib/arm64-v8a/libslime_native.android.template_debug.arm64.so`,
-  `assets/native/slime_native.gdextension` and
-  `assets/.godot/extension_list.cfg`;
+  the descriptor and `assets/.godot/extension_list.cfg`;
 - the log:
 
   ```
@@ -202,37 +314,29 @@ template:
   NATIVE_CHECK mul_add=0.0 fused=false -> OK (no FMA contraction)
   ```
 
-  So Godot loaded the extension from the APK at startup (not through the
-  runtime load), and the arm64 build doesn't fuse multiply-adds;
-- the "Android debug" and "Android spike: soft slimes" exports, with
-  `.gdignore` back, contain no `slime_native` library, no `.gdextension` and
-  no extension list.
+  So Godot loaded the extension from the APK at startup, and the arm64
+  build doesn't fuse multiply-adds.
 
-## The port (chunk 5N, if it fires)
+## The port (chunk 5N)
 
 The GDScript `SlimeBodies` (`src/sim/slime_bodies.gd`) keeps its interface,
 so its callers (the simulation, the train, the renderer, the tests) don't
 change. Behind it:
 
-- **A native solver class** (replacing `SlimeNative`) owns the per-point
-  arrays (`pos`, `prev`, `rest_off`), the per-slime arrays the solver reads
-  and writes, the tuning values, the pair grid and the touching pairs, and
-  runs the substeps: integrate, pair grid, slime contacts, ring constraints,
-  terrain contact. `SlimeBodies.tick()` calls it once per tick.
+- **The native solver** (`SlimeSolver`) runs the solver part of the tick:
+  substeps of integrate, the pair grid (first substep), slime contacts,
+  ring constraints, terrain contact (the shut doors too), then the touching
+  list and the rest pass with the local wake. It reads and writes the
+  `SlimeBodies` arrays (see "The marshalling") and keeps nothing between
+  calls but scratch (the pair grid, the door boxes).
 - **The terrain:** `TerrainSegments` still bakes its segment arrays and grid
-  in GDScript at level load, then hands them to the solver once; the
-  per-point queries run inside the tick (D97).
-- **What stays in GDScript:** hop timers and each slime's random stream (all
-  randomness stays in the one seeded generator), the choice of who hops, the
-  rare topology changes if they aren't worth porting (`create`, `remove`,
-  `merge`, `split`, which compact the arrays), and `dump()`. They reach the
-  native arrays through a few calls (set a velocity, reshape a ring, add or
-  remove a slice).
-- **Reading back:** the renderer and the train read point positions and
-  centres through `SlimeBodies` accessors, which copy from the solver once
-  per tick.
-- **Then it joins the suite:** `native/.gdignore` goes, so Godot registers
-  the extension and the exports include it; `tools/test.sh` builds the
-  Linux library when it is missing or older than the sources; the
-  `tests/unit/test_slime_*.gd` tests run against the native tick unchanged;
-  the golden hashes are recorded again.
+  in GDScript at level load; the solver reads them, read only (D97).
+- **What stays in GDScript:** the hop clears and the automatic hops (each
+  slime's random stream: all randomness stays in the one seeded generator),
+  the support reset, the topology changes (`create`, `remove`, `merge`,
+  `split`, `_reshape`, `_resample`), the saves (`body_of`, `set_body`),
+  `dump()`, the public wakes, and all the behaviour code (the train, the
+  calls, fusion, Offscreen, the loop-start queue).
+- **Pass by pass.** Each pass is ported and tested on its own against the
+  GDScript one (units U1 to U5); `step` then runs them all in one call
+  (U6), and the golden hashes are recorded again for the native tick.

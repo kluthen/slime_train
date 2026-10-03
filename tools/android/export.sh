@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Exports Slime Train as an Android APK from the command line (Gradle build,
-# with the SlimePlatform plugin). Builds the plugin first
-# (tools/android/build_plugin.sh), and installs Godot's Android build template
+# with the SlimePlatform plugin and the slime_native extension, the native
+# tick). Builds the plugin first (tools/android/build_plugin.sh), then the
+# extension's Android libraries (tools/build_native.sh: arm64-v8a, and
+# x86_64 for the emulator in debug), then imports (godot --headless --import)
+# so the export lists the extension; installs Godot's Android build template
 # into android/build/ (not tracked) when it is missing.
 #
 #   tools/android/export.sh debug     preset "Android debug":
@@ -29,11 +32,13 @@ debug)
 	preset="Android debug"
 	apk="$root/build/slime-train-debug.apk"
 	export_flag=--export-debug
+	native_builds=("--android --debug" "--android --debug --arch=x86_64")
 	;;
 release)
 	preset="Android release"
 	apk="$root/build/slime-train-release.apk"
 	export_flag=--export-release
+	native_builds=("--android --release")
 	for var in GODOT_ANDROID_KEYSTORE_RELEASE_PATH GODOT_ANDROID_KEYSTORE_RELEASE_USER \
 		GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD; do
 		if [ -z "${!var:-}" ]; then
@@ -49,6 +54,17 @@ release)
 esac
 
 "$root/tools/android/build_plugin.sh"
+
+# The native tick's libraries, then the import that lists the extension in
+# .godot/extension_list.cfg (the export ships what that list names).
+for build in "${native_builds[@]}"; do
+	# shellcheck disable=SC2086 # one build's options, split on purpose
+	"$root/tools/build_native.sh" $build
+done
+"$GODOT" --headless --path "$root" --import >/dev/null 2>&1 || {
+	echo "tools/android/export.sh: the Godot import failed." >&2
+	exit 1
+}
 
 godot_args=(--headless --path "$root")
 if [ ! -d "$root/android/build" ]; then

@@ -413,6 +413,8 @@ static func load_config_file(path: String) -> Dictionary:
 ##                            (src/debug/save_wipe.gd); skipped here
 ##   --phase-timers           not test mode's: the game root's phase timers
 ##                            (src/debug/phase_timers.gd); skipped here
+##   --tick=gdscript|native   not test mode's: the simulation tick
+##                            (src/sim/tick_choice.gd); skipped here
 ## Returns {"config", "run_ticks" (-1 when absent), "print_state",
 ## "save_path" ("" when absent), "errors"}.
 static func config_from_args(user_args: PackedStringArray) -> Dictionary:
@@ -426,7 +428,7 @@ static func config_from_args(user_args: PackedStringArray) -> Dictionary:
 		match flag:
 			"--test-mode":
 				pass
-			"--perf-log", "--max-ticks-per-frame", "--wipe-save", "--phase-timers":
+			"--perf-log", "--max-ticks-per-frame", "--wipe-save", "--phase-timers", "--tick":
 				pass
 			"--test-script":
 				var loaded := load_config_file(value)

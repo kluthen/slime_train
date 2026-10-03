@@ -6,8 +6,9 @@
 
 namespace godot {
 
-// Toolchain check for the native simulation tick (chunk 5N). The tick itself
-// (SlimeBodies, TerrainSegments) moves here next; see docs/dev/native.md.
+// Toolchain check for the native simulation tick (chunk 5N): the build's
+// name and the multiply-add probe. The tick itself is SlimeSolver
+// (slime_solver.h); see docs/dev/native.md.
 class SlimeNative : public RefCounted {
 	GDCLASS(SlimeNative, RefCounted)
 

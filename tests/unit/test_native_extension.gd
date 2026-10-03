@@ -1,31 +1,43 @@
 extends GutTest
-## The slime_native GDExtension, the deferred native tick (D96,
-## docs/dev/native.md). Not in the default suite (`tests/native/` isn't in
-## .gutconfig.json): `tools/build_native.sh --test` builds the Linux library
-## and runs this script. It fails, never skips, when the extension doesn't load.
+## The slime_native GDExtension, the native tick's toolchain (chunk 5N,
+## docs/dev/native.md): Godot registers it at startup, its build is named,
+## and it rounds like GDScript (no fused multiply-add). In the default suite:
+## tools/test.sh builds the Linux library first and fails without it. These
+## tests fail, never skip, when the extension isn't registered, unless the
+## run asked for the GDScript tick (SLIME_TICK=gdscript), which doesn't need
+## it: then they are pending.
 
-const NativeCheck := preload("res://tests/native/native_check.gd")
+const NativeCheck := preload("res://tests/unit/native_check.gd")
 
 var _load_error := ""
 var _native: Object
 
 
 func before_all() -> void:
-	_load_error = NativeCheck.ensure_loaded()
+	_load_error = NativeCheck.load_error()
 	if _load_error.is_empty():
 		_native = ClassDB.instantiate(NativeCheck.NATIVE_CLASS)
 
 
+## The extension's object, or null after failing the test (or marking it
+## pending when the run asked for the GDScript tick).
 func _native_or_fail() -> Object:
 	if _native == null:
-		fail_test("SlimeNative is not available: %s" % _load_error)
+		if OS.get_environment(TickChoice.ENV) == TickChoice.GDSCRIPT:
+			pending("SLIME_TICK=gdscript and the extension isn't loaded: %s" % _load_error)
+		else:
+			fail_test("SlimeNative is not available: %s" % _load_error)
 	return _native
 
 
-func test_extension_loads_and_registers_its_class() -> void:
-	assert_eq(_load_error, "", "the extension loads")
+func test_extension_registers_its_classes_at_startup() -> void:
+	if _native_or_fail() == null:
+		return
+	assert_eq(_load_error, "", "the extension loads at startup")
 	assert_true(ClassDB.class_exists(NativeCheck.NATIVE_CLASS), "SlimeNative is registered")
-	assert_not_null(_native, "SlimeNative can be instantiated")
+	assert_true(ClassDB.class_exists(TickChoice.SOLVER_CLASS), "SlimeSolver is registered")
+	assert_true(GDExtensionManager.is_extension_loaded(NativeCheck.EXTENSION_PATH),
+			"loaded from %s" % NativeCheck.EXTENSION_PATH)
 
 
 func test_version_names_the_build() -> void:

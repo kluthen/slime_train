@@ -10,6 +10,10 @@ choices made while building v1, with their reasons. Business behaviour is in
   if you set `GODOT`, for example `GODOT=/opt/godot/godot tools/test.sh`.
 - Android builds only: the Android SDK and JDK 21, see "How to build,
   install and run (chunk 20)".
+- The native tick (chunk 5N): SCons 4, g++, the godot-cpp submodule
+  (`git submodule update --init`) and, for Android, NDK 28.2.13676358; see
+  `docs/dev/native.md`. Without them, `SLIME_TICK=gdscript tools/test.sh`
+  runs the suite on the GDScript tick.
 
 ## Running the tests
 
@@ -26,6 +30,11 @@ tools/test.sh -gselect=test_smoke        # scripts whose name contains it
 tools/test.sh -gunit_test_name=runner    # tests whose name contains it
 tools/test.sh -gdisable_colors           # plain output, for logs
 ```
+
+The suite runs on the native tick: `tools/test.sh` builds the extension's
+Linux debug library first when it is missing or out of date, and fails when
+it can't. `SLIME_TICK=gdscript tools/test.sh` runs it on the GDScript tick
+(see "Chunk 5N: U0b toolchain, loading and the tick switch").
 
 The end-to-end suite also runs inside an exported Linux debug build:
 `tools/linux/e2e.sh` exports it and runs `tests/e2e/` in it (`--no-export`
@@ -91,6 +100,8 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `src/platform/` | The phone: `PhonePlatform` (the plugin's wrapper, a desktop stub otherwise), screen pinning, the safe area, the tilt sensor (see "Chunk 20: Android") |
 | `native/android_plugin/` | The SlimePlatform Android plugin's Java and its Gradle project (see "How to build, install and run (chunk 20)") |
 | `addons/slime_platform/` | The editor plugin that adds the SlimePlatform AAR (`bin/`, gitignored) to Gradle exports |
+| `addons/slime_native/` | The slime_native GDExtension's descriptor (the native tick), registered at startup and shipped in every export; its libraries in `bin/` (gitignored), built by `tools/build_native.sh` (see "Chunk 5N: U0b toolchain, loading and the tick switch") |
+| `native/slime_native/`, `native/godot-cpp/` | The extension's C++ sources (`SlimeSolver`, the native solver) and godot-cpp (a submodule); see `docs/dev/native.md` |
 | `tools/android/` | `build_plugin.sh`, `export.sh` (debug or release APK), `check_emulator.sh`, `perf.sh` (a perf session on a device) and `perf_summary.py` (its summary, from the log), see "Measuring on the phone" |
 | `android/build/` | Godot's Android build template, installed by `tools/android/export.sh` (gitignored) |
 | `addons/gut/` | The GUT test framework, vendored |
@@ -6291,6 +6302,74 @@ and `s3-basket-59of60`, with every share within about 2 points.
   would need its own decision (preflight "must not change" 3), so it is
   not 5N's.
 
+## Chunk 5N: U0b toolchain, loading and the tick switch
+
+Build plan chunk 5N (D158), unit U0b. The native extension joins the game,
+the tests and the exports, with the tick switch and the GDScript fallback;
+the native solver's passes are stubs, so nothing the game computes changes.
+No save, fixture or test-mode format change (test mode skips `--tick`, as
+it skips the other game-root flags). Details in `docs/dev/native.md`.
+
+- **Loading.** The descriptor moved from `native/` to
+  `addons/slime_native/slime_native.gdextension`, outside
+  `native/.gdignore`: the import lists it in `.godot/extension_list.cfg`,
+  Godot registers it at startup, and every export ships it. The libraries go
+  to `addons/slime_native/bin/` (gitignored).
+- **Building.** `tools/build_native.sh --all` builds Linux x86_64 debug and
+  release, Android arm64 debug and release, Android x86_64 debug (the
+  emulator), with NDK 28.2.13676358, `-ffp-contract=off`, no fast-math, no
+  `-march=native`, `-static-libstdc++` on Android. Incremental (SCons); a
+  `flock` lock (`native/.build.lock`) serializes parallel builds.
+  `tools/test.sh` builds the Linux debug library when it is missing or older
+  than its sources; `tools/linux/export.sh` and `tools/android/export.sh`
+  build their libraries and import before exporting.
+- **The solver.** `SlimeSolver` (`native/slime_native/src/`): `step` and the
+  passes (`integrate`, `build_pairs`, `solve_contacts`, `solve_rings`,
+  `solve_terrain`, `rest`), all returning false for now;
+  `check_schema(bodies)`, the fields and constants it can't rely on;
+  `probe_marshal(bodies, delta)`. It reads a `SlimeBodies`' arrays with
+  `get()` and writes them back with `set()`, since godot-cpp hands packed
+  arrays to a method as copies (see "The marshalling" in
+  `docs/dev/native.md`).
+- **The switch.** `TickChoice` (`src/sim/tick_choice.gd`): `--tick=gdscript`
+  or `--tick=native` (debug builds; a release build ignores it, saying so),
+  else `SLIME_TICK`, else native when the extension is loaded. The run
+  prints `TICK <kind> (<reason>)` once, to stderr. `SlimeBodies` takes it
+  when made; `SlimeBodies.use_native(on) -> bool` switches one at any time.
+- **The fallback.** `SlimeBodies.tick()` calls `step`, else each native
+  pass, and runs the GDScript pass for each that returns false. Without the
+  library the game runs on the GDScript tick:
+  `TICK gdscript (extension missing)`.
+- **The tests.** `tools/test.sh` runs on the native tick
+  (`SLIME_TICK=native` unless set) and fails with exit code 2 when the
+  library can't be built; `SLIME_TICK=gdscript tools/test.sh` needs none.
+  `tests/native/` moved to `tests/unit/` and joined the default suite
+  (`test_native_extension.gd`, `native_check`).
+  - `tests/unit/test_tick_choice.gd` (14): `resolve()` as a pure function
+    (the default with and without the extension, the flag in debug and
+    release, the variable, the order, unknown values, a native tick asked
+    for and missing), and the run's tick being the one asked for.
+  - `tests/unit/test_native_solver.gd` (8): the native write reaching
+    GDScript (a copy taken before keeps the old values); `check_schema`
+    passing, and failing on a renamed field, a renamed or changed constant,
+    a retyped field and a door of another class; `use_native`; the stubs
+    falling back (240 ticks native on and off: the same arrays and dump).
+- **Checked:**
+  - all 18 fixtures (seed 909, 600 and 2400 ticks) give the same hashes as
+    before the change, on the native tick (the default) and with
+    `SLIME_TICK=gdscript`;
+  - the Linux debug export with its library removed prints
+    `TICK gdscript (extension missing)` and the `STATE` line (the same hash
+    as with it), after Godot's three errors for the missing library;
+  - the Android debug APK holds
+    `lib/arm64-v8a/libslime_native.android.template_debug.arm64.so`,
+    `lib/x86_64/libslime_native.android.template_debug.x86_64.so`,
+    `assets/addons/slime_native/slime_native.gdextension` and
+    `assets/.godot/extension_list.cfg`; the release APK the arm64 release
+    library, the descriptor and the list, and nothing under
+    `src/test_mode/`, `src/debug/`, `tests/`, `levels/test/`, `tools/` or
+    `addons/gut/`.
+
 ## Technical choices
 
 ### Chunk 0: tooling and project setup
@@ -6610,14 +6689,16 @@ performance".
   once jammed on 1 of 6 seeds. Chunk 9's crowd check (see "Sleepers,
   waking and the hint") still sees jams there: not settled.
 
-### Chunk 5N: native tick (contingency, deferred by D96)
+### Chunk 5N: native tick (D158)
 
-- A verified GDExtension toolchain, not used by the game and kept out of
-  the tests and exports. See `docs/dev/native.md`.
-- Chunk 22 recommends it: after the cheap fixes, the section 3 endgame's
+- The tick's solver moves to a GDExtension in C++ (`SlimeSolver`), the
+  GDScript tick kept as the fallback; the extension is in the tests and
+  every export since unit U0b. See `docs/dev/native.md` and "Chunk 5N: U0b
+  toolchain, loading and the tick switch".
+- Chunk 22 recommended it: after the cheap fixes, the section 3 endgame's
   cost is the GDScript tick (contacts, rings and terrain on 60 to 90
-  active slimes). Not started; chunk 22 is repeated after it (see
-  "Verdict" under "Chunk 22: performance").
+  active slimes); chunk 22 is repeated after it (see "Verdict" under
+  "Chunk 22: performance").
 
 ### Chunk 2: spike: vector look
 

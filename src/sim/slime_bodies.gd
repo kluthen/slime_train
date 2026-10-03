@@ -190,6 +190,10 @@ var rest_enabled := true
 ## and its hash are the same either way. Not in dump(). Untyped: src/sim
 ## names nothing in src/debug (left out of release).
 var phases = null
+## The native solver (SlimeSolver, chunk 5N: use_native), or null: the
+## GDScript tick. Untyped: the class comes from the extension, named only
+## through ClassDB (TickChoice), so this script parses without it.
+var _solver = null
 
 # Per point.
 var pos := PackedVector2Array()
@@ -290,8 +294,43 @@ var _centre_ok := PackedByteArray()
 
 ## `master`: the simulation's master Rng. Each slime draws from its own
 ## stream, master.derive("slime:<id>"), so its hops don't depend on others.
+## The tick is the run's (TickChoice.current(), see use_native).
 func _init(master: Rng) -> void:
 	_master = master
+	if TickChoice.current().native:
+		use_native(true)
+
+
+# --- Native or GDScript tick (chunk 5N) ------------------------------------
+
+## Runs tick()'s solver passes on the native solver (true) or in GDScript
+## (false). Returns whether the tick asked for is the one in use: false, with
+## an error, when the extension is missing or its solver can't read these
+## bodies (SlimeSolver.check_schema); the GDScript tick runs on. Each native
+## pass that doesn't run (a stub returns false) falls back to its GDScript
+## pass (see tick()). The solver keeps nothing between calls and the state
+## lives here, so a run (or a save) moves from one tick to the other at any
+## time.
+func use_native(on: bool) -> bool:
+	if not on:
+		_solver = null
+		return true
+	if not ClassDB.class_exists(TickChoice.SOLVER_CLASS):
+		push_error("SlimeBodies: the native tick needs the slime_native extension (%s), which isn't loaded."
+				% TickChoice.SOLVER_CLASS)
+		return false
+	var solver: Object = ClassDB.instantiate(TickChoice.SOLVER_CLASS)
+	var problems: PackedStringArray = solver.check_schema(self)
+	if not problems.is_empty():
+		push_error("SlimeBodies: the native solver can't read these bodies: %s" % ", ".join(problems))
+		return false
+	_solver = solver
+	return true
+
+
+## Whether tick() runs on the native solver (use_native).
+func uses_native() -> bool:
+	return _solver != null
 
 
 # --- Sizes ------------------------------------------------------------------
@@ -873,7 +912,10 @@ func set_active_detail(level: int) -> int:
 
 ## Advances every body by `dt` seconds (the simulation's fixed tick). With
 ## the debug phase timers on (`phases`), each pass (TickPhase) is timed as it
-## ends.
+## ends. The hops and the support reset run here in GDScript; the solver
+## passes run on the native solver when there is one (use_native): the whole
+## of them in one call (SlimeSolver.step), else pass by pass, each falling
+## back to its GDScript pass when the native one doesn't run (_solve).
 func tick(dt: float) -> void:
 	var ph = phases
 	if ph != null:
@@ -891,22 +933,30 @@ func tick(dt: float) -> void:
 			supported[s] = 0
 	if ph != null:
 		ph.lap(TickPhase.TICK_OTHER)
+	# The native step isn't timed pass by pass.
+	if _solver == null or not _solver.step(self, _h):
+		_solve(ph)
+
+
+## The solver passes of one tick, pass by pass (see tick()): `substeps`
+## times integrate, the pair grid (first substep), then `iterations` times
+## the contacts, rings and terrain; then the touching list and the rest
+## pass. A pass runs on the native solver if there is one and it runs it,
+## else in GDScript.
+func _solve(ph) -> void:
+	var sv = _solver
 	for sub in substeps:
-		_integrate(_h)
+		if sv == null or not sv.integrate(self, _h):
+			_integrate(_h)
 		if ph != null:
 			ph.lap(TickPhase.INTEGRATE)
 		if sub == 0:
-			_build_pairs()
+			if sv == null or not sv.build_pairs(self):
+				_build_pairs()
 			if ph != null:
 				ph.lap(TickPhase.PAIRS)
 		for it in iterations:
-			_solve_contacts()
-			if ph != null:
-				ph.lap(TickPhase.CONTACTS)
-			_solve_rings()
-			if ph != null:
-				ph.lap(TickPhase.RINGS)
-			_solve_terrain()
+			_solve_iteration(sv, ph)
 	_centre_ok.fill(0)
 	if ph != null:
 		ph.lap(TickPhase.TICK_OTHER)
@@ -914,9 +964,29 @@ func tick(dt: float) -> void:
 	for k in _pair_touch.size():
 		if _pair_touch[k] != 0:
 			_touching.append(Vector2i(id[_pairs[2 * k]], id[_pairs[2 * k + 1]]))
-	_rest()
+	if sv == null or not sv.rest(self, _h):
+		_rest()
 	if ph != null:
 		ph.lap(TickPhase.REST)
+
+
+## One solver iteration: contacts, rings, terrain (with the doors), each on
+## the native solver `sv` if it runs it, else in GDScript (see _solve).
+func _solve_iteration(sv, ph) -> void:
+	if sv == null or not sv.solve_contacts(self):
+		_solve_contacts()
+	if ph != null:
+		ph.lap(TickPhase.CONTACTS)
+	if sv == null or not sv.solve_rings(self):
+		_solve_rings()
+	if ph != null:
+		ph.lap(TickPhase.RINGS)
+	if sv != null and sv.solve_terrain(self):
+		# The native pass times the terrain and the doors together.
+		if ph != null:
+			ph.lap(TickPhase.TERRAIN)
+	else:
+		_solve_terrain()
 
 
 ## The resting-pile rule (see the class doc), after the tick. A resting

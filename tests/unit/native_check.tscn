@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://tests/native/native_check.gd" id="1_check"]
+[ext_resource type="Script" path="res://tests/unit/native_check.gd" id="1_check"]
 
 [node name="NativeCheck" type="Node"]
 script = ExtResource("1_check")
