@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v29 (chunk 22e built: the local wake, the hold with D145's numbers, the save key `train.hold`, user-approved, format 1, D145, D146's as-built notes; the save format may break until the first store release, a save a build can't use set aside then, the save wipe for automated testing only, D149, proposed where beyond the user's words; a save wipe flag for development builds, chunk 19w, D148, approved in direction; chunk 22f, the hold's second round, before 5N, which ports its rest rules, D147, proposed; the hold and the local wake in chunk 22e, before 5N, which ports them, D146, proposed; the hold, D145, proposed)
+Status: draft v23
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -194,16 +194,11 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   question (D140, O105, O106):* open piles rest slowly or never, and a
   fired basket's releases keep its pile awake. *Proposed (D143):* level
   rule 23 keeps levels free of spots where many slimes gather awake, and
-  the train holds before a crowd or a jam, holding slimes resting, with a
-  local wake (chunk 22e, before 5N, D146; rule 23 in chunk 24, item 24.7;
-  D145, proposed); chunk 22f, before 5N, reworks the hold (the hop
-  corridor, the holder rule, no hop through a crowd, the hold guard, rest
-  by contact and on the ground; D147, proposed), and 5N ports its rest
-  rules; a
+  the train leans away from clusters (chunk 24, items 24.7 and 24.8); a
   cluster the player builds stays possible, covered by crowd detail and
   the tick cap.
 - **Native code was the documented, verified contingency; it is now
-  adopted as chunk 5N, after chunks 22d and 22e** (D140, D143, D146; the user's explicit
+  adopted as chunk 5N, after chunk 22d** (D140, D143; the user's explicit
   go after chunk 22b, D142: "ok schedule work on 5N after this chunk").
   A GDExtension in C++ (godot-cpp), built with `-ffp-contract=off` so ticks
   repeat from one build to another, for the Linux desktop and, through the
@@ -248,21 +243,9 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   throttled (the GDScript tick's factors; the engine's C++ and the phone
   driver may scale otherwise). The phone's perf log settles every number
   (D138).
-- **Chunk 22e as built (4750f12; D146's as-built note):** the local wake
-  and the hold, with D145's numbers (the first calibration kept them).
-  Basket 3's drain no longer wakes its pile whole (0 whole-pile wakes
-  against 6; Physics during the drain 84 -> 48); Physics on the desktop
-  `s3-basket-59of60` 79.9 -> 51.2, `stress-moving` 134 -> 123; tick
-  7.27 -> 6.68 ms and 9.68 -> 10.17 ms (the hold's checks cost about
-  0.8 ms a tick in that crowd). The short-hop share didn't drop (95 %,
-  77 %): chunk 22f reworks the hold (D147). Estimated on the reference
-  phone, the simulation still misses its 8 ms on both bowl fixtures
-  (about 21 and 14 ms cold). As built, the rest pass rewrites the still
-  count and the rest anchor of every active slime that may not rest,
-  each tick: a cost for 22c to watch, and 5N ports it.
-- **Next (proposed order, D140, D143, D142, D146, D147, D148):** chunks
-  22d (the debug counters, D143) and 22e are done; then 19w, 22f, then
-  chunk 5N: results deterministic within one build
+- **Next (proposed order, D140, D143, D142):** chunk 22d, the debug counters (D143): Physics,
+  On screen, In range and Parked on the bar, and the same plus `resting`
+  and the largest awake cluster on the PERF line. Then chunk 5N: results deterministic within one build
   (not bit-equal to the GDScript tick); saves load under either tick; the
   GDScript tick stays as a fallback. Then chunk 22c, crowd detail only
   under load (D141). Then chunk 22 repeated on the reference phone with
@@ -311,30 +294,9 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   slimes count as lost and reappear at the start of the loop (D72).
 - The save records the level's version, and slimes, objects and
   gates keep stable IDs across versions.
-- **What a train slime's record adds** (chunk 22e, D145, D146; the key
-  approved by the user): `save["slimes"][i]["train"]["hold"]`, an
-  integer, the tick the slime's hold began, written only while it holds
-  (absent: it doesn't hold). Additive, format 1: an older save loads with
-  no hold. A value that isn't a whole number >= 0 makes the save invalid.
-  The full key list is `docs/dev/README.md`, "What a save holds".
 - Saves are written atomically (write a new file, then swap it in),
   and the previous save is kept as one backup. A save that can't be read falls
   back to the backup, and only then to a fresh start for that level.
-- **The save format before the first store release** (D149; the user's:
-  "save format may break between version ... if the app has been shipped,
-  otherwise, we just wipe"). Until the app has shipped, a save-format
-  change may break older saves: no migration, no special approval. From
-  the first store release on, the format is a hard contract and every
-  change ships with its migration. *(Proposed:)* a breaking change bumps
-  the format number; before shipping, a save a build refuses (another
-  format, or any other reason `SaveData` gives) is set aside with its
-  backup as `.unreadable`, the level starts fresh with autosave on, and
-  one log line says so. After shipping, such a save is left untouched and
-  that level's writes are blocked, as today. Whether the app has shipped
-  is one switch in the code, turned on at the first store release. An
-  older level version is still migrated (above). Fixture and test-mode
-  script formats are unchanged (still hard contracts); a breaking save
-  change also has to convert the fixtures, which are saves.
 
 ## Testability (D76, D91)
 
@@ -350,18 +312,6 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   timer, cooldown, phase timers), and inject taps and tilt from a script.
   End-to-end tests drive the test level (`levels/test/`) this way.
 - Fixture saves for the test level are listed in `levels/test/README.md`.
-- **Save wipe** *(D148, chunk 19w, approved in direction, D149; its
-  details proposed; the user: "the flag is only for automated testing")*:
-  in a debug build only, the launch flag `--wipe-save` deletes every file
-  in `user://saves/` at startup, before any save is read;
-  `user://parent.json` is kept. **For automated test runs only**
-  (`perf.sh --wipe-save`, a scripted desktop launch); in manual play, a
-  level is started over with the parent's delete of its save. A
-  per-launch flag, nothing that stays set. Ignored with a log line in a
-  release build, refused with a save to load (`--load`), never on by
-  default, never passed by save and restore tests. It is not a save store
-  path and no update path: saves are still never wiped in a player's
-  build. The format rule is above (D149).
 
 ## Camera (D33, D60)
 

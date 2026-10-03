@@ -106,7 +106,7 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | A fired basket empties within (proposed) | its quota × 0.3 s plus 10 s of firing, none of its slimes falling back in | D128, item 24.3 |
 | Section 3 frame budget on the desktop (proposed) | a steady 60 fps at test mode's 1152 × 648 window; at most 8 ms per tick at p95 on the section 3 bench cases, `stress-moving` excepted | D128, item 24.1 |
 
-### Off screen, resting piles and detail (chunk 15; crowd detail, D140, D141; clusters, D143, D145)
+### Off screen, resting piles and detail (chunk 15; crowd detail, D140, D141; clusters, D143)
 
 | Value | Start at | Source |
 |---|---|---|
@@ -116,11 +116,11 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | A free slime's route back is near (`ROUTE_NEAR`) | within 288 px; off screen it joins its branch's route back single file, a slime's width behind the one before it; out of any branch, it heads straight for the nearest loop point within that distance; with neither near, it stays put until the lost timer moves it (see §5.3 of the master spec) | D70 |
 | Left alone (`LEFT_ALONE_TICKS`) | 600 ticks (10 s) outside the view, the screen with no margin; the count stops on screen | D10 |
 | Lost (`LOST_TICKS`) | 3600 ticks (1 min) after left alone, so 70 s off screen in all | D10 |
-| A train slime stalls (`Train.LOST_STALL_SECONDS`, `LOST_STALL_ADVANCE`, `BOUNDS_MARGIN`, `BOUNDS_TOP_MARGIN`; chunk 6's placeholder) | its progress along the loop hasn't advanced 24 px in 60 s, on screen or off; or its centre is out of the level's bounds (the terrain and the loop, plus 64 px, plus 2000 px above); it is then moved to the loop start (D121). To recheck on the first level, once real return routes exist. *From chunk 22h (D150, the user's):* the 60 s count only the ticks it is simulated; while parked its clock is paused, and resumes where it was (O113: every parked train slime, proposed). *From chunk 22i's fix (D152, the user's):* its clock is paused too on each tick it holds, for any reason (bucket full, crowd, holder rule), or rests by contact behind a holder (proposed); not for a dip-pinned slime or one not holding | D118, D121, D150, D152 |
+| A train slime stalls (`Train.LOST_STALL_SECONDS`, `LOST_STALL_ADVANCE`, `BOUNDS_MARGIN`, `BOUNDS_TOP_MARGIN`; chunk 6's placeholder) | its progress along the loop hasn't advanced 24 px in 60 s, on screen or off; or its centre is out of the level's bounds (the terrain and the loop, plus 64 px, plus 2000 px above); it is then moved to the loop start (D121). To recheck on the first level, once real return routes exist | D118, D121 |
 | Dropping into a basket off screen (`ENTRY_REACH`, `SLOT_GAP`) | a parked train slime whose centre is within 64 px above an open trapdoor drops in, into the first clear slot of a grid its own width plus 4 px apart, bottom row first | D70 |
 | A slime is still (`REST_DRIFT`, `REST_TICKS`) | supported and within 1 px of its anchor for 30 ticks; the anchor is where the count started; kept for v1; measured in chunk 22 (open piles of 40 or more rest in minutes or never), revisiting it is O105 | D96, D107, D138 |
-| A pile rests | when every slime of a touching group of pile slimes (in a basket, or asleep at bedtime) is still at once; awake slimes out of a basket hop and never rest, except *(proposed, D145)* a holding train slime | D96, D145 |
-| A resting pile wakes (`WAKE_SPEED`) | a touching slime faster than 30 px/s (a hop, a landing, a neighbour moving), a state change (bedtime, sunrise, a basket catching or releasing), a slime removed, fused or split next to it; a call wakes the resting slimes within its radius, a tilt change wakes them all *Proposed (D143, D145, chunk 22e, D146, O106):* a release, the end of a hold and a touch faster than 30 px/s wake only the slimes they touch, not the whole pile; fallback if it churns: those slimes' touching neighbours too. *Built in chunk 22e (4750f12):* the local wake as written, a LoopStart move waking locally too; the fallback not built (basket 3's drain: 0 whole-pile wakes, at most 9 woken in a tick) | D96, D143, D145, D146 |
+| A pile rests | when every slime of a touching group of pile slimes (in a basket, or asleep at bedtime) is still at once; awake slimes out of a basket hop and never rest | D96 |
+| A resting pile wakes (`WAKE_SPEED`) | a touching slime faster than 30 px/s (a hop, a landing, a neighbour moving), a state change (bedtime, sunrise, a basket catching or releasing), a slime removed, fused or split next to it; a call wakes the resting slimes within its radius, a tilt change wakes them all | D96 |
 | A door wakes nearby piles (`DOOR_WAKE_REACH`) | a trapdoor, gate or lid opening or shutting wakes the piles within 80 px of it | D96 |
 | Ring points per detail level (`POINTS_BY_DETAIL`) (proposed) | levels 0 (full) to 3: size 1 12, 10, 8, 6; size 2 15, 12, 10, 8; size 3 18, 15, 12, 9 | D94, D140 |
 | Zoomed-out detail (`LOW_ZOOM`, `FULL_ZOOM`, `LOW_DETAIL`) | below zoom 0.8, at least level 2 (8, 10 and 12 points for sizes 1, 2 and 3); back from 0.85 | D94, D96, D140 |
@@ -131,16 +131,8 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | Load meter: calm (proposed) | busy share below 60 % and at most 1 frame that ran 2 ticks | D141 |
 | Detail ceiling steps (proposed) | starts at 0; up one step per pressed window (at most 3); down one step after 3 calm windows in a row (the count starts again after each step); held, and the calm count restarted, by a window in the band | D141 |
 | Pile detail cap (`PILE_MAX_DETAIL`) (proposed) | pile slimes (in a basket, asleep at bedtime) stop at level 2 (at 6 points the `stress-still` pile rested at about tick 1300 instead of 407) | D140 |
-| Largest awake cluster, level rule 23 (the rule approved in direction, D144; the limit proposed, calibrated in chunk 24 from 22d's and 22e's logs, D146, O107) | above 20 slimes for more than 5 s in a row fails, over a level's played test and each basket's fire-and-drain (`stress-*` excepted); touching: in contact on the last tick, or centres within the sum of their radii plus 2 px | D143, item 24.7 |
-| The hold: the crowd check (replaces D143's lean, approved in direction, D144; D145, proposed; built and first calibrated in chunk 22e, D146, O107) | when its hop is due, a train slime holds while more than 30 slimes that cost physics, out of a basket (calm ACTIVE, not sleepers, not itself; any species), have their centres within 240 px of its hop's target and ahead of it (on the target's side of its own centre). *Built in chunk 22e (4750f12); its first calibration kept 30 and 240 px (a sweep of 15, 20, 30 and 160, 240 px). Replaced by D147's hop corridor in chunk 22f* | D143, D145, D146, chunk 22e |
-| The hold: the jam check (D145, proposed, O107) | it also holds while its hop's target, measured along the loop, would come within the two slimes' radii plus 24 px of the rearmost holding train slime ahead of it (a jam: one holding slime is enough); it holds where it stands, no shorter hop. *Built in chunk 22e (4750f12); the first calibration kept 24 px (48 changed almost nothing). Replaced by D147's holder rule in chunk 22f (proposed)* | D145, D146, chunk 22e |
-| The hold: re-check and cap (D145, proposed, O107) | checks again every 0.5 s (30 ticks) from the hold's start, no random draw; hops anyway after 5 s (300 ticks) of holding; may hold again at its next hop. *Built in chunk 22e (4750f12): 86 % of hold ends came at the cap. Replaced by D147 in chunk 22f, the next row* | D145, D146, chunk 22e |
-| The hold, second round: the hop corridor (D147, the user's shape; numbers proposed, O107) | replaces the crowd check's 240 px disc and its 30: a box from the slime's centre to its landing point plus 100 px, 75 px either side, the slime left out; every slime whose centre is in it counts (resting and holding too; not parked, in a basket or sleepers); an occupancy (summed π · radius² over the box's area) above 0.5 fails it. Alternative: a size-scaled count (about 6 base slimes). The user's fallback: HOLD_CROWD 15 on the disc | D147, chunk 22f |
-| The hold, second round: the holder rule (D147, the user's; replacing the jam check, proposed) | a holder anywhere in the hop corridor (the 100 px past the landing point included) makes the slime hold, whatever the occupancy; a train slime resting by contact counts as a holder | D147, chunk 22f |
-| The hold, second round: the stack zone (D147, the user's "guard zone"; shape proposed, O107) | a holder directly or almost directly above or below the hopper doesn't trigger the holder rule: its centre projects onto the hop line, from the hopper's centre, less than the two radii (`radius_of`) apart. Alternative: within ±30° of the vertical through the hopper. It still counts toward the occupancy. A slime touching a holder in its stack zone may rest by contact | D147, chunk 22f |
-| The hold, second round: periods and re-checks (D147; the extra and the phase proposed, O107, O109) | a period of 5 s (300 ticks) plus 0 to 60 extra ticks; at its end the checks run again and, still blocked, a new period begins: no hop through a crowd (nor, proposed, for a holder-only hold). Re-checks every 30 ticks, the first after 30 plus a 0 to 29 tick phase drawn per hold. Draws from streams derived from the seed, the slime's id and the period's start tick | D147, chunk 22f |
-| The hold guard (D147, proposed) | when no simulated train slime has hopped for 4 s (240 ticks) while one holds (read as: every one holding, resting or `held`, and the latest hold 4 s old), the front-most holder (the longest gap along the loop to the next train slime ahead; tie to the lower id) hops | D147, chunk 22f |
-| A holding train slime rests (D145, proposed) | under the pile rule (`REST_DRIFT`, `REST_TICKS`), alone or with the holding slimes it touches; not while a contact of it counts toward fusion; wakes when its hold ends or when disturbed. *D147 (proposed, chunk 22f):* only on the ground (touching terrain facing up, or standing on a resting slime); a train slime touching a holder ahead of it along the loop may rest too (D143's touching), and wakes when that contact moves off fast or it touches no holder ahead; a slime waking wakes those resting on it | D145, D146, D147, chunk 22e, chunk 22f |
+| Largest awake cluster, level rule 23 (the rule approved in direction, D144; the limit proposed, calibrated in chunk 24, O107) | above 20 slimes for more than 5 s in a row fails, over a level's played test and each basket's fire-and-drain (`stress-*` excepted); touching: in contact on the last tick, or centres within the sum of their radii plus 2 px | D143, item 24.7 |
+| The train leans away from clusters (approved in direction, D144; the numbers proposed, O107) | a train slime whose hop is due waits 0.5 s while 3 or more slimes that cost physics and can't fuse with it sit within 96 px of its hop's target, at most 4 times in a row (2 s), then hops anyway | D143, item 24.8 |
 | Test level, basket 2 quota | 15 (weight) | test level |
 
 ### Performance (chunks 22, 22b)
@@ -151,8 +143,6 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | Frame budget on the reference phone (proposed) | per 16.7 ms frame: simulation at most 8 ms, drawing at most 4 ms, at least 4.7 ms left for later animation, music and the system | D138 |
 | Phone estimate from the desktop | a part's full-speed desktop cost × 2.1 cold, × 3.4 throttled (the GDScript tick's factors); a slowed desktop run pins the main thread only (`tools/perf_slow.sh --pin=main`); the phone's perf log settles every number | D96, D142, D144 |
 | Debug slime labels' text refresh (`TEXT_REFRESH_MS`) | at most every 250 ms; positions every frame (debug builds only) | D142, D144, item 24.6 |
-| `stress-dense`'s density (D153, D154, chunk 22j) | 3 of weight per 100 px of loop, 9 per 300 px loop bucket: the bucket cap's 4 per 100 px minus 25 % (the user's, D154; was the cap plus 50 %, 18, D153); the bowl's two bottom buckets at the cap, 12 (two, proposed); laid along the loop line, evenly by loop distance; 200 size-1 train slimes from the bowl outward, fewer only if they don't fit before switch 3 (proposed: the total, O114) | D153, D154 |
-| Stress fps targets, reference phone (D153) | `stress-dense` at least 30 fps; `stress-moving` at least 15 fps, no crash, no freeze (proposed: the train hops in every 600-tick window over 10,000 ticks); the camera on the bowl; proposed: the mean over a 62 s run, the 5th percentile reported (O115); the phone emulation (`tools/perf_slow.sh --pin=main`) stands in until the phone is measured | D153 |
 
 ### Test level sections 2 and 3 (chunks 15, 16)
 
@@ -184,41 +174,12 @@ All **to try**: recorded in D124, approved in D125.
 
 | Value | Start at | Source |
 |---|---|---|
-| Landing at the start of the loop (lost, stuck or stalled move) | the first free spot of 8, one slime width apart. *Replaced in chunk 22h (D150):* see the loop-start queue below | D124, D126, D150 |
+| Landing at the start of the loop (lost, stuck or stalled move) | the first free spot of 8, one slime width apart | D124, D126 |
 | Stuck and stalled logs | keep the last 64 cases each | D124 |
 | Millimetres on the desktop and in tests | converted at the reference phone's density; a phone reporting a density of 0 or less logs an error and uses the reference density too | D124 |
 | A resting thumb (about 5 s) | 300 ticks | D110, D124 |
 | Showing a gate open: the glide | a straight line at an even pace, 1.5 s, to the rail point nearest the gate's centre | D124 |
 | Celebration double hop (`CelebrationHops`: `HOPS`, `HOP_STRENGTH`) | 2 hops at 0.6 of a normal hop's strength (about 50 px high, about 0.5 s each) | ux D4, D124 |
-
-### The loop-start queue (D150, chunk 22h)
-
-The user's: one move to the loop start at a time, 0.5 to 2 s apart, to a
-random spot. The rest **proposed**.
-
-| Value | Start at | Source |
-|---|---|---|
-| Wait after a move to the loop start | 30 to 120 ticks (0.5 to 2 s, the user's), uniform, both ends included; the first draw of the derived stream `loop_start:gap:<move tick>` | D150 |
-| Queue order | out of bounds first; then first due, first moved; ties by ascending id (proposed) | D150 |
-| Landing stretch | a distance along the loop drawn uniformly in 0 to 240 px from its start, the centre lifted by the slime's size; inside a split zone (proposed) | D150 |
-| Landing draws per turn | 8, from `loop_start:spot:<tick>`; the first free one (no ring overlapping, parked ones included) is used (proposed) | D150 |
-| No free spot | nobody moves; the head tries again on the next tick that is a multiple of 30 (0.5 s) (proposed) | D150 |
-
-### The bucket cap (D151, chunk 22i)
-
-The user's: a loop bucket never holds more than 15; a hop into a full
-bucket holds; an overfilled bucket lets slimes move only while the next
-has room. The cap below is the coordinator's, accepted by the user as the
-starting value; the rest **proposed**. Behind `--bucket-cap`, off by
-default until the user decides.
-
-| Value | Start at | Source |
-|---|---|---|
-| Loop bucket length (`LoopBuckets.DEFAULT_BUCKET_LENGTH`, `--loop-bucket-length`) | 300 px of loop progress (22g's) | D151 |
-| Bucket cap density (`Train.bucket_cap_density`, `--bucket-cap-density`) | 4 of weight per 100 px of loop: 12 per 300 px bucket (the user's "never more than 15" leaves 3 of slack for hops in flight and arrivals); a size-n slime counts n | D151 |
-| A short last bucket's cap | density × its length, rounded down, never below 3 (the largest size) (proposed) | D151 |
-| Density floor (the train can't lock for lack of room) | at least 2 × the level's base slimes / the loop's length; never binds on the test level (2.3 per 100 px on section 1's loop, 1.0 on section 3's) (proposed) | D151 |
-| Bucket-load sampling (measurement only) | every 60 ticks: each bucket's highest load and a histogram (proposed) | D151 |
 
 ### Session, wind-down, bedtime and sunrise (chunk 17)
 

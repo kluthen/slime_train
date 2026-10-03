@@ -425,35 +425,6 @@ func test_a_slime_on_a_dip_floor_waits_for_a_partner_directly_behind() -> void:
 	assert_eq(_held_after_step(sim, ids), [true, false] as Array[bool], "for as long as its partner comes")
 
 
-## Steps `ticks` times, train slime `holder`'s hold re-begun a tick before
-## each step (so no re-check of it ends it): it holds throughout.
-func _run_holding(sim: Simulation, holder: int, ticks: int) -> void:
-	for i in ticks:
-		var record := sim.train.record_of(holder)
-		record["hold"] = sim.tick - 1
-		sim.train.restore_record(holder, record)
-		sim.step()
-
-
-# A partner directly behind that holds its hop (the hold, D147) doesn't come:
-# the slime on the dip's floor waits for it as for one with other slimes
-# between them, 5 s at most, then goes on; it is never pinned for ever.
-# @test-link [[rule_dip_may_nudge_fusion]]
-# @test-link [[req_hopping_behavior]]
-# @test-link [[rule_loop_travelable_with_no_input]]
-func test_a_partner_directly_behind_that_holds_is_waited_for_5_s_at_most() -> void:
-	var sim := Simulation.new(11)
-	var ids := _on_dip_floor(sim, [2, 2], [200.0, 100.0])
-	_run_holding(sim, ids[1], 1)
-	assert_true(sim.train.is_holding(ids[1]), "the partner behind holds")
-	assert_eq(_held_after_step(sim, ids), [true, false] as Array[bool], "the front one waits a little")
-	_run_holding(sim, ids[1], Fusion.DIP_WAIT_TICKS - 10)
-	assert_eq(_held_after_step(sim, ids), [true, false] as Array[bool], "still within its wait")
-	_run_holding(sim, ids[1], 10)
-	assert_true(sim.train.is_holding(ids[1]), "the partner still holds")
-	assert_false(_held_after_step(sim, ids)[0], "then it goes on: no pin for ever")
-
-
 # @test-link [[rule_dip_may_nudge_fusion]]
 # @test-link [[rule_loop_travelable_with_no_input]]
 func test_a_partner_behind_a_slime_of_another_species_is_waited_for_5_s_at_most() -> void:

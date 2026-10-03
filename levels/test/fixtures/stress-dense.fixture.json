@@ -1,8 +1,0 @@
-{
-	"description": "Gates 1 and 2 open and all 200 base slimes woken as size-1 train slimes, each its sleeper's species, not at bedtime (no session); switch 3 and basket 3 untouched. Along the loop line, not stacked: 9 per 300 px loop bucket (the bucket cap's 12 less 25 %), and 12 (the cap) in the two buckets at the bottom of section 3's bowl, each slime on the loop, evenly spaced in its bucket. The two bottom buckets first, then the buckets behind and ahead alternately, behind first, none past switch 3 (the bucket it cuts takes 9 in proportion). As saved, loop buckets 55 and 56 hold 12, 40 to 54 and 57 to 59 hold 9, bucket 60 holds 6 and bucket 39 the last 8 (loop distances 11,719 to 18,197, x 10.08 to 15.62 screens: back through gate 2, over basket 2 and past switch 2); 70 are in the bowl (x 13.5 to 15.33 screens). The camera on the bowl. The dense moving case, below the bucket cap with the bowl's bottom at it, target at least 30 fps (chunk 22j, D153; rebuilt 2026-10-02).",
-	"save": true,
-	"camera": [
-		16560.0,
-		-150.0
-	]
-}

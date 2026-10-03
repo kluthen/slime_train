@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v45 (stalled amended: no clock while a train slime holds, D152, the user's; loop bucket and bucket cap added, D151, the user's, details proposed; move to the loop start and loop-start queue added, stalled amended (no clock while parked), lost reworded, D150, the user's, details proposed; shipped added, save wipe amended to automated testing only, the save format before the first store release, D149, proposed; save wipe added, D148, approved in direction; holder, hold guard and hop corridor added, hold and jam amended, D147, proposed; hold and jam, D145, proposed)
+Status: draft v38
 
 ## One-liner
 
@@ -105,10 +105,7 @@ saved every 15 s and whenever the app goes to the background. On load, a slime
 saved in mid-air is placed on the ground or at its jump start, or declared lost
 (D12). Each level has its own save file, and the user can delete one level's
 save (D43). Saves are never wiped. A released level isn't meant to change,
-and any minor update ships with its migration (D72). Until the app has
-shipped (its first store release), the save format may change without a
-migration: a build sets aside a save it can't use and starts that level
-fresh (D149; the setting aside proposed).
+and any minor update ships with its migration (D72).
 
 ## Controls
 
@@ -246,14 +243,6 @@ survives the app being killed.
 | quota outlines | how a basket shows its quota: one empty slime outline per unit of weight, filling in the colour of each slime caught (ux D4). Not "the slime counter" |
 | quota pie | *(proposed, D128)* how a basket with a quota above 10 shows it: one pie per 10 of weight, the last holding the rest, a slice filling per unit of weight |
 | debug overlay | developer tools over the game, in debug builds only: speed, reset, slime labels, the kill tool, the fps and the **slime counts**: Physics (the slimes that cost physics), On screen, In range (not parked) and Parked (D143, proposed, chunk 22d; before it: on screen : simulated off screen : parked) |
-| hold | *(proposed, D145, D147)* a train slime staying where it is instead of hopping, because its **hop corridor** is crowded or has a **holder** in it. It checks again about every 0.5 s; at 5 s plus a seeded extra it checks once more and, still crowded, keeps holding (no hop through a crowd). Only the **hold guard** forces a hop. A holding slime may **rest** (stop being simulated). Not the dip nudge's short wait for a fusion partner. *Before D147:* more than 30 awake slimes near its landing point, or a jam, and a hop anyway after 5 s |
-| holder | *(proposed, D147)* a train slime that is holding. A holder in another slime's hop corridor makes that slime hold too, so a queue releases from its front. A train slime touching a holder ahead of it may rest, and then counts as a holder |
-| hop corridor | *(proposed, D147, the user's)* the box a train slime checks before hopping: from its centre to its landing point plus 100 px, 75 px either side. Crowded when the slimes in it (resting and holding ones included; not parked, in a basket or sleepers) fill more than half of it, by area |
-| stack zone | *(proposed, D147, the user's "guard zone", renamed so it isn't confused with the hold guard)* the start of a hop corridor, beside the hopping slime: just above or below it. A holder there doesn't make the slime hold (it still counts toward the crowd), so stacked slimes don't hold each other and the order they're checked in matters less |
-| hold guard | *(proposed, D147)* the train's safety catch: when no train slime has hopped for 4 s while one holds, the front-most holder hops, crowd or not, so the train never freezes. Not the stalled-train net (a slime with no progress in 60 s moved to the loop start) |
-| loop bucket | *(D151; built in chunk 22g)* a stretch of the loop, 300 px of loop progress, counted from the loop's start; the loop is cut into them again when a gate opens. A bucket's **load** is the weight of the train slimes in it (parked and sliding ones included; not slimes in a basket, sleepers or free slimes). Logical only: nothing is drawn or placed by it |
-| bucket cap | *(D151, the user's; the cap accepted by the user, details proposed)* the most weight a **loop bucket** may take from hops: 4 per 100 px of loop, 12 for a 300 px bucket (the user: never more than 15). A train slime whose hop would land in a bucket without room for it holds. A bucket at or over its cap is **overfilled**: its slimes move only while the next bucket has room. Behind a switch, off by default, until the user decides (chunk 22i) |
-| jam | *(proposed, D145; replaced by the holder rule, proposed, D147)* the holding train slimes ahead of a train slime on the loop; a slime arriving behind a jam stops short of it instead of landing on it. Kept while chunk 22f measures; the holder in the hop corridor does its job |
 | awake cluster | *(proposed, D143)* a group of touching slimes that all cost physics (awake, not resting, not parked); the **largest awake cluster** is its biggest, in slimes, in the perf log and in level rule 23. Not a resting pile, which costs little |
 | crowd detail | *(proposed, D140, D141)* fewer ring points per slime when many slimes are active (20, 30, 40 or more) or when zoomed out; a size-1 slime goes from 12 points down to 10, 8 or 6. A detail level: 0 (full) to 3. In play, the crowd's part applies only when the device can't keep up: a **detail ceiling** set by the device's load caps it (a good device keeps full points); test mode applies it always |
 | frontier set | the signpost, switch, basket and gate that end a section: flip the switch, fill the basket, the gate opens (D14). Inert once its gate is open (D86) |
@@ -261,11 +250,9 @@ survives the app being killed.
 | lid | the part of a gate that shuts the old return route's entrance once the gate is open (D105) |
 | weight | a slime's size seen as load; what presence objects respond to |
 | left alone | a free slime off screen for more than 10 s |
-| lost | a left-alone slime not back on the loop after 1 min; moved to the loop start (a **move to the loop start**) |
+| lost | a left-alone slime not back on the loop after 1 min; teleported to the loop start |
 | stuck | two slimes that can't fuse, found inside each other for about 2 s; a state of its own, not "lost", with the same effect: the smaller one goes to the loop start (D100) |
-| stalled | a train slime whose progress along the loop hasn't advanced for 60 s, or that left the level's bounds; not "lost", but with the same effect: moved to the loop start and logged (D118, D121). The build says "lost as stalled". The 60 s count only while it is simulated: parked, its clock is paused (D150, the user's); nor while it holds, for any reason, or rests by contact behind a holder (D152, the user's) |
-| move to the loop start | *(D150, the user's "emergency teleport"; details proposed)* the one move lost, stuck and stalled slimes take: back on the train, at a random free spot on the loop's first 240 px, inside the start's split zone, never onto another slime. Taken one at a time, through the **loop-start queue** |
-| loop-start queue | *(D150, the user's; details proposed)* the slimes due a move to the loop start, waiting their turn: one move at a time, the next 0.5 to 2 s (random) after the last; first due, first moved (out of bounds first). A waiting slime carries on as it was; one that recovers before its turn leaves without a move. Not a train queue (slimes waiting single file on the loop) |
+| stalled | a train slime whose progress along the loop hasn't advanced for 60 s, or that left the level's bounds; not "lost", but with the same effect: moved to the loop start and logged (D118, D121). The build says "lost as stalled" |
 | free slime | an awake slime attracted away from the loop, driven by physics alone until it rejoins |
 | session | one timed play period (15 min for now) |
 | level | a whole world with its own loop, sections and save file; v1 has the test level only (D134) |
@@ -299,6 +286,4 @@ survives the app being killed.
 | stable ID | the name a save uses to find a placed thing, `<place>.<kind>.<name>` (for example `s1.sleeper.01`); kept once a level is released (D72, level rule 20) |
 | test mode | a mode of the Linux and debug Android builds only, never the release: loads a fixture, speeds up or skips time, and injects taps and tilt from a script (D91) |
 | fixture | a named starting state for test mode, stored with its level (a save and a sidecar); test tooling, not a player's save |
-| save wipe | *(D148, approved in direction, D149; its details proposed)* a launch flag for **automated test runs only**, `--wipe-save`, in debug builds only: every level's save is deleted at launch, the parent code kept. Never in a release build, never passed by save and restore tests, never used in manual play (there, a level is started over with the parent's **delete**). Not the parent's **delete** of one level's save (D43), and not a wiped save in the sense of "saves are never wiped", which is about a player's build |
-| shipped | *(proposed, D149)* the app from its **first store release** on (probably v4; v1 never ships). Before it there is no player's build: the save format may change without a migration, and a save a build can't use is set aside. After it, every save-format change ships with its migration. Not the basket's **release** |
 | skeleton | a level just made by the new-level scaffolder: minimal, playable and passing the level rules, for a designer to build on |

@@ -31,73 +31,21 @@ extends Node
 ##   tick_ms_frame_mean   ms per frame spent in ticks
 ##   rest_ms_mean         ms per frame outside the ticks (frame - ticks):
 ##                        rendering, input, the rest of the process
-##   physics, on_screen, in_range, parked, resting
+##   on_screen, simulated, off_screen
 ##                        the debug overlay's slime counts at the line
-##                        (DebugCounts.count_slimes(), the bar's Physics, On
-##                        screen, In range, Parked, plus Resting): calm
-##                        ACTIVE and not a sleeper (they cost physics);
-##                        centre in the view, any state; not parked; parked;
-##                        calm RESTING. They overlap, so they don't add up
-##   largest_cluster      the largest awake cluster at the line
-##                        (DebugCounts.largest_cluster()): the most Physics
-##                        slimes touching each other, directly or through
-##                        others, in the last tick's contacts (by distance
-##                        when a fusion since the tick wiped them). Taken only
-##                        here, once a line, never per frame nor in the tick
-##   hops, short_hops     the train hops taken in the window (automatic hops
-##                        of train slimes, counted at take-off), and those
-##                        that landed in the window less than half their
-##                        Train.hop_reach() along the loop past their take-off
-##                        (Train.hops_taken, short_hops_taken: the perf log
-##                        takes their new counts frame by frame, train_hops())
-##   holding, holding_resting, contact_resting, queue_back, queue_back_held
-##                        the train's holders and touching queues at the line
-##                        (Train.hold_snapshot(), TrainQueues.snapshot(); 0
-##                        without a train): train slimes holding their hop
-##                        (the bar's "hold"); of them, calm RESTING; train
-##                        slimes calm RESTING but not holding (0 until rest
-##                        by contact); in every touching queue of 5 or more
-##                        simulated train slimes (a chain consecutive along
-##                        the loop, each touching the next: centres within
-##                        the two radii + 2 px), the members behind its
-##                        front; of them, holding or resting
-##   hold_ends_clear, hold_ends_cap, guard_releases, hold_ends_other,
-##   front_hops, queue_hops, holder_holds, crowd_holds, bucket_holds,
-##   crowded_hops         the hold's counters in the window, in
-##                        TrainHold.COUNTERS' order
-##                        (Train.hold_counters(), TrainHold.COUNTERS, taken
-##                        frame by frame as the hops, hold_counters()): holds
-##                        ended at a re-check with both checks passing, by
-##                        the cap, by the hold guard (0 until it exists), and
-##                        otherwise (a slide, parking, a call, bedtime, gone,
-##                        a stall or stuck move); train hops taken by the
-##                        front of their touching queue (no simulated train
-##                        slime ahead along the loop touches it), and those
-##                        taken while the nearest simulated train slime
-##                        ahead within the hop's reach holds or rests; holds
-##                        started by the holder rule with the hop corridor's
-##                        occupancy at or below the threshold, and with it
-##                        above (a hold both checks start, a crowd and a
-##                        holder, counts there, in crowd_holds only); holds
-##                        started because the hop's loop bucket was full
-##                        (chunk 22i, the bucket cap's "bucket full", D151
-##                        (4): 0 with the cap off); train hops taken with
-##                        the corridor's occupancy above the threshold (at
-##                        the cap)
-##   bucket_max, buckets_over
-##                        the train's bucket loads at the line
-##                        (Train.bucket_loads(), chunk 22i, D151 (7); kept
-##                        with the bucket cap on or off; 0 without a train):
-##                        the highest load of any loop bucket (a weight: the
-##                        summed sizes of its train slimes), and the loop
-##                        buckets over their bucket cap (load above it)
-##   bodies               every slime, whatever its state
-##   active               mean slimes that cost physics, per frame
-##                        (SlimeBodies.crowd_count(), the same count as
-##                        physics and as the crowd detail's): baskets
-##                        included, and slimes asleep at bedtime still
-##                        settling (they are integrated, so they cost
-##                        physics); resting, parked and sleepers excluded
+##                        (DebugCounts.count_slimes()): centre in the view;
+##                        off the view and fully simulated; off the view
+##                        and parked
+##   parked               every parked slime (SlimeBodies.is_parked), on
+##                        screen or not: off_screen plus the parked ones
+##                        whose centre is in the view (they unpark on the
+##                        next tick), so parked >= off_screen
+##   bodies               every slime, whatever its state (on_screen +
+##                        simulated + off_screen)
+##   active               mean bodies the solver simulates, per frame
+##                        (active_bodies(): baskets included, which
+##                        "simulated" doesn't show; resting, parked and
+##                        sleeping ones excluded)
 ##   pairs                mean candidate pairs on the frame's last tick
 ##                        (SlimeBodies.candidate_pair_count())
 ##   section              the section the camera is in (camera_section():
@@ -184,9 +132,8 @@ var _process_start_usec := -1
 ## The simulation ticks run in the window.
 var _ticks := 0
 ## Per frame of the window (as _deltas): the ticks the game root ran, the
-## real time they took (microseconds), the slimes that cost physics
-## (SlimeBodies.crowd_count()) and candidate pairs after them (0 without a
-## simulation).
+## real time they took (microseconds), the active bodies and candidate pairs
+## after them (0 without a simulation).
 var _frame_ticks := PackedInt32Array()
 var _frame_tick_usec := PackedInt64Array()
 var _frame_active := PackedInt32Array()
@@ -195,17 +142,6 @@ var _frame_pairs := PackedInt32Array()
 ## simulation replaced (a reset, test mode starting) starts counting afresh.
 var _sim: Simulation = null
 var _last_tick := 0
-## The train hops and short hops of the window, and the train's totals
-## (train_hops()) when last read, from _sim like the ticks.
-# @spec-link [[req_platform_and_performance_targets]]
-var _hops := 0
-var _short_hops := 0
-var _last_hops := Vector2i.ZERO
-## The hold's counters of the window and the train's totals when last read
-## (hold_counters()), one per TrainHold.COUNTERS, as the hops.
-# @spec-link [[req_platform_and_performance_targets]]
-var _period := PackedInt32Array()
-var _last_period := PackedInt32Array()
 ## Time.get_ticks_usec() at the previous frame, or -1 before the first.
 var _last_usec := -1
 ## The window's sums of take_parts(), one per PART_FIELDS.
@@ -231,8 +167,6 @@ func _ready() -> void:
 	get_tree().process_frame.connect(_on_process_frame)
 	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
 	_part_sums.resize(PART_FIELDS.size())
-	_period.resize(TrainHold.COUNTERS.size())
-	_last_period.resize(TrainHold.COUNTERS.size())
 	print(info_line())
 
 
@@ -248,18 +182,10 @@ func _process(_delta: float) -> void:
 	var parts := take_parts()
 	var sim: Simulation = game.get("simulation")
 	if sim != null:
-		var hops := train_hops(sim)
-		var period := hold_counters(sim)
 		if sim == _sim:
 			_ticks += sim.tick - _last_tick
-			_hops += hops.x - _last_hops.x
-			_short_hops += hops.y - _last_hops.y
-			for i in period.size():
-				_period[i] += period[i] - _last_period[i]
 		_sim = sim
 		_last_tick = sim.tick
-		_last_hops = hops
-		_last_period = period
 	if _last_usec < 0 or _process_start_usec < 0:
 		_last_usec = now
 		return
@@ -270,17 +196,15 @@ func _process(_delta: float) -> void:
 	_process_s += (now - _process_start_usec) / 1_000_000.0
 	_frame_ticks.append(int(game.get("frame_ticks")))
 	_frame_tick_usec.append(int(game.get("frame_tick_usec")))
-	_frame_active.append(sim.slimes.crowd_count() if sim != null else 0)
+	_frame_active.append(active_bodies(sim) if sim != null else 0)
 	_frame_pairs.append(sim.slimes.candidate_pair_count() if sim != null else 0)
 	for i in parts.size():
 		_part_sums[i] += parts[i]
 	if _window_s >= seconds:
 		print(line(Time.get_ticks_msec() / 1000.0, window_stats(_deltas),
 				tick_stats(_deltas, _frame_ticks, _frame_tick_usec, _frame_active, _frame_pairs),
-				_process_s * 1000.0 / _deltas.size(), _ticks, _hops, _short_hops, sim,
-				part_means(_part_sums, _deltas.size()), _period))
+				_process_s * 1000.0 / _deltas.size(), _ticks, sim, part_means(_part_sums, _deltas.size())))
 		_part_sums.fill(0.0)
-		_period.fill(0)
 		_deltas = PackedFloat64Array()
 		_frame_ticks = PackedInt32Array()
 		_frame_tick_usec = PackedInt64Array()
@@ -289,8 +213,6 @@ func _process(_delta: float) -> void:
 		_window_s = 0.0
 		_process_s = 0.0
 		_ticks = 0
-		_hops = 0
-		_short_hops = 0
 
 
 ## This frame's parts outside the ticks, one per PART_FIELDS: the game
@@ -431,9 +353,9 @@ static func window_stats(deltas_s: PackedFloat64Array) -> Dictionary:
 
 ## The tick statistics of one window: per frame, its time `deltas_s`
 ## (seconds), the ticks the game root ran `frame_ticks`, their real time
-## `frame_tick_usec` (microseconds), the slimes that cost physics
-## `frame_active` and candidate pairs `frame_pairs` after them, all the same
-## size, at least one frame. Returns {"ticks_per_frame_mean", "ticks_per_frame_max",
+## `frame_tick_usec` (microseconds), the active bodies `frame_active` and
+## candidate pairs `frame_pairs` after them, all the same size, at least one
+## frame. Returns {"ticks_per_frame_mean", "ticks_per_frame_max",
 ## "tick_ms_mean" (ms per tick; 0 without a tick), "tick_ms_frame_mean" (ms
 ## per frame spent in ticks), "rest_ms_mean" (ms per frame outside them),
 ## "active_mean", "pairs_mean"}.
@@ -470,6 +392,19 @@ static func tick_stats(deltas_s: PackedFloat64Array, frame_ticks: PackedInt32Arr
 	}
 
 
+## How many of `sim`'s slimes the solver simulates: calm ACTIVE (neither
+## resting nor parked) and not a sleeper nor asleep at bedtime, whatever
+## else their state (a slime in a basket counts).
+static func active_bodies(sim: Simulation) -> int:
+	var bodies := sim.slimes
+	var count := 0
+	for s in bodies.slime_count:
+		if bodies.calm[s] == SlimeBodies.ACTIVE and bodies.state[s] != SlimeBodies.STATE_SLEEPER \
+				and bodies.state[s] != SlimeBodies.STATE_BEDTIME_ASLEEP:
+			count += 1
+	return count
+
+
 ## The nearest-rank `share` percentile of `sorted` (ascending, not empty).
 static func _nearest_rank(sorted: PackedFloat64Array, share: float) -> float:
 	var rank := clampi(ceili(share * sorted.size()), 1, sorted.size())
@@ -478,68 +413,33 @@ static func _nearest_rank(sorted: PackedFloat64Array, share: float) -> float:
 
 ## The PERF line for a window: `t` seconds since the engine started, its
 ## window_stats() `stats` and tick_stats() `ticking` (active and pairs
-## included), the mean process time `process_ms_mean`, the `ticks` run, the
-## train `hops` taken and `short_hops` landed in it, `sim`'s slime counts,
-## largest awake cluster, holders and touching queues, bucket loads (the
-## highest, those over their bucket cap), total slimes, camera
-## section and zoom (zeros without a simulation), the part_means() `parts`
-## and the hold's counters of the window `period` (one per
-## TrainHold.COUNTERS; empty: zeros). The fields are the class doc's, in its
-## order. Read only.
-# @spec-link [[req_platform_and_performance_targets]]
+## included), the mean process time `process_ms_mean`, the `ticks` run,
+## `sim`'s slime counts, parked slimes, camera section and zoom (zeros
+## without a simulation), and the part_means() `parts`. The fields are the
+## class doc's, in its order.
 static func line(t: float, stats: Dictionary, ticking: Dictionary, process_ms_mean: float, ticks: int,
-		hops: int, short_hops: int, sim: Simulation, parts: PackedFloat64Array,
-		period := PackedInt32Array()) -> String:
+		sim: Simulation, parts: PackedFloat64Array) -> String:
 	assert(parts.size() == PART_FIELDS.size(), "PerfLog.line: one mean per part field")
-	assert(period.is_empty() or period.size() == TrainHold.COUNTERS.size(),
-			"PerfLog.line: one count per hold counter")
-	var counts := {DebugCounts.PHYSICS: 0, DebugCounts.ON_SCREEN: 0, DebugCounts.IN_RANGE: 0,
-			DebugCounts.PARKED: 0, DebugCounts.RESTING: 0}
-	var largest_cluster := 0
-	var bodies := 0
+	var counts := {DebugCounts.ON_SCREEN: 0, DebugCounts.SIMULATED: 0, DebugCounts.OFF_SCREEN: 0}
+	var parked := 0
 	var section := 0
 	var zoom := 0.0
-	var snapshot := {}
-	var bucket_max := 0
-	var buckets_over := 0
 	if sim != null:
 		counts = DebugCounts.count_slimes(sim)
-		if sim.train != null:
-			snapshot = sim.train.hold_snapshot(sim.slimes)
-			bucket_max = sim.train.bucket_loads().max_load()
-			buckets_over = sim.train.bucket_loads().over_count()
-		largest_cluster = DebugCounts.largest_cluster(sim.slimes)
-		bodies = sim.slimes.slime_count
+		parked = parked_bodies(sim)
 		section = camera_section(sim)
 		zoom = sim.view.zoom
+	var bodies: int = counts[DebugCounts.ON_SCREEN] + counts[DebugCounts.SIMULATED] + counts[DebugCounts.OFF_SCREEN]
 	return ("PERF t=%.1f frames=%d fps=%.1f frame_ms_p50=%.2f frame_ms_p95=%.2f frame_ms_max=%.2f"
 			+ " process_ms_mean=%.2f ticks=%d ticks_per_frame_mean=%.2f ticks_per_frame_max=%d"
 			+ " tick_ms_mean=%.2f tick_ms_frame_mean=%.2f rest_ms_mean=%.2f"
-			+ " physics=%d on_screen=%d in_range=%d parked=%d resting=%d largest_cluster=%d"
-			+ " hops=%d short_hops=%d%s bucket_max=%d buckets_over=%d bodies=%d"
-			+ " active=%.1f pairs=%.1f"
+			+ " on_screen=%d simulated=%d off_screen=%d parked=%d bodies=%d active=%.1f pairs=%.1f"
 			+ " section=%d zoom=%.3f") % [
 			t, stats["frames"], stats["fps"], stats["p50_ms"], stats["p95_ms"], stats["max_ms"],
 			process_ms_mean, ticks, ticking["ticks_per_frame_mean"], ticking["ticks_per_frame_max"],
 			ticking["tick_ms_mean"], ticking["tick_ms_frame_mean"], ticking["rest_ms_mean"],
-			counts[DebugCounts.PHYSICS], counts[DebugCounts.ON_SCREEN], counts[DebugCounts.IN_RANGE],
-			counts[DebugCounts.PARKED], counts[DebugCounts.RESTING], largest_cluster, hops, short_hops,
-			_hold_text(snapshot, period), bucket_max, buckets_over, bodies,
-			ticking["active_mean"], ticking["pairs_mean"], section, zoom] + _part_text(parts)
-
-
-## The hold's fields of the PERF line: the snapshot `snapshot`
-## (TrainQueues.SNAPSHOT_FIELDS -> count, a field missing reads 0) and the
-## window's counters `period` (one per TrainHold.COUNTERS; empty: zeros), "
-## key=value" each, whole numbers.
-# @spec-link [[req_platform_and_performance_targets]]
-static func _hold_text(snapshot: Dictionary, period: PackedInt32Array) -> String:
-	var text := ""
-	for field in TrainQueues.SNAPSHOT_FIELDS:
-		text += " %s=%d" % [field, snapshot.get(field, 0)]
-	for i in TrainHold.COUNTERS.size():
-		text += " %s=%d" % [TrainHold.COUNTERS[i], period[i] if not period.is_empty() else 0]
-	return text
+			counts[DebugCounts.ON_SCREEN], counts[DebugCounts.SIMULATED], counts[DebugCounts.OFF_SCREEN], parked,
+			bodies, ticking["active_mean"], ticking["pairs_mean"], section, zoom] + _part_text(parts)
 
 
 ## The part fields of the PERF line for the means `parts` (one per
@@ -552,27 +452,14 @@ static func _part_text(parts: PackedFloat64Array) -> String:
 	return text
 
 
-## `sim`'s train hops and short hops so far (Train.hops_taken,
-## short_hops_taken) as (hops, short hops); zeros without a train (no level).
-# @spec-link [[req_platform_and_performance_targets]]
-static func train_hops(sim: Simulation) -> Vector2i:
-	if sim.train == null:
-		return Vector2i.ZERO
-	return Vector2i(sim.train.hops_taken, sim.train.short_hops_taken)
-
-
-## `sim`'s hold counters so far (Train.hold_counters()), one per
-## TrainHold.COUNTERS in its order; zeros without a train (no level).
-# @spec-link [[req_platform_and_performance_targets]]
-static func hold_counters(sim: Simulation) -> PackedInt32Array:
-	var out := PackedInt32Array()
-	out.resize(TrainHold.COUNTERS.size())
-	if sim.train == null:
-		return out
-	var counters := sim.train.hold_counters()
-	for i in TrainHold.COUNTERS.size():
-		out[i] = counters[TrainHold.COUNTERS[i]]
-	return out
+## How many of `sim`'s slimes are parked (SlimeBodies.PARKED), wherever they are.
+static func parked_bodies(sim: Simulation) -> int:
+	var bodies := sim.slimes
+	var count := 0
+	for s in bodies.slime_count:
+		if bodies.calm[s] == SlimeBodies.PARKED:
+			count += 1
+	return count
 
 
 ## The section the camera is in: that of the current loop's segment (for the

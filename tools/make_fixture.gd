@@ -60,12 +60,6 @@ extends SceneTree
 ## the rest of the population on the train through the bowl (as
 ## stress-moving's), so playing on fills the last basket and plays the
 ## celebration.
-##
-## Chunk 22j (tools/make_fixture/stress_fixtures.gd, D153; rebuilt
-## 2026-10-02): stress-dense has the whole population on the train, put on
-## the loop line, 9 per 300 px loop bucket (the bucket cap's 12 less 25 %)
-## and 12 in the two buckets at the bottom of section 3's bowl, spreading
-## behind and ahead of them, none past switch 3.
 # @spec-link [[req_test_level_and_test_mode]]
 # @spec-link [[req_persistence_and_saves]]
 
@@ -74,9 +68,6 @@ const USAGE := "usage: tools/level.sh fixture [--level=<id>] [--list] [name ...]
 const LevelFixtures := preload("res://tools/make_fixture/level_fixtures.gd")
 ## The test level's persistence fixtures (chunk 19).
 const PersistenceFixtures := preload("res://tools/make_fixture/persistence_fixtures.gd")
-## The stress fixtures' room for slimes (the bowl's scan; stress-dense's
-## placement, chunk 22j).
-const StressFixtures := preload("res://tools/make_fixture/stress_fixtures.gd")
 const S := LevelData.SCREEN
 ## The fusion dip's floor: its lowest point is at x 3.0 screens, y 240; a
 ## slime's centre rests above it.
@@ -239,19 +230,6 @@ const FIXTURES := {
 			+ "on the bowl. The worst moving case: a measurement, not a target (chunk 16; "
 			+ "tools/bench_level.gd)."),
 			"camera": [BOWL_CAMERA.x, BOWL_CAMERA.y], "build": "_stress_moving"},
-	"stress-dense": {"description": ("Gates 1 and 2 open and all 200 base slimes woken as size-1 "
-			+ "train slimes, each its sleeper's species, not at bedtime (no session); switch 3 and "
-			+ "basket 3 untouched. Along the loop line, not stacked: 9 per 300 px loop bucket (the bucket "
-			+ "cap's 12 less 25 %), and 12 (the cap) in the two buckets at the bottom of section 3's bowl, "
-			+ "each slime on the loop, evenly spaced in its bucket. The two bottom buckets first, then the "
-			+ "buckets behind and ahead alternately, behind first, none past switch 3 (the bucket it cuts "
-			+ "takes 9 in proportion). As saved, loop buckets 55 and 56 hold 12, 40 to 54 and 57 to 59 hold "
-			+ "9, bucket 60 holds 6 and bucket 39 the last 8 (loop distances 11,719 to 18,197, x 10.08 to "
-			+ "15.62 screens: back through gate 2, over basket 2 and past switch 2); 70 are in the bowl "
-			+ "(x 13.5 to 15.33 screens). The camera on the bowl. The dense moving case, below the bucket "
-			+ "cap with the bowl's bottom at it, target at least 30 fps (chunk 22j, D153; rebuilt "
-			+ "2026-10-02)."),
-			"camera": [BOWL_CAMERA.x, BOWL_CAMERA.y], "build": "_stress_dense"},
 	"s3-basket-59of60": {"description": ("Gates 1 and 2 open as after baskets 1 and 2 fired, all "
 			+ "200 base slimes woken (no sleeper left), not at bedtime (no session). Switch 3 "
 			+ "flipped (its trapdoor open) and basket 3 at 59 of 60: 59 size-1 slimes in it, laid "
@@ -764,40 +742,6 @@ func _stress_moving() -> Simulation:
 	return sim
 
 
-## stress-dense: gates 1 and 2 open, the whole population woken as size-1
-## train slimes (the first slime first, then the sleepers in stable ID
-## order), each put on the loop at its StressFixtures.dense_distances
-## distance in fill order (as Simulation.spawn_train_slime puts a train
-## slime), none at or past switch 3's near edge; prints each loop bucket's
-## load, how many are in the bowl and the stretch of loop used.
-# @spec-link [[rule_max_200_slimes_per_level]]
-func _stress_dense() -> Simulation:
-	var sim := _fresh_level()
-	if not _open_gates_before(sim, 3):
-		return null
-	var members := _whole_population(sim)
-	var switch_box: Rect2 = _level.data.switches[SWITCH_3]["box"]
-	var stop: float = _level.data.loop.closest(Vector2(switch_box.position.x, switch_box.get_center().y),
-			sim.train.open_gates)["distance"]
-	var distances := StressFixtures.dense_distances(sim, members.size(), BOWL_FROM, BOWL_TO, stop)
-	if distances.is_empty():
-		return null
-	for k in members.size():
-		var slime := sim.spawn_train_slime(members[k][1], 1, distances[k])
-		sim.identities.assign(slime, PackedStringArray([members[k][0]]))
-	sim.train.rebuild_loads(sim.slimes)
-	var loads := sim.train.bucket_loads().loads()
-	var filled := []
-	for b in loads.size():
-		if loads[b] > 0:
-			filled.append("%d: %d" % [b, loads[b]])
-	var xs := distances.map(func(d: float): return sim.train.position_at(d).x)
-	var in_bowl := xs.filter(func(x: float): return x >= BOWL_FROM and x <= BOWL_TO).size()
-	print("make_fixture: stress-dense's loop buckets (bucket: load) %s; %d in the bowl; loop %.0f to %.0f, x %.2f to %.2f screens"
-			% [", ".join(filled), in_bowl, distances.min(), distances.max(), xs.min() / S, xs.max() / S])
-	return sim
-
-
 ## Every slime's body goes (the first slime's and the sleepers'); returns
 ## [stable ID, species] for each, the first slime first, then the sleepers in
 ## stable ID order.
@@ -826,28 +770,49 @@ func _into_bowl(sim: Simulation, members: Array, state: int) -> bool:
 	if spots.size() < members.size():
 		push_error("make_fixture: the bowl has room for %d slimes, %d needed" % [spots.size(), members.size()])
 		return false
-	_create_at(sim, members, spots, state)
-	return true
-
-
-## Makes a size-1 slime in `state` (FREE or TRAIN; a train slime follows the
-## loop from its nearest point) for each [stable ID, species] of `members`,
-## the k-th at spots[k] (as many spots as members, at least).
-func _create_at(sim: Simulation, members: Array, spots: Array, state: int) -> void:
 	for k in members.size():
 		var at: Vector2 = spots[k]
 		var slime := sim.slimes.create(members[k][1], 1, at, state)
 		if state == SlimeBodies.TRAIN:
 			sim.train.track(slime, _level.data.loop.closest(at, sim.train.open_gates)["distance"])
 		sim.identities.assign(slime, PackedStringArray([members[k][0]]))
+	return true
 
 
-## Room for a size-1 slime in section 3's bowl, lowest first: the columns
-## from BOWL_FROM to BOWL_TO, scanned from BOWL_TOP down to BOWL_BOTTOM
-## (StressFixtures.column_spots).
+## Room for a size-1 slime in section 3's bowl, lowest first: in columns
+## SPOT_PITCH px apart from BOWL_FROM to BOWL_TO, scanned from BOWL_TOP down,
+## each space between terrain pieces holds slimes stacked SPOT_PITCH px apart
+## from its floor (a ledge's top, or the ground) up to its ceiling (the ledge
+## above's underside). A piece the scan gets through within 40 px is a ledge;
+## otherwise it is the ground, and the column ends.
 func _bowl_spots() -> Array:
-	var spots := StressFixtures.column_spots(_terrain, BOWL_FROM, BOWL_TO, BOWL_TOP, BOWL_BOTTOM)
-	StressFixtures.sort_lowest_first(spots)
+	var reach := SlimeBodies.ring_radius_for(1) + SlimeBodies.EDGE
+	var spots := []
+	var x := BOWL_FROM
+	while x <= BOWL_TO:
+		var ceiling := BOWL_TOP
+		var y := BOWL_TOP
+		while y < BOWL_BOTTOM:
+			if not _terrain.resolve(Vector2(x, y))["hit"]:
+				y += 2.0
+				continue
+			var centre := y - reach - 2.0
+			while centre - reach >= ceiling + 2.0:
+				if _terrain.resolve(Vector2(x, centre))["distance"] >= reach + 1.0:
+					spots.append(Vector2(x, centre))
+				centre -= SPOT_PITCH
+			var below := y
+			var through := false
+			while below < y + 40.0 and not through:
+				below += 2.0
+				var hit := _terrain.resolve(Vector2(x, below))
+				through = not hit["hit"] and hit["distance"] < 8.0
+			if not through:
+				break
+			ceiling = below
+			y = below + 2.0
+		x += SPOT_PITCH
+	spots.sort_custom(func(a: Vector2, b: Vector2): return a.y > b.y or (a.y == b.y and a.x < b.x))
 	return spots
 
 

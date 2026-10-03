@@ -79,59 +79,26 @@ func test_with_the_rule_off_nothing_rests() -> void:
 	assert_eq(_count(bodies, SlimeBodies.RESTING), 0)
 
 
-## The pile slime indices (all but `except`) whose ring may reach within
-## `radius` of `point`: the slimes a disturbance there touches.
-func _in_reach(bodies: SlimeBodies, point: Vector2, radius: float, except := -1) -> Array:
-	var out := []
-	for s in bodies.slime_count:
-		var reach := radius + bodies.bound_r[s] + SlimeBodies.TOUCH_SKIN
-		if s != except and bodies.centre[s].distance_squared_to(point) < reach * reach:
-			out.append(s)
-	return out
-
-
-## The indices of the slimes whose calm is `calm`.
-func _with_calm(bodies: SlimeBodies, calm: int) -> Array:
-	var out := []
-	for s in bodies.slime_count:
-		if bodies.calm[s] == calm:
-			out.append(s)
-	return out
-
-
-## The local wake (D145): a touch faster than WAKE_SPEED wakes only the
-## resting slimes touched, the rest of the pile stays resting (it replaces
-## D96's whole-pile wake, which this test asserted before).
-# @test-link [[req_offscreen_simulation]]
-func test_a_slime_landing_on_the_pile_wakes_only_the_slimes_it_touches() -> void:
+func test_a_slime_landing_on_the_pile_wakes_it_whole() -> void:
 	var bodies := _pile(12)
 	assert_gt(_ticks_to_rest(bodies, 900), 0)
-	var group := bodies.pile[0]
 	var dropped := bodies.create(0, 1, Vector2(0, -400), SlimeBodies.IN_BASKET)
-	var woken := []
+	var woke := -1
 	for t in 120:
 		bodies.tick(DT)
-		woken = _with_calm(bodies, SlimeBodies.ACTIVE)
-		woken.erase(bodies.index_of(dropped))
-		if not woken.is_empty():
+		if _count(bodies, SlimeBodies.RESTING) == 0:
+			woke = t
 			break
-	assert_false(woken.is_empty(), "the landing woke the slimes it hit")
-	for s in woken:
-		assert_true(bodies.touching(dropped, bodies.id[s]), "slime %d: touched by the landing" % bodies.id[s])
-		assert_eq(bodies.pile[s], 0, "a woken slime leaves its pile")
-	assert_eq(_count(bodies, SlimeBodies.RESTING), 12 - woken.size(), "the rest of the pile rests on")
-	for s in _with_calm(bodies, SlimeBodies.RESTING):
-		assert_eq(bodies.pile[s], group, "and keeps its pile")
+	assert_gt(woke, 0, "the landing woke the whole pile")
 	assert_gt(_ticks_to_rest(bodies, 900), 0, "and it rests again, the new slime with it")
 	assert_eq(bodies.calm_of(dropped), SlimeBodies.RESTING)
 
 
-# @test-link [[req_offscreen_simulation]]
-func test_a_state_change_wakes_only_that_slime() -> void:
+func test_a_state_change_wakes_the_whole_pile() -> void:
 	var bodies := _pile(12)
 	assert_gt(_ticks_to_rest(bodies, 900), 0)
 	bodies.set_state(bodies.id[0], SlimeBodies.TRAIN)
-	assert_eq(_with_calm(bodies, SlimeBodies.ACTIVE), [0], "sunrise, a release: that slime simulates again")
+	assert_eq(_count(bodies, SlimeBodies.RESTING), 0, "sunrise, a release: the pile simulates again")
 
 
 func test_setting_the_same_state_does_not_wake() -> void:
@@ -141,27 +108,14 @@ func test_setting_the_same_state_does_not_wake() -> void:
 	assert_eq(_count(bodies, SlimeBodies.RESTING), 12)
 
 
-## A slime taken out of a pile wakes the resting slimes that touched it, not
-## the rest of the pile (D145; D96 woke the whole pile).
-# @test-link [[req_offscreen_simulation]]
-func test_taking_a_slime_out_wakes_only_the_slimes_touching_it() -> void:
+func test_taking_a_slime_out_wakes_the_pile_around_it() -> void:
 	var bodies := _pile(12)
 	assert_gt(_ticks_to_rest(bodies, 900), 0)
-	var touched := _in_reach(bodies, bodies.centre[0], bodies.bound_r[0], 0)
-	var touched_ids := []
-	for s in touched:
-		touched_ids.append(bodies.id[s])
-	assert_between(touched.size(), 1, 10, "some, not all, of the pile touch it")
 	bodies.remove(bodies.id[0])
-	var woken_ids := []
-	for s in _with_calm(bodies, SlimeBodies.ACTIVE):
-		woken_ids.append(bodies.id[s])
-	assert_eq(woken_ids, touched_ids, "the slimes it touched wake")
-	assert_eq(_count(bodies, SlimeBodies.RESTING), 11 - touched.size(), "the others rest on")
+	assert_eq(_count(bodies, SlimeBodies.RESTING), 0)
 	# Moved away by a new body (how a basket releases a slime at its outlet).
 	var other := _pile(12)
 	assert_gt(_ticks_to_rest(other, 900), 0)
-	var near := _in_reach(other, other.centre[0], other.bound_r[0], 0)
 	var moved := other.id[0]
 	var body := other.body_of(moved)
 	var shift := Vector2(600, -300)
@@ -174,69 +128,19 @@ func test_taking_a_slime_out_wakes_only_the_slimes_touching_it() -> void:
 	body["previous"] = previous
 	body["centre"] = body["centre"] + shift
 	assert_true(other.set_body(moved, body))
-	assert_eq(other.calm_of(moved), SlimeBodies.RESTING, "the body's calm (a release then sets its state)")
-	assert_eq(_with_calm(other, SlimeBodies.ACTIVE), near, "the slimes it left wake")
+	assert_eq(_count(other, SlimeBodies.RESTING), 0, "the pile it left wakes")
 
 
-# @test-link [[req_offscreen_simulation]]
-func test_waking_a_pile_slime_wakes_only_it_and_it_rests_again_in_a_pile_of_its_own() -> void:
-	var bodies := _pile(12)
-	assert_gt(_ticks_to_rest(bodies, 900), 0)
-	var group := bodies.pile[0]
-	bodies.wake(bodies.id[5])
-	assert_eq(_with_calm(bodies, SlimeBodies.ACTIVE), [5])
-	assert_eq(bodies.pile[5], 0)
-	assert_gt(_ticks_to_rest(bodies, 900), 0)
-	assert_eq(bodies.pile[5], bodies.id[5], "a group of one: its own id")
-	for s in bodies.slime_count:
-		if s != 5:
-			assert_eq(bodies.pile[s], group, "the others keep theirs")
-
-
-# @test-link [[req_offscreen_simulation]]
-func test_wake_calls_wake_only_the_slimes_in_reach() -> void:
+func test_wake_calls_wake_the_pile() -> void:
 	var bodies := _pile(12)
 	assert_gt(_ticks_to_rest(bodies, 900), 0)
 	assert_eq(bodies.wake_resting_in(Rect2(-2000, -2000, 10, 10)), 0, "nothing there")
 	assert_eq(_count(bodies, SlimeBodies.RESTING), 12)
-	var reached := _in_reach(bodies, Vector2(0, -60), 10.0)
-	assert_between(reached.size(), 1, 11, "a call on part of the pile")
-	assert_eq(bodies.wake_around(Vector2(0, -60), 10.0), reached.size(), "a call on the pile")
-	assert_eq(_with_calm(bodies, SlimeBodies.ACTIVE), reached, "wakes the slimes it reaches")
+	assert_eq(bodies.wake_around(Vector2(0, -60), 10.0), 12, "a call on the pile")
+	assert_eq(_count(bodies, SlimeBodies.RESTING), 0)
 	assert_gt(_ticks_to_rest(bodies, 900), 0)
-	var low := Rect2(-BOX_HALF_WIDTH, -40, 2.0 * BOX_HALF_WIDTH, 40)
-	var in_low := []
-	for s in bodies.slime_count:
-		if low.has_point(bodies.centre[s]):
-			in_low.append(s)
-	assert_between(in_low.size(), 1, 11)
-	assert_eq(bodies.wake_resting_in(low), in_low.size(), "a door by the bottom row")
-	assert_eq(_with_calm(bodies, SlimeBodies.ACTIVE), in_low, "wakes that row")
 	var box := Rect2(-BOX_HALF_WIDTH, -400, 2.0 * BOX_HALF_WIDTH, 400)
-	assert_eq(bodies.wake_resting_in(box), 12 - in_low.size(), "a door beside it wakes the rest")
-
-
-## A sleeper is a state, not the resting calm: no wake ever changes it, and
-## a pile slime woken beside it leaves it asleep.
-# @test-link [[req_offscreen_simulation]]
-func test_the_local_wake_never_wakes_a_sleeper() -> void:
-	var bodies := _pile(12)
-	assert_gt(_ticks_to_rest(bodies, 900), 0)
-	var top := 0
-	for s in bodies.slime_count:
-		if bodies.centre[s].y < bodies.centre[top].y:
-			top = s
-	var beside := bodies.centre[top] + Vector2(0, -2.0 * (SlimeBodies.RING_RADIUS_SIZE_1 + SlimeBodies.EDGE))
-	var sleeper := bodies.create(1, 1, beside, SlimeBodies.SLEEPER)
-	var points := bodies.points_of(sleeper)
-	bodies.wake(bodies.id[top])
-	bodies.wake_around(beside, 30.0)
-	bodies.wake_resting_in(Rect2(beside - Vector2(50, 50), Vector2(100, 100)))
-	bodies.wake(sleeper)
-	bodies.auto_hops = false
-	_run(bodies, 60)
-	assert_eq(bodies.state_of(sleeper), SlimeBodies.SLEEPER)
-	assert_eq(bodies.points_of(sleeper), points, "it never moved")
+	assert_eq(bodies.wake_resting_in(box), 12, "a door beside it")
 
 
 func test_a_parked_slime_is_neither_simulated_nor_touched() -> void:
@@ -327,9 +231,7 @@ func test_setting_every_active_rings_detail_matches_setting_each_by_id() -> void
 	assert_eq(_count(at_once, SlimeBodies.RESTING), at_once.slime_count, "and rests")
 	for bodies in [by_id, at_once]:
 		bodies.set_detail(bodies.id[3], SlimeBodies.LOW_DETAIL)
-		assert_eq(_with_calm(bodies, SlimeBodies.ACTIVE), [3], "a reshape by id wakes that slime")
-		bodies.wake_resting_in(Rect2(-2000, -2000, 4000, 4000))
-		assert_eq(_count(bodies, SlimeBodies.ACTIVE), bodies.slime_count, "a door wakes the rest")
+		assert_eq(_count(bodies, SlimeBodies.ACTIVE), bodies.slime_count, "a reshape by id wakes the pile")
 	for level in [SlimeBodies.MAX_DETAIL, 1, 0]:
 		var changed := 0
 		for slime_id in by_id.ids():
@@ -363,12 +265,7 @@ func test_a_body_round_trip_keeps_the_calm_and_the_detail() -> void:
 	assert_gt(_ticks_to_rest(bodies, 900), 0)
 	var slime := bodies.id[3]
 	bodies.set_detail(bodies.id[5], SlimeBodies.MAX_DETAIL)
-	# Created where they lie, as a save reload does: a body moving a slime
-	# would wake the restored resting slimes it touched (D145: those only).
-	var copy := SlimeBodies.new(Rng.new(7))
-	copy.terrain = bodies.terrain
-	for s in bodies.slime_count:
-		copy.create(bodies.species[s], bodies.size[s], bodies.centre_of(bodies.id[s]), bodies.state[s])
+	var copy := _pile(12)
 	for s in bodies.slime_count:
 		var body := bodies.body_of(bodies.id[s])
 		assert_true(copy.set_body(copy.id[s], body), "slime %d" % s)

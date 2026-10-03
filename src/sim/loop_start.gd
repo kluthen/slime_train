@@ -29,7 +29,6 @@ const SPOTS := 8
 
 ## Moves slime `slime_id` to the start of the loop of `train`, back on the
 ## train (see the class doc). Returns the distance along the loop it is put at.
-# @spec-link [[req_offscreen_simulation]]
 static func move(bodies: SlimeBodies, train: Train, slime_id: int) -> float:
 	assert(bodies.has(slime_id), "LoopStart.move: no slime %d" % slime_id)
 	var size := bodies.size_of(slime_id)
@@ -48,12 +47,6 @@ static func move(bodies: SlimeBodies, train: Train, slime_id: int) -> float:
 		body["centre"] = body["centre"] + shift
 		body["supported"] = false
 		bodies.set_body(slime_id, body)
-		# A resting train slime (a holder, D145, or one resting by contact,
-		# D147) keeps its calm through set_body and is no state change:
-		# woken here, or it would hang at the start as a wall once track()
-		# below ends its hold (the Train would wake one resting by contact
-		# on its next steer, a tick late).
-		bodies.wake(slime_id)
 	bodies.set_state(slime_id, SlimeBodies.TRAIN)
 	bodies.set_hop_held(slime_id, false)
 	train.track(slime_id, distance)

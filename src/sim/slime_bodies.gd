@@ -25,39 +25,21 @@ extends RefCounted
 ##
 ## Calm (chunk 15, master spec §5.3, D96). Each slime also has a `calm`:
 ##   ACTIVE   simulated as above.
-##   RESTING  a settled slime that may rest (_can_rest) and stopped
-##            simulating, contacts included: a pile slime (in a basket, or
-##            asleep at bedtime: the states that never hop), or a train
-##            slime the behaviour code lets rest (may_rest: a holder, D145,
-##            or a train slime resting by contact with one, D147 5 (a); it
-##            can't hop while resting, and the Train wakes it when its hold
-##            ends or its contact goes: turning may_rest off alone doesn't).
-##            A may-rest slime only starts resting on the ground (D147 5
-##            (b), `on_ground`: terrain facing up, or a resting slime under
-##            it; standing on an awake slime isn't ground); pile slimes
-##            stack, as before. The wake up the stack: when a slime wakes
-##            (_wake_at, whatever the cause), the may-rest slimes resting on
-##            it (touching it from above, the support geometry) wake too, up
-##            the stack; pile slimes never wake by it, nor sleepers.
-##            Like a sleeper it is a wall, and two walls are never paired.
-##            Piles rest whole: a group of touching slimes that may rest
-##            rests together once every one of them
+##   RESTING  a settled slime of a pile (in a basket, or asleep at bedtime:
+##            the states that never hop, see _can_rest) that stopped
+##            simulating, contacts included: like a sleeper it is a wall,
+##            and two walls are never paired. Piles rest whole: a group of
+##            touching pile slimes rests together once every one of them
 ##            has been supported and still (its centre within REST_DRIFT of
 ##            the anchor fixed where its count started) for REST_TICKS, velocities dropped; it keeps
-##            its `pile` (the group's lowest id). Piles wake locally (D145):
-##            a disturbance wakes only the resting slimes it touches, the
-##            rest of the pile rests on, a wall, keeping its `pile`; a woken
-##            slime's `pile` is 0 until it rests again with its new group.
-##            What wakes a resting slime: a touching slime moving faster
-##            than WAKE_SPEED (a hop, a landing, a neighbour shifting), its
-##            own state change (bedtime, sunrise, a basket catching or
-##            releasing it), a new velocity or body (without a calm), a
-##            slime moved away by a body from where it touched it, a slime
-##            removed, fused or split touching it, or whoever knows of a
-##            disturbance calling wake / wake_around / wake_resting_in (a
-##            call, a door: Offscreen, FrontierSets). A sleeper is a state,
-##            never the resting calm: no wake changes it. rest_enabled off:
-##            no slime rests.
+##            its `pile` (the group's lowest id) and wakes whole. Something
+##            disturbing it makes it ACTIVE again: a touching slime moving
+##            faster than WAKE_SPEED (a hop, a landing, a neighbour
+##            shifting), a state change (bedtime, sunrise, a basket catching
+##            or releasing), a new velocity or body, a slime removed, fused
+##            or split next to it, or whoever knows of a disturbance calling
+##            wake / wake_around / wake_resting_in (a call, a door: Offscreen,
+##            FrontierSets). rest_enabled off: no slime rests.
 ##   PARKED   off screen (Offscreen): not simulated nor touched at all, not
 ##            even as a wall (it is left out of the pair grid); Offscreen
 ##            moves it (translate) and un-parks it near the view. Nothing
@@ -129,11 +111,10 @@ const POINTS_BY_DETAIL: Array[Array] = [[0, 12, 15, 18], [0, 10, 12, 15], [0, 8,
 const MAX_DETAIL := 3
 ## The detail level of a zoomed-out ring.
 const LOW_DETAIL := 2
-## The highest detail level a pile slime (_is_pile_state: in a basket, asleep
-## at bedtime; not a holding train slime) takes from set_active_detail: a pile
-## of 6-point rings creeps for long before it rests (stress-still's 140: about
-## 1300 ticks, against 410 at this level), and a resting pile is what costs
-## nothing.
+## The highest detail level a pile slime (_can_rest: in a basket, asleep at
+## bedtime) takes from set_active_detail: a pile of 6-point rings creeps for
+## long before it rests (stress-still's 140: about 1300 ticks, against 410 at
+## this level), and a resting pile is what costs nothing.
 const PILE_MAX_DETAIL := LOW_DETAIL
 ## A supported slime is still when its centre stays within REST_DRIFT px of an
 ## anchor fixed where its count started, for REST_TICKS ticks in a row; a
@@ -208,22 +189,9 @@ var state := PackedInt32Array()
 ## 1 while the slime is held still (covered by others, resting in a full
 ## basket: the chunks that know say so); it doesn't hop.
 var held := PackedInt32Array()
-## 1 when the slime touched ground during the last tick: terrain facing up
-## (a ring point pushed out by a surface whose normal's y is below
-## -SUPPORT_NORMAL_Y, _solve_against), or another slime from above, awake or
-## resting (a ring point on its upper part, at rel.y < -SUPPORT_NORMAL_Y of
-## its distance from that slime's centre, _solve_contacts). Only supported
-## slimes hop. A resting or parked slime keeps its value.
+## 1 when the slime touched ground (terrain facing up, or another slime from
+## above) during the last tick. Only supported slimes hop.
 var supported := PackedInt32Array()
-## 1 when the slime stood on the ground during the last tick (D147 5 (b)):
-## the terrain test of `supported`, or its slime test against a RESTING
-## slime; standing on an awake slime only isn't ground. A may-rest slime
-## starts resting only on the ground (_can_rest). Derived by the solver every
-## tick, so not state: neither in dump() nor in body_of() / set_body(); a
-## slime woken mid-tick has 0 until the next solve. A resting or parked
-## slime keeps its value.
-# @spec-link [[req_offscreen_simulation]]
-var on_ground := PackedByteArray()
 var ring_radius := PackedFloat32Array()
 var rest_area := PackedFloat32Array()
 var rest_edge := PackedFloat32Array()
@@ -255,14 +223,6 @@ var rest_anchor := PackedVector2Array()
 ## The pile a resting slime rests with: the lowest slime id of the group of
 ## touching pile slimes that came to rest together (0 when not resting).
 var pile := PackedInt32Array()
-## 1 when the behaviour code lets the slime rest though it is a train slime
-## (a holder, D145, or a train slime resting by contact with one, D147;
-## set_may_rest). An input, not state: the
-## behaviour code sets it again before every tick, so it is neither in dump()
-## nor in body_of() / set_body() (saves). A new, fused or split slime starts
-## at 0, and a state change clears it. Read in one place, _can_rest.
-# @spec-link [[req_offscreen_simulation]]
-var may_rest := PackedByteArray()
 
 ## The next id create() hands out.
 var next_id := 1
@@ -271,12 +231,6 @@ var next_id := 1
 var topology_version := 0
 ## The ids of the slimes that hopped during the last tick.
 var hopped := PackedInt32Array()
-## The ids of the train slimes (STATE_TRAIN) that took an automatic hop
-## during the last tick, ascending: the train's hop counters read it (the
-## PERF line's hops). A fact about the tick, cleared by every tick, so not
-## state: not in dump() nor in saves. A hop() (the celebration's) isn't in it.
-# @spec-link [[req_platform_and_performance_targets]]
-var train_hopped := PackedInt32Array()
 
 var _master: Rng
 var _streams: Array[Rng] = []
@@ -305,27 +259,12 @@ var _box_hi := PackedVector2Array()
 # tick clears them all), so a centre is summed at most once between moves.
 var _centre_cache := PackedVector2Array()
 var _centre_ok := PackedByteArray()
-# The wake up the stack's scan list (_wake_up_stack): the indices of every
-# resting train slime, and more (it is read with a calm and state test).
-# Rebuilt when _stack_ok is false: a slime starting to rest, a body put back
-# or a removal (indices shift) clears it. Not state.
-var _stack := PackedInt32Array()
-var _stack_ok := false
 
 
 ## `master`: the simulation's master Rng. Each slime draws from its own
 ## stream, master.derive("slime:<id>"), so its hops don't depend on others.
 func _init(master: Rng) -> void:
 	_master = master
-
-
-## A new stream derived from the master Rng under `name` (Rng.derive: it
-## draws nothing from the master nor from any slime's stream), for a helper
-## reading these bodies that needs its own seeded draws (the Train's hold,
-## TrainHold's `hold:<id>:<tick>` streams).
-# @spec-link [[req_hopping_behavior]]
-func derive_stream(name: String) -> Rng:
-	return _master.derive(name)
 
 
 # --- Sizes ------------------------------------------------------------------
@@ -394,7 +333,6 @@ func create(slime_species: int, slime_size: int, at: Vector2, slime_state := STA
 	state.append(slime_state)
 	held.append(0)
 	supported.append(0)
-	on_ground.append(0)
 	ring_radius.append(0.0)
 	rest_area.append(0.0)
 	rest_edge.append(0.0)
@@ -412,7 +350,6 @@ func create(slime_species: int, slime_size: int, at: Vector2, slime_state := STA
 	still_ticks.append(0)
 	rest_anchor.append(at)
 	pile.append(0)
-	may_rest.append(0)
 	_slime_cell.append(0)
 	_streams.append(stream)
 	slime_count += 1
@@ -420,8 +357,7 @@ func create(slime_species: int, slime_size: int, at: Vector2, slime_state := STA
 	return new_id
 
 
-## Removes a slime. False when there is no such slime. The resting slimes
-## touching it wake, not the rest of their piles (D145).
+## Removes a slime. False when there is no such slime.
 func remove(slime_id: int) -> bool:
 	var s := index_of(slime_id)
 	if s < 0:
@@ -533,8 +469,6 @@ func candidate_pair_count() -> int:
 
 # --- Changing ---------------------------------------------------------------
 
-## Sets the slime's state. A change wakes it (only it) and clears its
-## may_rest, so the input never outlives the train slime it was set for.
 func set_state(slime_id: int, slime_state: int) -> void:
 	var s := index_of(slime_id)
 	if s < 0 or slime_state < 0 or slime_state >= STATE_NAMES.size():
@@ -542,7 +476,6 @@ func set_state(slime_id: int, slime_state: int) -> void:
 		return
 	if state[s] != slime_state:
 		_wake_at(s)
-		may_rest[s] = 0
 	state[s] = slime_state
 
 
@@ -644,7 +577,7 @@ func can_merge(a: int, b: int) -> bool:
 ## kept within the rounding of the polygons), at the size-weighted centre,
 ## moving at the size-weighted velocity (momentum kept). It keeps the lower
 ## id's state, heading, hop timer and stream; the other slime is removed.
-## Its may_rest starts at 0. Deciding when slimes fuse (3 s of contact) is the fusion chunk's job.
+## Deciding when slimes fuse (3 s of contact) is the fusion chunk's job.
 # @spec-link [[rule_max_size_three]]
 # @spec-link [[rule_fusion_contact_time]]
 func merge(a: int, b: int) -> int:
@@ -659,7 +592,6 @@ func merge(a: int, b: int) -> int:
 	var velocity := (_velocity_at(keep) * wk + _velocity_at(gone) * wg) / (wk + wg)
 	_remove_at(gone)
 	_reshape(keep, total, at, velocity)
-	may_rest[keep] = 0
 	_wake_around(at, bound_r[keep], keep)
 	return id[keep]
 
@@ -667,9 +599,8 @@ func merge(a: int, b: int) -> int:
 ## Splits a slime into base (size-1) slimes of its species and state, placed
 ## apart without overlapping around its centre, all keeping its velocity.
 ## Returns their ids, the original id first (it becomes the first part); the
-## others are new ids. Every part's may_rest starts at 0. A base slime returns
-## [its id] unchanged, a missing one []. Where slimes split (only in a split
-## zone) is the loop chunk's job.
+## others are new ids. A base slime returns [its id] unchanged, a missing one
+## []. Where slimes split (only in a split zone) is the loop chunk's job.
 # @spec-link [[rule_split_zone_only_splitter]]
 func split(slime_id: int) -> PackedInt32Array:
 	var s := index_of(slime_id)
@@ -683,7 +614,6 @@ func split(slime_id: int) -> PackedInt32Array:
 	var velocity := _velocity_at(s)
 	var offsets := _split_offsets(count)
 	_reshape(s, 1, at + offsets[0], velocity)
-	may_rest[s] = 0
 	_wake_around(at, bound_r[s] * 2.0, s)
 	var slime_species := species[s]
 	var slime_state := state[s]
@@ -737,9 +667,8 @@ func body_of(slime_id: int) -> Dictionary:
 ## slime is missing or the point counts don't match its size (at the body's
 ## detail level, "detail", 0 when absent). The body's "calm" and "still" are put
 ## back too; a body without them leaves the slime ACTIVE. A body that moves
-## the slime by more than a pixel wakes the resting slimes touching where it
-## was (a slime taken out from under a pile, a basket's release), not the
-## rest of their pile (D145).
+## the slime by more than a pixel wakes the resting slimes around where it
+## was (a slime taken out from under a pile).
 # @spec-link [[req_offscreen_simulation]]
 func set_body(slime_id: int, body: Dictionary) -> bool:
 	var s := index_of(slime_id)
@@ -771,7 +700,6 @@ func set_body(slime_id: int, body: Dictionary) -> bool:
 	_streams[s].state = body["rng_state"]
 	if body.has("calm"):
 		calm[s] = int(body["calm"])
-		_stack_ok = false
 		still_ticks[s] = int(body.get("still", 0))
 		rest_anchor[s] = body.get("anchor", centre[s])
 		pile[s] = int(body.get("pile", 0))
@@ -812,40 +740,6 @@ func crowd_count() -> int:
 	return count
 
 
-## The hop corridor's scan (D147 (4); TrainHold's crowd check and holder
-## rule): the slimes whose centre is in the oriented box from `from` to
-## `target`, extended `past` px beyond it the same way, `half_width` px either
-## side of the line from one to the other, edges included. Every slime
-## counts, resting ones too, any species, but `except_id`, parked slimes,
-## slimes in a basket and sleepers. Fills `out_ids` (cleared first) with
-## their ids, in index order, and returns their summed area (PI *
-## radius_of^2). A hop going nowhere (`target` on `from`) has no box: none,
-## 0. Read only; from the exact centres (centre_of's), a scan over the
-## slimes, not the pair grid (the last tick's, stale once fusion removed
-## slimes).
-# @spec-link [[req_hopping_behavior]]
-func corridor_scan(from: Vector2, target: Vector2, past: float, half_width: float, except_id: int,
-		out_ids: Array[int]) -> float:
-	out_ids.clear()
-	var axis := target - from
-	var length := axis.length()
-	if length < 0.001:
-		return 0.0
-	var way := axis / length
-	var reach := length + past
-	var area := 0.0
-	for s in slime_count:
-		if calm[s] == PARKED or state[s] == STATE_SLEEPER or state[s] == STATE_IN_BASKET or id[s] == except_id:
-			continue
-		var rel := _centre_cached(s) - from
-		var along := rel.dot(way)
-		if along < 0.0 or along > reach or absf(rel.cross(way)) > half_width:
-			continue
-		out_ids.append(id[s])
-		area += PI * ring_radius[s] * ring_radius[s]
-	return area
-
-
 ## Parks the slime (off screen): from now on it is neither simulated nor
 ## touched, not even as a wall, until unpark(). Its velocity is dropped.
 # @spec-link [[req_offscreen_simulation]]
@@ -882,48 +776,14 @@ func translate(slime_id: int, delta: Vector2) -> void:
 	centre[s] += delta
 
 
-## Lets the slime rest (true) though it is a train slime, or not (false):
-## the behaviour code's input (a holder, D145, or a train slime resting by
-## contact with one, D147), set again before every tick. Only a train slime
-## on the ground starts resting by it (_can_rest). Turning it off doesn't
-## wake a resting slime: whoever turns it off wakes it (wake), as the Train
-## does when a hold ends or a contact with a holder goes.
-# @spec-link [[req_offscreen_simulation]]
-func set_may_rest(slime_id: int, on: bool) -> void:
-	var s := index_of(slime_id)
-	assert(s >= 0, "SlimeBodies: no slime %d to set may_rest on" % slime_id)
-	may_rest[s] = 1 if on else 0
-
-
-## Whether the behaviour code lets the slime rest (set_may_rest); false for
-## a missing slime.
-# @spec-link [[req_offscreen_simulation]]
-func may_rest_of(slime_id: int) -> bool:
-	var s := index_of(slime_id)
-	return s >= 0 and may_rest[s] != 0
-
-
-## Whether the slime stood on the ground during the last tick (`on_ground`);
-## false for a missing slime.
-# @spec-link [[req_offscreen_simulation]]
-func on_ground_of(slime_id: int) -> bool:
-	var s := index_of(slime_id)
-	return s >= 0 and on_ground[s] != 0
-
-
-## Wakes a resting slime (ACTIVE again), only it: the rest of its pile rests
-## on (D145), but the may-rest slimes resting on it wake too, up the stack
-## (_wake_at). Nothing for an active or parked one.
-# @spec-link [[req_offscreen_simulation]]
+## Wakes a resting slime (ACTIVE again). Nothing for an active or parked one.
 func wake(slime_id: int) -> void:
 	var s := index_of(slime_id)
 	if s >= 0:
 		_wake_at(s)
 
 
-## Wakes every resting slime whose centre is in `box`, only those (D145).
-## Returns how many.
-# @spec-link [[req_offscreen_simulation]]
+## Wakes every resting slime whose centre is in `box`. Returns how many.
 func wake_resting_in(box: Rect2) -> int:
 	var woken := 0
 	for s in slime_count:
@@ -932,9 +792,8 @@ func wake_resting_in(box: Rect2) -> int:
 	return woken
 
 
-## Wakes every resting slime whose ring may reach within `radius` of `point`,
-## only those (D145). Returns how many.
-# @spec-link [[req_offscreen_simulation]]
+## Wakes every resting slime whose ring may reach within `radius` of `point`.
+## Returns how many.
 func wake_around(point: Vector2, radius: float) -> int:
 	return _wake_around(point, radius, -1)
 
@@ -969,7 +828,7 @@ func set_active_detail(level: int) -> int:
 	for s in slime_count:
 		if calm[s] != ACTIVE:
 			continue
-		var wanted := pile_level if _is_pile_state(s) else level
+		var wanted := pile_level if _can_rest(s) else level
 		if detail[s] != wanted:
 			detail[s] = wanted
 			_resample(s, _detail_points(s, size[s]))
@@ -983,14 +842,12 @@ func set_active_detail(level: int) -> int:
 func tick(dt: float) -> void:
 	_h = dt / substeps
 	hopped.clear()
-	train_hopped.clear()
 	if auto_hops:
 		_auto_hops(dt)
 	# A resting or parked slime keeps its support: nothing moves it.
 	for s in slime_count:
 		if calm[s] == ACTIVE:
 			supported[s] = 0
-			on_ground[s] = 0
 	for sub in substeps:
 		_integrate(_h)
 		if sub == 0:
@@ -1007,18 +864,12 @@ func tick(dt: float) -> void:
 	_rest()
 
 
-## The resting-pile rule (see the class doc), after the tick. A resting
-## slime touching a slime moving faster than WAKE_SPEED wakes, only it: the
-## rest of its pile rests on (D145; the may-rest slimes resting on it wake
-## with it, _wake_at). Each active slime that may rest (_can_rest: a pile
-## slime, or a train slime with may_rest on the ground) counts its
-## still, supported ticks; one that may not rest has no count, its anchor
-## following its centre (a save leaves out an active slime's zero count and
-## its anchor: reloaded, both are the same, chunk 22e). A group of
-## touching such slimes whose every member has counted REST_TICKS rests
-## together. Piles rest whole (a half-resting group would make its moving
-## half take every overlap against the wall, jolt, and wake it again); they
-## wake locally (D145, D96 woke them whole).
+## The resting-pile rule (see the class doc), after the tick. A resting pile
+## touching a slime moving faster than WAKE_SPEED wakes. Each active pile
+## slime counts its still, supported ticks; a group of touching active pile
+## slimes whose every member has counted REST_TICKS rests together. Whole
+## piles rest and wake as one: half a pile resting would make its moving
+## half take every overlap against the wall, jolt, and wake it again.
 # @spec-link [[req_offscreen_simulation]]
 func _rest() -> void:
 	if not rest_enabled:
@@ -1040,9 +891,9 @@ func _rest() -> void:
 				_wake_at(b)
 	var ready := false
 	for s in slime_count:
-		if calm[s] != ACTIVE:
+		if calm[s] != ACTIVE or not _can_rest(s):
 			continue
-		if not _can_rest(s) or supported[s] == 0 or centre[s].distance_squared_to(rest_anchor[s]) > drift2:
+		if supported[s] == 0 or centre[s].distance_squared_to(rest_anchor[s]) > drift2:
 			still_ticks[s] = 0
 			rest_anchor[s] = centre[s]
 			continue
@@ -1052,8 +903,8 @@ func _rest() -> void:
 		_rest_piles()
 
 
-## Rests every group of touching active slimes that may rest (_can_rest)
-## whose members have all been still for REST_TICKS (union-find over the touching pairs).
+## Rests every group of touching active pile slimes whose members have all
+## been still for REST_TICKS (union-find over the touching pairs).
 func _rest_piles() -> void:
 	var root := PackedInt32Array()
 	root.resize(slime_count)
@@ -1083,7 +934,6 @@ func _rest_piles() -> void:
 		if short[r] != 0:
 			continue
 		calm[s] = RESTING
-		_stack_ok = false
 		still_ticks[s] = 0
 		pile[s] = id[r]
 		_set_velocity_at(s, Vector2.ZERO)
@@ -1129,24 +979,10 @@ func _can_hop_at(s: int) -> bool:
 	return (state[s] == STATE_TRAIN or state[s] == STATE_FREE) and held[s] == 0 and calm[s] == ACTIVE
 
 
-## Whether slime index `s` is in a pile state, which never hops (in a
-## basket, or asleep at bedtime): the slimes set_active_detail caps at
-## PILE_MAX_DETAIL. A holding train slime isn't one: its detail stays.
-# @spec-link [[req_offscreen_simulation]]
-func _is_pile_state(s: int) -> bool:
-	return state[s] == STATE_IN_BASKET or state[s] == STATE_BEDTIME_ASLEEP
-
-
-## Whether active slime index `s` may start resting (the resting-pile rule,
-## _rest and _rest_piles): a pile state, or a train slime the behaviour code
-## lets rest (may_rest: a holder, D145, or resting by contact, D147) standing
-## on the ground this tick (on_ground, D147 5 (b); pile slimes stack, as
-## before). The one place may_rest is read. A may-rest slime off the ground
-## counts no still ticks and joins no group, so the slimes under it rest
-## first; then it stands on a resting slime and may follow.
-# @spec-link [[req_offscreen_simulation]]
+## Whether the slime may rest: the pile states, which never hop (a slime in a
+## basket, or asleep at bedtime).
 func _can_rest(s: int) -> bool:
-	return _is_pile_state(s) or (may_rest[s] != 0 and state[s] == STATE_TRAIN and on_ground[s] != 0)
+	return state[s] == STATE_IN_BASKET or state[s] == STATE_BEDTIME_ASLEEP
 
 
 ## Whether the slime is a wall in the contacts: a sleeper, or resting.
@@ -1154,58 +990,27 @@ func _is_wall(s: int) -> bool:
 	return state[s] == STATE_SLEEPER or calm[s] == RESTING
 
 
-## Wakes slime index `s` when it rests, only it (D145): the rest of its
-## pile rests on and keeps its `pile`; `s` leaves it (pile 0), and its
-## on_ground is 0 until the next solve. Then the wake up the stack
-## (_wake_up_stack). An active slime starts its still count again; a parked
-## one is left alone. Returns how many slimes woke here, `s` itself (0 or 1;
-## the stack above it not counted).
-# @spec-link [[req_offscreen_simulation]]
+## Wakes slime index `s` and, when it rests, its whole pile. Returns how many
+## slimes woke.
 func _wake_at(s: int) -> int:
 	var woken := 0
 	if calm[s] == RESTING:
-		calm[s] = ACTIVE
-		pile[s] = 0
-		on_ground[s] = 0
-		woken = 1
+		var group := pile[s]
+		for t in slime_count:
+			if calm[t] == RESTING and pile[t] == group:
+				calm[t] = ACTIVE
+				still_ticks[t] = 0
+				rest_anchor[t] = centre[t]
+				pile[t] = 0
+				woken += 1
 	if calm[s] == ACTIVE:
 		still_ticks[s] = 0
 		rest_anchor[s] = centre[s]
-	if woken != 0:
-		_wake_up_stack(s)
 	return woken
 
 
-## The wake up the stack (D147 5 (b)), for slime index `s` just woken: wakes
-## (_wake_at, so on up the stack) every resting train slime, a slime resting
-## through may_rest, standing on it: its centre within the two ring radii
-## plus TOUCH_SKIN of `s`'s, and above it by the support test (rel.y <
-## -SUPPORT_NORMAL_Y of the distance). Pile slimes (in a basket, asleep at
-## bedtime) and sleepers never wake by it, so a basket pile wakes locally, as
-## before. Scans only _stack, the resting train slimes.
-# @spec-link [[req_offscreen_simulation]]
-func _wake_up_stack(s: int) -> void:
-	if not _stack_ok:
-		_stack.clear()
-		for t in slime_count:
-			if calm[t] == RESTING and state[t] == STATE_TRAIN:
-				_stack.append(t)
-		_stack_ok = true
-	var cs: Vector2 = centre[s]
-	for t in _stack:
-		if calm[t] != RESTING or state[t] != STATE_TRAIN:
-			continue
-		var rel: Vector2 = centre[t] - cs
-		var reach: float = ring_radius[t] + ring_radius[s] + TOUCH_SKIN
-		var d2 := rel.length_squared()
-		if d2 <= reach * reach and rel.y < -SUPPORT_NORMAL_Y * sqrt(d2):
-			_wake_at(t)
-
-
 ## Wakes the resting slimes (all but index `except`) whose ring may reach
-## within `radius` of `point`, only those, not the rest of their piles
-## (D145). Returns how many.
-# @spec-link [[req_offscreen_simulation]]
+## within `radius` of `point`. Returns how many.
 func _wake_around(point: Vector2, radius: float, except: int) -> int:
 	var woken := 0
 	for s in slime_count:
@@ -1312,8 +1117,7 @@ func _hop_at(s: int, velocity: Vector2) -> void:
 ## Automatic hops: each able slime counts its timer down; at zero, if it
 ## stands on something, it hops (heading-slanted, strength jittered by its
 ## stream, or at its hop_aim when steered) and draws its next interval; if
-## not, it hops on landing. Every hop_aim is then cleared. A train slime's
-## hop goes in train_hopped.
+## not, it hops on landing. Every hop_aim is then cleared.
 # @spec-link [[req_hopping_behavior]]
 func _auto_hops(dt: float) -> void:
 	for s in slime_count:
@@ -1333,8 +1137,6 @@ func _auto_hops(dt: float) -> void:
 			_hop_at(s, hop_aim[s])
 		else:
 			_hop_at(s, hop_velocity(size[s], direction, strength))
-		if state[s] == STATE_TRAIN:
-			train_hopped.append(id[s])
 		var interval := hop_interval_range(size[s])
 		hop_timer[s] = stream.randf_range(interval.x, interval.y)
 	hop_aim.fill(Vector2.ZERO)
@@ -1406,7 +1208,6 @@ func _remove_at(s: int) -> void:
 	state.remove_at(s)
 	held.remove_at(s)
 	supported.remove_at(s)
-	on_ground.remove_at(s)
 	ring_radius.remove_at(s)
 	rest_area.remove_at(s)
 	rest_edge.remove_at(s)
@@ -1424,11 +1225,9 @@ func _remove_at(s: int) -> void:
 	still_ticks.remove_at(s)
 	rest_anchor.remove_at(s)
 	pile.remove_at(s)
-	may_rest.remove_at(s)
 	_slime_cell.remove_at(s)
 	_streams.remove_at(s)
 	slime_count -= 1
-	_stack_ok = false
 	_touching.clear()
 	_pairs.clear()
 	_pair_touch.clear()
@@ -1584,8 +1383,7 @@ func _build_pairs() -> void:
 ## that are inside b's radial profile (read off b's points, ordered by angle
 ## around its centre) move out by half the overlap, and the whole of ring b
 ## moves back by the same total, so momentum is kept. Also records touching
-## pairs and support (a point resting on the upper half of another ring),
-## and on_ground when that ring rests.
+## pairs and support (a point resting on the upper half of another ring).
 func _solve_contacts() -> void:
 	var p := pos
 	var o := prev
@@ -1670,9 +1468,6 @@ func _solve_contacts() -> void:
 				_pair_touch[pair] = 1
 			if rests and not still:
 				supported[a] = 1
-				# On a resting slime: on the ground (D147 5 (b)).
-				if calm[b] == RESTING:
-					on_ground[a] = 1
 			if react != Vector2.ZERO and not against_still:
 				react /= nb
 				drag /= nb
@@ -1759,7 +1554,7 @@ func _solve_rings() -> void:
 ## or closer than `terrain_skin` to it, goes to `terrain_skin` off the nearest
 ## surface point; its velocity loses the part going into the surface and
 ## `terrain_friction` of the part along it. A point pushed out by a surface
-## facing up supports its slime, and puts it on the ground. The shut doors are solved the same way,
+## facing up supports its slime. The shut doors are solved the same way,
 ## after the terrain. The first pass (the terrain's, else the first door's)
 ## also measures a box around each slime's points, and the door passes after
 ## it skip a slime whose box lies outside the door's grid, where every one of
@@ -1880,7 +1675,6 @@ func _solve_against(tf: TerrainSegments, measure: bool, by_box: bool) -> void:
 				carried = true
 		if carried:
 			supported[s] = 1
-			on_ground[s] = 1
 		if track:
 			_box_lo[s] = lo
 			_box_hi[s] = hi

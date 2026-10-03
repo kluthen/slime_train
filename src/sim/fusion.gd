@@ -43,10 +43,9 @@ extends RefCounted
 ##     one catches up with it. For the train slime directly behind it (no
 ##     other train slime between them) it waits as long as that holds; for
 ##     one with other slimes between them, which can't catch up while they
-##     are in the way, or one directly behind that holds its hop (the hold,
-##     TrainHold: it doesn't come either; chunk 22f), only until its own
-##     progress has not advanced for DIP_WAIT_SECONDS (Train's stall mark,
-##     "marked_at": a slime pushed on by the queue waits again, briefly);
+##     are in the way, only until its own progress has not advanced for
+##     DIP_WAIT_SECONDS (Train's stall mark, "marked_at": a slime pushed on
+##     by the queue waits again, briefly);
 ##   - holding: on a dip's floor, two such train slimes that touch don't hop
 ##     until they fuse or lose contact.
 ## Both only on screen, where fusion can happen. Slimes that would bump, or
@@ -103,10 +102,6 @@ const DIP_HOLD_SECONDS := 0.25
 
 ## Pair of runtime ids Vector2i(lower, higher) -> ticks of continuous contact.
 var _contacts := {}
-## The slimes with a counted contact (runtime id -> true), rebuilt from
-## _contacts on the first query after they change (counts_toward_fusion).
-var _counting := {}
-var _counting_stale := true
 ## The current loop's dip floors: [Vector2(from, to)] distances along it.
 var _floors: Array[Vector2] = []
 ## The loop and open gates the floors were computed for.
@@ -118,23 +113,6 @@ var _floors_for := ""
 ## Ticks of continuous contact counted for slimes `a` and `b` (0 when none).
 func contact_ticks(a: int, b: int) -> int:
 	return _contacts.get(Vector2i(mini(a, b), maxi(a, b)), 0)
-
-
-## Whether one of slime `slime_id`'s contacts counted toward fusing on the
-## last step (its pair has a count): a train slime about to fuse doesn't
-## rest, a holder (D145) nor one resting by contact (D147 5 (c)). Read only: the set of such slimes is rebuilt once
-## per change of the counts, not scanned per query (the Train asks for every
-## holder every tick).
-# @spec-link [[rule_fusion_contact_time]]
-func counts_toward_fusion(slime_id: int) -> bool:
-	if _counting_stale:
-		_counting.clear()
-		for pair: Vector2i in _contacts:
-			if _contacts[pair] > 0:
-				_counting[pair.x] = true
-				_counting[pair.y] = true
-		_counting_stale = false
-	return _counting.has(slime_id)
 
 
 ## The view's box in level pixels.
@@ -214,7 +192,6 @@ func step(sim: Simulation) -> void:
 		else:
 			counts[pair] = ticks
 	_contacts = counts
-	_counting_stale = true
 	var changed := {}
 	for pair in due:
 		if changed.has(pair.x) or changed.has(pair.y):
@@ -247,7 +224,6 @@ func dump() -> Array:
 ## Puts the counts back from dump().
 func restore(data: Array) -> void:
 	_contacts.clear()
-	_counting_stale = true
 	for entry in data:
 		_contacts[Vector2i(int(entry[0]), int(entry[1]))] = int(entry[2])
 
@@ -356,11 +332,7 @@ func _holding(bodies: SlimeBodies, partners: Dictionary, slime_id: int) -> bool:
 ## along the loop (`distances`, of `all`): as long as it likes for the train
 ## slime directly behind it (among `all`, every train slime), and until it
 ## has not advanced for DIP_WAIT_TICKS for one with other slimes between
-## them, or directly behind but holding its hop (Train.is_holding, the hold:
-## it doesn't come, so an unbounded wait for it pinned the slime for ever,
-## chunk 22f).
-# @spec-link [[rule_dip_may_nudge_fusion]]
-# @spec-link [[req_hopping_behavior]]
+## them.
 func _gathering(sim: Simulation, all: Array[int], distances: PackedFloat64Array, shown: PackedByteArray,
 		k: int) -> bool:
 	var train := sim.train
@@ -376,7 +348,7 @@ func _gathering(sim: Simulation, all: Array[int], distances: PackedFloat64Array,
 			nearest = behind
 	if nearest >= DIP_GATHER:
 		return false
-	if shown[next] != 0 and sim.slimes.can_merge(slime_id, all[next]) and not train.is_holding(all[next]):
+	if shown[next] != 0 and sim.slimes.can_merge(slime_id, all[next]):
 		return true
 	var marked_at := train.marked_at_of(slime_id)
 	if marked_at >= 0 and sim.tick - marked_at >= DIP_WAIT_TICKS:

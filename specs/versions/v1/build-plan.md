@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v25 (chunk 22j rebuilt: `stress-dense` at 9 per bucket, the bowl's bottom two at 12, along the loop line, the user's, D154; known issue: fixture train distances wrap on load, D154; chunk 22j, the `stress-dense` fixture, first, then 22h, then 22k, a measurement round, the user's, D153; chunk 22i built, e996b8a, with D152's fix, 7d4c702; chunk 22i amended: holding train slimes don't stall, the user's, D152; approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v17 (approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
@@ -16,19 +16,7 @@ review, proposed, D140; chunk 22c, crowd detail only under load, between
 between 22b and 5N, and chunk 24 gains 24.7 and 24.8, cluster avoidance,
 proposed, D143; chunk 22b done, with item 24.6, the slowed-CPU method
 `tools/perf_slow.sh --pin=main`, and the user's explicit go on 5N, D142;
-D142 approved, and 24.7 and 24.8 approved in direction, D144; 24.8
-rewritten as the hold, with a local wake joined to 24.3, proposed, D145;
-chunk 22e, the local wake and the hold out of 24.3 and 24.8, between 22d
-and 5N, the user's reorder, D146; chunk 22f, the hold's second round,
-between 22e and 5N, proposed, D147; chunk 19w, a save wipe flag for
-development builds, between 22e and 22f, proposed, D148; 19w's flag for
-automated testing only, approved in direction, and 19w also setting aside
-a save a build can't use before the first store release, proposed, D149;
-chunk 22d done, 7437fd0; chunk 22e done, 4750f12, as-built notes in D145
-and D146: the local wake and the Physics drop met, the short-hop share
-not, handed to 22f; chunk 22h, moves to the loop start one at a time to a
-random free spot and no stall clock while parked, D150; chunk 22i, a cap
-on each loop bucket's load behind a switch, before 22h, the user's, D151)
+D142 approved, and 24.7 and 24.8 approved in direction, D144)
 
 This plan splits `master-spec.md` into build chunks, ordered so that each one
 can be **tested as soon as it lands**. The master spec stays the reference for
@@ -170,46 +158,11 @@ technology, not business behaviour:
   cold, over it throttled (4.2 to 5.3 ms); only chunk 22's repeat closes
   it. Item 24.6 (the debug labels) done with it. The slowed-CPU method is
   now `tools/perf_slow.sh --pin=main`.
-- **Chunk 22d** done (7437fd0): the debug counters (Physics, On screen,
-  In range, Parked; `resting` and `largest_cluster` on the PERF line).
-  Its as-built record isn't in the decisions log.
-- **Chunk 22e** done (D145 and D146's as-built notes; 4750f12, suite
-  1367/1367; detail in "22e", Built): the `hops` and `short_hops`
-  counters, the local wake (basket 3's drain: 0 whole-pile wakes against
-  6, Physics during the drain 84 -> 48; the one-step-neighbour fallback
-  not needed, not built), the hold with D145's numbers (the first
-  calibration kept them), holders resting through a "may rest" input, and
-  the save key `train.hold` (user-approved, format 1). Physics drops in
-  both bowl fixtures and the drain no longer wakes the pile: met. The
-  short-hop share doesn't drop (95 %, 77 %): not met; the probe found the
-  crowd check counting the train queue itself and the jam spreading holds
-  backwards, which chunk 22f (D147) answers. Only `stress-moving` and
-  `s3-basket-59of60` changed hash.
-- **Chunks 22f** (9be1af7, the hold's second round) **and 22g**
-  (6e423b7, experimental, its switch off by default) are committed; their
-  as-built records aren't in the decisions log yet.
-- **Chunk 22i** (the bucket cap, behind `--bucket-cap`, off by default,
-  D151) is built (e996b8a), with D152's fix (7d4c702) and its test round
-  (84ab355, `../../../docs/perf/2026-10-02-d152.md`).
-- **Next, in this order (proposed, D140, D143, D142, D146, D147, D148, D150, D151, D153):**
-  chunk **22j** (the `stress-dense` fixture, being rebuilt: 200 train
-  slimes at 9 per 300 px loop bucket, the bowl's two bottom buckets at 12,
-  along the loop line, D154; a 30 fps target; `stress-moving`
-  kept as the abuse test, 15 fps, no crash or freeze; the user's, D153),
-  chunk **22h** (moves to the loop start one at a time, 0.5 to 2 s apart,
-  to a random free spot, and no stall clock while a train slime is
-  parked; the user's, 2026-10-02, details proposed, D150), chunk **22k**
-  (a measurement round: both stress fixtures and `s3-basket-59of60`, the
-  bucket cap off and on, D153), chunk **19w**
-  (a `--wipe-save` launch flag that deletes the level saves in debug
-  builds only, for automated testing only, the user's: "we may relax save
-  file deletion in testing"; approved in direction, D149; and a save a
-  build can't use set aside before the first store release, proposed,
-  D149), chunk **5N** (the
-  native tick, going ahead: the user's go, "ok schedule work on 5N after
-  this chunk", D142; it ports 22e's and 22f's rest and wake rules), chunk **22c**
-  (crowd detail only under load, proposed, D141), chunk **22 repeated** on
-  the reference phone with the perf log, the rest of chunk **24**, then
+- **Next, in this order (proposed, D140, D143, D142):** chunk **22d** (the
+  debug counters, D143), chunk **5N** (the native tick, going ahead: the
+  user's go, "ok schedule work on 5N after this chunk", D142), chunk
+  **22c** (crowd detail only under load, proposed, D141), chunk **22
+  repeated** on the reference phone with the perf log, chunk **24**, then
   the closing health review.
 - **Chunk L01** (the first real level) is **v2**, not this plan (D134):
   v1 is the test level only. The release preset stays as built, with the
@@ -217,8 +170,7 @@ technology, not business behaviour:
 - **Chunk 24** (the user's second round of playtest issues, an open list;
   proposed, D128): after chunk 22's repeat (D140), the last chunk
   before the closing step, as the user asked. The user's next play
-  reports go there. Its local wake (from 24.3) and item 24.8 moved to
-  chunk 22e (D146).
+  reports go there.
 - **Closing step, last of all:** the coding-rule health review
   (`CODING_RULE.md`'s health and clean-up list), after every other chunk,
   chunk 24 included (D122, kept by D123 and D128).
@@ -233,7 +185,7 @@ technology, not business behaviour:
 | 3 | Test backbone | M | 0 | two identical scripted runs give identical state |
 | 4 | Level scaffolding and Meadow greybox | M | 3 | the loop, terrain and IDs load in a test |
 | 5 | Slime body | L | 1, 4 | unit tests on rings; a visual demo |
-| 5N | Native simulation tick (going ahead after 22d, 22e and 22f, D140, D143, D142, D146, D147) | M | 22f | the whole suite on the native tick; saves load under either tick; chunk 22 repeated |
+| 5N | Native simulation tick (going ahead after 22d, D140, D143, D142) | M | 22d | the whole suite on the native tick; saves load under either tick; chunk 22 repeated |
 | 6 | Train and split zone | M | 5 | [DoD 1 partial, 7] |
 | 7 | Taps and the call | L | 6 | [DoD 3, 4, 15, 17] |
 | 8 | Save format and fixtures | M | 7 | kill-and-reload tests; the first fixtures load [DoD 28 partial] |
@@ -248,39 +200,27 @@ technology, not business behaviour:
 | 17 | Session, wind-down, bedtime, sunrise | M | 8 | [DoD 20, 21, 22]; `wind-down`, `bedtime`, `sunrise` |
 | 18 | Parent gate and settings (placeholder UI) | M | 17 | [DoD 23, 24, 29] |
 | 19 | Persistence hardening | M | 16, 18 | [DoD 28]; `midair`, `old-version` |
-| 19w | Save wipe flag for development builds, for automated testing (D148, approved in direction, D149), and a save a build can't use set aside before the first store release (proposed, D149) | S | 19; runs after 22e, before 22f | unit tests: the flag wipes, no flag keeps, a release build ignores it, refused with a save to load; before shipping a refused save is set aside and the level saves again, after shipping it is kept and writes blocked; perf.sh's option checked by hand; same hashes |
 | 20 | Android build and platform integration | L | 18 | [DoD 25, 26, 27]; emulator |
 | 21 | End-to-end suite | M | 19 | [DoD 31] |
 | 22 | Performance pass on phones (repeated after 5N and 22c, D140, D141) | M | 20, 23 (repeat: 5N, 22c) | [DoD 30] |
 | 22b | Drawing pass (done, D142) | M | 22 | the frame's cost outside the tick measured per part and cut; same hash |
 | 22d | Debug counters and the largest awake cluster (proposed, D143) | S | 22b | unit tests of the four counts and the cluster; the PERF line and its summary carry them; same hashes |
-| 22e | Cluster fixes: the local wake and the hold (done, D146, 4750f12; out of 24.3 and 24.8; the short-hop share not reduced, handed to 22f) | S to M | 22d | the blocked-hop counters first; unit tests of the hold, the jam, the cap and the local wake; the bowl's Physics count and short hops drop in the PERF lines; changed hashes listed |
-| 22f | The hold, second round (proposed, D147) | S to M | 22e | the crowd diagnostic first; the hop corridor; no hop through a crowd, the hold guard; at least 90 % of holds end clear; no freeze over 10,000 ticks; the short-hop share drops and the front of a queue takes the hops; changed hashes listed |
-| 22i | The bucket cap: a cap on each loop bucket's load, behind a switch (the user's, details proposed, D151; built, e996b8a; D152's fix, 7d4c702) | S | 22g; before 22h | off: the 17 hashes unchanged; off against on, `s3-basket-59of60` and `stress-moving`: 10,000-tick stalls, stuck moves, bowl left; the 2400-tick probe with holds by reason; the bucket-load histogram; phone-emulation fps; unit tests of the loads, the full-bucket hold, the overfilled bucket, the parked edge; same hash across a save and reload |
-| 22j | The `stress-dense` fixture (the user's, details proposed, D153; built ad8cd36 at 18 per bucket, being rebuilt thinner, D154) | S | 22i; runs next, before 22h | the fixture built by `tools/make_fixture.gd`, no format change; 200 train slimes (fewer only if they don't fit before switch 3, reported), 9 of weight per loop bucket at load, the bowl's two bottom buckets at 12, along the loop line, not stacked; its hash at 600 and 2400 ticks recorded with the others', the others unchanged; its scripted test; same hash across a save and reload |
-| 22h | Moves to the loop start one at a time, to a random free spot; no stall clock while parked (the user's, details proposed, D150) | S | 22f, 22i, 22j; runs after 22j, before 22k, 19w and 5N | `s3-basket-59of60` over 10,000 ticks: no stall move of a parked slime, no stuck move within 10 s of a landing, moves at least 30 ticks apart; unit tests of the queue, the pause, the landing spot; same hash across a save and reload mid-queue; changed hashes listed |
-| 22k | Measurement round: the stress fixtures and the bucket cap (D153) | S | 22h | `stress-dense`, `stress-moving`, `s3-basket-59of60`, cap off and on: 10,000-tick runs and phone-emulation fps against D153's targets; a perf report; no code |
 | 22c | Crowd detail only under load (proposed, D141) | S | 5N | the load meter's unit tests; same hashes in `always`; `auto` measured on the desktop |
 | 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
-| 24 | Playtest issues, round 2 (open list; proposed) | S per issue (24.1 may be M) | 22 repeated (after 22b, 22d, 22e, 22f and 5N, D140, D143, D146, D147) | each issue's own done-when |
+| 24 | Playtest issues, round 2 (open list; proposed) | S per issue (24.1 may be M) | 22 repeated (after 22b, 22d and 5N, D140, D143) | each issue's own done-when |
 | LD | Level-design toolkit (technical) | L | 16 | the checker agrees with the level-rule tests on the test level; a scaffolded level loads, passes its generated tests and appears in test mode |
 | TL1 | Test level finishable from fresh (done, D129) | S | LD, R22 | the checker gives 0 warnings on the test level; a scripted play from `fresh` fills basket 1 |
 
 Chunks 1 and 2 can run in parallel with 3. Chunk 22 failed DoD 30, so
-chunk 5N now runs (D96, D140; the user's go, D142): after chunks 22b (done),
-22d, 22e (D146) and 22f (D147), before chunk 22's repeat. Chunks 9, 10
+chunk 5N now runs (D96, D140; the user's go, D142): after chunks 22b (done)
+and 22d, before chunk 22's repeat. Chunks 9, 10
 and 11 are independent of each other. Chunk 17 can start as soon as 8 is done, in
 parallel with the camera and objects work. Chunk 23 runs first among the
 remaining chunks, before 18 (D123), and chunk LD runs in parallel with it.
 TL1 ran after both, before 18 (D127; done, D129). After chunk 22, the
-order is 22b, 22d, 22e, 22f (those four done; 22g, experimental, committed
-with its switch off), 22i (the bucket cap, behind its switch, the user's:
-"let's try the bucket cap first"; built), 22j (the `stress-dense`
-fixture, D153), 22h, 22k (a measurement round, D153), 19w, 5N, 22c, 22
-repeated, then
-the rest of chunk 24, the last chunk before the closing health review
-(D128, D140, D141, D143, D146, D147, D148, D150, D151, D153, proposed;
-O97 closed by D140).
+order is 22b, 22d, 5N, 22c, 22 repeated, then chunk 24, the last chunk
+before the closing health review (D128, D140, D141, D143, proposed; O97
+closed by D140).
 
 ## Chunks
 
@@ -551,114 +491,6 @@ O97 closed by D140).
 - **Built** (D131): done; the choices marked proposed there wait for the
   user.
 
-### 19w. Save wipe flag for development builds (S, D148, approved in direction, D149)
-
-The user (2026-10-01): "Currently we aren't in production, so we may
-relax save file deletion in testing. Ensure that a flag can be set so
-that if set, the save file is automatically deleted at the begining of a
-test session. Of course, when testing save/restore state we need to
-remove this flag." And (2026-10-01, D149): "the flag is only for
-automated testing. i've the reset button. save format may break between
-version. That's our prerogative to ensure migration (if the app has been
-shipped, otherwise, we just wipe)." A launch aid for automated test runs
-(`perf.sh`, scripted desktop launches), never in a player's build and
-never used in manual play: by hand, a level is started over with the
-parent's delete of its save. It runs after 22e is committed and before 22f (it shares `main.gd`'s
-startup and `docs/dev/README.md` with them). It touches the persistence
-contract's neighbourhood, so it **keeps both ATD steps**. Every rule
-below is D148's (approved in direction, D149) or D149's, proposed where
-it goes beyond the user's words.
-
-- **Atoms (preflight start, before any code):** `rule_saves_never_wiped`
-  (STABLE, on the contract's surface: documentalist checks it first),
-  `req_persistence_and_saves`, `domain_saves_per_level`,
-  `rule_released_level_stable_with_migration`,
-  `req_test_level_and_test_mode`, `domain_testability`, and
-  `contract_atd` for D149 (6 (b)). `rule_saves_never_wiped`'s LOGIC
-  takes the wording the user approved (D148's head).
-- **The flag:** `--wipe-save`, a user argument after `--` (on Android,
-  in `slime_args`). Never on by default. Per launch, command line only:
-  no toggle that stays set (D149, O112 closed).
-- **What it wipes:** every file in `user://saves/` (each level's save,
-  its `.bak`, `.new` side files, `.unreadable` set-aside files, `.v<n>`
-  version copies). `user://parent.json` and its backup are kept. No
-  `--wipe-parent`.
-- **When:** once per launch, in the main scene's `_ready`, after the
-  stores are made and before the level loads and `_resume_play()` reads
-  the save. Only the default directory: a store a test gives is never
-  wiped by it.
-- **Where the code lives:** a debug-only file, for example
-  `src/debug/save_wipe.gd`, named by path after `TestModeGuard.allows()`,
-  so the release preset leaves it out with `src/debug/*`. Not a
-  `SaveStore` method: the store still deletes only on the parent's
-  delete; its header gains a pointer to the wipe.
-- **Release builds:** the flag is ignored, nothing deleted, one log line
-  (`Save wipe: --wipe-save ignored, not a debug build.`).
-- **With a save to load** (`--load=PATH`, or a test script's `"load"`):
-  refused. Nothing deleted, an error printed, and a debug launch quits
-  with exit code 1, like a bad test-mode flag. `--fixture` is no
-  conflict.
-- **The log line**, on every wipe: `Save wipe (--wipe-save): deleted N
-  files from user://saves/; parent.json kept.` A file that can't be
-  deleted gets an error line; the launch carries on.
-- **`tools/android/perf.sh`:** a `--wipe-save` option, off by default,
-  accepted with `--fixture=none` and `--free-play` only (refused with a
-  fixture, exit 2); it adds the flag to `slime_args`. Its header's "the
-  player's data is never at risk" paragraph is amended for it.
-  `tools/perf_slow.sh` gets no option: it only runs fixtures, which never
-  read the player's save, and its extra arguments already pass flags
-  through.
-- **`docs/dev/README.md`:** what the flag wipes and keeps, that it is
-  for automated test runs only, how a test run passes it on the desktop
-  and through `perf.sh` (no hand-typed adb launch), that manual play
-  starts a level over with the parent's delete, and that save and
-  restore checks run without it. Its save section also states D149's
-  format rule.
-- **Save and restore tests never pass it:** the kill-and-reload and
-  delete-save tests, `midair`, `old-version`, every fixture, sidecar and
-  test script, the end-to-end suite. A guard test checks that no file
-  under `tests/`, `levels/*/fixtures/` or the test scripts names the
-  flag, its own tests apart.
-- **A save a build can't use, before the first store release** (D149,
-  proposed): a save `SaveData` refuses (another format number, older or
-  newer, or any other reason it gives) is set aside with its backup as
-  `.unreadable` (`.2`, `.3`... if taken), the level starts fresh with
-  autosave on (no write block), and one log line says so. One switch in
-  the code says whether the app has shipped (for example
-  `SaveData.SHIPPED`, false until the first store release); with it on,
-  today's behaviour stays: the save is left untouched and writes are
-  blocked. A file that isn't JSON is set aside as today; an older level
-  version still migrates.
-- **Unchanged:** the save format itself (still format 1; it may change
-  without a migration until the first store release, D149, but this
-  chunk doesn't change it), the fixture and test-mode script formats,
-  the parent's delete, the simulation.
-- **Done when:**
-  - **unit tests** (a scratch directory, an explicit guard): the flag
-    wipes every kind of file in the directory and leaves `parent.json`
-    and its backup, logging one line with the count; no flag keeps every
-    file byte-identical; a guard answering "not a debug build" deletes
-    nothing and logs the ignored line; with `--load=PATH`, or a test
-    script holding `"load"`, nothing is deleted and the error that makes
-    a debug launch exit 1 is returned; a game started with the flag on a
-    directory holding a save starts fresh (the first-play hint due); a
-    store a test gives is never wiped; the guard test above; the release
-    preset's exclude filter covers the wipe's file;
-  - **unit tests for a save a build can't use** (D149): with the switch
-    off, a save of another format number (newer, and older with a
-    test-only number) and a format-1 save failing the shape check are
-    each set aside with their backup, the level starts fresh, the next
-    autosave writes a new save, one log line; with the switch on, the
-    same saves are left untouched and writes blocked (today's tests,
-    kept); a file that isn't JSON behaves as today; `old-version` still
-    migrates;
-  - **perf.sh**, by hand on the emulator or the phone: `--free-play
-    --wipe-save` starts fresh with the log line in `logcat.txt`;
-    `--fixture=<name> --wipe-save` exits 2; without the flag the device's
-    save resumes as before;
-  - **same hashes** for every fixture; the full suite green;
-  - `docs/dev/README.md` and `SaveStore`'s header carry their notes.
-
 ### 20. Android build and platform integration (L)
 
 - Android export, landscape lock, the screen kept on during a session, and
@@ -797,9 +629,8 @@ frame on its own (mostly the slowdown method's, as 22b found; see
 The user: "try to do these debug changes prior working on 5N", and
 "ensure these informations are also available regularily in the logs for
 your perusal". Today's bar ("on screen : simulated : off screen") misled:
-slimes in a basket count as on screen. Runs after chunk 22b, before 22e
-and 5N, so 22e, 5N and 22's repeat are read with the new counts; its
-windowed run's numbers are 22e's "before" (D146). Its windowed run uses
+slimes in a basket count as on screen. Runs after chunk 22b, before 5N,
+so 5N and 22's repeat are read with the new counts. Its windowed run uses
 the slowed-CPU method, `tools/perf_slow.sh --pin=main`, where it runs
 slowed (D142). Debug tooling only
 (no atom pins the overlay): no ATD steps; it still goes test first. It
@@ -829,594 +660,13 @@ must not run while another chunk edits the debug overlay or the perf log.
   documentation, the first numbers for O107; the suite passes with
   identical hashes.
 
-### 22e. Cluster fixes: the local wake and the hold (S to M, done, D146)
-
-The user (2026-09-30): "we should probably try these fixes before working
-on 5N". It takes out of chunk 24 the local wake (24.3's O106 part, D143,
-D145) and the whole of item 24.8 (the hold, D145), unchanged: their rules
-and numbers stay D145's, proposed, calibrated from the logs (O107). Runs
-after chunk 22d is committed (it adds to 22d's PERF line and reads its
-Physics count) and before 5N, which ports its rest and wake rules; 22c and
-22's repeat then measure the calmer crowd. It changes hopping, which
-slimes rest and how piles wake, so it **keeps both ATD steps**. It must
-not run while another chunk edits the slime body code. **Chunk 22f follows
-it (D147):** the hold's second round, after 22e's measures showed most
-holds ending at the cap; 22e closes as built, and 22f replaces its cap
-test.
-
-The user's words behind the hold (D143, D145): "we could favor cluster
-reducing activity"; "if within a certain range there are already more
-than 30 active slimes (but not in basket) then they may remains in place a
-bit more", "if they are on the ground without any movement, they should be
-removed from physics", and "if the slime is about to come into range with
-slimes already in a traffic jam, they should stop prior reaching the
-cluster". It replaces D143's lean (3 slimes it can't fuse with, within
-96 px, at most 2 s).
-
-- **Atoms (preflight start):** `req_hopping_behavior`, `req_slime_states`,
-  `req_waking_sleepers`, `req_switch_basket_gate_set` (the release).
-  *Proposed:* it also checks `req_offscreen_simulation` (its resting text,
-  D145 (6)) and `req_level_completion_celebration` (the celebration waking
-  resting holders); documentalist's split of
-  `domain_architecture_rationale` (D144) lands before this preflight.
-- **1. A blocked-hop counter first (proposed, D145; debug builds only):**
-  the PERF line gains `hops` (train hops in the period) and `short_hops`
-  (train hops whose landing advanced the slime along the loop by less than
-  half its `Train.hop_reach`), and `perf_summary.py` reports them; read
-  only, same hash. Built before anything else, so the before numbers come
-  from the same build, with 22d's Physics count.
-- **2. The local wake (proposed, D143, D145; O106):** a basket release,
-  the end of a train slime's hold and a touch faster than `WAKE_SPEED`
-  wake only the resting slimes they touch; the rest of the pile stays
-  resting. One fix for O106 and for the hold, built before the hold, which
-  relies on it (a touching queue of holding slimes would otherwise wake
-  whole at every hop from its front). D96 woke piles whole because half a
-  pile resting could jolt and wake again: measure it on basket 3's drain
-  and the bowl's piles (how often a pile wakes, the Physics count, the
-  tick); if piles keep waking, the fallback is to wake the touched slimes'
-  touching neighbours too (one step), never the whole pile. Hashes of the
-  drain and resting-pile fixtures change: list them and why. Item 24.3's
-  emptying fix isn't part of this chunk: on `s3-basket-59of60` a released
-  slime may still fall back into basket 3 (24.3's lead); 22e measures the
-  pile's Physics count during the drain, and isn't judged on the emptying.
-- **3. The hold (proposed, D145):** in `Train.steer`, when a train slime's
-  hop is due, two checks; if either fails it **holds** (doesn't hop):
-  - **the crowd check:** more than 30 slimes that cost physics, out of a
-    basket (calm ACTIVE, not sleepers, not itself, any species), with
-    their centres within 240 px of its hop's target and ahead of it (on
-    the target's side of its own centre) fail it;
-  - **the jam check:** its hop's target, measured along the loop, coming
-    within the two slimes' radii plus 24 px of the rearmost holding train
-    slime ahead of it (a **jam**; one holding slime is enough) fails it.
-    It holds where it stands: no shorter hop.
-  A holding slime checks again every 0.5 s (30 ticks) from the hold's
-  start and hops anyway after 5 s (300 ticks); it may hold again at its
-  next hop. The hold ends too when it answers a call, is parked, falls
-  asleep at bedtime, or is moved (stuck, stalled). Only train slimes;
-  calls, free slimes and parked slimes are unchanged.
-- **4. A holding slime may rest (proposed, D145):** under the pile rule
-  (`REST_DRIFT`, `REST_TICKS`), not while one of its contacts counts
-  toward fusion; it wakes when its hold ends (the Train wakes it, then it
-  hops) or when disturbed. Resting slimes don't count in the crowd check.
-  `SlimeBodies` takes the rest condition as an input set by the behaviour
-  code (a per-slime "may rest", set by the Train during a hold), beside
-  the pile states; chunk 5N ports it to its native rest pass.
-- **5. The celebration:** its hops aren't train hops and the hold doesn't
-  block them (the hold isn't the slide's `held` flag); the celebration's
-  start wakes the resting holders on screen, which do the double hop,
-  and the hold goes on after.
-- **Deterministic:** the checks read the simulation's state (the pair
-  grid's cells around the target, or a read-only count over them, the
-  implementer checking where the hop decision sits against the grid's
-  build; the Train's loop distances); the re-check and the cap are
-  constants; no new draw (a slime draws its next interval when it hops,
-  as today). The hold (the tick it began) is Train state, in saves (an
-  additive field, format unchanged) and in the dump, left out when the
-  slime doesn't hold (proposed), so fixtures where no slime holds keep
-  their hashes.
-- **Hashes:** the chunk lists every changed hash and why, and
-  regenerates them. Expected: `stress-moving`, `s3-basket-59of60`, the
-  bowl's and basket 3's cases, the section 3 bench cases, the basket-drain
-  and resting-pile fixtures (the local wake), any fixture where a train
-  slime reaches a crowd. A fixture with 31 or fewer Physics slimes out of
-  baskets throughout can't hold, so the hold alone doesn't change its hash.
-- **Must still hold:** the dip nudge (rule 5, D119's limited wait: the
-  `bump` fixture's bumps), no train slime stalls ([DoD 1], D118), a hop
-  comes at most 5 s after its timer, the celebration's double hop
-  (item 23.11's tests), basket releases (item 23.5's bedtime tests).
-- **Done when:**
-  - **the bowl's futile hops** (the user: "50+ slimes with active physics
-    that can't activelly move. They try, with no success"): in
-    `stress-moving` and `s3-basket-59of60` (the bowl's train fixtures;
-    the user's "bowl test" is one of them), the Physics count and the
-    share of short hops drop from before to after, read from the PERF
-    lines, with 22d's numbers and 22e's own counter build as the before;
-  - the drain of `s3-basket-59of60` no longer keeps its whole pile awake
-    (the Physics count during the drain, before and after);
-  - unit tests: **a queue's front, whose way is clear, hops first** while
-    the slimes behind it hold (counting ahead, not around itself); **a
-    slime arriving behind a resting queue stops short of it** (its target
-    outside the gap) **and wakes none of it** (every queue slime's calm
-    unchanged); **the cap:** a holder hops at 5 s whatever the crowd;
-    **a release wakes only the slimes touching the one released**; and,
-    kept from 24.8: a slime with more than 30 Physics slimes around its
-    target, ahead of it, holds, checks every 0.5 s and hops once the count
-    is 30 or fewer; 30 or fewer, or a crowd behind it only, doesn't hold
-    it; a holding slime still for `REST_TICKS` rests (the Physics count
-    drops), then wakes and hops when its hold ends, its resting neighbours
-    staying at rest; a holding slime touching a same-species slime it may
-    fuse with doesn't rest until they fuse; a resting holder on screen
-    does the celebration's double hop;
-  - the numbers (the section 3 bench cases and the bowl's fixtures: the
-    largest awake cluster, the Physics count, `short_hops`, the tick,
-    before and after) are recorded in the project documentation, the
-    first calibration of the 30, the 240 px, the 24 px, the 0.5 s and the
-    5 s, and 24.7's input (O107);
-  - [DoD 1] and the `bump` fixture's tests pass; the suite passes, the
-    same seed gives the same hash within the new behaviour, and every
-    changed hash is listed with its reason.
-- **Built** (D145 and D146's as-built notes; 4750f12, suite 1367/1367;
-  detail in `docs/dev/README.md`, "Chunk 22e: the local wake and the
-  hold", and the perf report `docs/perf/2026-10-01-chunk-22e.md`):
-  - **1, the counters:** `hops` and `short_hops` on the PERF line and in
-    `perf_summary.py`, debug only; alone they changed no hash.
-  - **2, the local wake:** a release, the end of a hold and a touch
-    faster than `WAKE_SPEED` wake only the resting slimes they touch (a
-    LoopStart move too: the moved slime and the resting slimes touching
-    where it was); the rest of the pile rests on, a wall. On basket 3's
-    drain (`s3-basket-59of60`, seed 1, headless): 0 whole-pile wakes
-    against 6 before (52 to 59 slimes each), a median of 3 and at most 9
-    pile slimes woken in a tick, Physics during the drain 84.1 -> 47.9.
-    **The one-step-neighbour fallback was not built:** the piles don't
-    churn, so it wasn't needed. The pile is still partly awake most of the
-    time because basket 3's outlet is blocked on 99.4 % of release-due
-    ticks: 24.3's emptying, not the wake.
-  - **3, the hold,** as D145 shaped it: `HOLD_CROWD` 30, the 240 px
-    radius, `JAM_GAP` 24 px, a re-check every 30 ticks, the cap at 300
-    ticks; a holder's hop timer kept at 0.25 s at least, with no draw.
-    **The first calibration kept every number:** a sweep of 15, 20 and 30,
-    160 and 240 px, 24 and 48 px; a lower threshold only nudges
-    `stress-moving` and doesn't help `s3-basket-59of60`; the limit is the
-    rule, not its numbers.
-  - **4, may rest:** a per-slime input the Train sets before every tick
-    (on for a holder unless one of its contacts counts toward fusion), not
-    state (neither saved nor dumped), kept apart from the pile states so a
-    holder isn't capped at the pile detail (`PILE_MAX_DETAIL`).
-  - **5, the celebration** wakes the resting train slimes on screen it
-    picks; they do the double hop and their hold goes on.
-  - **The save key** (the user's OK): `save["slimes"][i]["train"]["hold"]`,
-    an integer, the tick the slime's hold began, written only while it
-    holds. Format 1, additive: an older save loads with no hold. A value
-    that isn't a whole number >= 0 makes the save invalid. In the dump
-    only while a slime holds.
-  - **Choices where the spec was silent** (proposed): the jam's radius is
-    the rest ring's (`SlimeBodies.radius_of`); split parts inherit the hold
-    from the same tick; holders at the same distance along the loop tie
-    to the bigger slime; a LoopStart move wakes a resting holder (else it
-    would hang at the start as a wall once its hold ends).
-  - **Against the done-when** (desktop, full speed capped at 60 fps,
-    seed 1; the before is 22d's tree with the counters):
-    - the Physics count drops: `stress-moving` 134.3 -> 123.4,
-      `s3-basket-59of60` 79.9 -> 51.2 (the largest awake cluster 92.1 ->
-      74.4 and 50.0 -> 24.4). **Met.**
-    - the drain no longer keeps the whole pile awake. **Met.**
-    - the short-hop share drops: `stress-moving` 96.1 -> 95.2 %,
-      `s3-basket-59of60` 76.2 -> 76.7 % (no train slime holds there on
-      seed 1). **Not met.** The queue probe says why: what the crowd check
-      counts is the train queue itself (about 24 at its back, under 30),
-      so it almost never fires; the jam check starts 331 of the 361 holds
-      and spreads the hold backwards; 86 % of hold ends are at the cap,
-      and 288 of the 292 holds that reach it are still jammed; the front
-      never holds, but doesn't go first either. Chunk 22f (D147) answers
-      it: the hop corridor, the holder rule, no hop through a crowd, the
-      hold guard.
-    - the suite passes (1367/1367), the hold's, may-rest and local-wake
-      tests among it; [DoD 1] and `bump` pass. **Met.**
-    - the numbers and the first calibration recorded (the perf report).
-      **Done.**
-  - **The tick:** `s3-basket-59of60` 7.27 -> 6.68 ms; `stress-moving`
-    9.68 -> 10.17 ms: the hold's checks cost about 0.8 ms a tick in that
-    crowd, more than the fewer Physics slimes save.
-  - **Hashes** (17 fixtures, seed 909, 600 and 2400 ticks): only
-    `stress-moving` (the hold) and `s3-basket-59of60` (the local wake on
-    basket 3's pile) changed. The basket-drain, resting-pile and section 3
-    bench fixtures this plan expected to change kept theirs: no slime
-    holds in them, and within the hashed ticks their piles never take a
-    wake that differs between the whole-pile and the local wake.
-  - **D138's budget** (an estimate from the desktop): the simulation
-    still misses its 8 ms on both bowl fixtures (about 21 ms
-    `stress-moving`, 14 ms `s3-basket-59of60`, cold); drawing, unchanged
-    by 22e, within its 4 ms cold, over it throttled.
-  - **Rule 23 (O107):** both bowl fixtures still keep a cluster above 20
-    for more than 5 s (`s3-basket-59of60`, once its pile first rests, 16
-    to 31, mostly 20 to 24, right at the limit).
-  - **Handed to 22f** (its step 0, D147 (7)): the end of a hold sets the
-    hop timer to 0, which overrides a dip-nudge pin set the tick before;
-    `src/sim/train.gd` is at 417 effective lines, over CODING_RULE's 400
-    (22f moves the hold to its own file). **For 22c and 5N:** `_rest()`
-    rewrites the still count and the rest anchor of every active slime
-    that may not rest, every tick (so a reload matches): a cost for 22c to
-    watch, and 5N's native rest pass must port it with the may-rest
-    input.
-
-### 22f. The hold, second round (S to M, proposed, D147)
-
-The user's second round on the hold (2026-10-01), after 22e's sweep. As
-built in 22e, 86 to 96 % of holds end at the 5 s cap: the crowd check
-almost never clears at a re-check, so the hold acts as a 5 s delay, not
-as a queue draining from the front. The short-hop share stays at 93 to
-95 %, and the user saw "slimes in the back of the bowl ... attempting to
-move while there were many many slimes in front of them (i expected to
-see only the front of the bowl to move)". Then: "the 5+s mandatory hop
-shouldn't occur if the crowd test comes back crowded though". 22f runs
-after 22e is committed and before 5N, which ports its rest rules. It
-changes hopping, which slimes rest and the celebration, so it **keeps
-both ATD steps**. It must not run while another chunk edits the slime
-body code or the Train. Every rule and number below is D147's, proposed.
-
-- **Atoms (preflight start):** `req_hopping_behavior`, `req_slime_states`,
-  `req_level_completion_celebration`, `req_offscreen_simulation` (its
-  resting text), `rule_stalled_train_slime_moved_to_start` (the guard
-  sits beside it).
-- **0. Hand-overs from 22e, first:**
-  - Move the hold out of `src/sim/train.gd` (417 effective lines, over
-    CODING_RULE's 400) into its own file owned by the Train, for example
-    `src/sim/train_hold.gd`, its tags moved with it. Same hashes.
-  - The end of a hold no longer overrides a dip-nudge pin set the tick
-    before (`steer()` runs before fusion's nudge; wording aligned with
-    the code, D150): the pin wins. A unit test covers it.
-  - Add the missing unit test for a slide ending a hold.
-- **1. The hold counter (debug builds only, same hash):** the debug bar
-  gains **": hold n"** after "Physics a : on screen b : in range c :
-  parked d", in the same style. The PERF line gains `holding`,
-  `holding_resting` and `contact_resting`, and per period
-  `hold_ends_clear`, `hold_ends_cap`, `guard_releases`,
-  `hold_ends_other`, `front_hops`, `queue_hops`, `holder_holds` and
-  `crowded_hops`.
-  `tools/android/perf_summary.py` reads them all. Built before the
-  behaviour changes, so the before numbers come from the same build.
-- **2. The diagnostic, before any rule changes:** run a probe on
-  `stress-moving` and `s3-basket-59of60` (the 22e lead's probe, or 22e's
-  sweep probe extended). It answers:
-  - what the crowd check counts at each hold start and re-check (train
-    slimes, holders, resting, their place along the loop);
-  - whether the back-of-queue hops are cap expiries;
-  - which holds start from the crowd check and which from the jam check.
-
-  It confirms or rules out D147 (4)'s readings (a) to (e).
-- **3. The crowd detection: the hop corridor first** (the user's,
-  D147 (4)):
-  - **the corridor:** an oriented box from the hopping slime's centre to
-    its landing point plus 100 px, 75 px either side; the slime itself
-    left out. It replaces the 240 px disc and its half-plane;
-  - **who counts:** every slime whose centre is in it, except parked,
-    basket and sleeper slimes. Resting slimes and holders count;
-  - **the threshold:** occupancy (the slimes' summed area, π ·
-    `radius_of`², over the corridor's area) above 0.5. The alternative is
-    a size-scaled count (about 6 base slimes' worth);
-  - **the holder rule** (the user's: "slimes on hold should also prevent
-    jumping i guess ?"): a holder anywhere in the corridor, the 100 px
-    past the landing point included, makes the slime hold at any
-    occupancy. A train slime resting by contact counts as a holder here.
-    It **replaces the jam check** (proposed), so the queue releases
-    front-first. `holder_holds` counts the holds it starts below the
-    threshold;
-  - **the stack zone** (the user's "guard zone", renamed so it isn't
-    confused with the hold guard; proposed): a holder directly or almost
-    directly above or below the hopper doesn't trigger the holder rule.
-    Its centre projects onto the hop line, from the hopper's centre, less
-    than the two radii apart. The alternative is a cone of ±30° from the
-    vertical. It still counts toward the occupancy. *Proposed
-    complement:* the holder rule reads the holders as of the tick's start
-    (a snapshot), so no same-tick decision depends on array order;
-  - **a debug overlay,** off by default: the corridor of the slime under
-    the debug label, coloured held or free. The scan is O(n) per check,
-    as today, and may use the pair grid's cells near the corridor;
-  - **only if the corridor misses the done-when:** the disc counting
-    resting and holding slimes with "ahead" along the loop, or the user's
-    fallback, HOLD_CROWD 15. Re-run the sweep over them;
-  - record which was kept and why, and report it to spec-writer. The
-    detection lands before, or with, item 4. A curve-following band for
-    sharp bends is noted, not built.
-- **4. The cap and the guard:**
-  - A hold's period is 5 s plus 0 to 60 extra ticks. At its end the checks
-    run again; still crowded, it keeps holding and a new period begins,
-    with no forced hop. A holder-only hold doesn't hop at the cap either
-    (D147, O109).
-  - Re-checks every 0.5 s, the first after 30 plus a 0 to 29 tick phase
-    drawn per hold.
-  - The extra and the phase come from streams derived from the master
-    seed, the slime's id and the period's start tick (no existing stream
-    shifts). They are rebuilt on load from the saved `train.hold`, so the
-    save format doesn't change. A fallback key no longer needs the
-    user's OK (D149: until the first store release the format may
-    change); no new field is still preferred (D147 (2)).
-  - **The hold guard (required):** when no simulated train slime has
-    hopped for 4 s while one holds, the front-most holder hops. Front-most
-    is the longest gap along the loop to the next train slime ahead; a tie
-    goes to the lower id. The condition is read from saved state: every
-    simulated train slime is holding, resting or `held`, and the most
-    recent hold began at least 4 s ago. It covers a queue wrapping the
-    loop and a front holder that can never clear. The stall net stays the
-    last resort; hold time counts toward it (O110's default; reversed by D152: holding slimes don't stall).
-- **5. Resting:**
-  - (a) a train slime touching one or more holders **ahead of it along
-    the loop, or in its stack zone** (on or under it), may rest (D143's touching, read geometrically); its timer
-    stands still; it wakes when a touching slime moves off fast, or when
-    it no longer touches a holder ahead (the Train wakes it). It counts
-    as a holder for the holder rule;
-  - (b) a slime resting through "may rest" must be **on the ground**:
-    touching terrain facing up, or standing on a resting slime. Standing
-    on an awake slime isn't ground. Basket and bedtime piles are
-    unchanged. When a slime wakes, those resting on it wake too, up the
-    stack;
-  - (c) not while a contact counts toward fusion (D145, kept).
-- **6. The celebration:**
-  - Holders and resting train slimes on screen are left out of the
-    physical double hop, and the 22e wake at the burst's start goes.
-  - They bounce in drawing only (two small arcs timed like the double
-    hop, from the burst's elapsed ticks; not saved, not hashed). If that
-    isn't cheap in the renderer, they get no animation, and the chunk
-    says so.
-- **Deterministic:** the checks read the simulation's state, and the
-  draws come from derived streams. The guard and rest by contact are
-  derived each tick. The same seed gives the same hash, also across a
-  save and reload mid-hold.
-- **Done when** (targets proposed, D147 (8); headless probe, seeds 1 and
-  2, against 22e's committed build):
-  - **the holds:** in `stress-moving` and `s3-basket-59of60`, at least
-    90 % of hold ends are clear (the checks passed); `hold_ends_cap` is
-    0 under O109's default; `guard_releases` is 0; `crowded_hops` is 0;
-  - **the hops:** the short-hop share in `stress-moving` is at most 80 %
-    (from 93 to 95 %), and in `s3-basket-59of60` no higher than 22e's;
-  - **only the front of a queue hops:** `front_hops` (the hops taken by
-    the front-most slime of its touching queue) is at least 90 % of train
-    hops; `queue_hops` is at most 5 %; and, sampled at each PERF line, at
-    least 80 % of the members behind the front of every touching queue of
-    5 or more are holding or resting (the bowl's back slimes hold);
-  - **no worse than 22e:** the Physics mean and the largest awake
-    cluster (mean and max) don't rise above 22e's on the same probe;
-  - **no freeze:** over 10,000 ticks on both fixtures and both seeds,
-    `Train.stalled` stays empty and the guard never fires (a run needing
-    it is listed with its reason and fails); [DoD 1] and the `bump`
-    fixture's tests pass;
-  - **unit tests:** D147 (8)'s list (the hop corridor's box and who it
-    counts; the holder rule and the front-first queue; the stack zone,
-    with two stacked slimes due on the same tick giving the same outcome
-    in either array order; the period renewed
-    while crowded; the holder-only cap; the draws repeating per seed and
-    across a reload;
-    the guard on a deadlocked ring; rest by contact ahead but not behind,
-    and its wake; on the ground; the wake up the stack; the celebration
-    sparing holders; the hold counts) and item 0's tests;
-  - **records:** every changed hash listed with its reason. The perf
-    report in `docs/perf/` is extended, or a new one written, with the
-    diagnostic, the chosen detection, and the numbers before and after.
-    The suite passes.
-
-### 22i. The bucket cap (S, the user's, details proposed, D151)
-
-The user (2026-10-02): "A bucket should NEVER have more than 15 slimes
-(with exception... like slimes in a basket) ... if a slime in bucket 12
-hope to reach bucket 13, but this bucket is already 15 full, then it hold
-its jump"; an overfilled bucket "can only attempt to move forward ...
-ONLY if the next bucket is empty enough"; the coordinator's cap accepted
-("let's try the bucket cap first, at your proposed cap"). Runs next,
-before 22h. It builds on 22g's loop buckets (`src/sim/loop_buckets.gd`)
-and edits the Train, the hold and the off-screen advance, so it runs
-alone. Behind a switch, default off: an ATD peek
-(`req_hopping_behavior`, `req_offscreen_simulation`; no save key), the
-full steps only if the user turns it on by default. Every rule and number
-below is D151's, proposed where it goes beyond the user's words.
-**Amended by D152 (the user's, after the sanity run):** a holding train
-slime (any reason, or resting by contact) has its stall clock paused, cap on
-or off (no save key; hashes change where a holder reached 60 s); built as a
-fix to 22i, then a round of testing.
-
-- **1. The loads, kept always** (the switch on or off, front-first on or
-  off): a bucket's load is the weight of the train slimes whose recorded
-  distance is in it, parked and sliding ones included; not slimes in a
-  basket, sleepers, bedtime-asleep or free slimes. Derived from the
-  records and the loop's cut, placed again when a gate recuts it. A hop
-  let through counts in its landing bucket until the slime's next
-  `follow()`: the first in processing order takes the last room. In the
-  air a slime counts where its progress is (known slack, measured).
-- **2. A hop into a full bucket holds:** the landing bucket (that of the
-  distance `hop_target` aims at) must have room: its load plus the
-  slime's size at most its cap. A skipped bucket isn't checked. Bucket 0
-  follows the last.
-- **3. An overfilled bucket** (at or over its cap): a slime in it hops
-  only while the next bucket ahead has room for it, landing there or
-  inside its own; otherwise it holds. Under its cap, a hop inside the
-  bucket is never held by the cap. The corridor and the holder rule apply
-  on top.
-- **4. A hold like any other** (D147): `train.hold`, the periods and
-  re-checks, rest by contact behind it, the holder rule; the cap checked
-  first, its holds filed as **bucket full** (`bucket_holds`); the guard's
-  release ignores the cap; the stall net unchanged (O110; amended by D152: holding slimes don't stall).
-- **5. Exceptions:** the slide, a slime joining the train, a split's parts
-  and a move to the loop start are never held (they may overfill a
-  bucket, which then drains by 3); a parked slime's advance stops at its
-  bucket's front edge while the next has no room. For 22h: a landing spot
-  needs room in its bucket.
-- **6. The caps:** density × length, rounded down (12 for 300 px), the
-  short last bucket never below 3; the density is the larger of 4 per
-  100 px and 2 × the level's base slimes / the loop's length (never binds
-  on the test level). Beyond that, the hold guard, then the stall net.
-- **7. The switch:** `Train.bucket_cap` (off), `Train.bucket_cap_density`
-  (4.0), `--bucket-cap`, `--bucket-cap-density=D`, debug builds only,
-  refused in a release build, forwarded by the probe tools; the bucket
-  length stays `--loop-bucket-length` (300 px). The PERF line gains
-  `bucket_holds`, `bucket_max`, `buckets_over`.
-- **Deterministic:** no draw of its own; the hold's draws come from its
-  derived streams as today; the same seed gives the same hash, also across
-  a save and reload mid-hold.
-- **Done when** (a measurement round, like 22g's; `stress-moving` shows
-  the drain only, never a target, the user's note):
-  - off: the 17 fixtures' hashes identical to 22g's committed build at
-    600 and 2400 ticks (seed 909); on: every changed hash listed;
-  - 10,000 ticks (`thru.gd`), off and on, `s3-basket-59of60` and
-    `stress-moving`, seeds 1 and 2: stall moves, stuck moves, guard
-    releases, hops, `bowl_n` at the end;
-  - the 2400-tick probe (`hold_probe.gd`), the same runs: hops, short-hop
-    share, front and queue hops, Physics, the largest awake cluster (mean,
-    max), holds by reason, hold ends;
-  - the bucket loads sampled every 60 ticks: each bucket's highest load and
-    a histogram, off and on; with the cap on, every bucket going over 15
-    after being at or under its cap listed with its cause (the bowl's
-    starting overfill apart);
-  - `tools/perf_slow.sh --pin=main --seconds=62`, off and on, both
-    fixtures: fps (mean, p5) and tick ms;
-  - unit tests: D151 (9)'s list;
-  - records: a perf report in `docs/perf/` with a short reading for the
-    user (turn it on by default? the user's call; D151 (9)'s proposed
-    reading); optional, one probe column with front-first on and the
-    tick-start snapshot kept (D151's 22g hypothesis); the suite passes.
-
-### 22j. The `stress-dense` fixture (S, the user's, details proposed, D153)
-
-The user (2026-10-02): `stress-moving` "may be too much"; keep it as an
-abuse test ("not to crash and keep a minimum of 15fps") and add a fixture
-at "what the rules allow + 50%": "stress dense: should have at minimum 30
-fps." Runs next, before 22h. A test fixture only: no game code, no save
-format change; an ATD peek (`req_test_level_and_test_mode`, the
-performance requirement for DoD 30's new clauses, `rule_max_200_slimes_per_level`
-already on the fixture builder).
-
-- **1. The recipe:** `stress-dense` in `tools/make_fixture.gd` (a recipe
-  and a build function beside `_stress_moving`), with its
-  `.fixture.json` sidecar and save under `levels/test/fixtures/`, as
-  every fixture. Gates 1 and 2 open; the first slime and the 199
-  sleepers woken as size-1 train slimes, each its sleeper's species; not
-  at bedtime, no session; switch 3 and basket 3 untouched; the camera on
-  the bowl (`BOWL_CAMERA`).
-- **2. The placement** (D153 (2) as amended by D154; the first build,
-  ad8cd36, stacked 18 per bucket in columns, 134 in the bowl, "a soup of
-  slimes", so it is rebuilt): the cap's buckets (gates 1 and 2 open); the
-  two buckets at the bottom of the bowl take 12 each (the cap), then
-  behind and ahead alternately, behind first, 9 each, to 200; a short
-  bucket takes its share; nothing past switch 3 (fewer than 200 only if
-  they don't fit, reported). Within a bucket the slimes are evenly spaced
-  by loop distance and set on the loop as a train slime is spawned, not
-  stacked. Stable ID order onto fill order. No draw.
-- **3. The record:** the count per bucket at load, the total and the
-  count in the bowl (about 65 to 70; O114), and how the line settles
-  (neighbours overlap at these spacings, D154 (2)), in the fixture's
-  description and the test level README's row.
-- **Found in the first build (a fix pending, not this chunk, D154):** a
-  fixture's train distances wrap on load (no train section in its save,
-  the Train restored on the gates-closed loop; `stress-moving`,
-  `s3-basket-59of60`, `gate2-open`, `stress-dense`); caught up by tick 60.
-- **Deterministic:** the same build gives the same save; the same seed
-  the same hash, also across a save and reload.
-- **Done when:**
-  - the fixture loads with 200 train slimes (or the reported count),
-    every loop bucket at most its fill (12 for the bowl's bottom two, 9
-    for the rest) at load and the filled ones at it (bar the last and any
-    short one), none past switch 3;
-  - its hash at 600 and 2400 ticks (seed 909) recorded with the 17
-    others', which don't change;
-  - a scripted test beside `stress-moving`'s
-    (`tests/e2e/test_fixtures_e2e.gd`, `test_fixture_scenarios_e2e.gd`):
-    it loads, runs, keeps 200 slimes and the train hops; the level bench
-    (`tools/bench_level.gd`) and `tools/perf_slow.sh` accept it;
-  - one phone-emulation run (`tools/perf_slow.sh --pin=main --seconds=62
-    stress-dense`), cap off, reported as a first reading, not a gate (the
-    targets are checked at chunk 22's repeat, after 5N); the suite passes.
-
-### 22k. Measurement round: the stress fixtures and the bucket cap (S, D153)
-
-After 22h. No code. `stress-dense`, `stress-moving` and
-`s3-basket-59of60`, seeds 1 and 2, the bucket cap off and on: the
-10,000-tick runs (`thru.gd`: stall, stuck and guard moves, hops, the bowl
-left; for `stress-moving`, a hop in every 600-tick window) and
-`tools/perf_slow.sh --pin=main --seconds=62` (fps mean and p5, tick ms)
-against D153's targets (at least 30 fps `stress-dense`, at least 15
-`stress-moving`; the emulation standing in for the S20 FE). A perf report
-in `docs/perf/` with a short reading for the user (the cap on by default?
-the user's call).
-
-### 22h. Moves to the loop start one at a time, to a random free spot (S, proposed, D150)
-
-The user (2026-10-02), after chunk 22g's stall diagnostic
-(`../../../docs/perf/2026-10-01-chunk-22g.md`, section 5): "emergency
-teleport should be randomized in position ... emergency teleport should
-have a cooldown. between 0.5s to 2s"; a global queue, one move at a time;
-and the stall clock paused while a train slime is parked. "Emergency
-teleport" is the **move to the loop start** (`LoopStart.move`), shared by
-lost free slimes, stuck slimes and stalled train slimes (out of bounds
-included). Runs after 22i (the user's: "let's try the bucket cap first",
-D151) and 22j (D153), before 22k, 19w and 5N. With 22i's cap on, a landing spot is free only
-if its loop bucket has room for the slime (D151 (5)).
-It changes three safety nets' rules, so it **keeps both ATD steps**. It
-must not run while another chunk edits the Train, `StuckSlimes` or
-`Offscreen`. Every rule and number below is D150's, proposed where it
-goes beyond the user's words.
-
-- **Atoms (preflight start):** `rule_stalled_train_slime_moved_to_start`
-  (its "on screen or off" changes), `rule_stuck_slimes_moved_to_start`,
-  `rule_left_alone_and_lost` (the move waits its turn),
-  `req_offscreen_simulation`, `req_slime_states`,
-  `req_persistence_and_saves` (to confirm no save key changes).
-- **1. The stall clock pauses while parked** (O113's default: every
-  parked train slime): each tick a followed slime is parked, its last
-  stall mark's tick moves on by one; progress at the off-screen pace
-  still marks as today; out of bounds unchanged. No new save key (the
-  record's `marked_at` carries it).
-- **2. The loop-start queue:** the nets (`Offscreen`'s lost count,
-  `Train.follow()`, `StuckSlimes.step`) only find the slimes **due**; one
-  queue step, last in `Simulation.step`, moves **one per turn**, the next
-  turn 30 to 120 ticks after the last move (the first draw of
-  `loop_start:gap:<move tick>`). Out of bounds first, then first due
-  first moved, ties by id; a slime whose reason no longer holds at its
-  turn leaves without a move and without spending the wait; a queued
-  slime carries on as it would meanwhile. A stuck pair's count keeps
-  counting while its mover waits. The debug kill tool stays immediate
-  and counts as a move. **Derived, not saved:** who is due and since when
-  from the nets' saved state, the last move's tick from the three move
-  logs; fallback, one additive key (D150, 2).
-- **3. A random free landing spot:** a distance along the loop drawn
-  uniformly in 0 to 240 px from the start, the centre lifted by the
-  slime's size; free when inside a split zone and no ring overlaps (parked
-  ones included); up to 8 draws from `loop_start:spot:<tick>`; all taken,
-  nobody moves and the head tries again on the next multiple of 30
-  ticks. Never onto another slime.
-- **Deterministic:** derived streams only; a run with no move to the
-  loop start and no parked stall keeps its hash; the same seed gives the
-  same moves and spots, also across a save and reload mid-queue.
-- **Done when:**
-  - `s3-basket-59of60`, seeds 1 and 2, 10,000 ticks: 0 stall moves of a
-    slime parked at any tick of its last 60 s; 0 stuck moves of a slime
-    within 600 ticks of landing from a move to the loop start; every two
-    moves at least 30 ticks apart; every landing free at its tick and on
-    the first 240 px of the loop. The stall and stuck counts before (87
-    and 305; 86 and 172) and after are reported, with the bowl's parked
-    line (now waiting, not drained by the stall net: not a failure);
-  - `stress-moving`: the same checks on the moves; its counts reported,
-    never targets (the user's note: a cluster of disproportionate
-    dimensions on purpose);
-  - unit tests: the parked pause and resume; one move per turn and the
-    wait from its stream; the order (out of bounds first, then first
-    due); a recovered slime leaving without a move or a wait; lost and
-    stuck slimes through the queue; the stuck count going on while its
-    mover waits; the spot (first 240 px, free, in a split zone); all 8
-    taken and the retry; the kill tool immediate; the same hash across a
-    save and reload mid-queue;
-  - records: every changed hash listed with its reason; [DoD 1]'s
-    whole-level test unchanged; a short 22h section in the perf report;
-    the suite passes.
-
 ### 22c. Crowd detail only under load (S, proposed, D141)
 
 The user's amendment to crowd detail (D140): "if you've got a good
 phone/tablet, why degrade?". A good device keeps full ring points
 whatever the crowd; crowd detail applies only while the device can't keep
 up. Runs after chunk 5N (which changes how often a device is pressed at
-all) and before chunk 22's repeat, which measures it. **It now measures a
-calmer crowd** (D146): chunk 22e's hold and local wake are in place, so
-fewer slimes cost physics near the bowl and basket 3. *Proposed:* if the
-calmer `s3-basket-59of60` no longer presses the slowed CPU, the done-when's
-climb is checked on `stress-moving` instead, and the record says so. It changes
+all) and before chunk 22's repeat, which measures it. It changes
 `req_offscreen_simulation`'s detail rule, so it keeps both ATD steps. It
 must not run while another chunk edits the slime body code.
 - **The load meter,** in the scene layer and in every build (not the
@@ -1663,12 +913,11 @@ session on the S20 FE (2026-09-30, `docs/perf/2026-09-30-s20fe-session.md`;
 proposed, D139); 24.4 changes save behaviour and 24.5 the frame rate, so
 both keep both ATD steps; 24.6 is debug tooling only. Items 24.7 and
 24.8 are cluster avoidance (the user, 2026-09-30; D143, approved in
-direction, D144, their numbers proposed; 24.8 rewritten as the hold,
-proposed, D145). **Moved to chunk 22e, before 5N (the user's reorder,
-D146):** 24.3's local wake (O106) and the whole of 24.8, built with both
-ATD steps there; 24.8 stays here as a pointer. 24.7 stays in this chunk,
-calibrated from 22d's and 22e's logs, and its rule goes to documentalist
-once built (a rule atom under `req_level_design_rules`).
+direction, D144, their numbers proposed); they
+run after 24.3, which settles O106 first, since a draining basket is
+today's biggest awake cluster; 24.8 changes hopping behaviour, so it
+keeps both ATD steps, and 24.7's rule goes to documentalist once
+built (a rule atom under `req_level_design_rules`).
 
 **24.1 The frame rate drops in section 3** (reported 2026-09-29;
 proposed, D128; master spec 6 and 7, [DoD 30]). An investigation, then a
@@ -1774,12 +1023,9 @@ basket" and 5.4; D86, D91, D105).
   released slime that lands on an open trapdoor falls back into the
   basket, which releases it again, so the basket may never empty. Basket
   2's pit, under its gate, may do the same.
-- **With O106 (D138):** each release woke the basket's whole pile, which
-  then never rested during the drain. **The local wake that answers it
-  moved to chunk 22e (D146)**, built before this item: a release, the end
-  of a hold and a fast touch wake only the slimes they touch (D143, D145).
-  This item builds on it and doesn't redo it; its drain measures are
-  taken with it in place.
+- **With O106 (D138):** each release wakes the basket's whole pile, which
+  then never rests during the drain; how releases and resting interact is
+  settled with this item.
 - **Proposed (D128):** a fired basket always empties: no released slime
   falls back into it (its trapdoor is shut, or its outlet is off the
   trapdoor, before the next release), and it is empty within its quota
@@ -1792,9 +1038,7 @@ basket" and 5.4; D86, D91, D105).
   the basket; from `s2-basket-offscreen`, basket 2 fires and is empty
   within 14.5 s; from `bedtime` with a releasing basket nothing leaves
   until sunrise (item 23.5's tests still pass); the same seed gives the
-  same hash; [DoD 1] and [DoD 9] still pass; chunk 22e's local-wake
-  tests still pass (a release waking only the slimes it touches is
-  tested there, D146).
+  same hash; [DoD 1] and [DoD 9] still pass.
 
 **24.4 A migration wakes sleepers** (reported 2026-09-30, the phone
 session; proposed, D139; master spec's saving rules, D72, D131). The
@@ -1864,8 +1108,8 @@ The user saw "piles of active slimes" next to basket 3, "legit slow fps".
   level-rules checker's rule 23 line points at both (it can't run the
   simulation), as rule 12's played test is its proof. The `stress-*`
   fixtures are excepted.
-- **The limit:** calibrated first from 22d's and 22e's logs (D146) and
-  the bench on the test level (is a dense train queue one long cluster? O107), then set in
+- **The limit:** calibrated first from 22d's logs and the bench on the
+  test level (is a dense train queue one long cluster? O107), then set in
   `tuning.md`; proposed until then: above 20 slimes for more than 5 s in a
   row fails.
 - **The tutorial and the skill:** `docs/level-design/06-population.md`
@@ -1873,8 +1117,7 @@ The user saw "piles of active slimes" next to basket 3, "legit slow fps".
   23's result comes from), and the `level-review` skill's rule list.
 - **The test level:** measured and recorded, not edited (section 3 is the
   stress area, D143); if section 3 still breaks the limit in normal play
-  once 22e (the local wake and the hold, D146) and 24.3 have landed, the
-  user decides on a level edit (O107).
+  once 24.3 and 24.8 have landed, the user decides on a level edit (O107).
   Its test records rule 23's numbers and doesn't fail on them until then.
 - **Done when:** the bench reports `largest_cluster` and the seconds above
   the limit on every case; a synthetic level with a bowl feeding a basket
@@ -1884,14 +1127,30 @@ The user saw "piles of active slimes" next to basket 3, "legit slow fps".
   numbers (each section, each basket's drain) are in the project
   documentation; the suite passes.
 
-**24.8 The train holds before a crowd** (the user, 2026-09-30; D143,
-approved in direction, D144, rewritten by D145, proposed). **Moved to
-chunk 22e (D146)**, whole: the blocked-hop counters, the hold (the crowd
-check, the jam, the 0.5 s re-check, the 5 s cap), resting holders, the
-celebration, the bowl's done-when. Kept here as a pointer so references
-to 24.8 still resolve; nothing of it is left in chunk 24. **Reworked in
-chunk 22f (D147):** the hop corridor and the holder rule, no hop through
-a crowd, the hold guard, rest by contact and on the ground.
+**24.8 The train leans away from clusters** (the user, 2026-09-30;
+D143, approved in direction, D144, the numbers proposed;
+`req_hopping_behavior`, O107). "we could favor cluster
+reducing activity".
+- **Proposed:** when a train slime's hop timer runs out, it counts the
+  slimes that cost physics within 96 px (2 base-slime diameters) of its
+  hop's target that it can't fuse with (another species, or past the
+  maximum size); with 3 or more it waits 0.5 s and looks again, at most 4
+  times in a row, then hops anyway. Only train slimes; calls and free
+  slimes are unchanged. The values are rows in `tuning.md`.
+- **Deterministic:** the count comes from the simulation's state (the
+  pair grid or the same cells), the wait is a constant, never a draw.
+  Hashes change where a train slime lands near a crowd: the chunk lists
+  which changed and why, and regenerates the fixtures.
+- **Must still hold:** the dip nudge (rule 5, D119's limited wait: the
+  `bump` fixture's bumps), no train slime stalls ([DoD 1], D118), a hop
+  comes at most 2 s later than its timer.
+- **Done when:** a unit test with a crowd of another species at a train
+  slime's landing point sees the hop wait, then happen within 2 s; a
+  same-species crowd doesn't delay it; the section 3 bench cases and the
+  played run of section 3 show the largest awake cluster and the time
+  above the limit before and after, recorded in the project
+  documentation; [DoD 1] and the `bump` fixture's tests pass; the same
+  seed gives the same hash within the new behaviour.
 
 ### LD. Level-design toolkit (L, technical)
 
@@ -1975,15 +1234,14 @@ behaviour, so no ATD steps; it still goes test first.
   `gate1-open` and `gate2-open` baskets 2 and 3; the fixtures are
   regenerated and the whole suite passes (DoD 1 included).
 
-### 5N. Native simulation tick (going ahead after 22d, 22e and 22f, D140, D143, D142, D146, D147)
+### 5N. Native simulation tick (going ahead after 22d, D140, D143, D142)
 
 Size M. **Chunk 22 was its trigger** (D96): it failed DoD 30 (D138), and
 crowd detail was not enough on its own, which meets the user's
 conditional go ("Should it prove unsufficient, we will see how it goes
 with 5N"). After chunk 22b the user gave the go outright: "ok schedule
-work on 5N after this chunk" (D142). It runs after chunks 22b (done),
-22d (D143), 22e (the cluster fixes, D146) and 22f (the hold's second
-round, D147); chunk 22c follows (D141), and chunk
+work on 5N after this chunk" (D142). It runs after chunks 22b (done) and
+22d (D143); chunk 22c follows (D141), and chunk
 22 is then repeated (D140, proposed order). Technical: no ATD steps. It must not run while another
 chunk edits the slime body code.
 
@@ -1995,25 +1253,6 @@ chunk edits the slime body code.
   `TerrainSegments` (D97).
 - The simulation keeps its GDScript interface. Behaviour code (hops, phases,
   calls, fusion timing) stays in GDScript, unchanged.
-- **Port 22e's rest and wake rules; keep the rest condition open (D145,
-  D146, proposed):** chunk 22e's hold lets a holding train slime rest,
-  through an input the behaviour code sets (a per-slime "may rest"),
-  beside the pile states. The native rest pass takes that "may rest"
-  input and must not hard-code "in a basket or asleep at bedtime" (the
-  pre-22e `SlimeBodies._can_rest`); its wake is 22e's local wake (only
-  the slimes touched; 22e built no fallback). As built, `_rest()` also
-  rewrites the still count and the rest anchor of every active slime
-  that may not rest, each tick; the port keeps that. The GDScript
-  behaviour stays the reference: 22e's tests pass unchanged on the native
-  tick. The hold's checks stay in GDScript (the Train).
-- **Port 22f's rest rules too (D147, proposed):** the "may rest" input
-  also covers a train slime resting by contact with a holder ahead; the
-  on-the-ground check (terrain facing up, or standing on a resting slime;
-  standing on an awake slime isn't ground) for slimes resting through "may
-  rest"; the wake up the stack (a slime waking wakes those resting on
-  it); and the touching-a-holder query the Train reads, which the native
-  tick keeps answering. 22f's tests pass unchanged on the native tick. The
-  hold guard and the checks stay in GDScript.
 - Built with `-ffp-contract=off`, for the Linux desktop and, through the
   Android NDK, for Android arm64, both from one build script, and included
   in the Android export.

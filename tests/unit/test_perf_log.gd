@@ -2,12 +2,10 @@ extends GutTest
 ## The perf log (src/debug/perf_log.gd), the phone measurement's PERF line:
 ## its window statistics (frame times to fps, p50, p95, max), its tick
 ## statistics (ticks per frame, ms per tick, the frame's rest), the active
-## slimes (the crowd count) and candidate pairs, the slime counts, the
-## largest awake cluster and the window's train hops and short hops, its
-## --perf-log[=SECONDS] and --max-ticks-per-frame=N arguments, the line's
-## fields, and the game root adding it only in a debug build (after
-## TestModeGuard, by path) and only when asked. tools/android/perf.sh reads
-## the line on a phone.
+## bodies and candidate pairs, its --perf-log[=SECONDS] and
+## --max-ticks-per-frame=N arguments, the line's fields, and the game root
+## adding it only in a debug build (after TestModeGuard, by path) and only
+## when asked. tools/android/perf.sh reads the line on a phone.
 
 # @test-link [[req_platform_and_performance_targets]]
 
@@ -109,14 +107,12 @@ func test_line_holds_every_field() -> void:
 	var sim := Simulation.new(7)
 	var ticking := PerfLog.tick_stats(PackedFloat64Array([0.05, 0.05]), PackedInt32Array([3, 1]),
 			PackedInt64Array([30_000, 10_000]), PackedInt32Array([80, 31]), PackedInt32Array([200, 41]))
-	var text := PerfLog.line(12.34, PerfLog.window_stats(_ramp(20)), ticking, 4.5, 300, 9, 4, sim, _parts())
+	var text := PerfLog.line(12.34, PerfLog.window_stats(_ramp(20)), ticking, 4.5, 300, sim, _parts())
 	assert_true(text.begins_with("PERF t=12.3 frames=20 fps=95.2 "), text)
 	for field in ["frame_ms_p50=10.00", "frame_ms_p95=19.00", "frame_ms_max=20.00", "process_ms_mean=4.50",
 			"ticks=300", "ticks_per_frame_mean=2.00", "ticks_per_frame_max=3", "tick_ms_mean=10.00",
-			"tick_ms_frame_mean=20.00", "rest_ms_mean=30.00", "physics=0", "on_screen=0", "in_range=0",
-			"parked=0", "resting=0", "largest_cluster=0", "hops=9", "short_hops=4", "bucket_max=0",
-			"buckets_over=0", "bodies=0", "active=55.5",
-			"pairs=120.5", "section=0", "zoom=",
+			"tick_ms_frame_mean=20.00", "rest_ms_mean=30.00", "on_screen=0", "simulated=0", "off_screen=0",
+			"parked=0", "bodies=0", "active=55.5", "pairs=120.5", "section=0", "zoom=",
 			"slimes_ms=0.50", "main_ms=5.50", "field_gpu_ms=10.50", "draw_calls=12", "primitives=14"]:
 		assert_string_contains(text, " " + field)
 	assert_false("\n" in text, "one line")
@@ -127,7 +123,7 @@ func test_line_holds_every_field() -> void:
 func test_line_is_key_value_numbers_in_the_documented_order() -> void:
 	var ticking := PerfLog.tick_stats(PackedFloat64Array([0.02]), PackedInt32Array([1]), PackedInt64Array([5_000]),
 			PackedInt32Array([1]), PackedInt32Array([0]))
-	var fields := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 5.0, 1, 0, 0,
+	var fields := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 5.0, 1,
 			Simulation.new(7), _parts()).split(" ")
 	assert_eq(fields[0], "PERF")
 	var keys := PackedStringArray()
@@ -135,23 +131,12 @@ func test_line_is_key_value_numbers_in_the_documented_order() -> void:
 		assert_eq(field.get_slice_count("="), 2, field)
 		assert_true(field.get_slice("=", 1).is_valid_float(), field)
 		keys.append(field.get_slice("=", 0))
-	# The hold's counters are TrainHold.COUNTERS, in its order (the class doc
-	# lists them; chunk 22i adds bucket_holds there).
-	var expected := PackedStringArray(["t", "frames", "fps", "frame_ms_p50", "frame_ms_p95", "frame_ms_max",
+	assert_eq(keys, PackedStringArray(["t", "frames", "fps", "frame_ms_p50", "frame_ms_p95", "frame_ms_max",
 			"process_ms_mean", "ticks", "ticks_per_frame_mean", "ticks_per_frame_max", "tick_ms_mean",
-			"tick_ms_frame_mean", "rest_ms_mean", "physics", "on_screen", "in_range", "parked", "resting",
-			"largest_cluster", "hops", "short_hops", "holding", "holding_resting", "contact_resting", "queue_back",
-			"queue_back_held"])
-	expected.append_array(PackedStringArray(TrainHold.COUNTERS))
-	expected.append_array(PackedStringArray(["bucket_max", "buckets_over", "bodies", "active", "pairs", "section",
-			"zoom", "slimes_ms",
-			"eyes_ms", "frontier_ms", "hud_ms", "debug_ms",
+			"tick_ms_frame_mean", "rest_ms_mean", "on_screen", "simulated", "off_screen", "parked", "bodies",
+			"active", "pairs", "section", "zoom", "slimes_ms", "eyes_ms", "frontier_ms", "hud_ms", "debug_ms",
 			"main_ms", "setup_ms", "render_cpu_ms", "render_gpu_ms", "field_cpu_ms", "field_gpu_ms", "draw_calls",
 			"objects", "primitives"]))
-	assert_eq(keys, expected)
-	for counter in ["hold_ends_clear", "hold_ends_cap", "guard_releases", "hold_ends_other", "front_hops",
-			"queue_hops", "holder_holds", "crowd_holds", "crowded_hops"]:
-		assert_has(keys, counter)
 
 
 ## The part means: the window's sums over its frames.
@@ -167,11 +152,9 @@ func test_part_means_are_sums_over_frames() -> void:
 	assert_eq(means[1], 0.0)
 
 
-## The line's slime counts are the debug bar's (DebugCounts.count_slimes()):
-## parked counts every parked slime, on screen or not; on screen any slime
-## whose centre is in the view, parked or not; in range every slime not
-## parked; resting the calm RESTING ones; bodies every slime.
-func test_the_line_counts_the_slimes_as_the_bar() -> void:
+## Parked counts every parked slime, on screen or not; off_screen only those
+## off the view, so parked >= off_screen.
+func test_parked_counts_every_parked_slime() -> void:
 	var sim := Simulation.new(7)
 	var bodies := sim.slimes
 	var in_view := sim.view.centre
@@ -179,126 +162,12 @@ func test_the_line_counts_the_slimes_as_the_bar() -> void:
 	bodies.park(bodies.create(0, 1, in_view, SlimeBodies.TRAIN))
 	bodies.park(bodies.create(0, 1, far, SlimeBodies.TRAIN))
 	bodies.create(0, 1, far + Vector2(200, 0), SlimeBodies.TRAIN)
-	var resting := bodies.create(0, 1, far + Vector2(400, 0), SlimeBodies.IN_BASKET)
-	bodies.calm[bodies.index_of(resting)] = SlimeBodies.RESTING
+	assert_eq(PerfLog.parked_bodies(sim), 2)
 	var ticking := PerfLog.tick_stats(PackedFloat64Array([0.02]), PackedInt32Array([0]), PackedInt64Array([0]),
 			PackedInt32Array([0]), PackedInt32Array([0]))
-	var text := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 1.0, 0, 0, 0,
-			sim, _parts())
-	for field in ["physics=1", "on_screen=1", "in_range=2", "parked=2", "resting=1", "largest_cluster=1",
-			"bodies=4"]:
+	var text := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 1.0, 0, sim, _parts())
+	for field in ["on_screen=1", "simulated=1", "off_screen=1", "parked=2", "bodies=3"]:
 		assert_string_contains(text, " " + field)
-
-
-## The line's largest cluster is DebugCounts.largest_cluster() of the last
-## tick's contacts (a row of 3 touching and a pair: 3), and taking the line
-## changes nothing in the simulation.
-func test_the_line_holds_the_largest_cluster_and_reads_only() -> void:
-	var sim := Simulation.new(7)
-	var bodies := sim.slimes
-	bodies.terrain = TerrainSegments.new([Support.floor_polygon()])
-	bodies.auto_hops = false
-	for i in 3:
-		bodies.create(i % Species.COUNT, 1, Vector2(40.0 * i, -24), SlimeBodies.TRAIN)
-	for i in 2:
-		bodies.create(i % Species.COUNT, 1, Vector2(600.0 + 40.0 * i, -24), SlimeBodies.TRAIN)
-	bodies.tick(1.0 / 60.0)
-	assert_eq(DebugCounts.largest_cluster(bodies), 3, "the row touches")
-	var hash_before := sim.state_hash()
-	var ticking := PerfLog.tick_stats(PackedFloat64Array([0.02]), PackedInt32Array([1]), PackedInt64Array([0]),
-			PackedInt32Array([5]), PackedInt32Array([0]))
-	var text := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 1.0, 1, 0, 0,
-			sim, _parts())
-	assert_string_contains(text, " largest_cluster=3 ")
-	assert_string_contains(text, " physics=5 ")
-	assert_eq(sim.state_hash(), hash_before, "read only")
-
-
-## The line's bucket_max and buckets_over (chunk 22i, D151 (7)) are the
-## train's bucket loads now (Train.bucket_loads()): the highest load of any
-## loop bucket and the buckets over their bucket cap, the switch on or off
-## (the loads are kept either way). Taking the line changes nothing.
-# @test-link [[req_platform_and_performance_targets]]
-func test_the_line_holds_the_bucket_loads_now() -> void:
-	var game := _game_with_guard(true)
-	assert_eq(game.enable_test_mode({"seed": 1}), PackedStringArray())
-	var sim: Simulation = game.simulation
-	for i in 3:
-		game.step_simulation()
-	var loads := sim.train.bucket_loads()
-	assert_false(sim.train.bucket_cap, "the switch off: the loads are kept anyway")
-	assert_gt(loads.count(), 1, "the loop is cut")
-	# Overfill bucket 0 by hand (the next tick counts the loads afresh).
-	loads.add(0, loads.cap(0) + 8)
-	assert_gt(loads.max_load(), loads.cap(0) + 7)
-	assert_gt(loads.over_count(), 0)
-	var hash_before := sim.state_hash()
-	var ticking := PerfLog.tick_stats(PackedFloat64Array([0.02]), PackedInt32Array([1]), PackedInt64Array([0]),
-			PackedInt32Array([0]), PackedInt32Array([0]))
-	var text := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 1.0, 1, 0, 0,
-			sim, _parts())
-	assert_string_contains(text, " bucket_max=%d " % loads.max_load())
-	assert_string_contains(text, " buckets_over=%d " % loads.over_count())
-	assert_eq(sim.state_hash(), hash_before, "read only")
-
-
-## The line's hops and short_hops are the window's: the perf log takes the
-## train's new hops (Train.hops_taken, short_hops_taken) frame by frame, so
-## those counted before its first frame aren't the window's.
-# @test-link [[req_platform_and_performance_targets]]
-func test_the_window_counts_the_trains_new_hops() -> void:
-	var game := _game_with_guard(true)
-	assert_eq(game.enable_test_mode({"seed": 1}), PackedStringArray())
-	assert_eq(game.add_perf_log(PackedStringArray(["--perf-log=100"])), PackedStringArray())
-	var train: Train = game.simulation.train
-	assert_not_null(train, "test mode's level has a train")
-	train.hops_taken += 7
-	train.short_hops_taken += 2
-	var perf_log: PerfLog = game.perf_log
-	perf_log._on_process_frame()
-	perf_log._process(0.0)
-	assert_eq([perf_log._hops, perf_log._short_hops], [0, 0], "counted before the log's first frame")
-	train.hops_taken += 5
-	train.short_hops_taken += 1
-	perf_log._on_process_frame()
-	perf_log._process(0.0)
-	train.hops_taken += 2
-	perf_log._on_process_frame()
-	perf_log._process(0.0)
-	assert_eq([perf_log._hops, perf_log._short_hops], [7, 1])
-
-
-## The line's hold counters are the window's, taken frame by frame from the
-## train's totals (Train.hold_counters()) as the hops: those counted before
-## the log's first frame aren't the window's, and the line resets them.
-# @test-link [[req_platform_and_performance_targets]]
-func test_the_window_counts_the_holds_new_counters() -> void:
-	var game := _game_with_guard(true)
-	assert_eq(game.enable_test_mode({"seed": 1}), PackedStringArray())
-	assert_eq(game.add_perf_log(PackedStringArray(["--perf-log=100"])), PackedStringArray())
-	# The counters live in the train's hold (TrainHold); the test bumps them.
-	var hold: TrainHold = game.simulation.train.hold()
-	var at := func(name: String) -> int: return TrainHold.COUNTERS.find(name)
-	hold.hold_ends_cap += 4
-	var perf_log: PerfLog = game.perf_log
-	perf_log._on_process_frame()
-	perf_log._process(0.0)
-	assert_eq(perf_log._period[at.call("hold_ends_cap")], 0, "counted before the log's first frame")
-	hold.hold_ends_cap += 2
-	hold.front_hops += 3
-	hold.crowded_hops += 1
-	perf_log._on_process_frame()
-	perf_log._process(0.0)
-	hold.front_hops += 1
-	perf_log._on_process_frame()
-	perf_log._process(0.0)
-	var expected := PackedInt32Array()
-	expected.resize(TrainHold.COUNTERS.size())
-	expected[at.call("hold_ends_cap")] = 2
-	expected[at.call("front_hops")] = 4
-	expected[at.call("crowded_hops")] = 1
-	assert_eq(perf_log._period, expected)
-	assert_eq(PerfLog.hold_counters(game.simulation)[at.call("hold_ends_cap")], hold.hold_ends_cap, "the totals")
 
 
 ## The camera's section: that of the current loop's segment nearest the
@@ -344,17 +213,12 @@ func test_tick_stats_without_a_tick() -> void:
 	assert_almost_eq(ticking["rest_ms_mean"], 20.0, 0.0001)
 
 
-## Active, per frame: the slimes that cost physics (SlimeBodies.crowd_count(),
-## the bar's Physics): a slime in a basket and one asleep at bedtime still
-## settling included; not a sleeper, a resting or a parked slime.
-func test_active_is_the_crowd_count_per_frame() -> void:
-	var game := _game_with_guard(true)
-	assert_eq(game.enable_test_mode({"seed": 1}), PackedStringArray())
-	assert_eq(game.add_perf_log(PackedStringArray(["--perf-log=100"])), PackedStringArray())
-	var sim: Simulation = game.simulation
+## Active: the bodies the solver simulates, a slime in a basket included;
+## not a sleeper, a bedtime sleeper, a resting or a parked slime.
+func test_active_bodies_count_what_the_solver_simulates() -> void:
+	var sim := Simulation.new(7)
 	var bodies := sim.slimes
-	var before := bodies.crowd_count()
-	var at := Vector2(0, -20_000)
+	var at := Vector2(0, -2000)
 	bodies.create(0, 1, at, SlimeBodies.TRAIN)
 	bodies.create(0, 1, at + Vector2(100, 0), SlimeBodies.IN_BASKET)
 	bodies.create(0, 1, at + Vector2(200, 0), SlimeBodies.SLEEPER)
@@ -362,12 +226,7 @@ func test_active_is_the_crowd_count_per_frame() -> void:
 	bodies.park(bodies.create(0, 1, at + Vector2(400, 0), SlimeBodies.TRAIN))
 	var resting := bodies.create(0, 1, at + Vector2(500, 0), SlimeBodies.IN_BASKET)
 	bodies.calm[bodies.index_of(resting)] = SlimeBodies.RESTING
-	assert_eq(bodies.crowd_count(), before + 3, "train, basket and bedtime-asleep")
-	var perf_log: PerfLog = game.perf_log
-	for i in 2:
-		perf_log._on_process_frame()
-		perf_log._process(0.0)
-	assert_eq(perf_log._frame_active, PackedInt32Array([before + 3]), "the frame's active: the crowd count")
+	assert_eq(PerfLog.active_bodies(sim), 2)
 
 
 ## The solver's candidate pairs of the last tick: neighbours in reach, never

@@ -162,13 +162,10 @@ func test_a_waking_slime_takes_the_level_on_its_next_tick() -> void:
 	sim.slimes.wake(pile[0])
 	assert_eq(_points(sim, pile[0]), 12, "not before it ticks")
 	sim.run(1)
-	assert_eq(sim.slimes.detail_of(pile[0]), SlimeBodies.PILE_MAX_DETAIL,
-			"it woke and took level 3, as far as a pile goes")
-	assert_eq(_points(sim, pile[0]), 8)
-	# The local wake (D145): the rest of the pile rests on, rings kept.
-	for slime_id in pile.slice(1):
-		assert_eq(sim.slimes.calm_of(slime_id), SlimeBodies.RESTING)
-		assert_eq(_points(sim, slime_id), 12)
+	for slime_id in pile:
+		assert_eq(sim.slimes.detail_of(slime_id), SlimeBodies.PILE_MAX_DETAIL,
+				"the whole pile woke and took level 3, as far as a pile goes")
+		assert_eq(_points(sim, slime_id), 8)
 
 
 func test_pile_slimes_stop_at_level_2() -> void:

@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v26 (the bucket cap, behind a switch, chunk 22i, D151, the user's, details proposed; moves to the loop start one at a time, 0.5 to 2 s apart, to a random free spot, and no stall clock while parked, chunk 22h, D150, the user's, details proposed; the hold's second round in chunk 22f: the hop corridor, the holder rule, no hop through a crowd, the hold guard, rest by contact and on the ground, D147, proposed; the hold and the local wake built in chunk 22e, before 5N, D146, proposed; the train holds before a crowd or a jam, holding slimes may rest, D145, proposed, replacing D143's lean, approved in direction, D144; its numbers proposed, O107)
+Status: draft v21 (the train leans away from clusters, D143, approved in direction, D144; its numbers proposed, O107)
 
 ## States
 
@@ -72,17 +72,6 @@ and it may roll downhill. Phase names were adopted in D75.
   23A, D124): it lands as a stuck slime does, and the log keeps
   the last 64 cases. A lost free slime (D10) lands the same way too: the
   build uses one move to the start of the loop for all three (D126).
-- **From chunk 22h (D150, the user's; details proposed):** the 60 s
-  count only the ticks a train slime is simulated: while it is parked
-  (moving single file at the off-screen pace) its clock is paused, and
-  it resumes where it was (O113). And every move to the loop start, lost,
-  stuck or stalled, goes through the **loop-start queue**: one at a time,
-  the next 0.5 to 2 s (random) after the last, first due first moved, out
-  of bounds first; a waiting slime carries on as it was, and one that
-  recovers before its turn leaves without a move. It lands at a random
-  free spot on the loop's first 240 px, inside the start's split zone,
-  never onto another slime (replacing the first free spot of 8); with
-  none free, nobody moves and the queue tries again 0.5 s later.
 - DoD 1's "no slime ever becomes lost" includes stalled train slimes: the
   safety net is for play, and a stall in the DoD 1 test is still a failure.
 
@@ -97,61 +86,13 @@ Slimes move only by hopping.
 | unsure | small, lazy hops in random directions near the call point |
 | heading back | along its area's route back |
 | sleeper, bedtime-asleep, covered by other slimes, in a basket (any basket, filling or full; D106) | no hopping |
-| train slime holding (proposed, D145, D147) | no hopping until its hold ends (D147: no longer capped at 5 s while crowded; the hold guard keeps the train moving) |
 
 - Bigger slimes hop a little less often, but further and higher.
 - During bedtime's wind-down, every slime hops more slowly.
-- **The hold** *(proposed, D145, built in chunk 22e, D146, amending D143's lean, which
-  was approved in direction, D144; its numbers proposed, O107)*: when its
-  hop is due, a train slime **holds** (stays where it is) while either
-  - more than 30 awake slimes out of a basket (not resting, not parked,
-    any species) are near its landing point, ahead of it, or
-  - its landing point would come right up against a **jam**: train slimes
-    ahead of it on the loop that are holding.
-
-  It looks again every 0.5 s and holds at most 5 s, then hops anyway
-  (changed by D147, below: no hop through a crowd). The
-  front of a queue, whose way is clear, goes first; the slimes behind
-  wait, and new ones stop short of the queue instead of landing on it, so
-  a crowd drains from the front. Calls, free slimes and celebration hops
-  are unchanged.
-- **A holding slime may rest** *(proposed, D145)*: once still on the
-  ground, it stops being simulated, like a resting pile, and wakes when its
-  hold ends or something disturbs it. It doesn't rest while it is fusing
-  with a neighbour. A wake is local (chunk 22e, with O106, D146): only the slimes
-  touched wake, not the whole pile.
-- **The hold, second round** *(D147, built in chunk 22f; proposed where
-  it goes beyond the user's words; its numbers proposed, O107)*:
-  - **the hop corridor** (the user's) replaces "near its landing point":
-    the box from the slime to its landing point plus 100 px, 75 px either
-    side. It is crowded when the slimes in it, resting and holding ones
-    included, fill more than half of it;
-  - **the holder rule** (the user's): a **holder** in the corridor makes
-    the slime hold too, so a queue releases from its front. It replaces
-    the jam (proposed);
-  - **no hop through a crowd** (the user's): at 5 s plus a seeded extra
-    the slime checks again and, still crowded, keeps holding. The **hold
-    guard** keeps the train from freezing: when no train slime has hopped
-    for 4 s, the front-most holder goes;
-  - **resting:** a train slime touching a holder ahead of it may rest too
-    (the user's point, the "ahead" proposed), and only a slime **on the
-    ground** may rest (the user's rule): touching the terrain, or standing
-    on a resting slime. Basket and bedtime piles are unchanged;
-  - **the celebration** no longer wakes holders: they bounce in drawing
-    only (proposed).
-- **The bucket cap** *(D151, the user's; details proposed; chunk 22i,
-  behind a switch, off by default until the user decides)*: the loop is
-  cut into **loop buckets** of 300 px, each with a cap on its **load**
-  (the weight of the train slimes in it, parked ones included, not slimes
-  in a basket): 12 per 300 px (the user: never more than 15).
-  - a train slime whose hop would land in a bucket without room for it
-    **holds** (a hold like the others, filed as "bucket full");
-  - in an **overfilled** bucket (at or over its cap) a slime moves only
-    while the next bucket has room for it (the user's); the corridor and
-    the holder rule still apply, so mostly the front goes first;
-  - not held: the slide, slimes joining the train, a move to the loop
-    start (a bucket they overfill drains forward); a parked slime stops
-    at its bucket's edge while the next is full.
+- *(D143, approved in direction, D144, item 24.8; its numbers proposed, O107):* a train slime whose landing spot is
+  crowded by slimes it can't fuse with waits a little before hopping (at
+  most 2 s), so crowds thin out instead of growing. Same-species crowds
+  don't delay it: they fuse.
 - The numbers are in `tuning.md`.
 
 ## Size and weight (D24, D16)

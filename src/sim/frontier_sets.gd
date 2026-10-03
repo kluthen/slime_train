@@ -40,8 +40,7 @@ extends RefCounted
 ##    an open gate's lid shuts the old slide entrance once no slime is in its
 ##    way. The shut ones are handed to SlimeBodies.doors, solved like the
 ##    terrain. A door that opens or shuts (a gate's box too, when it opens)
-##    wakes the resting slimes within DOOR_WAKE_REACH of it (chunk 15),
-##    only those: the rest of their piles rests on (D145).
+##    wakes the resting piles within DOOR_WAKE_REACH of it (chunk 15).
 ##
 ## Bedtime (item 23.5, D105): while the session is at bedtime (paused()),
 ## the sets stand still. Baskets still catch and weigh, and the doors keep
@@ -96,7 +95,7 @@ const CELEBRATION_SECONDS := 4.0
 const OUTLET_CLEARANCE := 8.0
 ## A door only shuts when no ring point is within this of it, in px.
 const DOOR_CLEARANCE := SlimeBodies.EDGE
-## A door opening or shutting wakes the resting slimes whose centre is within
+## A door opening or shutting wakes the resting piles whose centre is within
 ## this of it, px (chunk 15): a size-3 slime's width.
 const DOOR_WAKE_REACH := 80.0
 
@@ -475,8 +474,7 @@ func _open_gate(sim: Simulation, id: String) -> void:
 
 
 ## Moves slime `slime_id` to `outlet` at rest, back on the train. False when
-## a slime is in the way. It wakes, and so do the resting slimes touching
-## where it was; the rest of the basket's pile rests on (D145).
+## a slime is in the way.
 func _release(sim: Simulation, slime_id: int, outlet: Vector2) -> bool:
 	var bodies := sim.slimes
 	var radius := bodies.radius_of(slime_id)
@@ -520,8 +518,7 @@ func _doors_step(sim: Simulation) -> void:
 			_disturb(sim, _level.gates[id]["lid"])
 
 
-## A door opening or shutting wakes the resting slimes by it (chunk 15),
-## not the rest of their piles (D145).
+## A door opening or shutting disturbs the resting piles by it (chunk 15).
 # @spec-link [[req_offscreen_simulation]]
 static func _disturb(sim: Simulation, box: Rect2) -> void:
 	if box.has_area():
