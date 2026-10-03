@@ -60,6 +60,12 @@ extends SceneTree
 ## the rest of the population on the train through the bowl (as
 ## stress-moving's), so playing on fills the last basket and plays the
 ## celebration.
+##
+## Chunk 22m (tools/make_fixture/stress_fixtures.gd, D153 as amended by
+## D154): stress-dense has the whole population on the train, put on the
+## loop line, 9 per 300 px stretch of loop and 12 in the two stretches at
+## the bottom of section 3's bowl, spreading behind and ahead of them, none
+## past switch 3.
 # @spec-link [[req_test_level_and_test_mode]]
 # @spec-link [[req_persistence_and_saves]]
 
@@ -68,6 +74,8 @@ const USAGE := "usage: tools/level.sh fixture [--level=<id>] [--list] [name ...]
 const LevelFixtures := preload("res://tools/make_fixture/level_fixtures.gd")
 ## The test level's persistence fixtures (chunk 19).
 const PersistenceFixtures := preload("res://tools/make_fixture/persistence_fixtures.gd")
+## stress-dense's placement (chunk 22m).
+const StressFixtures := preload("res://tools/make_fixture/stress_fixtures.gd")
 const S := LevelData.SCREEN
 ## The fusion dip's floor: its lowest point is at x 3.0 screens, y 240; a
 ## slime's centre rests above it.
@@ -230,6 +238,22 @@ const FIXTURES := {
 			+ "on the bowl. The worst moving case: a measurement, not a target (chunk 16; "
 			+ "tools/bench_level.gd)."),
 			"camera": [BOWL_CAMERA.x, BOWL_CAMERA.y], "build": "_stress_moving"},
+	# The description is the one saved on branch archive/fps-session-2026-10
+	# (bcaa8b7), kept word for word so that the sidecar is rebuilt byte for
+	# byte; its "loop bucket" is a 300 px stretch of loop (D154).
+	"stress-dense": {"description": ("Gates 1 and 2 open and all 200 base slimes woken as size-1 "
+			+ "train slimes, each its sleeper's species, not at bedtime (no session); switch 3 and "
+			+ "basket 3 untouched. Along the loop line, not stacked: 9 per 300 px loop bucket (the bucket "
+			+ "cap's 12 less 25 %), and 12 (the cap) in the two buckets at the bottom of section 3's bowl, "
+			+ "each slime on the loop, evenly spaced in its bucket. The two bottom buckets first, then the "
+			+ "buckets behind and ahead alternately, behind first, none past switch 3 (the bucket it cuts "
+			+ "takes 9 in proportion). As saved, loop buckets 55 and 56 hold 12, 40 to 54 and 57 to 59 hold "
+			+ "9, bucket 60 holds 6 and bucket 39 the last 8 (loop distances 11,719 to 18,197, x 10.08 to "
+			+ "15.62 screens: back through gate 2, over basket 2 and past switch 2); 70 are in the bowl "
+			+ "(x 13.5 to 15.33 screens). The camera on the bowl. The dense moving case, below the bucket "
+			+ "cap with the bowl's bottom at it, target at least 30 fps (chunk 22j, D153; rebuilt "
+			+ "2026-10-02)."),
+			"camera": [BOWL_CAMERA.x, BOWL_CAMERA.y], "build": "_stress_dense"},
 	"s3-basket-59of60": {"description": ("Gates 1 and 2 open as after baskets 1 and 2 fired, all "
 			+ "200 base slimes woken (no sleeper left), not at bedtime (no session). Switch 3 "
 			+ "flipped (its trapdoor open) and basket 3 at 59 of 60: 59 size-1 slimes in it, laid "
@@ -739,6 +763,39 @@ func _stress_moving() -> Simulation:
 		return null
 	if not _into_bowl(sim, _whole_population(sim), SlimeBodies.TRAIN):
 		return null
+	return sim
+
+
+## stress-dense: gates 1 and 2 open, the whole population woken as size-1
+## train slimes (the first slime first, then the sleepers in stable ID
+## order), each put on the loop at its StressFixtures.dense_distances
+## distance in fill order (as Simulation.spawn_train_slime puts a train
+## slime), none at or past switch 3's near edge; prints each stretch's
+## count, how many are in the bowl and the part of the loop used.
+# @spec-link [[rule_max_200_slimes_per_level]]
+# @spec-link [[req_platform_and_performance_targets]]
+func _stress_dense() -> Simulation:
+	var sim := _fresh_level()
+	if not _open_gates_before(sim, 3):
+		return null
+	var members := _whole_population(sim)
+	var switch_box: Rect2 = _level.data.switches[SWITCH_3]["box"]
+	var stop: float = _level.data.loop.closest(Vector2(switch_box.position.x, switch_box.get_center().y),
+			sim.train.open_gates)["distance"]
+	var distances := StressFixtures.dense_distances(sim, members.size(), BOWL_FROM, BOWL_TO, stop)
+	if distances.is_empty():
+		return null
+	for k in members.size():
+		var slime := sim.spawn_train_slime(members[k][1], 1, distances[k])
+		sim.identities.assign(slime, PackedStringArray([members[k][0]]))
+	var counts := StressFixtures.stretch_counts(distances)
+	var filled := []
+	for b in counts:
+		filled.append("%d: %d" % [b, counts[b]])
+	var xs := distances.map(func(d: float): return sim.train.position_at(d).x)
+	var in_bowl := xs.filter(func(x: float): return x >= BOWL_FROM and x <= BOWL_TO).size()
+	print("make_fixture: stress-dense's stretches (stretch: count) %s; %d in the bowl; loop %.0f to %.0f, x %.2f to %.2f screens"
+			% [", ".join(filled), in_bowl, distances.min(), distances.max(), xs.min() / S, xs.max() / S])
 	return sim
 
 

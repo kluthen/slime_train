@@ -334,7 +334,9 @@ writes the test level's.
   (their output is byte-identical to the committed files); opening gates
   goes through `LevelStates.open_gates`. Since chunk 19 it also has
   `midair` and `old-version` (`tools/make_fixture/persistence_fixtures.gd`;
-  see [README.md](README.md), "Fixtures"). A `FIXTURES` entry may give a
+  see [README.md](README.md), "Fixtures"), and since chunk 22m
+  `stress-dense` (its placement in `tools/make_fixture/stress_fixtures.gd`;
+  "Chunk 22m: stress-dense"). A `FIXTURES` entry may give a
   `"version"` below the level's: its save's header names that version
   (`old-version`: 1), and the tool refuses one that isn't older.
 - **Any other level** (`tools/make_fixture/level_fixtures.gd`): `fresh`

@@ -9,6 +9,9 @@ extends GutTest
 ##   measurement, no fps target (D96). The train moves, the population's
 ##   mass stays 200 in at most 200 slimes, none above size 3, nothing lost,
 ##   stalled or stuck. The wall time per tick is printed, never asserted.
+## - `stress-dense` (200 size-1 train slimes along the loop, at most 9 per
+##   300 px stretch of loop, 12 in the two at the bowl's bottom; chunk 22m,
+##   D153 as amended by D154): the same run and checks as `stress-moving`'s.
 ## - `midair` (four train slimes saved in the air, chunk 19): once loaded they
 ##   play on, landing between hops (never in the air longer than a hop), the
 ##   train carries them, none lost, the population whole.
@@ -41,11 +44,11 @@ const TICK_RATE := Simulation.TICK_RATE
 const POPULATION := 200
 ## The biggest slime size (master spec: sizes 1 to 3).
 const MAX_SIZE := 3
-## stress-moving: how long it runs (ticks: about 8 s of wall time a run, the
-## bowl's 200 slimes cost about 40 ms a tick headless), how far (px along the
-## loop) its slimes advance on average at the least in that time, and the
-## share of them that advance at all (a crowd: some wait behind others;
-## measured 137 of 179 over 200 ticks).
+## stress-moving (stress-dense too, chunk 22m): how long it runs (ticks:
+## about 8 s of wall time a run, the bowl's 200 slimes cost about 40 ms a
+## tick headless), how far (px along the loop) its slimes advance on average
+## at the least in that time, and the share of them that advance at all (a
+## crowd: some wait behind others; measured 137 of 179 over 200 ticks).
 const STRESS_MOVING_TICKS := 200
 const STRESS_MOVING_ADVANCE := 200.0
 const STRESS_MOVING_SHARE := 0.5
@@ -164,12 +167,14 @@ func _tap_switch(game: Node) -> Dictionary:
 	return sim.taps[-1]
 
 
-# --- stress-moving -----------------------------------------------------------------
+# --- stress-moving, stress-dense ---------------------------------------------------
 
-## Runs stress-moving STRESS_MOVING_TICKS and checks it; returns the game.
-## Prints the wall time per tick (a measurement only, never asserted).
-func _run_stress_moving(label: String) -> Node:
-	var game := _boot("stress-moving")
+## Runs `fixture` (200 size-1 train slimes: stress-moving or stress-dense)
+## STRESS_MOVING_TICKS and checks it; returns the game. Prints the wall time
+## per tick (a measurement only, never asserted).
+func _run_stress_train(fixture: String, label: String) -> Node:
+	label = "%s, %s" % [fixture, label]
+	var game := _boot(fixture)
 	var sim: Simulation = game.simulation
 	var train := _awake(sim)
 	assert_eq(train.size(), POPULATION, label + ": every slime awake")
@@ -211,8 +216,17 @@ func _run_stress_moving(label: String) -> Node:
 # @test-link [[rule_max_size_three]]
 # @test-link [[req_test_level_and_test_mode]]
 func test_stress_moving_moves_keeping_its_200_and_runs_the_same_twice() -> void:
-	var first := _run_stress_moving("first run")
-	var second := _run_stress_moving("second run")
+	var first := _run_stress_train("stress-moving", "first run")
+	var second := _run_stress_train("stress-moving", "second run")
+	assert_eq(first.simulation.state_hash(), second.simulation.state_hash(), "same seed, same state")
+
+
+# @test-link [[rule_max_200_slimes_per_level]]
+# @test-link [[rule_max_size_three]]
+# @test-link [[req_test_level_and_test_mode]]
+func test_stress_dense_moves_keeping_its_200_and_runs_the_same_twice() -> void:
+	var first := _run_stress_train("stress-dense", "first run")
+	var second := _run_stress_train("stress-dense", "second run")
 	assert_eq(first.simulation.state_hash(), second.simulation.state_hash(), "same seed, same state")
 
 

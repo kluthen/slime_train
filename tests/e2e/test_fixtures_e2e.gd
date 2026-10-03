@@ -7,7 +7,10 @@ extends GutTest
 ## and spread 20 awake train slimes along the grown loop; `stress-still`
 ## wakes the whole population (60 in basket 3, full; 140 asleep at bedtime in
 ## section 3's bowl, a pile that comes to rest); `stress-moving` has all 200
-## as train slimes in the bowl (chunk 16). Every fixture in the directory
+## as train slimes in the bowl (chunk 16); `stress-dense` has all 200 as
+## train slimes on the loop line, at most 9 per 300 px stretch of loop but
+## 12 in the two at the bottom of the bowl, none past switch 3 (chunk 22m,
+## D153 as amended by D154). Every fixture in the directory
 ## loads, and none is older than the level (chunk LD3: its save holds every
 ## slime of the level, its sleepers where the level has them), but
 ## old-version, older on purpose. midair and old-version (chunk 19) are
@@ -38,6 +41,22 @@ const BOWL_RIGHT := 15.4 * S
 ## terrain corner fix); the rest is margin. tools/bench_level.gd waits for
 ## the same rest, within the same bound.
 const PILE_RESTS_WITHIN := 900
+## stress-dense (chunk 22m, D153 as amended by D154): the length of a
+## stretch of loop (px; a slime's stretch is its loop distance divided by
+## it, rounded down); the most slimes a stretch holds as saved, and in the
+## two stretches at the bottom of the bowl, those two as the fixture's
+## description records; how many slimes are in the bowl (x DENSE_BOWL_FROM
+## to DENSE_BOWL_TO), as it records too; switch 3, which no slime is past;
+## how long its save-and-reload run goes after the reload (ticks).
+const DENSE_STRETCH := 300.0
+const DENSE_PER_STRETCH := 9
+const DENSE_BOTTOM_PER_STRETCH := 12
+const DENSE_BOTTOM_STRETCHES := [55, 56]
+const DENSE_IN_BOWL := 70
+const DENSE_BOWL_FROM := 13.5 * S
+const DENSE_BOWL_TO := 15.33 * S
+const SWITCH_3 := "s3.switch"
+const DENSE_RELOAD_TICKS := 200
 ## The fixtures older than the level on purpose, exempt from
 ## test_no_fixture_is_older_than_the_level: old-version is a save of the
 ## test level's version 1 with a sleeper where version 1 had it, to test the
@@ -196,6 +215,99 @@ func test_stress_moving_has_200_train_slimes_in_the_bowl() -> void:
 		assert_between(sim.slimes.centre_of(slime_id).x, BOWL_LEFT, BOWL_RIGHT, "in the bowl")
 
 
+# @test-link [[rule_max_200_slimes_per_level]]
+# @test-link [[req_test_level_and_test_mode]]
+func test_stress_dense_has_200_train_slimes_along_the_loop_at_most_9_per_stretch_12_at_the_bowls_bottom() -> void:
+	var game := _boot({"fixture": "stress-dense"})
+	var sim: Simulation = game.simulation
+	assert_eq(sim.slimes.slime_count, POPULATION)
+	assert_eq(_count(sim, SlimeBodies.TRAIN), POPULATION, "every one a train slime")
+	assert_eq(sim.train.open_gates, ["s1.gate", "s2.gate"])
+	assert_ne(sim.session.phase, Session.BEDTIME, "not at bedtime")
+	assert_false(sim.object_states[SWITCH_3]["flipped"], "switch 3 untouched")
+	assert_eq(int(sim.object_states["s3.basket"]["weight"]), 0, "basket 3 empty")
+	var box: Rect2 = sim.level.switches[SWITCH_3]["box"]
+	var stop: float = sim.level.loop.closest(Vector2(box.position.x, box.get_center().y),
+			sim.train.open_gates)["distance"]
+	var in_bowl := 0
+	for slime_id in sim.slimes.ids():
+		assert_eq(sim.slimes.size_of(slime_id), 1)
+		assert_true(sim.train.tracks(slime_id))
+		var centre := sim.slimes.centre_of(slime_id)
+		assert_lt(sim.level.loop.closest(centre, sim.train.open_gates)["distance"], stop, "none past switch 3")
+		if centre.x >= DENSE_BOWL_FROM and centre.x <= DENSE_BOWL_TO:
+			in_bowl += 1
+	assert_eq(in_bowl, DENSE_IN_BOWL, "in the bowl, as the fixture's description records")
+	# The placement, as saved: each slime counted in the stretch of its saved
+	# train distance (D154 (1)), and on the loop there (its saved centre the
+	# loop's point, a size-1 slime riding the route).
+	var counts := {}
+	for slime: Dictionary in TestMode.load_fixture("stress-dense")["save"]["slimes"]:
+		var distance := SaveData.real(slime["train"]["distance"])
+		assert_lt(distance, stop, "none saved past switch 3")
+		assert_almost_eq(SaveData.vector_from(slime["centre"]), sim.train.position_at(distance),
+				Vector2(0.02, 0.02), "saved on the loop line")
+		var b := floori(distance / DENSE_STRETCH)
+		counts[b] = counts.get(b, 0) + int(slime["size"])
+	var used := counts.keys()
+	used.sort()
+	var total := 0
+	for b: int in used:
+		var most := DENSE_BOTTOM_PER_STRETCH if b in DENSE_BOTTOM_STRETCHES else DENSE_PER_STRETCH
+		assert_lte(counts[b], most, "stretch %d at most %d" % [b, most])
+		total += counts[b]
+	assert_eq(total, POPULATION, "every slime counted in a stretch")
+	assert_eq(used.size(), used[-1] - used[0] + 1, "the stretches used are side by side")
+	for b in DENSE_BOTTOM_STRETCHES:
+		assert_eq(counts.get(b, 0), DENSE_BOTTOM_PER_STRETCH, "bottom stretch %d at 12" % b)
+	var short := used.filter(func(b): return counts[b] < DENSE_PER_STRETCH)
+	assert_lte(short.size(), 2, "every other stretch used at 9 but the last and the one switch 3 cuts: %s" % [short])
+	# The two stretches at 12 are at the bowl's bottom: the loop is at its
+	# lowest through the bowl at both their middles.
+	var lowest := -INF
+	var distance := 0.0
+	while distance < sim.train.outgoing_length():
+		var at := sim.train.position_at(distance)
+		if at.x >= DENSE_BOWL_FROM and at.x <= DENSE_BOWL_TO:
+			lowest = maxf(lowest, at.y)
+		distance += 4.0
+	for b in DENSE_BOTTOM_STRETCHES:
+		assert_almost_eq(sim.train.position_at((b + 0.5) * DENSE_STRETCH).y, lowest, 0.5,
+				"stretch %d at the bowl's bottom" % b)
+	gut.p("stress-dense: stretches %d to %d (%s at 12, %d short); %d in the bowl" % [used[0], used[-1],
+			DENSE_BOTTOM_STRETCHES, short.size(), in_bowl])
+	game.sync_view()
+	assert_between(sim.view.centre.x, BOWL_LEFT, BOWL_RIGHT, "the camera on the bowl")
+
+
+## stress-dense loaded as a bare simulation on SEED, saved at once,
+## reloaded from the save's text and both run on: the same state hash after
+## the reload and after the run. (Saved later, a slime mid-hop would be put
+## down on reload, D12, so the run would not reload exactly.)
+# @test-link [[req_test_level_and_test_mode]]
+# @test-link [[req_persistence_and_saves]]
+func test_stress_dense_runs_the_same_across_a_save_and_reload() -> void:
+	var game := _boot({"fixture": "stress-dense"})
+	var data: LevelData = game.level.data
+	var loaded := TestMode.load_fixture("stress-dense")
+	assert_true(loaded["ok"], loaded["error"])
+	var sim := Simulation.from_save(loaded["save"], data, game._terrain, SEED)
+	assert_not_null(sim)
+	if sim == null:
+		return
+	var json := JSON.new()
+	assert_eq(json.parse(SaveData.to_text(sim.to_save())), OK)
+	var reloaded := Simulation.from_save(json.data, data, game._terrain, SEED)
+	assert_not_null(reloaded)
+	if reloaded == null:
+		return
+	assert_eq(reloaded.state_hash(), sim.state_hash(), "the same after the reload")
+	for i in DENSE_RELOAD_TICKS:
+		sim.step()
+		reloaded.step()
+	assert_eq(reloaded.state_hash(), sim.state_hash(), "and after running on")
+
+
 ## Chunk LD3: a fixture saved before the level changed still loads, without
 ## what the level gained since; LevelFixtures.stale() says so. Exempt:
 ## OLDER_ON_PURPOSE, older by design.
@@ -224,7 +336,7 @@ func test_every_fixture_loads() -> void:
 			names.append(file.trim_suffix(TestMode.SIDECAR_EXTENSION))
 	assert_true("fresh" in names)
 	assert_true("bump" in names)
-	for name in ["gate1-open", "gate2-open", "stress-still", "stress-moving", "midair", "old-version"]:
+	for name in ["gate1-open", "gate2-open", "stress-still", "stress-moving", "stress-dense", "midair", "old-version"]:
 		assert_true(name in names, name)
 	for name in names:
 		var game: Node = load(MAIN_SCENE).instantiate()
