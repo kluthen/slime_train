@@ -2309,13 +2309,17 @@ A train slime isn't lost but stalled: `train.stalled` (see "Train").
   bedtime) that touch rest together once every one has been supported and
   within `REST_DRIFT` (1 px) of its anchor for `REST_TICKS` (30). A
   resting slime is a wall, like a sleeper, and two walls are never paired.
-  A pile wakes whole when disturbed: a touching slime faster than
-  `WAKE_SPEED` (30 px/s: a hop, a landing, a neighbour moving), a state
-  change (bedtime, sunrise, a basket catching or releasing), a new velocity
-  or body, a slime removed, fused or split next to it; a call wakes the
-  resting slimes within its radius and a tilt change every resting slime
-  (`Offscreen`); a door opening or shutting wakes the piles within
-  `FrontierSets.DOOR_WAKE_REACH` (80 px) of it.
+  A pile wakes locally (chunk 22l, D156; it woke whole before): a
+  disturbance wakes only the resting slimes it touches, the rest of the
+  pile rests on, a wall, keeping its `pile` id. A resting slime wakes on a
+  touching slime faster than `WAKE_SPEED` (30 px/s: a hop, a landing, a
+  neighbour moving), its own state change (bedtime, sunrise, a basket
+  catching or releasing it), a new velocity or body, a slime moved away
+  by a body (a basket's release), removed, fused or split touching it; a
+  call wakes the resting slimes within its radius and a tilt change every
+  resting slime, each by itself (`Offscreen`); a door opening or shutting
+  wakes the resting slimes within `FrontierSets.DOOR_WAKE_REACH` (80 px)
+  of it. See "Chunk 22l", "The local wake".
 - Sleepers don't simulate (chunk 9); bedtime-asleep slimes now rest once
   settled, and park off screen like every slime.
 - Slimes in a full basket rest as a pile.
@@ -2338,7 +2342,7 @@ A train slime isn't lost but stalled: `train.stalled` (see "Train").
   a level going down only once the count is 5 below its step
   (`CROWD_EASE`: 15, 25, 35), so rings never reshape back and forth.
   Resting and parked rings keep their points (a reshape would wake a
-  resting pile) and take the level on the tick they are ACTIVE again. The
+  resting slime) and take the level on the tick they are ACTIVE again. The
   count comes from the slimes' states only, never from a measured time, so
   a run stays repeatable.
 
@@ -4843,9 +4847,10 @@ both confirmed on the desktop with `s3-basket-59of60`.
 **C: the releases wake the pile.** A fired basket releases one slime every
 0.3 s, 18 ticks (`FrontierSets`). Each release gives the slime a new body
 (`set_body`, which wakes its resting neighbours) and puts it on the train
-(`set_state`, which wakes its whole pile). `REST_TICKS` (30) is longer than
-18, so the basket's roughly 59 packed slimes stay ACTIVE for the whole
-drain. The celebration's hop landings wake piles too. With the perf log's
+(`set_state`, which then woke its whole pile). `REST_TICKS` (30) is longer
+than 18, so the basket's roughly 59 packed slimes stayed ACTIVE for the
+whole drain. Since chunk 22l a release wakes locally ("Chunk 22l", "The
+local wake"). The celebration's hop landings wake piles too. With the perf log's
 active count: about 96 active while basket 3 fills, about 32 once the full
 pile rests (tick 5.4 ms), bursts of about 89 during the drain (tick 8.5 ms,
 +57 %), while the overlay's "simulated" stays at 20: a basket on screen
@@ -5124,7 +5129,8 @@ clear its data: `perf.sh` installs with `adb install -r` only.
   repeated after 5N.
 - **For chunk 24** (with issue 24.3): a fired basket's releases, every 18
   ticks, wake its whole pile (`REST_TICKS` 30), a design call that changes
-  D107 and `req_offscreen_simulation`; and the parked-stacking bug above
+  D107 and `req_offscreen_simulation` (done in chunk 22l, the local wake,
+  D156); and the parked-stacking bug above
   (bedtime-asleep slimes creeping past the park margin park on one spot;
   O91).
 
@@ -5612,19 +5618,73 @@ the phone").
 ## Chunk 22l: hop counters and the local wake
 
 Build plan chunk 22l, D156 (`req_platform_and_performance_targets` for the
-counters). Step 1, the hop counters, is built first, so the "before"
-numbers of the local wake come from the same build. What changed:
+counters, `req_offscreen_simulation` for the local wake). Step 1, the hop
+counters, is built first, so the "before" numbers of the local wake come
+from the same build. What changed:
 
 - **The hop counters.** The `PERF` line counts the train hops and the
   short ones (`hops`, `short_hops`, below). Debug only, read only: the
   fixtures' state hashes are unchanged.
+- **The local wake.** A disturbance wakes only the resting slimes it
+  touches; the rest of the pile rests on (below). It replaces D96's
+  whole-pile wake.
 
 Code: `src/sim/train.gd` (`hops_taken`, `short_hops_taken`, counted in
 `follow()`), `src/sim/slime_bodies.gd` (`train_hopped`, filled by the
 automatic hops), `src/debug/perf_log.gd` (`train_hops()`, the window's
 deltas), `tools/android/perf_summary.py`. Tests:
 `tests/unit/test_train_progress.gd` ("Hop counters"),
-`tests/unit/test_perf_log.gd`, `perf_summary.py --self-test`.
+`tests/unit/test_perf_log.gd`, `perf_summary.py --self-test`. The local
+wake: `src/sim/slime_bodies.gd` (`_wake_at`); tests
+`tests/unit/test_slime_rest.gd`, `test_frontier_sets.gd` (a release),
+`test_offscreen_crowd.gd`.
+
+### The local wake
+
+Every way a resting slime wakes goes through one wake,
+`SlimeBodies._wake_at`, which wakes that slime alone (D156 (7)): the rest
+of its pile rests on as a wall and keeps its `pile` id (a woken slime's
+`pile` is 0 until it rests again, with its new group). So each trigger is
+local:
+
+- **a release** (`FrontierSets._release`): the released slime wakes (its
+  state change), and so do the resting slimes touching where it was
+  (`SlimeBodies.set_body` moving it by more than a pixel);
+- **a touch faster than `WAKE_SPEED`** (30 px/s): the resting slime
+  touched (`SlimeBodies._rest`);
+- **a LoopStart move** (a lost, stalled or stuck slime moved to the
+  start): the moved slime is awake already (a free or train slime never
+  rests), and the resting slimes touching where it was wake
+  (`set_body`);
+- **a fusion, a split, a removal**: the resting slimes touching the slime
+  concerned (`_wake_around`);
+- **a call**: the resting slimes within its radius; **a tilt change**:
+  every resting slime, each by itself (`Offscreen._disturb`);
+- **a door** opening or shutting: the resting slimes within
+  `FrontierSets.DOOR_WAKE_REACH` (80 px) of it;
+- **a state change** (bedtime, sunrise, a basket catching or releasing):
+  the slime whose state changed.
+
+The rest of a pile wakes only if a woken slime then touches it faster than
+`WAKE_SPEED`. A sleeper is a state, never the resting calm: no wake changes
+it. No new value, no save change.
+
+**The one-step-neighbour fallback was not built** (D156 (3), for piles
+that churn): basket 3's drain shows no need. Headless probe,
+`s3-basket-59of60`, seed 1, 2400 ticks (RESTING to ACTIVE per tick, a
+whole-pile wake being 11 or more in one tick): before, 6 whole-pile wakes
+(of 52 to 59 slimes); after, 0, a median of 3 pile slimes woken in a tick
+with a wake and at most 9; Physics mean 75.5 -> 51.8, largest cluster
+mean 47.8 -> 26.0.
+
+**On the phone emulation** (`tools/perf_slow.sh --pin=main --seconds=62
+s3-basket-59of60`, the means over the pinned lines, t >= 6.9 s): fps
+25.4 -> 35.0, tick 15.2 -> 10.6 ms, Physics 74 -> 43, largest cluster
+47 -> 20; hops 19.9 -> 20.3 per line, short share 75 % -> 71 %.
+
+**Changed hashes** (seed 909, 600 and 2400 ticks): `s3-basket-59of60`
+only, its basket's resting pile being disturbed within the hashed ticks
+(it no longer wakes whole). The other 16 fixtures keep theirs.
 
 ### Reading hops and short_hops
 

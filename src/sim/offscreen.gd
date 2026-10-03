@@ -286,7 +286,8 @@ func restore(data: Dictionary) -> void:
 
 # --- Internals --------------------------------------------------------------
 
-## Wakes the resting piles a call or a tilt change disturbs.
+## Wakes the resting slimes a call or a tilt change disturbs, each by itself
+## (the local wake, D156): those within the call's radius, every one on a tilt.
 func _disturb(sim: Simulation) -> void:
 	var bodies := sim.slimes
 	if sim.free_slimes.call_tick == sim.tick:

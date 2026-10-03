@@ -32,14 +32,20 @@ extends RefCounted
 ##            touching pile slimes rests together once every one of them
 ##            has been supported and still (its centre within REST_DRIFT of
 ##            the anchor fixed where its count started) for REST_TICKS, velocities dropped; it keeps
-##            its `pile` (the group's lowest id) and wakes whole. Something
-##            disturbing it makes it ACTIVE again: a touching slime moving
-##            faster than WAKE_SPEED (a hop, a landing, a neighbour
-##            shifting), a state change (bedtime, sunrise, a basket catching
-##            or releasing), a new velocity or body, a slime removed, fused
-##            or split next to it, or whoever knows of a disturbance calling
-##            wake / wake_around / wake_resting_in (a call, a door: Offscreen,
-##            FrontierSets). rest_enabled off: no slime rests.
+##            its `pile` (the group's lowest id). Piles wake locally (the
+##            local wake, D156): every wake goes through _wake_at, which
+##            wakes that slime alone; the rest of the pile rests on, a wall,
+##            keeping its `pile`, and a woken slime's `pile` is 0 until it
+##            rests again with its new group. What wakes a resting slime:
+##            a touching slime moving faster than WAKE_SPEED (a hop, a
+##            landing, a neighbour shifting), its own state change (bedtime,
+##            sunrise, a basket catching or releasing it), a new velocity or
+##            body, a slime moved away by a body from where it touched it, a
+##            slime removed, fused or split touching it, or whoever knows of
+##            a disturbance calling wake / wake_around / wake_resting_in (a
+##            call, a door: Offscreen, FrontierSets). A sleeper is a state,
+##            never the resting calm: no wake changes it. rest_enabled off:
+##            no slime rests.
 ##   PARKED   off screen (Offscreen): not simulated nor touched at all, not
 ##            even as a wall (it is left out of the pair grid); Offscreen
 ##            moves it (translate) and un-parks it near the view. Nothing
@@ -363,7 +369,8 @@ func create(slime_species: int, slime_size: int, at: Vector2, slime_state := STA
 	return new_id
 
 
-## Removes a slime. False when there is no such slime.
+## Removes a slime. False when there is no such slime. The resting slimes
+## touching it wake, not the rest of their piles (D156).
 func remove(slime_id: int) -> bool:
 	var s := index_of(slime_id)
 	if s < 0:
@@ -673,8 +680,9 @@ func body_of(slime_id: int) -> Dictionary:
 ## slime is missing or the point counts don't match its size (at the body's
 ## detail level, "detail", 0 when absent). The body's "calm" and "still" are put
 ## back too; a body without them leaves the slime ACTIVE. A body that moves
-## the slime by more than a pixel wakes the resting slimes around where it
-## was (a slime taken out from under a pile).
+## the slime by more than a pixel wakes the resting slimes touching where it
+## was (a slime taken out from under a pile, a basket's release), not the
+## rest of their pile (D156).
 # @spec-link [[req_offscreen_simulation]]
 func set_body(slime_id: int, body: Dictionary) -> bool:
 	var s := index_of(slime_id)
@@ -782,7 +790,8 @@ func translate(slime_id: int, delta: Vector2) -> void:
 	centre[s] += delta
 
 
-## Wakes a resting slime (ACTIVE again). Nothing for an active or parked one.
+## Wakes a resting slime (ACTIVE again), only it: the rest of its pile rests
+## on (D156). Nothing for an active or parked one.
 func wake(slime_id: int) -> void:
 	var s := index_of(slime_id)
 	if s >= 0:
@@ -871,12 +880,14 @@ func tick(dt: float) -> void:
 	_rest()
 
 
-## The resting-pile rule (see the class doc), after the tick. A resting pile
-## touching a slime moving faster than WAKE_SPEED wakes. Each active pile
-## slime counts its still, supported ticks; a group of touching active pile
-## slimes whose every member has counted REST_TICKS rests together. Whole
-## piles rest and wake as one: half a pile resting would make its moving
-## half take every overlap against the wall, jolt, and wake it again.
+## The resting-pile rule (see the class doc), after the tick. A resting
+## slime touching a slime moving faster than WAKE_SPEED wakes, only it: the
+## rest of its pile rests on (the local wake, D156). Each active pile slime
+## counts its still, supported ticks; a group of touching active pile slimes
+## whose every member has counted REST_TICKS rests together. Piles rest
+## whole (a half-resting group would make its moving half take every
+## overlap against the wall, jolt, and wake it again); they wake locally
+## (D156; D96 woke them whole).
 # @spec-link [[req_offscreen_simulation]]
 func _rest() -> void:
 	if not rest_enabled:
@@ -997,19 +1008,18 @@ func _is_wall(s: int) -> bool:
 	return state[s] == STATE_SLEEPER or calm[s] == RESTING
 
 
-## Wakes slime index `s` and, when it rests, its whole pile. Returns how many
-## slimes woke.
+## The one wake every path goes through (D156 (7)): wakes slime index `s`
+## when it rests, only it: the rest of its pile rests on and keeps its
+## `pile`; `s` leaves it (pile 0). An active slime starts its still count
+## again; a parked one is left alone. A sleeper is never resting, so no wake
+## changes it. Returns how many slimes woke (0 or 1).
+# @spec-link [[req_offscreen_simulation]]
 func _wake_at(s: int) -> int:
 	var woken := 0
 	if calm[s] == RESTING:
-		var group := pile[s]
-		for t in slime_count:
-			if calm[t] == RESTING and pile[t] == group:
-				calm[t] = ACTIVE
-				still_ticks[t] = 0
-				rest_anchor[t] = centre[t]
-				pile[t] = 0
-				woken += 1
+		calm[s] = ACTIVE
+		pile[s] = 0
+		woken = 1
 	if calm[s] == ACTIVE:
 		still_ticks[s] = 0
 		rest_anchor[s] = centre[s]
@@ -1017,7 +1027,8 @@ func _wake_at(s: int) -> int:
 
 
 ## Wakes the resting slimes (all but index `except`) whose ring may reach
-## within `radius` of `point`. Returns how many.
+## within `radius` of `point`, only those, not the rest of their piles
+## (D156). Returns how many.
 func _wake_around(point: Vector2, radius: float, except: int) -> int:
 	var woken := 0
 	for s in slime_count:
