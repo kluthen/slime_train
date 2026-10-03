@@ -288,6 +288,7 @@ func restore(data: Dictionary) -> void:
 
 ## Wakes the resting slimes a call or a tilt change disturbs, each by itself
 ## (the local wake, D156): those within the call's radius, every one on a tilt.
+# @spec-link [[req_offscreen_simulation]]
 func _disturb(sim: Simulation) -> void:
 	var bodies := sim.slimes
 	if sim.free_slimes.call_tick == sim.tick:

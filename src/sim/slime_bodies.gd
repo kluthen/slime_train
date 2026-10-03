@@ -792,6 +792,7 @@ func translate(slime_id: int, delta: Vector2) -> void:
 
 ## Wakes a resting slime (ACTIVE again), only it: the rest of its pile rests
 ## on (D156). Nothing for an active or parked one.
+# @spec-link [[req_offscreen_simulation]]
 func wake(slime_id: int) -> void:
 	var s := index_of(slime_id)
 	if s >= 0:
@@ -799,6 +800,7 @@ func wake(slime_id: int) -> void:
 
 
 ## Wakes every resting slime whose centre is in `box`. Returns how many.
+# @spec-link [[req_offscreen_simulation]]
 func wake_resting_in(box: Rect2) -> int:
 	var woken := 0
 	for s in slime_count:
@@ -809,6 +811,7 @@ func wake_resting_in(box: Rect2) -> int:
 
 ## Wakes every resting slime whose ring may reach within `radius` of `point`.
 ## Returns how many.
+# @spec-link [[req_offscreen_simulation]]
 func wake_around(point: Vector2, radius: float) -> int:
 	return _wake_around(point, radius, -1)
 
@@ -1029,6 +1032,7 @@ func _wake_at(s: int) -> int:
 ## Wakes the resting slimes (all but index `except`) whose ring may reach
 ## within `radius` of `point`, only those, not the rest of their piles
 ## (D156). Returns how many.
+# @spec-link [[req_offscreen_simulation]]
 func _wake_around(point: Vector2, radius: float, except: int) -> int:
 	var woken := 0
 	for s in slime_count:

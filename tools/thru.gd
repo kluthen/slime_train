@@ -27,6 +27,7 @@ extends SceneTree
 ##   THRU_HIST  where the train slimes end: 2000 px bins of loop distance,
 ##              count (parked)
 ##   STATE      the final tick and state hash
+# @spec-link [[req_platform_and_performance_targets]]
 
 const WINDOW := 600
 ## Loop distances (test level) whose forward crossings THRU_WIN counts.
