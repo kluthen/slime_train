@@ -39,11 +39,19 @@ extends Node2D
 ## there is one (SaveStore, user://saves/<level id>.json; SaveData has the
 ## format), else fresh with the first slime woken. It autosaves (Autosave)
 ## every 15 s of wall time, when the app goes to the background, and when it
-## quits. A save it can't use (unreadable, another level version) is left
-## untouched: the game starts fresh, says why, and writes nothing over it.
-## Only the main scene gets the default store: a game a test adds gets the
-## store the test gives it, or none, and then never writes. Test mode starts
-## from its fixture or "load" save, and autosaves only when its run asks.
+## quits. A file that isn't a readable save is set aside (SaveStore.read). A
+## save the level refuses (another format, a newer level version, a bad
+## shape) is, before the app has shipped (SaveData.SHIPPED, D149), set aside
+## with its backup: the game starts fresh, says why, and autosaves; once
+## shipped, it is left untouched: the game starts fresh, says why, and writes
+## nothing over it. Only the main scene gets the default store: a game a test
+## adds gets the store the test gives it, or none, and then never writes.
+## Test mode starts from its fixture or "load" save, and autosaves only when
+## its run asks.
+##
+## The save wipe (chunk 19w, D148): in a debug build, --wipe-save deletes
+## every file in the main scene's user://saves/ at launch, before anything
+## reads a save (src/debug/save_wipe.gd, named by path; see wipe_saves()).
 ##
 ## A build exported with the "spike_soft_slimes" feature tag (the "Android
 ## spike: soft slimes" preset) runs spike 1's phone benchmark instead of the
@@ -83,6 +91,11 @@ const PERF_LOG_FLAG := "--perf-log"
 const MAX_TICKS_FLAG := "--max-ticks-per-frame"
 const PERF_LOG_REFUSED := ("The perf log and its measurement flags are not available in this build"
 		+ " (release builds never run them).")
+## The save wipe (--wipe-save): debug builds only, named by path like the
+## overlay (see wipe_saves()). A release build ignores the flag, saying so.
+const SAVE_WIPE_SCRIPT := "res://src/debug/save_wipe.gd"
+const SAVE_WIPE_FLAG := "--wipe-save"
+const SAVE_WIPE_IGNORED := "Save wipe: --wipe-save ignored, not a debug build."
 
 var simulation: Simulation
 ## The loaded level, or null (a release build has none yet).
@@ -109,6 +122,19 @@ var session_clock: RefCounted = SessionClock.new()
 var test_mode: RefCounted = null
 ## Replaced by tests to check the release path.
 var test_mode_guard := TestModeGuard.for_this_build()
+## The launch's user arguments (after "--"), which _ready reads. Replaced by
+## tests before the game enters the tree.
+var launch_args: PackedStringArray = OS.get_cmdline_user_args()
+## The directory the save wipe acts on at launch: the main scene's default
+## store's (SaveStore.DEFAULT_DIRECTORY), set in _ready; "" (none) for a game
+## a test adds, so a store a test gives is never wiped. Tests may set a
+## scratch directory first.
+# @spec-link [[req_test_level_and_test_mode]]
+var save_wipe_directory := ""
+## Whether the app has shipped (SaveData.SHIPPED, D149): what _resume_play
+## does with a save the level refuses. Replaced by tests to check both.
+# @spec-link [[req_persistence_and_saves]]
+var save_shipped := SaveData.SHIPPED
 ## Where the levels' saves go, or null: the game never saves. The main scene
 ## gets the default (user://saves/) in _ready; tests set their own first.
 # @spec-link [[req_persistence_and_saves]]
@@ -166,6 +192,11 @@ var _clock := FixedStep.new()
 var _terrain: TerrainSegments = null
 
 
+## Starts the game: the stores (the main scene's defaults), the save wipe if
+## asked (--wipe-save, wipe_saves()), the level, the views and the parent
+## layer, a simulation, the perf log and test mode if asked, else normal play
+## from the level's save (_resume_play()).
+# @spec-link [[req_test_level_and_test_mode]]
 func _ready() -> void:
 	autosave.enabled = false
 	if OS.has_feature(SPIKE_SOFT_SLIMES_FEATURE):
@@ -177,7 +208,23 @@ func _ready() -> void:
 	if get_tree().current_scene == self:
 		save_store = save_store if save_store != null else SaveStore.new()
 		parent_store = parent_store if parent_store != null else ParentStore.new()
-	var user_args := OS.get_cmdline_user_args()
+		save_wipe_directory = SaveStore.DEFAULT_DIRECTORY
+	var user_args := launch_args
+	# The save wipe, once per launch, before the level loads and anything
+	# reads a save. A refused wipe (a save to load too) must not carry on as a
+	# fresh start, but in a release build the flag is simply ignored.
+	if save_wipe_directory != "":
+		var wipe := wipe_saves(user_args, save_wipe_directory)
+		for line in wipe["log"]:
+			print(line)
+		for error in wipe["errors"]:
+			printerr(error)
+		if wipe["refusal"] != "":
+			printerr(wipe["refusal"])
+			set_process(false)
+			set_process_unhandled_input(false)
+			get_tree().quit(1)
+			return
 	if test_mode_guard.allows():
 		var level_errors := _load_level(_first_level_id(user_args))
 		for error in level_errors:
@@ -568,8 +615,11 @@ func _use_level(opened: Level) -> void:
 ## Normal play: starts from the level's save if there is a usable one (else
 ## the fresh simulation stays), then turns autosave on. The store falls back
 ## on the backup and sets unreadable files aside (SaveStore.read), which is
-## said on the error output. A save that can't be used is kept as it is and
-## blocked from being written over. A save of an older level version is
+## said on the error output. A save that can't be used (SaveData.problems) is,
+## before the app has shipped (save_shipped off, D149), set aside with its
+## backup (SaveStore.set_aside_save), so the fresh level saves again; once
+## shipped, kept as it is and blocked from being written over. Either way one
+## line on the error output says so. A save of an older level version is
 ## migrated as it loads, its file kept first (_keep_pre_migration).
 # @spec-link [[req_persistence_and_saves]]
 # @spec-link [[rule_saves_never_wiped]]
@@ -595,11 +645,29 @@ func _resume_play() -> void:
 			var used := save_store.path_for(level_id)
 			if result["source"] == SaveStore.SOURCE_BACKUP:
 				used += SaveStore.BACKUP_SUFFIX
-			save_store.block(level_id, reason)
-			printerr("Save: %s can't be used (%s). Starting fresh; it won't be written over."
-					% [used, reason])
+			if save_shipped:
+				save_store.block(level_id, reason)
+				printerr("Save: %s can't be used (%s). Starting fresh; it won't be written over."
+						% [used, reason])
+			else:
+				printerr(_set_aside_unusable(level_id, used, reason))
 	autosave.enabled = true
 	autosave.start(_now())
+
+
+## Before the app has shipped (D149): sets the save of level `level_id` that
+## can't be used (read from `used`, for `reason`) aside with its backup
+## (SaveStore.set_aside_save; a set-aside that fails blocks the level).
+## Returns the one line that says so.
+# @spec-link [[req_persistence_and_saves]]
+# @spec-link [[rule_saves_never_wiped]]
+func _set_aside_unusable(level_id: String, used: String, reason: String) -> String:
+	var moved := save_store.set_aside_save(level_id)
+	if moved["error"] != "":
+		return "Save: %s can't be used (%s); not shipped yet, but %s Starting fresh." % [
+				used, reason, moved["error"]]
+	return "Save: %s can't be used (%s); not shipped yet, so it is set aside as %s and the level starts fresh." % [
+			used, reason, ", ".join(moved["set_aside"])]
 
 
 ## Before a save of an older level version is loaded (and so migrated,
@@ -656,6 +724,24 @@ func add_perf_log(user_args: PackedStringArray) -> PackedStringArray:
 		perf_log = script.new(parsed["seconds"])
 		add_child(perf_log)
 	return PackedStringArray()
+
+
+## The save wipe `user_args` ask for (--wipe-save, chunk 19w, D148), on
+## `directory`: in a debug build (TestModeGuard), src/debug/save_wipe.gd's
+## run() (every file in the directory deleted, unless the launch also names a
+## save to load: refused); in a release build the flag is ignored, nothing
+## deleted, one line saying so. Without the flag, nothing. Returns {"refusal"
+## ("" or why: a debug launch then quits with exit code 1), "log" (lines for
+## the standard output), "errors" (lines for the error output; the launch
+## carries on)}. _ready calls it on save_wipe_directory; tests may.
+# @spec-link [[req_test_level_and_test_mode]]
+# @spec-link [[rule_saves_never_wiped]]
+func wipe_saves(user_args: PackedStringArray, directory: String) -> Dictionary:
+	if SAVE_WIPE_FLAG not in user_args:
+		return {"refusal": "", "log": PackedStringArray(), "errors": PackedStringArray()}
+	if not test_mode_guard.allows():
+		return {"refusal": "", "log": PackedStringArray([SAVE_WIPE_IGNORED]), "errors": PackedStringArray()}
+	return load(SAVE_WIPE_SCRIPT).run(user_args, directory)
 
 
 ## Starts the level over as on a first launch: a fresh simulation (a new

@@ -41,10 +41,12 @@ func _clear(path: String) -> void:
 
 
 ## A game with the overlay, in normal play (with `store`) or, given a config,
-## in test mode.
-func _game(store: SaveStore = null, config := {}) -> Node:
+## in test mode. `shipped`: whether it plays as an app that has shipped
+## (SaveData.SHIPPED, D149).
+func _game(store: SaveStore = null, config := {}, shipped := SaveData.SHIPPED) -> Node:
 	var game: Node = load(MAIN_SCENE).instantiate()
 	game.save_store = store
+	game.save_shipped = shipped
 	add_child_autofree(game)
 	game.add_debug_overlay()
 	if not config.is_empty():
@@ -183,8 +185,9 @@ func test_reset_in_test_mode_opens_sessions_only_when_the_run_has_them() -> void
 		assert_eq(game.simulation.session.enabled, sessions, "sessions: %s" % sessions)
 
 func test_reset_never_writes_over_a_blocked_save() -> void:
-	# A save of a newer level version: the game blocks it (an unreadable
-	# file is set aside instead since chunk 19, so it no longer blocks).
+	# A save of a newer level version, once the app has shipped (D149): the
+	# game blocks it (an unreadable file is set aside instead since chunk 19,
+	# and before shipping a refused save is too, so neither blocks).
 	var store := SaveStore.new(DIR)
 	var newer := JSON.stringify({"format": SaveData.FORMAT, "level": {"id": LEVEL, "version": 999},
 			"sim": {"tick": 5}, "slimes": [{"species": "A", "size": 1, "state": "train", "centre": [10, 20]}],
@@ -193,7 +196,7 @@ func test_reset_never_writes_over_a_blocked_save() -> void:
 	var file := FileAccess.open(store.path_for(LEVEL), FileAccess.WRITE)
 	file.store_string(newer)
 	file.close()
-	var game := _game(store)
+	var game := _game(store, {}, true)
 	assert_false(store.can_write(LEVEL), "blocked")
 	var overlay: Node = game.debug_overlay
 	overlay.press_reset(0)

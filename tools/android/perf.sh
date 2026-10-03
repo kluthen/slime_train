@@ -6,9 +6,10 @@
 #
 #   tools/android/perf.sh [--serial=S] [--fixture=NAME|none] [--seconds=N]
 #                         [--warm-minutes=M] [--period=P] [--no-build]
-#                         [--no-install] [--label=TEXT]
+#                         [--no-install] [--label=TEXT] [--wipe-save]
 #   tools/android/perf.sh --free-play [--minutes=N] [--serial=S] [--period=P]
 #                         [--no-build] [--no-install] [--label=TEXT]
+#                         [--wipe-save]
 #
 #   --serial=S        the device (adb serial); default: the only one attached
 #   --fixture=NAME    fixture mode: a fixture of the test level, played in test
@@ -30,6 +31,12 @@
 #   --no-build        don't export the debug APK (tools/android/export.sh debug)
 #   --no-install      don't install it (the installed debug app is measured)
 #   --label=TEXT      the session folder's name prefix (default run)
+#   --wipe-save       normal play only (--free-play or --fixture=none; refused
+#                     with a fixture): the save wipe, the game's --wipe-save
+#                     added to slime_args, so the debug app's level saves are
+#                     deleted at launch and the level starts fresh. Off by
+#                     default. For automated test runs; never with a save and
+#                     restore check
 #
 # It exports and installs the debug APK, clears logcat, starts the app with
 # the perf log (the launch intent's "slime_args" extra, read by the
@@ -58,7 +65,11 @@
 # get round it. A fixture run writes no save: test mode's autosave is off
 # unless its run asks, and the game reads the player's save only in normal
 # play. --fixture=none and --free-play are normal play: they play and autosave
-# the device's own save, exactly as opening the app does.
+# the device's own save, exactly as opening the app does. The one exception,
+# asked for each run: with --wipe-save (off by default), the debug app
+# (com.slimetrain.dev, never the release one) deletes its level saves at
+# launch (the game's save wipe, chunk 19w); the parent code is kept, and this
+# script still never uninstalls the app or clears its data.
 #
 # Exit: 0 on success (Ctrl-C included); 2 on bad arguments or no (or no
 # single) device; 1 when the build or install fails, no PERF line arrives in
@@ -92,9 +103,10 @@ period=1
 build=1
 install=1
 label=run
+wipe_save=0
 
 usage() {
-	sed -n '7,32p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
+	sed -n '7,39p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
 	exit 2
 }
 
@@ -115,6 +127,7 @@ for arg in "$@"; do
 	--no-build) build=0 ;;
 	--no-install) install=0 ;;
 	--label=*) label="${arg#*=}" ;;
+	--wipe-save) wipe_save=1 ;;
 	-h | --help) usage ;;
 	*) fail_args "unknown argument '$arg' (--help lists them)" ;;
 	esac
@@ -133,6 +146,7 @@ else
 	[[ "$seconds" =~ ^[0-9]+$ ]] && [ "$seconds" -gt 0 ] || fail_args "--seconds expects a whole number > 0, got '$seconds'"
 	[[ "$warm_minutes" =~ ^[0-9]+$ ]] || fail_args "--warm-minutes expects a whole number >= 0, got '$warm_minutes'"
 	if [ "$fixture" = none ]; then mode=normal; else mode="$fixture"; fi
+	[ "$wipe_save" = 0 ] || [ "$fixture" = none ] || fail_args "--wipe-save is refused with a fixture (here '$fixture'): a fixture run never reads the player's save; use it with --free-play or --fixture=none"
 fi
 [[ "$period" =~ ^[0-9]+$ ]] && [ "$period" -gt 0 ] || fail_args "--period expects a whole number of seconds > 0, got '$period'"
 [[ "$thermal_every" =~ ^[0-9]+$ ]] && [ "$thermal_every" -gt 0 ] || fail_args "THERMAL_EVERY expects a whole number of seconds > 0, got '$thermal_every'"
@@ -207,6 +221,8 @@ android="$(prop ro.build.version.release) (API $(prop ro.build.version.sdk))"
 
 if [ "$free_play" = 1 ] || [ "$fixture" = none ]; then
 	slime_args="--perf-log=$period"
+	# The save wipe (normal play only: refused with a fixture above).
+	[ "$wipe_save" = 0 ] || slime_args="$slime_args,--wipe-save"
 else
 	slime_args="--test-mode,--fixture=$fixture,--seed=1,--perf-log=$period"
 fi

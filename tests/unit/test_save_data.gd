@@ -293,6 +293,20 @@ func test_problems_that_make_a_save_unusable() -> void:
 		assert_null(Simulation.from_save(save, _level(), _terrain(), 1), label + ": not loaded")
 
 
+## D149: a format other than the build's own is refused, older as well as
+## newer (no save format is migrated before the app has shipped). 0 stands
+## for an older format: a number only tests use.
+# @test-link [[req_persistence_and_saves]]
+func test_a_format_other_than_the_builds_own_is_refused() -> void:
+	for format in [SaveData.FORMAT + 1, 0]:
+		var save := _hand_made().duplicate(true)
+		save["format"] = format
+		var problems := SaveData.problems(save, _level())
+		assert_eq(problems.size(), 1, "format %d" % format)
+		var expected := "newer" if format > SaveData.FORMAT else "older"
+		assert_string_contains(problems[0] if not problems.is_empty() else "", expected, "format %d" % format)
+
+
 ## Chunk 19 (decision C, proposed): a save of an older level version is
 ## migrated (SaveMigration, tests/unit/test_save_migration.gd), so it has no
 ## problems; a newer one is refused above.

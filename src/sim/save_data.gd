@@ -100,6 +100,15 @@ extends RefCounted
 # @spec-link [[req_interactive_objects_general]]
 
 const FORMAT := 1
+## Whether the app has shipped: gone out in a store (D149). False until the
+## first store release, and turning it on is part of that release. Before
+## it, a save the build can't use (problems() refuses it) is set aside with
+## its backup and the level starts fresh with autosave on (the game root's
+## _resume_play, SaveStore.set_aside_save), and a save-format change needs no
+## migration. Once on, such a save is left untouched and its writes blocked,
+## and every format change ships with its migration.
+# @spec-link [[req_persistence_and_saves]]
+const SHIPPED := false
 const EXACT_PREFIX := "f64:"
 const PHASES := [FreeSlimes.ANSWERING, FreeSlimes.UNSURE, FreeSlimes.HEADING_BACK]
 
@@ -264,7 +273,9 @@ static func _typed_values(data: Dictionary) -> Dictionary:
 ## What makes `save` unusable with `level_data` (empty: it can be loaded).
 ## A save of an older version of the level is usable: restore() migrates it
 ## (SaveMigration, chunk 19, decision C). A save of a newer version (a newer
-## game's) is refused, and kept untouched (rule_saves_never_wiped).
+## game's) is refused, and kept untouched (rule_saves_never_wiped). A format
+## other than this build's own is refused, older as well as newer: no save
+## format is migrated (D149; before the app has shipped none needs to be).
 # @spec-link [[rule_released_level_stable_with_migration]]
 # @spec-link [[rule_saves_never_wiped]]
 static func problems(save: Variant, level_data: LevelData) -> PackedStringArray:
@@ -276,8 +287,8 @@ static func problems(save: Variant, level_data: LevelData) -> PackedStringArray:
 		out.append("no format number")
 	elif format > FORMAT:
 		out.append("format %d is newer than this game's (%d)" % [format, FORMAT])
-	elif format < 1:
-		out.append("unknown format %d" % format)
+	elif format < FORMAT:
+		out.append("format %d is older than this game's (%d), and no older format is migrated" % [format, FORMAT])
 	var header: Variant = save.get("level")
 	if typeof(header) != TYPE_DICTIONARY:
 		out.append("no level header")

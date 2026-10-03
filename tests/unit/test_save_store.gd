@@ -21,8 +21,12 @@ extends GutTest
 ##   their side files; set-aside files, other levels' saves and other files
 ##   stay, and the level can be saved fresh after it (proposed: even if it
 ##   was blocked);
-## - no other code under src/ can delete a file, and only the game root's
-##   delete_level_save() calls the store's delete (the lints below).
+## - no other code under src/ can delete a file (but the debug-only save
+##   wipe, chunk 19w), and only the game root's delete_level_save() calls the
+##   store's delete (the lints below);
+## - before the app has shipped (D149), a save the level refuses is set aside
+##   with its backup (set_aside_save: renames, bytes untouched), so the fresh
+##   level saves again; a set-aside that fails blocks the level.
 
 # @test-link [[req_persistence_and_saves]]
 # @test-link [[rule_saves_never_wiped]]
@@ -373,6 +377,69 @@ func test_a_failed_backup_copy_keeps_the_old_save_and_backup() -> void:
 	assert_eq(_bytes(path + SaveStore.BACKUP_SUFFIX), backup_before, "the old backup is kept")
 
 
+# --- A save the build can't use, before shipping (D149) ---------------------------
+
+# @test-link [[req_persistence_and_saves]]
+# @test-link [[rule_saves_never_wiped]]
+func test_setting_a_refused_save_aside_takes_its_backup_with_it() -> void:
+	var store := SaveStore.new(DIR)
+	var path := store.path_for(LEVEL)
+	var backup := path + SaveStore.BACKUP_SUFFIX
+	_put(path, _text(20))
+	_put(backup, _text(10))
+	var result := store.set_aside_save(LEVEL)
+	var aside := path + SaveStore.SET_ASIDE_SUFFIX
+	var backup_aside := backup + SaveStore.SET_ASIDE_SUFFIX
+	assert_eq(result, {"set_aside": [aside, backup_aside], "error": ""})
+	assert_eq(FileAccess.get_file_as_string(aside), _text(20), "a rename, its bytes untouched")
+	assert_eq(FileAccess.get_file_as_string(backup_aside), _text(10))
+	assert_false(FileAccess.file_exists(path))
+	assert_false(FileAccess.file_exists(backup))
+	assert_eq(store.read(LEVEL)["status"], SaveStore.FRESH, "the level starts fresh")
+	assert_true(store.can_write(LEVEL), "not blocked")
+	assert_eq(store.write(_save(30)), "", "the fresh level saves")
+	assert_eq(FileAccess.get_file_as_string(aside), _text(20), "never written over")
+
+
+# @test-link [[rule_saves_never_wiped]]
+func test_setting_a_refused_save_aside_takes_the_next_free_name() -> void:
+	var store := SaveStore.new(DIR)
+	var path := store.path_for(LEVEL)
+	_put(path, _text(20))
+	_put(path + SaveStore.SET_ASIDE_SUFFIX, "set aside before")
+	var result := store.set_aside_save(LEVEL)
+	assert_eq(result, {"set_aside": [path + SaveStore.SET_ASIDE_SUFFIX + ".2"], "error": ""}, "no backup: the save only")
+	assert_eq(FileAccess.get_file_as_string(path + SaveStore.SET_ASIDE_SUFFIX), "set aside before", "kept")
+	assert_eq(FileAccess.get_file_as_string(path + SaveStore.SET_ASIDE_SUFFIX + ".2"), _text(20))
+
+
+# @test-link [[rule_saves_never_wiped]]
+func test_setting_a_refused_backup_aside_when_the_save_is_missing() -> void:
+	var store := SaveStore.new(DIR)
+	var backup := store.path_for(LEVEL) + SaveStore.BACKUP_SUFFIX
+	_put(backup, _text(10))
+	var result := store.set_aside_save(LEVEL)
+	assert_eq(result, {"set_aside": [backup + SaveStore.SET_ASIDE_SUFFIX], "error": ""})
+	assert_eq(store.read(LEVEL)["status"], SaveStore.FRESH)
+
+
+# @test-link [[rule_saves_never_wiped]]
+func test_a_refused_save_that_cant_be_set_aside_blocks_the_level() -> void:
+	var store := SaveStore.new(DIR)
+	var path := store.path_for(LEVEL)
+	_put(path, _text(20))
+	var dir := ProjectSettings.globalize_path(DIR)
+	var mode := FileAccess.get_unix_permissions(dir)
+	FileAccess.set_unix_permissions(dir, FileAccess.UNIX_READ_OWNER | FileAccess.UNIX_EXECUTE_OWNER)
+	var result := store.set_aside_save(LEVEL)
+	FileAccess.set_unix_permissions(dir, mode)
+	assert_ne(result["error"], "")
+	assert_eq(result["set_aside"], [])
+	assert_false(store.can_write(LEVEL), "blocked")
+	assert_ne(store.write(_save()), "", "writing over it is refused")
+	assert_eq(FileAccess.get_file_as_string(path), _text(20), "the file is as it was")
+
+
 # --- The pre-migration copy (chunk 19, decision C) --------------------------------
 
 # @test-link [[req_persistence_and_saves]]
@@ -522,7 +589,8 @@ func test_a_delete_that_fails_says_why_and_keeps_the_block() -> void:
 
 ## rule_saves_never_wiped: the game's code has no way to delete a file, but
 ## for the parent's explicit delete (SaveStore.delete, the one reviewed
-## exception, chunk 18).
+## exception, chunk 18) and the debug-only save wipe (chunk 19w, see
+## _allowed).
 # @test-link [[rule_saves_never_wiped]]
 func test_no_game_code_can_delete_a_file() -> void:
 	var offenders := PackedStringArray()
@@ -542,13 +610,19 @@ func test_no_game_code_can_delete_a_file() -> void:
 
 
 ## The allowed file moves: SaveStore swapping a fully written side file in
-## (the save's or the backup's) and setting an unreadable file aside (all
-## renames), removing a level's files only in SaveStore.delete (the parent's
-## delete), and ParentStore swapping its fully written side files in (the
-## app-wide parent code file, never a level save).
+## (the save's or the backup's) and setting an unreadable or refused file
+## aside (all renames), removing a level's files only in SaveStore.delete (the
+## parent's delete), and ParentStore swapping its fully written side files in
+## (the app-wide parent code file, never a level save). One debug-only
+## exception (chunk 19w, D148): the save wipe's one remove, in SaveWipe's
+## wipe() (src/debug/save_wipe.gd), a development aid that a release build
+## ignores and its preset leaves out (tests/unit/test_save_wipe.gd), outside
+## rule_saves_never_wiped as its approved wording says.
 func _allowed(path: String, function: String, line: String) -> bool:
 	if path == "res://src/save/parent_store.gd":
 		return "rename_absolute(" in line
+	if path == "res://src/debug/save_wipe.gd":
+		return "remove_absolute(" in line and function.begins_with("static func wipe(")
 	if path != "res://src/save/save_store.gd":
 		return false
 	return "rename_absolute(" in line or ("remove_absolute(" in line and function.begins_with("func delete("))

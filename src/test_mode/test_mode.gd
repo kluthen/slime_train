@@ -409,6 +409,8 @@ static func load_config_file(path: String) -> Dictionary:
 ##   --save=PATH              with --run-ticks, then save to PATH
 ##   --perf-log[=SECONDS]     not test mode's: the game root's perf log
 ##   --max-ticks-per-frame=N  (src/debug/perf_log.gd) reads them; skipped here
+##   --wipe-save              not test mode's: the game root's save wipe
+##                            (src/debug/save_wipe.gd); skipped here
 ## Returns {"config", "run_ticks" (-1 when absent), "print_state",
 ## "save_path" ("" when absent), "errors"}.
 static func config_from_args(user_args: PackedStringArray) -> Dictionary:
@@ -422,7 +424,7 @@ static func config_from_args(user_args: PackedStringArray) -> Dictionary:
 		match flag:
 			"--test-mode":
 				pass
-			"--perf-log", "--max-ticks-per-frame":
+			"--perf-log", "--max-ticks-per-frame", "--wipe-save":
 				pass
 			"--test-script":
 				var loaded := load_config_file(value)

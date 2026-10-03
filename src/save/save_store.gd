@@ -26,10 +26,17 @@ extends RefCounted
 ##   blocked; if nothing reads the level starts fresh. Only if a set-aside
 ##   fails is the level blocked (block(): no write for the session), the
 ##   file left where it is.
-## No migration here (SaveMigration, on load): a save of a newer level
-## version is blocked (by the game, block()) and kept; before an older one
-## is migrated and written, the game keeps its file as it was
+## No migration here (SaveMigration, on load): a save the level refuses
+## (SaveData.problems: another format, a newer level version, a bad shape)
+## is, before the app has shipped (SaveData.SHIPPED off, D149), set aside
+## with its backup by the game (set_aside_save(): renames, like an unreadable
+## file's), so the fresh level saves again; once shipped, blocked (by the
+## game, block()) and kept. Before a save of an older level version is
+## migrated and written, the game keeps its file as it was
 ## (keep_version_copy(): <level id>.json.v<old version>, never removed).
+##
+## The save wipe (--wipe-save, chunk 19w, D148) is not the store's: it lives
+## in src/debug/save_wipe.gd, debug builds only, for automated test runs.
 # @spec-link [[req_persistence_and_saves]]
 # @spec-link [[rule_saves_never_wiped]]
 
@@ -114,6 +121,31 @@ func can_write(level_id: String) -> bool:
 ## `reason`: every write() to it is refused.
 func block(level_id: String, reason: String) -> void:
 	_blocked[level_id] = reason
+
+
+## Before the app has shipped (SaveData.SHIPPED off, D149): sets level
+## `level_id`'s save, which the level refuses, aside with its backup, so the
+## level starts fresh and saves again. Each of the two that is there (the
+## save, then the backup) is renamed to its first free SET_ASIDE_SUFFIX name
+## (then .2, .3...), its bytes untouched (rule_saves_never_wiped: nothing is
+## deleted). Returns {"set_aside" (the new paths), "error" ("" or why a file
+## stays where it is: the level is then blocked, so it is never written
+## over)}.
+# @spec-link [[req_persistence_and_saves]]
+# @spec-link [[rule_saves_never_wiped]]
+func set_aside_save(level_id: String) -> Dictionary:
+	var path := path_for(level_id)
+	var set_aside := []
+	for file in [path, path + BACKUP_SUFFIX]:
+		if not FileAccess.file_exists(file):
+			continue
+		var moved := _set_aside(file)
+		if moved["error"] != "":
+			var why := "%s: %s; it is left as it is and not written over this session." % [file, moved["error"]]
+			block(level_id, why)
+			return {"set_aside": set_aside, "error": why}
+		set_aside.append(moved["path"])
+	return {"set_aside": set_aside, "error": ""}
 
 
 ## The parent's delete of level `level_id`'s save (settings, D43, DoD 29 "its

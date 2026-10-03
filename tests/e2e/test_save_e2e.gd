@@ -8,6 +8,12 @@ extends GutTest
 ## save that can't be used is left untouched, and the same through separate
 ## Godot processes (--save, --load).
 ##
+## A save the build can't use (D149): before the app has shipped (the switch
+## SaveData.SHIPPED off) it is set aside with its backup and the level starts
+## fresh with autosave on; once shipped it is left untouched and its writes
+## blocked. A file that isn't JSON is set aside either way; an older level
+## version migrates either way.
+##
 ## Every game here gets its own SaveStore on a scratch directory; a game a
 ## test adds without one never writes (only the main scene gets the default
 ## user://saves/).
@@ -43,10 +49,12 @@ func _clear(path: String) -> void:
 
 
 ## A game with `store` (null: none), added to the tree: its _ready loads the
-## level and the store's save, if any.
-func _game(store: SaveStore) -> Node:
+## level and the store's save, if any. `shipped`: whether it plays as an app
+## that has shipped (SaveData.SHIPPED, D149; off by default, as the build is).
+func _game(store: SaveStore, shipped := SaveData.SHIPPED) -> Node:
 	var game: Node = load(MAIN_SCENE).instantiate()
 	game.save_store = store
+	game.save_shipped = shipped
 	add_child_autofree(game)
 	return game
 
@@ -230,8 +238,9 @@ func test_a_save_of_an_older_level_version_is_migrated_and_its_file_kept() -> vo
 	assert_eq(FileAccess.get_file_as_bytes(copy), before, "the copy stays")
 
 
-## A save of a newer version of the level (a newer game) can't be read: it
-## is kept as it is, and nothing is written over it (the level plays fresh).
+## Once the app has shipped (the switch on, D149): a save of a newer version
+## of the level (a newer game) can't be read: it is kept as it is, and nothing
+## is written over it (the level plays fresh).
 # @test-link [[rule_saves_never_wiped]]
 func test_a_save_of_a_newer_level_version_is_not_loaded_nor_written_over() -> void:
 	var store := SaveStore.new(DIR)
@@ -240,10 +249,106 @@ func test_a_save_of_a_newer_level_version_is_not_loaded_nor_written_over() -> vo
 	save["level"]["version"] = 999
 	assert_eq(SaveStore.write_file(store.path_for(LEVEL), save), "")
 	var before := FileAccess.get_file_as_bytes(store.path_for(LEVEL))
-	var game := _game(SaveStore.new(DIR))
+	var game := _game(SaveStore.new(DIR), true)
 	assert_eq(game.simulation.tick, 0, "fresh")
 	assert_ne(game.save_now(), "", "refused")
 	assert_eq(FileAccess.get_file_as_bytes(store.path_for(LEVEL)), before, "untouched")
+
+
+# --- A save the build can't use, before the first store release (D149) -----------
+
+## The saves SaveData refuses, each made from a played save by `change`: a
+## newer format, an older one (0: a number only tests use), a format-1 save
+## failing the shape check, a newer level version.
+func _refused_cases() -> Dictionary:
+	return {
+		"a newer format": func(s: Dictionary) -> void: s["format"] = SaveData.FORMAT + 1,
+		"an older format": func(s: Dictionary) -> void: s["format"] = 0,
+		"a bad shape": func(s: Dictionary) -> void: s["slimes"][0]["species"] = "Z",
+		"a newer level version": func(s: Dictionary) -> void: s["level"]["version"] = 999,
+	}
+
+
+## A played save in DIR and, written over it, the refused save `change`
+## makes: the save is refused, its backup the played one. Returns the bytes
+## of both, {"save", "backup"}.
+func _lay_down_refused(store: SaveStore, change: Callable) -> Dictionary:
+	var played := _played_and_saved(store)
+	played.autosave.enabled = false
+	var save: Dictionary = store.read(LEVEL)["save"]
+	change.call(save)
+	assert_eq(SaveStore.write_file(store.path_for(LEVEL), save), "")
+	var path := store.path_for(LEVEL)
+	return {"save": FileAccess.get_file_as_bytes(path),
+			"backup": FileAccess.get_file_as_bytes(path + SaveStore.BACKUP_SUFFIX)}
+
+
+## Before shipping (the switch off): the refused save and its backup are set
+## aside, the level starts fresh with autosave on, and the next autosave
+## writes a new save.
+# @test-link [[req_persistence_and_saves]]
+# @test-link [[rule_saves_never_wiped]]
+func test_before_shipping_a_refused_save_is_set_aside_with_its_backup() -> void:
+	var cases := _refused_cases()
+	for label in cases:
+		_clear(DIR)
+		var store := SaveStore.new(DIR)
+		var laid := _lay_down_refused(store, cases[label])
+		var path := store.path_for(LEVEL)
+		var game := _game(SaveStore.new(DIR), false)
+		assert_eq(game.simulation.tick, 0, label + ": fresh")
+		assert_false(game.simulation.hint.done, label + ": the first-play hint due")
+		assert_eq(FileAccess.get_file_as_bytes(path + SaveStore.SET_ASIDE_SUFFIX), laid["save"],
+				label + ": the save set aside, untouched")
+		assert_eq(FileAccess.get_file_as_bytes(path + SaveStore.BACKUP_SUFFIX + SaveStore.SET_ASIDE_SUFFIX),
+				laid["backup"], label + ": its backup with it")
+		assert_false(FileAccess.file_exists(path), label + ": no save in its place")
+		assert_true(game.autosave.enabled, label + ": autosave on")
+		game.notification(Node.NOTIFICATION_APPLICATION_FOCUS_OUT)
+		var written := SaveStore.read_file(path)
+		assert_eq(written["status"], SaveStore.OK, label + ": the next autosave writes a new save")
+		if written["status"] == SaveStore.OK:
+			assert_eq(SaveData.problems(written["save"], game.level.data), PackedStringArray(),
+					label + ": a usable one")
+		game.autosave.enabled = false
+
+
+## A set-aside name already taken: the next free one (.2), nothing written
+## over.
+# @test-link [[rule_saves_never_wiped]]
+func test_before_shipping_a_refused_save_takes_the_next_free_set_aside_name() -> void:
+	var store := SaveStore.new(DIR)
+	var laid := _lay_down_refused(store, _refused_cases()["a newer format"])
+	var path := store.path_for(LEVEL)
+	var earlier := FileAccess.open(path + SaveStore.SET_ASIDE_SUFFIX, FileAccess.WRITE)
+	earlier.store_string("set aside before")
+	earlier.close()
+	var game := _game(SaveStore.new(DIR), false)
+	assert_eq(game.simulation.tick, 0)
+	assert_eq(FileAccess.get_file_as_string(path + SaveStore.SET_ASIDE_SUFFIX), "set aside before", "kept")
+	assert_eq(FileAccess.get_file_as_bytes(path + SaveStore.SET_ASIDE_SUFFIX + ".2"), laid["save"])
+	game.autosave.enabled = false
+
+
+## Once shipped (the switch on): today's behaviour, the same saves left
+## untouched and their writes blocked.
+# @test-link [[rule_saves_never_wiped]]
+func test_once_shipped_a_refused_save_is_left_untouched_and_blocked() -> void:
+	var cases := _refused_cases()
+	for label in cases:
+		_clear(DIR)
+		var store := SaveStore.new(DIR)
+		var laid := _lay_down_refused(store, cases[label])
+		var path := store.path_for(LEVEL)
+		var game := _game(SaveStore.new(DIR), true)
+		assert_eq(game.simulation.tick, 0, label + ": fresh")
+		assert_ne(game.save_now(), "", label + ": writes blocked")
+		game.notification(Node.NOTIFICATION_APPLICATION_FOCUS_OUT)
+		assert_eq(FileAccess.get_file_as_bytes(path), laid["save"], label + ": the save untouched")
+		assert_eq(FileAccess.get_file_as_bytes(path + SaveStore.BACKUP_SUFFIX), laid["backup"],
+				label + ": its backup untouched")
+		assert_false(FileAccess.file_exists(path + SaveStore.SET_ASIDE_SUFFIX), label + ": nothing set aside")
+		game.autosave.enabled = false
 
 
 func test_separate_processes_save_and_reload() -> void:

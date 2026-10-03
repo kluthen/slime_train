@@ -52,7 +52,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `src/sim/` | The simulation core: pure logic, with no scene dependencies, so it can be unit tested |
 | `src/test_mode_guard.gd` | The one check that keeps test mode out of release builds |
 | `src/test_mode/` | Test mode: scripted input, time control, fixtures and saves to start from, the on-screen marker |
-| `src/debug/` | The debug overlay, debug builds only: speed, reset, slime labels, the kill tool, the fps, the woken/available counter, the slime counts (see "Debug overlay"); the perf log (`PerfLog`, see "Measuring on the phone"); the largest awake cluster (`DebugCounts.largest_cluster()`, see "Chunk 22d: debug counters and the largest awake cluster") |
+| `src/debug/` | The debug overlay, debug builds only: speed, reset, slime labels, the kill tool, the fps, the woken/available counter, the slime counts (see "Debug overlay"); the perf log (`PerfLog`, see "Measuring on the phone"); the largest awake cluster (`DebugCounts.largest_cluster()`, see "Chunk 22d: debug counters and the largest awake cluster"); the save wipe (`SaveWipe`, `--wipe-save`, see "Chunk 19w: the save wipe") |
 | `src/save/` | The save files (`SaveStore`: one per level, never wiped), autosave timing (`Autosave`), the real clocks sessions count on (`SessionClock`) and the app's parent code (`ParentStore`, see "Parent gate and settings (chunk 18)"); the save format itself is `src/sim/save_data.gd` (see "Saves and fixtures") |
 | `src/parent/` | The parent layer: the parent buttons, the code prompt, settings and setup (`ParentGate` and its surfaces), their strings (`ParentText`) and sizes (`ParentLayout`) (see "Parent gate and settings (chunk 18)") |
 | `src/session/` | The session's screen effects (`SessionScreen`: the dusk tint, keeping the screen on); the session logic itself is `src/sim/session.gd` (see "Sessions (chunk 17)") |
@@ -276,7 +276,9 @@ Flags: `--test-script=PATH` (res:// or a file path), `--seed=N`,
 print the hash, quit), `--print-state` (also print the state as JSON) and
 `--save=PATH` (with `--run-ticks`: then save to PATH, for kill-and-reload
 across processes). Test mode leaves the perf log's flags, `--perf-log` and
-`--max-ticks-per-frame` (chunk 22), to the perf log. A run that can't start
+`--max-ticks-per-frame` (chunk 22), to the perf log, and `--wipe-save` to
+the save wipe (chunk 19w; refused with `--load` or a script's `"load"`, see
+"Chunk 19w: the save wipe"). A run that can't start
 quits with code 1. Without `--run-ticks`, in a window, the game plays the
 script in real time (scaled) with a pink "TEST MODE" banner and a ring on
 every finger down. To record a debug run without a screen, use Godot's movie
@@ -3374,6 +3376,23 @@ reloaded save has the saved state hash and stays equal to the run that
 never stopped, tick for tick (`tests/unit/test_save_data.gd`), when no
 slime was saved in mid-air.
 
+**The save format before the first store release** (D149). Keeping a
+player's save across a save-format change, with a migration, is owed only
+once the app has **shipped** (gone out in a store: the first store release;
+v1 never ships). Until then a save-format change may be additive or
+breaking, needs no migration and no special approval, and is recorded like
+any other choice (the chunk's record, this section, the atoms). A breaking
+change bumps the format number (`format` 2, 3...) so that an old save is
+refused plainly rather than misread; an additive change with safe defaults
+may keep it. No format migration code is kept before shipping. One switch
+says whether the app has shipped: `SaveData.SHIPPED`, `false` until the
+first store release, and turning it on is part of that release. From then
+on every save-format change ships with its migration. A save a build can't
+use is handled by that switch (see "A read" below). The fixtures are saves,
+so a breaking format change converts every fixture in the same change; the
+fixture and test-mode script formats themselves stay hard contracts.
+Chunk 19w changed nothing in the format (still format 1).
+
 **Mid-air on load** (chunk 19, D12, DoD 28; `MidairLanding`,
 `src/sim/midair_landing.gd`, the last step of `SaveData.restore`). A slime
 saved in the air (its body not supported, neither a sleeper nor in a
@@ -3392,7 +3411,8 @@ too, by a pixel or so from its rest height.
 **Migration by level version** (chunk 19, decision C, proposed; D72;
 `SaveMigration`, `src/sim/save_migration.gd`). `SaveData.problems` accepts
 a save of an older version of the level and refuses a newer one (a newer
-game's: kept, blocked). `SaveData.restore` migrates an older save first (a
+game's: set aside before shipping, kept and blocked once shipped; D149).
+`SaveData.restore` migrates an older save first (a
 deep copy; keyed by stable IDs): a sleeper whose stable ID the level no
 longer has as a sleeper, whose spot moved (over 1 px, `SaveMigration.MOVED`)
 or whose species changed, and an awake slime whose centre is no longer in
@@ -3420,7 +3440,7 @@ One JSON object, keys sorted, tab-indented:
 
 | Key | What |
 |---|---|
-| `format` | 1. A newer format is refused, never read half-way |
+| `format` | 1. Any other format, newer or older, is refused, never read half-way (D149) |
 | `level` | `{"id", "version"}`. Another id, or a newer version, is refused; an older version is migrated on load (chunk 19, below) |
 | `sim` | `tick`, `seed` and `rng_state` (strings: 64-bit), `next_slime_id`. Optional |
 | `slimes` | Every slime, in runtime id order (at least one): `id` (its stable ID, below), `members`, `runtime_id`, `species` (a letter), `size`, `state` (`train`, `free`, `sleeper`, `bedtime_asleep`, `in_basket`), `centre`, `velocity`, then `train` (distance, laps, slide, stall mark; a `lost` flag from before chunk 23A is ignored) or `free` (phase, since, point, route back, stream state), and `body` (points, previous points, the solver's centre, hop timer, heading, held, supported, stream state; optional `rest` and `detail`, the ring's detail level 1 to 3, absent 0, an older `"low": true` read as 2: see "Saves and hash" in the off-screen section) |
@@ -3488,7 +3508,7 @@ first slime woken).
 | `L.json.new` | The side file of a write: the new save before it takes the save's place | removes it |
 | `L.json.bak` | The backup: the save before the last write, a whole older save | removes it |
 | `L.json.bak.new` | The side file of the backup copy | removes it |
-| `L.json.unreadable`, then `.unreadable.2`, `.3`... | A save that couldn't be read, set aside by a read, its bytes untouched; `L.json.bak.unreadable...` for a backup | leaves it (proposed: not the save) |
+| `L.json.unreadable`, then `.unreadable.2`, `.3`... | A save that couldn't be read, set aside by a read, or (before shipping, D149) a save the level refuses, set aside with its backup; its bytes untouched; `L.json.bak.unreadable...` for a backup | leaves it (proposed: not the save) |
 | `L.json.v<N>`, then `.v<N>.2`... | The file a save of level version N was read from, kept before its migration (`SaveStore.keep_version_copy`, through its side file `.v<N>.new`; "Migration by level version" above) | leaves it (never removed) |
 
 **A write** (`SaveStore.write`, `write_file`), in three steps:
@@ -3516,20 +3536,39 @@ With nothing readable the game says so and starts fresh (status FRESH, the
 new paths in `"set_aside"`). Only if a set-aside rename fails is the level
 blocked (`SaveStore.block`, status UNREADABLE: the file left where it is,
 nothing written for the session). A save that reads but that the level
-refuses (`SaveData.problems`: another level, a newer level version, a bad
-field) is kept as it is and blocked the same way, the game saying why. A
-save of an older level version is migrated as it loads, its file kept
-first as `L.json.v<old version>`; a copy that fails blocks the level too.
+refuses (`SaveData.problems`: another format, older or newer, another
+level, a newer level version, a bad field) depends on `SaveData.SHIPPED`
+(D149; the game root's copy, `save_shipped`, which tests set):
+
+- **before shipping** (off, today): it is **set aside with its backup**
+  (`SaveStore.set_aside_save`: each of `L.json` and `L.json.bak` that is
+  there renamed to its first free `.unreadable` name, bytes untouched), the
+  level starts fresh with autosave on (not blocked: the next autosave
+  writes a new save), and one line on the error output says so: `Save:
+  <path> can't be used (<reasons>); not shipped yet, so it is set aside as
+  <set-aside paths> and the level starts fresh.` A set-aside that fails
+  blocks the level, as above;
+- **once shipped** (on): it is kept as it is and blocked the same way, the
+  game saying why (the behaviour before D149).
+
+A file that isn't JSON is set aside either way, as above. A save of an
+older level version is migrated as it loads either way (a level change,
+not a format change), its file kept first as `L.json.v<old version>`; a
+copy that fails blocks the level too.
 
 It never wipes a save (`rule_saves_never_wiped`), except on the parent's
-explicit delete (`SaveStore.delete`, chunk 18):
+explicit delete (`SaveStore.delete`, chunk 18); the debug-only save wipe
+(chunk 19w, below) is a development aid outside that rule, as its approved
+wording says:
 
 - a save with no slimes, or with a NaN, is refused and the old file kept;
 - the lints in `tests/unit/test_save_store.gd`: no code under `src/`
-  removes a file except `SaveStore.delete`, and only the game root's
-  `delete_level_save()` calls it; the only renames are the two stores'
-  (SaveStore's side-file swaps, backup copy, set-asides and version copies,
-  all in `save_store.gd`; ParentStore's side-file swaps, in
+  removes a file except `SaveStore.delete` and the save wipe's one remove
+  (`SaveWipe.wipe`, `src/debug/save_wipe.gd`, the lint's one narrow
+  allowance outside the stores), and only the game root's
+  `delete_level_save()` calls the store's delete; the only renames are the
+  two stores' (SaveStore's side-file swaps, backup copy, set-asides and
+  version copies, all in `save_store.gd`; ParentStore's side-file swaps, in
   `parent_store.gd`).
 
 The parent's delete (settings, a second confirmation; DoD 29, "its backup
@@ -3559,6 +3598,85 @@ without one never writes. Test mode turns autosave off unless its run says
 
 To see it: `godot --headless --path . --quit-after 300` writes
 `user://saves/test.json`; run it again and the game carries on from there.
+
+### Chunk 19w: the save wipe
+
+D148, D149. **For automated test runs only** (`tools/android/perf.sh
+--wipe-save`, a scripted desktop launch), never for manual play: by hand, a
+level is started over with the parent's delete of its save (settings).
+
+- **The flag:** `--wipe-save`, a user argument after `--` (on Android, in
+  the launch intent's `slime_args`). Never on by default; per launch, on
+  the command line only (no setting, no toggle that stays set, not a
+  test-mode run configuration key).
+- **What it wipes:** every file in `user://saves/` (each level's save, its
+  `.bak`, `.new` side files, `.unreadable` set-aside files, `.v<n>` version
+  copies): every level is then as on a fresh install (the first-play hint
+  due, the celebration able to play again, a fresh session). **Kept:**
+  `user://parent.json` and its backup (the parent code and setup), and the
+  directory itself. There is no `--wipe-parent`.
+- **When:** once per launch, in the main scene's `_ready`, after the stores
+  are made and before the level loads and `_resume_play()` reads the save.
+  Only the main scene's default directory (`save_wipe_directory`, set in
+  `_ready`): a store a test gives is never wiped by it.
+- **Where:** `src/debug/save_wipe.gd` (`SaveWipe`), named by path by the
+  game root (`wipe_saves()`) only after `TestModeGuard.allows()`, so the
+  release preset leaves it out with `src/debug/*`. It is not a `SaveStore`
+  method; the store still deletes only on the parent's delete.
+- **A release build** ignores the flag: nothing deleted, one line:
+  `Save wipe: --wipe-save ignored, not a debug build.` (On Android a
+  release build doesn't even receive `slime_args`, and the debug app is
+  another package, `com.slimetrain.dev`.)
+- **With a save to load, refused:** `--load=PATH`, a test script
+  (`--test-script`) holding `"load"`, or (proposed) a test script that
+  can't be read: nothing deleted, `Save wipe: --wipe-save refused, nothing
+  deleted: <why>.` on the error output, and the debug launch quits with
+  exit code 1, like a bad test-mode flag. `--fixture` is no conflict
+  (fixtures are `res://` files); test mode accepts the flag and leaves it
+  to the wipe.
+- **The log line**, on every wipe, on the standard output (logcat's
+  `godot` tag on Android): `Save wipe (--wipe-save): deleted N files from
+  user://saves/; parent.json kept.` A file that can't be deleted gets an
+  error line (`Save wipe: can't delete <path> (...)`) and the launch
+  carries on.
+- **On the desktop:** `godot --path . -- --wipe-save` (normal play), or
+  with a run, `godot --headless --path . -- --test-mode --fixture=<name>
+  --wipe-save` (harmless there: a fixture run doesn't read the player's
+  save; it matters only if the run autosaves). This wipes the desktop's
+  own `user://saves/` (on Linux,
+  `~/.local/share/godot/app_userdata/Slime Train/saves/`).
+- **On the phone:** `tools/android/perf.sh --free-play --wipe-save` (or
+  `--fixture=none --wipe-save`); with a fixture it is refused (exit 2). The
+  session's `perf.log` header records the launch line, so a wiped session
+  shows in its record, and the log line is in `logcat.txt`.
+  `tools/perf_slow.sh` has no option: it only runs fixtures, and its extra
+  arguments already pass any flag through.
+- **Save and restore checks never pass it:** the kill-and-reload and
+  delete-save tests, `midair`, `old-version`, every fixture and sidecar,
+  the test scripts and the end-to-end suite; a manual save and restore
+  check on the phone or the desktop runs without it too. A guard test
+  (`tests/unit/test_save_wipe.gd`) checks that no file under `tests/` or
+  `levels/*/fixtures/` names the flag, that file apart.
+- **Tests:** `tests/unit/test_save_wipe.gd` (the wipe on a scratch
+  directory, no flag, the release guard, the refusals, a game started with
+  the flag starting fresh, a given store never wiped, the guard test, the
+  release preset's exclude filter covering the file, and `perf.sh`'s
+  refusal with a fixture, run without a device); the lint in
+  `tests/unit/test_save_store.gd` allows the wipe's one remove, in
+  `SaveWipe.wipe` only. `perf.sh`'s on-device behaviour (`--free-play
+  --wipe-save` starting fresh, the log line in `logcat.txt`, the save
+  resumed as before without the flag) is checked by hand on the emulator
+  or the phone.
+
+**A save the build can't use, before shipping** (D149, built in the same
+chunk): see "A read" above. Tests: `tests/unit/test_save_store.gd`
+(`set_aside_save`), `tests/unit/test_save_data.gd` (an older format
+refused, 0 standing for one), `tests/e2e/test_save_e2e.gd` (with the switch
+off, a newer format, an older one, a bad shape and a newer level version
+each set aside with its backup, the level fresh and saving again; with it
+on, the same saves untouched and blocked; a file that isn't JSON and an
+older level version as before) and `tests/e2e/test_debug_overlay_e2e.gd`
+(its blocked save, with the switch on).
 
 ### Fixtures
 
@@ -4937,6 +5055,10 @@ What exists now:
     fixture and no test mode: the user just plays. It records until N
     minutes are up (default 0: until Ctrl-C or the app stops), summarises
     the whole session and leaves the app running.
+  - **`--wipe-save`** (chunk 19w, off by default): with `--free-play` or
+    `--fixture=none` only (refused with a fixture, exit 2), it adds the
+    game's `--wipe-save` to `slime_args`, so the session starts from fresh
+    level saves (see "Chunk 19w: the save wipe").
   - **Ctrl-C** (in either mode) stops the recording cleanly, summarises
     what was recorded and exits 0. Otherwise: exit 0; 2 on bad arguments
     or no single device; 1 when the build or install fails, no `PERF` line
@@ -5041,7 +5163,10 @@ What exists now:
 - **The player's data is safe.** A test-mode run writes no save (test
   mode's autosave is off unless its run asks) and the game reads the
   player's save only in normal play; `--fixture=none` and `--free-play`
-  play and autosave the phone's own save, as opening the app does.
+  play and autosave the phone's own save, as opening the app does. The one
+  exception, asked for each run: `--wipe-save` (with `--free-play` or
+  `--fixture=none` only) deletes the debug app's level saves at launch,
+  the parent code kept (see "Chunk 19w: the save wipe").
   **Never uninstall the app and never clear its data** (`pm clear`):
   install with `adb install -r` only, which keeps the saves and the parent
   code. If an install is refused (another signing key), stop; never
