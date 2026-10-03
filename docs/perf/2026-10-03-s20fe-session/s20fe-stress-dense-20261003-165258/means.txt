@@ -1,0 +1,48 @@
+session: n=297 t=3..302
+  fps mean 55.5 (frames/lines 56.2) p50 59.1 p5 37.8 min 26.3
+  frame_ms_p95 median 18.9 mean 21.9  frame_ms_p50 median 16.8
+  tick_ms_mean mean 12.15 max 16.89
+  ticks_per_frame_mean mean 1.11 max 2.00
+  tick_ms_frame_mean mean 13.75 max 33.79
+  rest_ms_mean mean 4.79 max 7.24
+  process_ms_mean mean 14.23 max 34.40
+  physics mean 41.73 max 96.00
+  largest_cluster mean 23.28 max 96.00
+  active mean 41.84 max 96.20
+  pairs mean 37.09 max 130.90
+  render_cpu_ms mean 0.82 max 1.23
+  render_gpu_ms mean 0.00 max 0.00
+  slimes_ms mean 0.25 max 0.35
+  hops/line 12.52 short share 84%
+cold: n=60 t=3..62
+  fps mean 41.3 (frames/lines 41.8) p50 40.0 p5 28.7 min 26.3
+  frame_ms_p95 median 33.1 mean 33.3  frame_ms_p50 median 19.8
+  tick_ms_mean mean 14.62 max 16.89
+  ticks_per_frame_mean mean 1.48 max 2.00
+  tick_ms_frame_mean mean 21.70 max 33.79
+  rest_ms_mean mean 3.16 max 4.29
+  process_ms_mean mean 22.22 max 34.40
+  physics mean 70.37 max 96.00
+  largest_cluster mean 54.88 max 96.00
+  active mean 70.50 max 96.20
+  pairs mean 73.14 max 130.90
+  render_cpu_ms mean 0.86 max 1.23
+  render_gpu_ms mean 0.00 max 0.00
+  slimes_ms mean 0.28 max 0.33
+  hops/line 19.38 short share 93%
+warm: n=60 t=243..302
+  fps mean 59.0 (frames/lines 59.6) p50 59.0 p5 58.9 min 58.4
+  frame_ms_p95 median 18.9 mean 19.0  frame_ms_p50 median 16.8
+  tick_ms_mean mean 10.76 max 12.50
+  ticks_per_frame_mean mean 1.02 max 1.03
+  tick_ms_frame_mean mean 10.94 max 12.71
+  rest_ms_mean mean 6.00 max 6.92
+  process_ms_mean mean 11.41 max 13.28
+  physics mean 22.97 max 50.00
+  largest_cluster mean 8.02 max 26.00
+  active mean 23.10 max 49.90
+  pairs mean 18.46 max 80.90
+  render_cpu_ms mean 0.75 max 0.93
+  render_gpu_ms mean 0.00 max 0.00
+  slimes_ms mean 0.22 max 0.33
+  hops/line 5.87 short share 56%

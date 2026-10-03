@@ -1,0 +1,52 @@
+# tools/android/perf.sh --serial=RFCNA0WV2AR --no-build --no-install --fixture=stress-dense --label=s20fe (20261003-165258)
+# device RFCNA0WV2AR: samsung SM-G781B, Android 13 (API 33)
+# mode fixture stress-dense, windows of 60 s, warm after 5 min, period 1 s
+# launch: --esa slime_args --test-mode,--fixture=stress-dense,--seed=1,--perf-log=1
+# ended: completed, after 304 s
+PERF_INFO seconds=1.0 model=SM-G781B renderer=gl_compatibility driver=opengl3 refresh_hz=60.0 window=2400x1080 vsync=1 max_ticks_per_frame=2
+== session: 297 PERF lines, t=2.6..302.4 s
+  fps             p50 59.1  p5 37.7  min 26.3
+  frame_ms p95    median 18.87  max 41.50  (worst frame 126.43)
+  per frame       ticks 1.08 (max 2)  in ticks 13.14 ms  rest 4.90 ms
+  per tick        12.15 ms   process per frame 13.62 ms
+  solver (mean)   active 39.9  pairs 34.5
+  slimes          physics 41.7 (2..96)  on_screen 32.5 (1..76)  in_range 41.7 (2..96)  parked 141.7 (104..190)  resting 0.0 (0..0)  bodies 183.4 (175..200)
+  largest cluster max 96 (mean 23.3)
+  train hops      per line: hops 12.5  short_hops 10.5   short share 83.6 % (3108 of 3718)
+  section (lines) s1 48  s3 249
+  zoom            0.500..0.500
+  parts ms/frame  slimes 0.24  eyes 0.33  frontier 0.06  hud 0.02  debug 0.31  main 0.02
+  render ms/frame setup 0.01  render_cpu 0.81  render_gpu 0.00  field_cpu 0.33  field_gpu 0.00
+  render /frame   draw_calls 97  objects 441  primitives 16231
+== cold (first 60 s): 60 PERF lines, t=2.6..62.4 s
+  fps             p50 40.0  p5 27.5  min 26.3
+  frame_ms p95    median 33.08  max 41.50  (worst frame 126.43)
+  per frame       ticks 1.44 (max 2)  in ticks 21.07 ms  rest 3.15 ms
+  per tick        14.61 ms   process per frame 21.58 ms
+  solver (mean)   active 69.7  pairs 71.8
+  slimes          physics 70.4 (62..96)  on_screen 57.9 (51..76)  in_range 70.4 (62..96)  parked 110.8 (104..117)  resting 0.0 (0..0)  bodies 181.2 (179..200)
+  largest cluster max 96 (mean 54.9)
+  train hops      per line: hops 19.4  short_hops 18.0   short share 92.9 % (1081 of 1163)
+  section (lines) s3 60
+  zoom            0.500..0.500
+  parts ms/frame  slimes 0.28  eyes 0.39  frontier 0.06  hud 0.02  debug 0.31  main 0.02
+  render ms/frame setup 0.01  render_cpu 0.85  render_gpu 0.00  field_cpu 0.34  field_gpu 0.00
+  render /frame   draw_calls 99  objects 487  primitives 16975
+== warm (last 60 s): 60 PERF lines, t=242.7..302.4 s
+  fps             p50 59.0  p5 58.9  min 58.4
+  frame_ms p95    median 18.86  max 20.06  (worst frame 30.75)
+  per frame       ticks 1.02 (max 2)  in ticks 10.94 ms  rest 6.00 ms
+  per tick        10.76 ms   process per frame 11.41 ms
+  solver (mean)   active 23.1  pairs 18.5
+  slimes          physics 23.0 (6..50)  on_screen 16.9 (2..38)  in_range 23.0 (6..50)  parked 169.7 (146..190)  resting 0.0 (0..0)  bodies 192.7 (186..196)
+  largest cluster max 26 (mean 8.0)
+  train hops      per line: hops 5.9  short_hops 3.3   short share 56.0 % (197 of 352)
+  section (lines) s1 48  s3 12
+  zoom            0.500..0.500
+  parts ms/frame  slimes 0.22  eyes 0.29  frontier 0.06  hud 0.02  debug 0.32  main 0.03
+  render ms/frame setup 0.01  render_cpu 0.75  render_gpu 0.00  field_cpu 0.33  field_gpu 0.00
+  render /frame   draw_calls 86  objects 305  primitives 17481
+== thermal: 22 samples over 304 s
+  thermal status  first 0 (none)  max 0 (none)  last 0 (none)
+  timeline        0 (none) at +0 s
+  battery         first 28.2 C  max 31.5 C  last 31.5 C
