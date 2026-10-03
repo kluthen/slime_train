@@ -2,14 +2,17 @@ extends GutTest
 ## The stalled safety net (D118, D121, build plan item 23.13): a train slime
 ## whose progress hasn't advanced Train.STALL_ADVANCE px in
 ## Train.STALL_SECONDS, or whose centre is out of the level's bounds, is
-## stalled: Train.follow() moves it to the start of the loop, back on the
-## train (LoopStart, the move lost and stuck slimes take too), and logs it in
-## `train.stalled` with the reason "stalled" or "out_of_bounds", every time;
-## the 60 s count starts again from the move. A slime asleep at bedtime is
+## stalled: it is due a move to the loop start, back on the train, and the
+## loop-start queue moves it (at once when no move came before; LoopStart, a
+## random free spot on the loop's first 240 px, the move lost and stuck
+## slimes take too) and logs it in `train.stalled` with the reason "stalled"
+## or "out_of_bounds", every time; the 60 s count starts again from the move.
+## Train.follow() only finds it due (stalled_since(), stall_of()). A slime asleep at bedtime is
 ## never counted nor moved. The log is in the dump and in saves. The 60 s
 ## count only runs while the slime is simulated: parked, its clock pauses
 ## and resumes where it was (D150 (1), O113's default: every parked train
-## slime); progress while parked still marks; out of bounds is unchanged.
+## slime); progress while parked still marks; out of bounds is unchanged; a
+## clock that has run out stays run out while the slime waits its turn.
 ##
 ## The world: a floor whose top is at y = 0 from x = -6000 to 6000. The loop
 ## runs along it at a base slime's centre height (y = -24) from x = -5000 to
@@ -63,9 +66,10 @@ func _entry(slime_id: int, tick: int, reason: String) -> Dictionary:
 
 func _at_start(sim: Simulation, slime_id: int) -> void:
 	assert_eq(sim.slimes.state_of(slime_id), SlimeBodies.TRAIN, "back on the train")
-	assert_almost_eq(sim.train.distance_of(slime_id), 0.0, 0.001, "at the start of the loop")
+	var distance := sim.train.distance_of(slime_id)
+	assert_between(distance, 0.0, LoopStart.STRETCH, "at the start of the loop")
 	var lift := Offscreen.lift(sim.slimes.size_of(slime_id))
-	assert_almost_eq(sim.slimes.centre_of(slime_id), START + Vector2(0, -lift), Vector2(0.5, 0.5))
+	assert_almost_eq(sim.slimes.centre_of(slime_id), START + Vector2(distance, -lift), Vector2(0.5, 0.5))
 
 
 func test_a_wedged_train_slime_goes_to_the_start_after_60_s_and_is_logged() -> void:
@@ -195,7 +199,7 @@ func test_a_parked_slime_that_never_advances_is_not_stalled() -> void:
 	bodies.park(slime)
 	# Parked for 9000 ticks (2.5 min) without moving: the clock doesn't run.
 	_follow(train, bodies, 1000, 10000)
-	assert_eq(train.stalled, [] as Array[Dictionary], "parked: never stalled")
+	assert_eq(train.stalled_since(slime, 9999), -1, "parked: never stalled")
 	assert_eq(9999 - train.marked_at_of(slime), 999, "the time since its mark kept as it was")
 
 
@@ -213,9 +217,10 @@ func test_simulated_again_it_resumes_and_stalls_after_60_s_of_simulated_ticks() 
 	# tick since the mark, so tick 12600 is its 3600th.
 	var due := 10000 + STALL_TICKS - 1000
 	_follow(train, bodies, 10000, due)
-	assert_eq(train.stalled, [] as Array[Dictionary], "not yet")
+	assert_eq(train.stalled_since(slime, due - 1), -1, "not yet")
 	_follow(train, bodies, due, due + 1)
-	assert_eq(train.stalled, [_entry(slime, due, Train.STALLED)] as Array[Dictionary])
+	assert_eq(train.stalled_since(slime, due), due, "stalled: due a move to the loop start")
+	assert_eq(train.stall_of(slime, bodies.centre_of(slime), due), Train.STALLED)
 
 
 func test_parked_from_its_first_follow_its_clock_never_starts() -> void:
@@ -229,7 +234,7 @@ func test_parked_from_its_first_follow_its_clock_never_starts() -> void:
 	assert_eq(train.marked_at_of(slime), 0, "marked at its first follow, not moved on")
 	_follow(train, bodies, 1, 2 * STALL_TICKS)
 	assert_eq(train.marked_at_of(slime), 2 * STALL_TICKS - 1, "no time since its mark")
-	assert_eq(train.stalled, [] as Array[Dictionary])
+	assert_eq(train.stalled_since(slime, 2 * STALL_TICKS - 1), -1)
 
 
 func test_progress_while_parked_still_marks() -> void:
@@ -245,7 +250,7 @@ func test_progress_while_parked_still_marks() -> void:
 	assert_eq(train.marked_at_of(slime), 700, "an advance marks as today")
 
 
-func test_a_parked_slime_out_of_bounds_is_moved_at_once() -> void:
+func test_a_parked_slime_out_of_bounds_is_due_at_once() -> void:
 	var run := _bare()
 	var train: Train = run[0]
 	var bodies: SlimeBodies = run[1]
@@ -256,8 +261,22 @@ func test_a_parked_slime_out_of_bounds_is_moved_at_once() -> void:
 	_follow(train, bodies, 10, 20)
 	bodies.translate(slime, Vector2(0, 5000))
 	_follow(train, bodies, 20, 21)
-	assert_eq(train.stalled, [_entry(slime, 20, Train.OUT_OF_BOUNDS)] as Array[Dictionary])
-	assert_almost_eq(train.distance_of(slime), 0.0, 0.001, "at the start of the loop")
+	assert_true(train.is_out_of_bounds(bodies.centre_of(slime)))
+	assert_eq(train.stall_of(slime, bodies.centre_of(slime), 20), Train.OUT_OF_BOUNDS)
+
+
+func test_a_stalled_slime_parked_while_it_waits_stays_due_from_when_it_came_due() -> void:
+	var run := _bare()
+	var train: Train = run[0]
+	var bodies: SlimeBodies = run[1]
+	var slime: int = run[2]
+	_follow(train, bodies, 0, STALL_TICKS + 1)
+	assert_eq(train.stalled_since(slime, STALL_TICKS), STALL_TICKS, "stalled at 60 s")
+	# Nothing moves it (no queue here): parked, its run-out clock stays so.
+	bodies.park(slime)
+	_follow(train, bodies, STALL_TICKS + 1, STALL_TICKS + 500)
+	assert_eq(train.marked_at_of(slime), 0, "the pause holds nothing back")
+	assert_eq(train.stalled_since(slime, STALL_TICKS + 499), STALL_TICKS, "still due from 60 s")
 
 
 ## A simulation with off-screen simulation on and a wedged, simulated front
@@ -324,8 +343,14 @@ func test_the_log_keeps_the_last_cases() -> void:
 	var run := _wedged()
 	var sim: Simulation = run[0]
 	var slime: int = run[1]
-	for k in Train.STALL_LOG_SIZE + 3:
-		sim.slimes.translate(slime, Vector2(0, 3000))
+	# Out of bounds again as soon as it is back: moved on every turn.
+	var moves := 0
+	while moves < Train.STALL_LOG_SIZE + 3 and sim.tick < 200 * LoopStartQueue.TURN_MAX:
+		if not sim.train.is_out_of_bounds(sim.slimes.centre_of(slime)):
+			sim.slimes.translate(slime, Vector2(0, 3000))
 		sim.run(1)
+		if not sim.train.stalled.is_empty() and sim.train.stalled.back()["tick"] == sim.tick - 1:
+			moves += 1
+	assert_eq(moves, Train.STALL_LOG_SIZE + 3)
 	assert_eq(sim.train.stalled.size(), Train.STALL_LOG_SIZE)
 	assert_eq(sim.train.stalled.back()["tick"], sim.tick - 1, "the latest kept")

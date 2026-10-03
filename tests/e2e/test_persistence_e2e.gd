@@ -213,8 +213,7 @@ func _check_migrated(game: Node, label: String) -> void:
 		return
 	assert_eq(sim.slimes.state_of(slime), SlimeBodies.TRAIN, label + ": on the train")
 	assert_true(sim.train.tracks(slime), label + ": the train tracks it")
-	var reach := SlimeBodies.ring_radius_for(sim.slimes.size_of(slime)) + SlimeBodies.EDGE
-	assert_lte(sim.train.distance_of(slime), LoopStart.SPOTS * 2.0 * reach, label + ": at the loop start")
+	assert_lte(sim.train.distance_of(slime), LoopStart.STRETCH, label + ": at the loop start")
 	var lost := sim.offscreen.lost.filter(func(entry): return entry["reason"] == Offscreen.LOST)
 	assert_eq(lost.map(func(entry): return entry["id"]), [slime], label + ": in the lost log, alone")
 	assert_eq(sim.slimes.slime_count, POPULATION, label + ": no slime dropped, none added")

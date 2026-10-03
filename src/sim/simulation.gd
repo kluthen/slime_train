@@ -65,9 +65,10 @@ extends RefCounted
 ## hops are paced and every hop turns its slime; the split zones split (train
 ## and free slimes inherit); slimes in contact fuse or bump, and train slimes
 ## gather at dip bottoms (Fusion); the free slimes change phase or rejoin the
-## train; the train follows (progress; stalled slimes go to the start of the
-## loop); every CHECK_TICKS, slimes stuck inside each other are pulled apart
-## (StuckSlimes); the camera watches (idle clock, cue, the slime it follows,
+## train; the train follows (progress, stall clocks); every CHECK_TICKS, the
+## slimes stuck inside each other are counted (StuckSlimes); the loop-start
+## queue moves one slime due (stalled, out of bounds, stuck or lost) to the
+## loop start when its turn has come (LoopStartQueue); the camera watches (idle clock, cue, the slime it follows,
 ## no one at bedtime), is shown the gates a basket fired open this tick, and
 ## moves (Camera: rails, edge buttons, call drag, framing zones, idle camera,
 ## a gate's show); spent ripples go.
@@ -191,6 +192,13 @@ var offscreen := Offscreen.new()
 ## (StuckSlimes; chunk 23A). Its counts and log are in dump() and saves.
 # @spec-link [[rule_stuck_slimes_moved_to_start]]
 var stuck_slimes := StuckSlimes.new()
+## The loop-start queue: moves the slimes the safety nets find due to the
+## loop start, one per turn (LoopStartQueue, D150). Derived from the nets'
+## state each tick: nothing of its own in dump() nor saves.
+# @spec-link [[rule_stalled_train_slime_moved_to_start]]
+# @spec-link [[rule_stuck_slimes_moved_to_start]]
+# @spec-link [[rule_left_alone_and_lost]]
+var loop_start_queue := LoopStartQueue.new()
 
 var _pending_input: Array[Dictionary] = []
 
@@ -320,6 +328,7 @@ func step() -> void:
 	if train != null:
 		train.follow(slimes, tick)
 	stuck_slimes.step(self)
+	loop_start_queue.step(self)
 	camera.watch(slimes, not fingers_down.is_empty(), screensaver, session.phase == Session.BEDTIME)
 	for gate_id in frontier.gates_fired_open(self):
 		camera.show_gate(level.gates[gate_id]["box"], view, level.loop, gates, tick)

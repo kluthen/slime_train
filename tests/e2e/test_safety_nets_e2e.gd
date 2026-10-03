@@ -50,8 +50,7 @@ func test_two_train_slimes_on_one_centre_one_goes_to_the_start() -> void:
 		assert_true(stuck[0]["moved"])
 		assert_eq(stuck[0]["tick"], from + (StuckSlimes.CHECKS - 1) * StuckSlimes.CHECK_TICKS, "about 2 s")
 	assert_eq(sim.slimes.state_of(second), SlimeBodies.TRAIN, "back on the train")
-	assert_lt(sim.train.distance_of(second), LoopStart.SPOTS * 2.0 * (SlimeBodies.ring_radius_for(1) + SlimeBodies.EDGE),
-			"at the start of the loop")
+	assert_lte(sim.train.distance_of(second), LoopStart.STRETCH, "at the start of the loop")
 	assert_eq(sim.offscreen.lost, [] as Array[Dictionary], "stuck is not lost")
 	assert_eq(sim.train.stalled, [] as Array[Dictionary])
 

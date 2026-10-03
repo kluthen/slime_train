@@ -330,16 +330,19 @@ func test_a_free_slime_with_no_route_near_is_left_alone_then_lost() -> void:
 	assert_false(sim.offscreen.is_left_alone(slime, sim.tick))
 	sim.run(1)
 	assert_true(sim.offscreen.is_left_alone(slime, sim.tick), "left alone at 10 s")
-	# The count is checked at the start of each tick: the one numbered
-	# LEFT_ALONE_TICKS + LOST_TICKS moves it.
+	# Lost from the tick numbered LEFT_ALONE_TICKS + LOST_TICKS: the
+	# loop-start queue moves it on that tick (no move before it).
 	sim.run(Offscreen.LOST_TICKS)
 	assert_eq(sim.slimes.state_of(slime), SlimeBodies.FREE, "not yet")
 	sim.run(1)
 	assert_eq(sim.slimes.state_of(slime), SlimeBodies.TRAIN, "lost at 1 min 10 s")
 	assert_eq(sim.offscreen.lost, [{"id": slime, "tick": Offscreen.LEFT_ALONE_TICKS + Offscreen.LOST_TICKS,
 			"reason": Offscreen.LOST}])
-	assert_almost_eq(sim.slimes.centre_of(slime), Vector2(-5000, -24), Vector2(1, 1), "at the start of the loop")
-	assert_lt(sim.train.distance_of(slime), 2.0)
+	# At the loop start: a free spot on its first 240 px (the loop-start queue,
+	# at once with no move before).
+	var distance := sim.train.distance_of(slime)
+	assert_between(distance, 0.0, LoopStart.STRETCH, "at the start of the loop")
+	assert_almost_eq(sim.slimes.centre_of(slime), Vector2(-5000 + distance, -24), Vector2(1, 1))
 	assert_false(sim.offscreen.away.has(slime))
 
 

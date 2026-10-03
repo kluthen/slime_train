@@ -3,8 +3,10 @@ extends GutTest
 ## plan item 23.3): every CHECK_TICKS the simulated slimes are checked in
 ## pairs; two that can't fuse whose centres are closer than a quarter of the
 ## smaller one's radius on CHECKS checks in a row are stuck: the smaller one
-## (a train or free slime; on a tie the higher id) goes to the start of the
-## loop, back on the train (LoopStart), and the case is logged as "stuck".
+## (a train or free slime; on a tie the higher id) goes to the loop start,
+## back on the train (through the loop-start queue: at once when no move came
+## before; LoopStart, a random free spot on the loop's first 240 px), and the
+## case is logged as "stuck".
 ## A pair that can fuse is left to fuse, a pair touching normally is never
 ## counted, a pair neither of which may move is only logged; parked slimes
 ## aren't checked. The log and the counts are in the dump and in saves.
@@ -69,6 +71,15 @@ func _start_of(size: int) -> Vector2:
 	return START + Vector2(0, -Offscreen.lift(size))
 
 
+## Checks slime `slime_id` was moved to the loop start: on the loop's first
+## 240 px, its centre lifted by its size there.
+func _at_loop_start(sim: Simulation, slime_id: int) -> void:
+	var distance := sim.train.distance_of(slime_id)
+	assert_between(distance, 0.0, LoopStart.STRETCH, "at the loop start")
+	assert_almost_eq(sim.slimes.centre_of(slime_id),
+			LoopStart.landing_point(sim.train, sim.slimes.size_of(slime_id), distance), Vector2(0.5, 0.5))
+
+
 func _entry(slime_id: int, other: int, tick: int, moved := true) -> Dictionary:
 	return {"id": slime_id, "other": other, "tick": tick, "reason": StuckSlimes.STUCK, "moved": moved}
 
@@ -85,8 +96,7 @@ func test_two_species_on_one_centre_the_smaller_goes_to_the_start_after_about_2_
 	sim.run(1)
 	assert_eq(sim.stuck_slimes.stuck, [_entry(small, big, STUCK_TICK)] as Array[Dictionary], "logged as stuck")
 	assert_eq(sim.slimes.state_of(small), SlimeBodies.TRAIN, "back on the train")
-	assert_almost_eq(sim.train.distance_of(small), 0.0, 0.001, "at the start of the loop")
-	assert_almost_eq(sim.slimes.centre_of(small), _start_of(1), Vector2(0.5, 0.5))
+	_at_loop_start(sim, small)
 	assert_almost_eq(sim.slimes.centre_of(big).x, 0.0, 30.0, "the bigger one stays")
 	assert_eq(sim.offscreen.lost, [] as Array[Dictionary], "stuck is not lost")
 	sim.run(120)
@@ -100,7 +110,7 @@ func test_on_a_tie_the_higher_id_moves() -> void:
 	var high := _slime(sim, 1, 1)
 	sim.run(STUCK_TICK + 1)
 	assert_eq(sim.stuck_slimes.stuck, [_entry(high, low, STUCK_TICK)] as Array[Dictionary])
-	assert_almost_eq(sim.slimes.centre_of(high), _start_of(1), Vector2(0.5, 0.5))
+	_at_loop_start(sim, high)
 
 
 func test_a_free_slime_is_moved_back_on_the_train() -> void:
@@ -111,7 +121,7 @@ func test_a_free_slime_is_moved_back_on_the_train() -> void:
 	assert_eq(sim.stuck_slimes.stuck, [_entry(free, train_slime, STUCK_TICK)] as Array[Dictionary])
 	assert_eq(sim.slimes.state_of(free), SlimeBodies.TRAIN)
 	assert_true(sim.train.tracks(free))
-	assert_almost_eq(sim.train.distance_of(free), 0.0, 0.001)
+	_at_loop_start(sim, free)
 
 
 func test_a_same_species_pair_too_big_to_fuse_is_stuck() -> void:
@@ -152,7 +162,7 @@ func test_only_a_train_or_free_slime_moves_even_when_bigger() -> void:
 	sim.run(STUCK_TICK + 1)
 	assert_eq(sim.stuck_slimes.stuck, [_entry(train_slime, asleep, STUCK_TICK)] as Array[Dictionary])
 	assert_eq(sim.slimes.state_of(asleep), SlimeBodies.BEDTIME_ASLEEP, "the asleep one is never moved")
-	assert_almost_eq(sim.slimes.centre_of(train_slime), _start_of(2), Vector2(0.5, 0.5))
+	_at_loop_start(sim, train_slime)
 
 
 func test_a_pair_neither_of_which_may_move_is_only_logged_once() -> void:
@@ -192,8 +202,8 @@ func test_a_moved_slime_does_not_land_on_one_already_at_the_start() -> void:
 	assert_eq(sim.stuck_slimes.stuck, [_entry(small, big, STUCK_TICK)] as Array[Dictionary])
 	var room := 2.0 * (SlimeBodies.ring_radius_for(1) + SlimeBodies.EDGE)
 	assert_gte(sim.slimes.centre_of(small).distance_to(sim.slimes.centre_of(waiting)), room - 0.5,
-			"the next free spot along the loop")
-	assert_lt(sim.train.distance_of(small), LoopStart.SPOTS * room, "still at the start")
+			"a free spot")
+	_at_loop_start(sim, small)
 
 
 # --- Dump, saves, determinism -----------------------------------------------------

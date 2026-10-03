@@ -926,9 +926,10 @@ real slide comes with the level art.
 progress hasn't advanced `STALL_ADVANCE` (24 px) in `STALL_SECONDS` (60 s)
 of the ticks it is simulated (the clock pauses while it is parked, since
 chunk 22h: see "Chunk 22h"), or when its centre leaves the level's bounds (the
-terrain and the loop, plus 64 px, plus 2000 px above). `train.follow()`
-then moves it to the start of the loop, back on the train (`LoopStart.move`,
-the move lost and stuck slimes take too), and logs the case in
+terrain and the loop, plus 64 px, plus 2000 px above). It is then due a
+move to the loop start, back on the train: the loop-start queue moves it at
+its turn (since chunk 22h, see "Chunk 22h", step B; `LoopStart.move`, the
+move lost and stuck slimes take too) and logs the case in
 `train.stalled` (`{"id", "tick", "reason"}`, `stalled` or `out_of_bounds`,
 the last 64): every case, and the 60 s count starts again from the move. A
 slime asleep at bedtime isn't a train slime, so it has no count and is never
@@ -936,7 +937,7 @@ moved. The whole-level DoD 1 test still fails on any logged case. "Lost" is
 for free slimes only: a free slime left alone off screen is lost by
 `Offscreen` (see "Off-screen simulation (chunk 15)"). `advance()` only
 re-derives the progress and its mark; `stall_of()` says whether a followed
-slime is stalled. See "Safety nets: stuck and stalled slimes (chunk 23A)".
+slime is stalled, `stalled_since()` since when. See "Safety nets: stuck and stalled slimes (chunk 23A)".
 
 **Split zones.** `SplitZones` (`src/sim/split_zones.gd`) holds the level's
 split zone boxes. Every tick, every slime above size 1 whose centre is in a
@@ -974,7 +975,10 @@ train slime (D121, `Train.follow`, reason `stalled` or `out_of_bounds`).
 "Lost" is for free slimes only (the lexicon); none of the three counts as
 another.
 
-**One move: `LoopStart.move(bodies, train, id)`** (`src/sim/loop_start.gd`).
+**One move: `LoopStart.move(bodies, train, id)`** (`src/sim/loop_start.gd`;
+since chunk 22h it takes the distance along the loop, drawn at random, and
+the moves wait their turn in the loop-start queue: see "Chunk 22h", step B;
+the rest of this paragraph is chunk 23A's).
 The lost timer's move (chunk 15), taken out of `Offscreen` so the three
 share it: the slime's centre goes to the loop point lifted by its size
 (`Offscreen.lift`), at rest and unsupported (a parked slime is only
@@ -2301,10 +2305,12 @@ Fusion and waking already happen on screen only (chunks 10 and 9).
 **Left alone and lost (D10).** A free slime outside the view (the screen,
 no margin) counts ticks from `away[id]`. After `LEFT_ALONE_TICKS` (600,
 10 s) it is left alone (`is_left_alone`); `LOST_TICKS` (3600, 1 min) later
-and still free it is lost (`Offscreen.lose(sim, id)`, public since chunk
-23A): moved to the start of the loop, back on the train (`LoopStart.move`,
-shared with the stuck and stalled safety nets, chunk 23A) and logged in
-`offscreen.lost` (`{"id", "tick", "reason": "lost"}`, last 16). On screen
+and still free it is lost: since chunk 22h it waits its turn in the
+loop-start queue (see "Chunk 22h", step B), which moves it
+(`Offscreen.lose(sim, id, distance)`) to the loop start, back on the train
+(`LoopStart.move`, shared with the stuck and stalled safety nets, chunk
+23A), and it is logged in `offscreen.lost` (`{"id", "tick", "reason":
+"lost"}`, last 16). On screen
 the count stops; a free slime that stays on screen is never lost (DoD 5).
 A train slime isn't lost but stalled: `train.stalled` (see "Train").
 
@@ -3326,8 +3332,9 @@ drawn body, grown by the tap zones' 24 px margin, holds the point (the
 nearest centre if several). The move is the lost-slime move,
 `Offscreen.lose(sim, id)` (public since chunk 23A, called directly): the
 slime goes to the start of the loop, back on the train (`LoopStart.move`:
-the first free spot from the start, see "Safety nets: stuck and stalled
-slimes (chunk 23A)"), and is logged in `offscreen.lost`. Any slime can be sent, a sleeper too: it
+a random free spot on the loop's first 240 px, at once, outside the
+loop-start queue, see "Chunk 22h", step B), and is logged in
+`offscreen.lost`. Any slime can be sent, a sleeper too: it
 becomes a train slime (that's what makes it useful for testing). One use,
 a tap on no slime, or any other control disarms it; a click on Kill again
 does too.
@@ -6009,6 +6016,109 @@ only the ticks it is simulated.
   drained by the stall net (D150: reported, not a target). The 65 stuck
   moves left in `s3-basket-59of60` are not looked into here (D150's items
   2 and 3, the loop-start queue and the random free spot, come next).
+
+### Step B: the loop-start queue and the random free landing spot
+
+D150 (2) and (3) (`rule_stalled_train_slime_moved_to_start`,
+`rule_stuck_slimes_moved_to_start`, `rule_left_alone_and_lost`,
+`req_persistence_and_saves`). Every move to the loop start a safety net
+makes now waits its turn, one at a time, and lands on a random free spot.
+
+- **Due, not moved.** The nets only find the slimes due: `Train.follow()`
+  no longer moves anyone (`stalled_since()`, `is_out_of_bounds()`);
+  `StuckSlimes.step` no longer moves a stuck pair's mover, and its count
+  goes on past `CHECKS` while the mover waits (a pair neither of which may
+  move stays at `CHECKS`, logged once as before); `Offscreen` no longer
+  loses a free slime: its `away` count just runs on.
+- **The queue** (`LoopStartQueue`, `src/sim/loop_start_queue.gd`,
+  `simulation.loop_start_queue`, last in `Simulation.step` after the stuck
+  check). `due(sim)` rebuilds the line every time it is needed: out of
+  bounds first (by id), then first due first moved (ties by id); a slime
+  due for two reasons waits once, at its earliest, and is logged under it
+  (tie order out of bounds, stalled, stuck, lost). Due since: stalled, the
+  last mark plus 3600 ticks; stuck, the check that made the pair stuck,
+  read back from its count (`stuck_since()`); lost, `away` plus 4200;
+  out of bounds, now. The next turn (`next_turn()`) is the last move's tick
+  plus the first draw of `loop_start:gap:<that tick>` (30 to 120 ticks),
+  the last move being the latest tick in `train.stalled`, the stuck log's
+  moved entries and `offscreen.lost` (a tick later than now, from an old
+  fixture, is none). On a turn the head takes a spot and is moved and
+  logged by its net (`Train.log_stalled`, `StuckSlimes.moved`,
+  `Offscreen.lose(sim, id, distance)`); its stuck counts go
+  (`StuckSlimes.forget`). A slime whose reason no longer holds is simply
+  not in the rebuilt line: it leaves without a move and the turn goes to
+  the next one on the same tick.
+- **When a turn is tried:** on the tick it opens, on every multiple of 30
+  after it (the retry when every draw was taken), and at once on the tick
+  the line's earliest slime came due (a slime due into an empty line).
+  Nothing in the state says a try failed, so these are the only tries; an
+  out-of-bounds slime is due "from now" (its start isn't in the state), so
+  while one waits with every draw taken it is tried every tick.
+- **The spot** (`LoopStart.free_spot`): up to 8 draws, uniform 0 to 240 px
+  along the loop (`LoopStart.STRETCH`, `DRAWS`), from
+  `loop_start:spot:<tick>`; free when the lifted centre is inside a split
+  zone and no other ring (parked ones included) overlaps. All 8 taken:
+  nobody moves. On a level with no split zone at all (synthetic test
+  levels; a real level's start always carries one, level rule) the zone
+  test is skipped.
+- **Outside the queue.** The debug kill tool and a slime lost on load (a
+  migration's displaced slime, `MidairLanding`'s slime over nothing) move
+  at once through `Offscreen.lose(sim, id)` to `LoopStart.spot_now`: the
+  first free draw, or the first draw when all 8 are taken (nothing can
+  wait there). They are in the lost log, so they count as a move for the
+  next turn's wait.
+- **The stall clock once run out.** Step A's pause no longer applies to a
+  slime whose clock had run out at the last tick: a stalled slime parked
+  while it waits stays due from the tick it came due (its place in line
+  doesn't move back).
+- **Saves.** No new key, format 1 unchanged: the line, its order and the
+  next turn come from the saved train records, stuck counts, `away`
+  counts, centres and the three logs. A save and reload mid-queue moves
+  the same slimes on the same ticks to the same spots (tested). Not
+  covered: a slime out of bounds waiting its turn when the game is saved
+  is lost at once on load by the mid-air rule (D12), as before.
+- **Tests.** `tests/unit/test_loop_start_queue.gd` (10: one move per turn,
+  each wait from its stream; out of bounds first, then first due; a
+  recovered slime leaving without a move or a wait; a stuck and a lost
+  slime through the queue; the stuck count going on while its mover waits;
+  the spot on the first 240 px, free, inside the split zone, the first
+  free draw; all 8 taken and the retry on the next multiple of 30; the kill
+  tool immediate and counted; a save and reload mid-queue; same seed, same
+  moves). Updated for the random spot or the deferred move:
+  `test_train_stalled.gd` (bare-`Train` tests now check `stalled_since` /
+  `stall_of`; new: a stalled slime parked while it waits stays due),
+  `test_stuck_slimes.gd`, `test_offscreen.gd`, `test_debug_overlay.gd`,
+  `test_midair_load.gd`, `test_save_migration.gd`,
+  `test_safety_nets_e2e.gd`, `test_persistence_e2e.gd`,
+  `test_debug_overlay_e2e.gd` (landing bounds: `LoopStart.STRETCH`).
+- **Hashes** (seed 909, against step A): only `old-version` changes, at
+  600 and 2400 ticks: its displaced sleeper, lost on load, lands on a
+  random free spot instead of the first free one (at 600 ticks the dumps
+  differ only in that slime, the first slime near it and their train
+  records). No other fixture moves a slime
+  to the loop start within 2400 ticks. [DoD 1]'s whole-level test is
+  unchanged.
+- **Before and after** (`tools/thru.gd` and the same checks on every
+  move, 10,000 ticks; before = step A):
+
+| Fixture, seed | stall | stuck | hops | x19 | bowl_n at the end |
+|---|---|---|---|---|---|
+| `s3-basket-59of60`, 1, before | 0 | 65 | 1552 | 117 | 0 |
+| `s3-basket-59of60`, 1, after | 0 | 11 | 1272 | 145 | 0 |
+| `s3-basket-59of60`, 2, before | 0 | 67 | 1568 | 121 | 0 |
+| `s3-basket-59of60`, 2, after | 0 | 11 | 1277 | 146 | 0 |
+| `stress-dense`, 1 and 2, before and after | 0 | 0 | 2505, 2795 | 39, 38 | 77, 74 |
+| `stress-moving`, 1, after | 4 | 0 | 4566 | | 65 |
+| `stress-moving`, 2, after | 4 | 0 | 4778 | | 68 |
+
+  On every run: 0 stall moves of a slime parked in its last 60 s, 0 stuck
+  moves within 600 ticks of a landing, every two moves at least 30 ticks
+  apart (closest 42 and 40 in `s3-basket-59of60`, 53 and 118 in
+  `stress-moving`), every landing on the first 240 px (furthest 210 px)
+  and none overlapping another ring. `stress-dense` moves nobody (its
+  state hash is step A's). In `s3-basket-59of60` (seed 1) the start basin
+  is crowded by the homecoming train: a due slime waited up to 516 ticks
+  (265 on average) for a free spot, and 2 were still waiting at the end.
 
 ## Technical choices
 

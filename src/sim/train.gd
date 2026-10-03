@@ -52,21 +52,26 @@ extends RefCounted
 ## was, and once simulated again the clock resumes from there, not from zero.
 ## A parked line in single file (Offscreen) so waits as long as its front
 ## does. Progress while parked (at the off-screen pace) still marks, and a
-## parked slime out of bounds is still stalled at once. The pause lives in
-## the saved record (and parking in the saved calm): no save key of its own.
-## Once stalled, follow() moves it to the start of the loop, back on the
-## train (LoopStart.move, the move lost and stuck slimes take too; its record
-## starts afresh, so the 60 s
-## count starts again from the move) and logs the case in `stalled` with the
-## reason STALLED or OUT_OF_BOUNDS, every time. A slime asleep at bedtime is
-## not a train slime: it has no record, so it is never counted nor moved,
-## and at sunrise its count starts from its waking. The safety net is for
-## play: the whole-level DoD 1 test still fails on any logged case.
+## parked slime out of bounds is still stalled at once. Once its clock has
+## run out the pause stops (there is nothing left to hold back): a stalled
+## slime waiting its turn stays due from the tick it came due
+## (stalled_since()), parked or not. The pause lives in the saved record (and
+## parking in the saved calm): no save key of its own.
+## A stalled slime is due a move to the loop start, back on the train: it
+## waits its turn in the loop-start queue (LoopStartQueue, D150; out of
+## bounds first), carrying on meanwhile; at its turn, still stalled, it is
+## moved (LoopStart.move, the move lost and stuck slimes take too; its record
+## starts afresh, so the 60 s count starts again from the move) and the case
+## logged in `stalled` (log_stalled()) with the reason STALLED or
+## OUT_OF_BOUNDS, every time. A slime asleep at bedtime is not a train slime:
+## it has no record, so it is never counted nor moved, and at sunrise its
+## count starts from its waking. The safety net is for play: the whole-level
+## DoD 1 test still fails on any logged case.
 ##
 ## Tick order (Simulation.step): steer() before the bodies tick (aims the
 ## coming hops, holds and carries slimes on the slide), follow() after it and
-## after the split zones (re-derives progress, notices new slimes, moves the
-## stalled ones).
+## after the split zones (re-derives progress, notices new slimes); the
+## loop-start queue moves the stalled ones last.
 ##
 ## Hop counters (debug, the PERF line's hops and short_hops, D156 point 4).
 ## follow() counts every train hop (an automatic hop of a train slime,
@@ -85,6 +90,7 @@ extends RefCounted
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
 # @spec-link [[req_offscreen_simulation]]
 # @spec-link [[req_platform_and_performance_targets]]
+# @spec-link [[req_persistence_and_saves]]
 
 ## How far ahead of its last progress (px) a slime's progress may move in one
 ## projection. A slime moves at most max_speed / 60 = 20 px per tick.
@@ -129,6 +135,8 @@ const OFF_ROUTE := 36.0
 ## STALL_SECONDS is stalled (D118; specs/tuning.md: 1 min).
 const STALL_SECONDS := 60.0
 const STALL_ADVANCE := 24.0
+## STALL_SECONDS in ticks (at Simulation.TICK_RATE, 60).
+const STALL_TICKS := int(STALL_SECONDS * 60)
 ## How far past the level's extent a slime is out of bounds, px: at the sides
 ## and bottom, and at the top (a big hop may leave the screen).
 const BOUNDS_MARGIN := 64.0
@@ -153,7 +161,8 @@ var open_gates: Array = []
 ## area: no check.
 var bounds := Rect2()
 ## The last STALL_LOG_SIZE stalled cases, oldest first: {"id", "tick",
-## "reason" (STALLED or OUT_OF_BOUNDS)}. Each was moved to the start.
+## "reason" (STALLED or OUT_OF_BOUNDS)}. Each was moved to the loop start
+## on that tick (log_stalled()).
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
 var stalled: Array[Dictionary] = []
 
@@ -462,12 +471,38 @@ func advance(slime_id: int, centre: Vector2, tick: int) -> void:
 ## OUT_OF_BOUNDS when its centre is outside `bounds`, else "".
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
 func stall_of(slime_id: int, centre: Vector2, tick: int) -> String:
-	var record: Dictionary = _records[slime_id]
-	if record["marked_at"] >= 0 and tick - record["marked_at"] >= int(STALL_SECONDS * Simulation.TICK_RATE):
+	if stalled_since(slime_id, tick) >= 0:
 		return STALLED
-	if bounds.has_area() and not bounds.has_point(centre):
+	if is_out_of_bounds(centre):
 		return OUT_OF_BOUNDS
 	return ""
+
+
+## The tick followed slime `slime_id`'s stall clock ran out (its last mark
+## plus STALL_TICKS, parked ticks not counted), or -1 when it hasn't at
+## `tick`.
+# @spec-link [[rule_stalled_train_slime_moved_to_start]]
+func stalled_since(slime_id: int, tick: int) -> int:
+	var marked_at: int = _records[slime_id]["marked_at"]
+	if marked_at >= 0 and tick - marked_at >= STALL_TICKS:
+		return marked_at + STALL_TICKS
+	return -1
+
+
+## Whether a slime centred at `centre` is out of the level's bounds (none
+## without bounds).
+func is_out_of_bounds(centre: Vector2) -> bool:
+	return bounds.has_area() and not bounds.has_point(centre)
+
+
+## Logs that slime `slime_id` was moved to the loop start at `tick` for
+## `reason` (STALLED or OUT_OF_BOUNDS), by the loop-start queue.
+# @spec-link [[rule_stalled_train_slime_moved_to_start]]
+func log_stalled(slime_id: int, tick: int, reason: String) -> void:
+	assert(reason == STALLED or reason == OUT_OF_BOUNDS, "Train.log_stalled: reason '%s'" % reason)
+	stalled.append({"id": slime_id, "tick": tick, "reason": reason})
+	if stalled.size() > STALL_LOG_SIZE:
+		stalled.pop_front()
 
 
 ## Split parts carry on from where the slime was: `parts` from
@@ -512,9 +547,9 @@ func steer(bodies: SlimeBodies, dt: float) -> void:
 
 
 ## After the bodies tick (and the split zones): follows every train slime,
-## adopting new ones where the loop passes closest, and drops the others; a
-## stalled one goes to the start of the loop and is logged; counts the train
-## hops (see the class doc).
+## adopting new ones where the loop passes closest, and drops the others;
+## counts the train hops (see the class doc). The stalled ones are moved by
+## the loop-start queue, after.
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
 # @spec-link [[req_platform_and_performance_targets]]
 func follow(bodies: SlimeBodies, tick: int) -> void:
@@ -535,12 +570,6 @@ func follow(bodies: SlimeBodies, tick: int) -> void:
 			_pause_stall_clock(slime_id, tick)
 		advance(slime_id, centre, tick)
 		_count_landing(bodies, slime_id, s, before)
-		var reason := stall_of(slime_id, centre, tick)
-		if reason != "":
-			LoopStart.move(bodies, self, slime_id)
-			stalled.append({"id": slime_id, "tick": tick, "reason": reason})
-			if stalled.size() > STALL_LOG_SIZE:
-				stalled.pop_front()
 
 
 ## Slime `slime_id`'s record, exactly (for saves): {"distance", "laps",
@@ -576,13 +605,16 @@ func dump() -> Dictionary:
 ## parked at `tick`: its last mark's tick moves on by one, so the time since
 ## the mark stays what it was. A fresh record (no mark yet) is left alone,
 ## and so is a mark already at `tick` (Offscreen's proxy may have just made
-## it): the mark never goes past the current tick.
+## it): the mark never goes past the current tick. A clock that had already
+## run out at the last tick is left alone too: the slime stays due from the
+## tick it came due.
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
 # @spec-link [[req_offscreen_simulation]]
 func _pause_stall_clock(slime_id: int, tick: int) -> void:
 	var record: Dictionary = _records[slime_id]
-	if record["marked_at"] >= 0 and record["marked_at"] < tick:
-		record["marked_at"] += 1
+	var marked_at: int = record["marked_at"]
+	if marked_at >= 0 and marked_at < tick and tick - 1 - marked_at < STALL_TICKS:
+		record["marked_at"] = marked_at + 1
 
 
 ## The hop counters for train slime `slime_id` (index `s`), just advanced

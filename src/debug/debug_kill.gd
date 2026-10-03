@@ -1,9 +1,11 @@
 class_name DebugKill
 extends RefCounted
 ## The debug overlay's kill tool (DebugOverlay), as pure logic: which slime a
-## tap lands on, and sending it to the start of the loop the way a lost slime
-## goes: Offscreen.lose() (moved to the start of the loop by LoopStart.move,
-## back on the train, logged in `offscreen.lost`). Debug builds only.
+## tap lands on, and sending it to the loop start the way a lost slime goes:
+## Offscreen.lose() (moved to the loop start by LoopStart.move, back on the
+## train, logged in `offscreen.lost`). Immediate, outside the loop-start
+## queue, and it counts as a move for the queue's next turn (D150). Debug
+## builds only.
 
 ## How far outside a slime's drawn body a tap still picks it, screen pixels
 ## (the same as a sleeper's, TapDispatcher.SLEEPER_HIT_MARGIN).

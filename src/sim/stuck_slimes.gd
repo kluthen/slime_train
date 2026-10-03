@@ -16,13 +16,19 @@ extends RefCounted
 ##
 ## A pair found so on CHECKS checks in a row (about 2 s) is stuck. The slime
 ## that moves is the smaller one, on a tie the higher id, among those of the
-## two that are a train or a free slime: it goes to the start of the loop,
-## back on the train (LoopStart.move, the move lost and stalled slimes take
-## too), and every pair it was in loses its count. Sleepers, slimes in a
-## basket and bedtime-asleep slimes are never moved: when neither slime may
-## move, the pair is only logged, once while it stays so (its count stays at
-## CHECKS). Every case is logged in `stuck`: {"id" (the slime moved, or the
-## one that would have been), "other", "tick", "reason": STUCK, "moved"}.
+## two that are a train or a free slime (mover_of()): it is due a move to the
+## loop start, back on the train, and waits its turn in the loop-start queue
+## (LoopStartQueue, D150), which moves it (LoopStart.move, the move lost and
+## stalled slimes take too) and logs it here (moved()); every pair it was in
+## then loses its count (forget()). While its mover waits, the pair's count
+## keeps counting (CHECKS + 1, + 2, ...), so the check that made it stuck is
+## read back from it (stuck_since()); a pair that has come apart by its turn
+## has lost its count, and its mover leaves the queue without a move.
+## Sleepers, slimes in a basket and bedtime-asleep slimes are never moved:
+## when neither slime may move, the pair is only logged, once while it stays
+## so (its count stays at CHECKS). Every case is logged in `stuck`: {"id"
+## (the slime moved, or the one that would have been), "other", "tick",
+## "reason": STUCK, "moved"}.
 ##
 ## Stuck is its own case, not lost (D10): it isn't in Offscreen's lost log.
 ## It is a safety net until the cause is found and prevented (O91).
@@ -36,6 +42,7 @@ extends RefCounted
 ## SaveData).
 # @spec-link [[rule_stuck_slimes_moved_to_start]]
 # @spec-link [[req_slime_states]]
+# @spec-link [[req_persistence_and_saves]]
 
 ## How often the pairs are checked, ticks (0.5 s, D100).
 const CHECK_TICKS := 30
@@ -55,30 +62,66 @@ const ORDER_SCALE := 16.0
 const ORDER_SHIFT := 20
 const ORDER_INDEX_MASK := (1 << ORDER_SHIFT) - 1
 
-## Vector2i(lower id, higher id) -> the checks in a row its centres were close.
+## Vector2i(lower id, higher id) -> the checks in a row its centres were close
+## (past CHECKS while its mover waits its turn, see the class doc).
 var counts := {}
 ## The last LOG_SIZE cases, oldest first (see the class doc).
 var stuck: Array[Dictionary] = []
 
 
 ## One tick, after the train follows: on a check tick, counts the close
-## pairs and moves (or logs) the stuck ones (see the class doc).
+## pairs and logs the stuck ones neither of which may move (see the class
+## doc); the others wait in the loop-start queue.
+# @spec-link [[rule_stuck_slimes_moved_to_start]]
 func step(sim: Simulation) -> void:
 	if sim.tick % CHECK_TICKS != 0:
 		return
 	var bodies := sim.slimes
 	var found := _close_pairs(bodies)
-	var reached: Array[Vector2i] = []
 	var next := {}
 	for pair in found:
 		var was: int = counts.get(pair, 0)
-		next[pair] = mini(was + 1, CHECKS)
-		if was == CHECKS - 1:
-			reached.append(pair)
+		var movable := mover_of(bodies, pair) >= 0
+		next[pair] = was + 1 if movable or was < CHECKS else CHECKS
+		if was == CHECKS - 1 and not movable:
+			_log(_mover(bodies, pair, false), pair, sim.tick, false)
 	counts = next
-	for pair in reached:
-		if counts.has(pair):
-			_rescue(sim, pair)
+
+
+## The stuck pairs (CHECKS checks or more), in order.
+func stuck_pairs() -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for pair: Vector2i in counts:
+		if counts[pair] >= CHECKS:
+			out.append(pair)
+	out.sort()
+	return out
+
+
+## The tick of the check that made `pair` stuck, read back from its count at
+## `tick` (see the class doc).
+func stuck_since(pair: Vector2i, tick: int) -> int:
+	assert(counts.get(pair, 0) >= CHECKS, "StuckSlimes.stuck_since: %s is not stuck" % pair)
+	return tick - tick % CHECK_TICKS - (int(counts[pair]) - CHECKS) * CHECK_TICKS
+
+
+## Logs that `slime_id`, stuck with `other`, was moved to the loop start at
+## `tick` (by the loop-start queue).
+func moved(slime_id: int, other: int, tick: int) -> void:
+	_log(slime_id, Vector2i(mini(slime_id, other), maxi(slime_id, other)), tick, true)
+
+
+## Drops every count `slime_id` is in: it was moved away.
+func forget(slime_id: int) -> void:
+	for pair: Vector2i in counts.keys():
+		if pair.x == slime_id or pair.y == slime_id:
+			counts.erase(pair)
+
+
+## Which of stuck `pair` moves: the smaller, on a tie the higher id, among
+## the train and free slimes; -1 when neither may move.
+static func mover_of(bodies: SlimeBodies, pair: Vector2i) -> int:
+	return _mover(bodies, pair, true)
 
 
 ## The state as plain data, for Simulation.dump() and saves: {"counts":
@@ -106,21 +149,10 @@ func restore(data: Dictionary) -> void:
 
 # --- Internals --------------------------------------------------------------
 
-## The stuck pair `pair`: its mover goes to the start of the loop, or, when
-## neither may move, the pair is only logged (see the class doc).
-func _rescue(sim: Simulation, pair: Vector2i) -> void:
-	var bodies := sim.slimes
-	var mover := _mover(bodies, pair, true)
-	var moved := mover >= 0 and sim.train != null
-	if moved:
-		LoopStart.move(bodies, sim.train, mover)
-		for other: Vector2i in counts.keys():
-			if other.x == mover or other.y == mover:
-				counts.erase(other)
-	else:
-		mover = _mover(bodies, pair, false)
-	var other_id := pair.y if mover == pair.x else pair.x
-	stuck.append({"id": mover, "other": other_id, "tick": sim.tick, "reason": STUCK, "moved": moved})
+## Logs `pair`'s case: `slime_id` moved, or the one that would have been.
+func _log(slime_id: int, pair: Vector2i, tick: int, was_moved: bool) -> void:
+	var other_id := pair.y if slime_id == pair.x else pair.x
+	stuck.append({"id": slime_id, "other": other_id, "tick": tick, "reason": STUCK, "moved": was_moved})
 	if stuck.size() > LOG_SIZE:
 		stuck.pop_front()
 

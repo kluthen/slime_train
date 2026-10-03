@@ -58,10 +58,13 @@ extends RefCounted
 ## Left alone and lost (D10). A free slime whose centre is outside the view
 ## (the screen itself, no margin) counts off-screen ticks from `away`; back
 ## on screen, or no longer free, the count stops. After LEFT_ALONE_TICKS it
-## is left alone; LOST_TICKS after that, still free, it is lost (lose()):
-## moved to the start of the loop, back on the train (LoopStart.move, shared
-## with the stuck and stalled safety nets), and logged in `lost`. A free
-## slime that stays on screen is never lost.
+## is left alone; LOST_TICKS after that, still free, it is lost: due a move
+## to the loop start, back on the train, it waits its turn in the
+## loop-start queue (LoopStartQueue, D150) with its count still in `away`,
+## carrying on meanwhile; at its turn, still free and off screen, it is
+## moved (lose(): LoopStart.move, shared with the stuck and stalled safety
+## nets) and logged in `lost`. A free slime that stays on screen is never
+## lost.
 ##
 ## Detail (D96; crowd detail). Each tick, once the slimes near the view are
 ## simulated and the far ones parked, every calm ACTIVE ring takes the
@@ -98,6 +101,7 @@ extends RefCounted
 ## randomness.
 # @spec-link [[req_offscreen_simulation]]
 # @spec-link [[rule_left_alone_and_lost]]
+# @spec-link [[req_persistence_and_saves]]
 
 ## Parked beyond the view grown by this, px (a third of a screen).
 const PARK_MARGIN := 384.0
@@ -455,7 +459,8 @@ func _way_for(sim: Simulation, centre: Vector2) -> Dictionary:
 	return {}
 
 
-## Counts the free slimes' off-screen ticks, and moves the lost ones.
+## Counts the free slimes' off-screen ticks (the lost ones wait in the
+## loop-start queue, their count kept).
 func _count_away(sim: Simulation, shown: Rect2) -> void:
 	var bodies := sim.slimes
 	for slime_id in away.keys():
@@ -469,21 +474,28 @@ func _count_away(sim: Simulation, shown: Rect2) -> void:
 			continue
 		if not away.has(slime_id):
 			away[slime_id] = sim.tick
-		elif sim.tick - int(away[slime_id]) >= LEFT_ALONE_TICKS + LOST_TICKS:
-			lose(sim, slime_id)
+		# Past LEFT_ALONE_TICKS + LOST_TICKS it is lost: the loop-start queue
+		# reads that from `away`.
 
 
-## Slime `slime_id` is lost (D10): it goes to the start of the loop, back on
-## the train (LoopStart.move, the move stuck and stalled slimes take too), and
-## is logged in `lost`. Its off-screen count and way go. Nothing without a
-## train. Also the debug overlay's kill tool (DebugKill).
+## Slime `slime_id` is lost (D10): it goes to the loop start, back on the
+## train (LoopStart.move, the move stuck and stalled slimes take too),
+## `distance` px along the loop, and is logged in `lost`. Its off-screen
+## count, way and stuck counts go. Nothing without a train. The loop-start
+## queue gives the spot at a lost slime's turn; without one (`distance`
+## negative) the move is immediate, outside the queue, to LoopStart.spot_now:
+## the debug overlay's kill tool (DebugKill), and a slime lost on load
+## (SaveData, MidairLanding).
 # @spec-link [[rule_left_alone_and_lost]]
-func lose(sim: Simulation, slime_id: int) -> void:
+func lose(sim: Simulation, slime_id: int, distance := -1.0) -> void:
 	away.erase(slime_id)
 	proxies.erase(slime_id)
 	if sim.train == null:
 		return
-	LoopStart.move(sim.slimes, sim.train, slime_id)
+	if distance < 0.0:
+		distance = LoopStart.spot_now(sim, slime_id, sim.tick)
+	LoopStart.move(sim.slimes, sim.train, slime_id, distance)
+	sim.stuck_slimes.forget(slime_id)
 	lost.append({"id": slime_id, "tick": sim.tick, "reason": LOST})
 	if lost.size() > LOST_LOG_SIZE:
 		lost.pop_front()

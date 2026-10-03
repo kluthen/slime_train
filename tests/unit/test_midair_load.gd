@@ -199,7 +199,7 @@ func test_a_slime_in_the_air_over_nothing_is_lost() -> void:
 	var start := reloaded.train.position_at(reloaded.train.distance_of(hopper))
 	assert_lt(reloaded.slimes.centre_of(hopper).distance_to(start), SlimeBodies.ring_radius_for(2) + 1.0,
 			"at the loop start")
-	assert_lt(reloaded.train.distance_of(hopper), LoopStart.SPOTS * 2.0 * (SlimeBodies.ring_radius_for(2) + SlimeBodies.EDGE))
+	assert_lte(reloaded.train.distance_of(hopper), LoopStart.STRETCH)
 
 
 # --- Deterministic -----------------------------------------------------------------

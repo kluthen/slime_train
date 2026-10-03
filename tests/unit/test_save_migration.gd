@@ -118,8 +118,7 @@ static func _weight(sim: Simulation) -> int:
 func _assert_lost(sim: Simulation, slime_id: int, label: String) -> void:
 	assert_eq(sim.slimes.state_of(slime_id), SlimeBodies.TRAIN, label + ": on the train")
 	assert_true(sim.train.tracks(slime_id), label + ": the train tracks it")
-	var reach := SlimeBodies.ring_radius_for(sim.slimes.size_of(slime_id)) + SlimeBodies.EDGE
-	assert_lte(sim.train.distance_of(slime_id), LoopStart.SPOTS * 2.0 * reach, label + ": at the loop start")
+	assert_lte(sim.train.distance_of(slime_id), LoopStart.STRETCH, label + ": at the loop start")
 	assert_true(slime_id in _lost_ids(sim), label + ": in the lost log")
 
 
