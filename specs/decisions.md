@@ -3860,3 +3860,29 @@ O107 (d); `versions/v2/README.md` lists the idea. **Flagged:** for
 documentalist, a rule 24 atom beside rule 23's under
 `req_level_design_rules`; outside `specs/`, the `level-review` skill and
 `docs/level-design/` list rules only up to 22 (23 and 24 missing).
+
+## D158 — Chunk 5N goes ahead now, after 22h, for headroom (2026-10-03)
+After the real S20 FE session (`docs/perf/2026-10-03-s20fe-session.md`,
+build fdae364): first 60 s `s3-basket-59of60` 55.8 fps, `stress-dense`
+41.3 (p5 28.7), `stress-moving` 22.6 (p5 17.3), thermal 0; DoD 30's
+targets all pass. But after about 151 s of `s3-basket-59of60` an awake
+section 1 cluster of 80 to 100 drops it to 18–23 fps, and a tick costs
+about 11 ms even with 20 to 30 physics slimes. Asked "native now or
+later" (the user's earlier rule: if the fix works, a clean-up pass and
+native set aside for now), the user: **"go native."**
+
+- **When:** chunk 5N runs next, after chunk 22h (being finished). Order
+  from here: 22h, 5N, 22c, 22 repeated on the real S20 FE, the rest of
+  24, the health review.
+- **Why:** headroom, not a missed target: the user's standing wish for
+  maximum performance before animations and music; the warm section 1
+  crowd window; the ~11 ms per-tick floor; the floor phone still
+  unmeasured.
+- **Scope unchanged** (5N as written, D140, D142): the solver internals
+  move to C++; behaviour code (the train, the loop, hops, phases, calls,
+  fusion timing) stays in GDScript. The 11 ms floor may lie partly in
+  behaviour code; 5N's preflight notes it, and porting behaviour code
+  would need its own decision, outside 5N.
+
+**Documents:** `versions/v1/build-plan.md` (order, 5N's heading and
+intro; 19w, 22h step A and 22m part 2 marked done); `README.md`.
