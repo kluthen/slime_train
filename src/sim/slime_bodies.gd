@@ -231,6 +231,12 @@ var next_id := 1
 var topology_version := 0
 ## The ids of the slimes that hopped during the last tick.
 var hopped := PackedInt32Array()
+## The ids of the train slimes (STATE_TRAIN) that took an automatic hop
+## during the last tick, ascending: the train's hop counters read it (the
+## PERF line's hops). A fact about the tick, cleared by every tick, so not
+## state: not in dump() nor in saves. A hop() (the celebration's) isn't in it.
+# @spec-link [[req_platform_and_performance_targets]]
+var train_hopped := PackedInt32Array()
 
 var _master: Rng
 var _streams: Array[Rng] = []
@@ -842,6 +848,7 @@ func set_active_detail(level: int) -> int:
 func tick(dt: float) -> void:
 	_h = dt / substeps
 	hopped.clear()
+	train_hopped.clear()
 	if auto_hops:
 		_auto_hops(dt)
 	# A resting or parked slime keeps its support: nothing moves it.
@@ -1117,7 +1124,8 @@ func _hop_at(s: int, velocity: Vector2) -> void:
 ## Automatic hops: each able slime counts its timer down; at zero, if it
 ## stands on something, it hops (heading-slanted, strength jittered by its
 ## stream, or at its hop_aim when steered) and draws its next interval; if
-## not, it hops on landing. Every hop_aim is then cleared.
+## not, it hops on landing. Every hop_aim is then cleared. A train slime's
+## hop goes in train_hopped.
 # @spec-link [[req_hopping_behavior]]
 func _auto_hops(dt: float) -> void:
 	for s in slime_count:
@@ -1137,6 +1145,8 @@ func _auto_hops(dt: float) -> void:
 			_hop_at(s, hop_aim[s])
 		else:
 			_hop_at(s, hop_velocity(size[s], direction, strength))
+		if state[s] == STATE_TRAIN:
+			train_hopped.append(id[s])
 		var interval := hop_interval_range(size[s])
 		hop_timer[s] = stream.randf_range(interval.x, interval.y)
 	hop_aim.fill(Vector2.ZERO)

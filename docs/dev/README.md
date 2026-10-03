@@ -4952,7 +4952,10 @@ What exists now:
   frame in ticks, outside them (the rest of the frame) and in the whole
   process; ticks per frame; `active` and `pairs`; the slime counts (mean,
   min and max, chunk 22d); the largest awake cluster's max and mean (chunk
-  22d); the seconds spent in each section; the zoom range; the frame's
+  22d); the train hops, `hops` and `short_hops`, as their mean per line,
+  and the short hops' share of the hops over the lines, a percentage
+  ("n/a" without a hop; chunk 22l); the seconds spent in each section; the
+  zoom range; the frame's
   parts, when the lines carry them (chunk 22b). Then the thermal status
   (first, max, last, and every change) and the battery temperature (first,
   max, last). Re-summarise a saved session with:
@@ -4993,8 +4996,8 @@ What exists now:
   `frame_ms_max`, `process_ms_mean`, `ticks`, `ticks_per_frame_mean`,
   `ticks_per_frame_max`, `tick_ms_mean`, `tick_ms_frame_mean`,
   `rest_ms_mean`, `physics`, `on_screen`, `in_range`, `parked`, `resting`,
-  `largest_cluster`, `bodies`, `active`, `pairs`, `section`, `zoom`, then
-  the frame's parts
+  `largest_cluster`, `hops`, `short_hops`, `bodies`, `active`, `pairs`,
+  `section`, `zoom`, then the frame's parts
   outside the ticks (chunk 22b): `slimes_ms`, `eyes_ms`, `frontier_ms`,
   `hud_ms`, `debug_ms`, `main_ms`, `setup_ms`, `render_cpu_ms`,
   `render_gpu_ms`, `field_cpu_ms`, `field_gpu_ms`, `draw_calls`, `objects`,
@@ -5007,16 +5010,24 @@ What exists now:
   `in_range` and `parked` are the debug bar's counts at the line (see
   "Debug overlay"), `resting` the calm RESTING slimes, `largest_cluster`
   the largest awake cluster (see "Chunk 22d: debug counters and the
-  largest awake cluster"); `bodies` is every slime. `active` is the mean
-  per frame of the slimes that cost physics (`SlimeBodies.crowd_count()`,
+  largest awake cluster"); `hops` the train hops taken in the window
+  (automatic hops of train slimes, counted at take-off; not the
+  celebration's, a free slime's, nor on a slide, where a slime is held)
+  and `short_hops` those that landed in the window less than half their
+  `Train.hop_reach(size)` along the loop past their take-off progress (a
+  hop that never lands as a train slime is no short hop): `Train`'s
+  cumulative `hops_taken` and `short_hops_taken`, the perf log printing the
+  difference per window (chunk 22l, D156 point 4; "Reading hops and
+  short_hops"); `bodies` is every slime. `active` is the mean per frame of
+  the slimes that cost physics (`SlimeBodies.crowd_count()`,
   the same count as `physics`). Logs from before chunk 22d carry
   `on_screen`, `simulated` and `off_screen` instead (centre in the view;
   off it and not parked; off it and parked), and their `active` left out
   slimes asleep at bedtime. `section` is the section the camera is in:
   that of the current loop's segment nearest the view's centre, 0 without
   a loop. `perf_summary.py` needs every field but `frame_ms_p50`, the
-  slime counts, `largest_cluster`, `section` and the parts, so an older
-  log still summarises, with its own counts.
+  slime counts, `largest_cluster`, `hops`, `short_hops`, `section` and the
+  parts, so an older log still summarises, with its own counts.
 - **The player's data is safe.** A test-mode run writes no save (test
   mode's autosave is off unless its run asks) and the game reads the
   player's save only in normal play; `--fixture=none` and `--free-play`
@@ -5597,6 +5608,40 @@ last two lines re-summarise a saved log and list its cluster line by
 line. Labels off, no other Godot running.
 On the phone, `tools/android/perf.sh` logs the same fields ("Measuring on
 the phone").
+
+## Chunk 22l: hop counters and the local wake
+
+Build plan chunk 22l, D156 (`req_platform_and_performance_targets` for the
+counters). Step 1, the hop counters, is built first, so the "before"
+numbers of the local wake come from the same build. What changed:
+
+- **The hop counters.** The `PERF` line counts the train hops and the
+  short ones (`hops`, `short_hops`, below). Debug only, read only: the
+  fixtures' state hashes are unchanged.
+
+Code: `src/sim/train.gd` (`hops_taken`, `short_hops_taken`, counted in
+`follow()`), `src/sim/slime_bodies.gd` (`train_hopped`, filled by the
+automatic hops), `src/debug/perf_log.gd` (`train_hops()`, the window's
+deltas), `tools/android/perf_summary.py`. Tests:
+`tests/unit/test_train_progress.gd` ("Hop counters"),
+`tests/unit/test_perf_log.gd`, `perf_summary.py --self-test`.
+
+### Reading hops and short_hops
+
+- `hops`: the train hops taken in the `PERF` line's period (automatic hops
+  of train slimes, at take-off; not the celebration's, nor a free slime's,
+  nor on a slide).
+- `short_hops`: those whose landing advanced the slime along the loop by
+  less than half its `Train.hop_reach(size)`. A hop that never lands as a
+  train slime (its state changed, moved to the start, parked) is no short
+  hop.
+- **The short share** is `short_hops / hops`. `perf_summary.py` prints a
+  line `train hops      per line: hops M  short_hops N   short share S %
+  (short of hops)`, the means per line and the share summed over the
+  lines; "n/a (no hop)" without a hop.
+- Debug only: the counters (`Train.hops_taken`, `short_hops_taken`,
+  `SlimeBodies.train_hopped` and the take-offs) are in neither the dumps
+  nor the saves.
 
 ## Technical choices
 

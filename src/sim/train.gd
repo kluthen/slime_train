@@ -58,11 +58,23 @@ extends RefCounted
 ## coming hops, holds and carries slimes on the slide), follow() after it and
 ## after the split zones (re-derives progress, notices new slimes, moves the
 ## stalled ones).
+##
+## Hop counters (debug, the PERF line's hops and short_hops, D156 point 4).
+## follow() counts every train hop (an automatic hop of a train slime,
+## SlimeBodies.train_hopped; a celebration's hop() and a free slime's are not
+## train hops, and a slime on a slide is held, it doesn't hop) at its take-off
+## in hops_taken, and at its landing (the first follow() after it that finds
+## the slime supported) in short_hops_taken when its progress advanced less
+## than half its hop_reach() past its progress at take-off. A hop that never
+## lands as a train slime (its state changed, moved to the start, parked) is
+## no short hop. They only read the bodies: no draw, no change to the
+## simulation, and neither they nor the take-offs are in dump() or in saves.
 # @spec-link [[req_loop_and_world]]
 # @spec-link [[req_hopping_behavior]]
 # @spec-link [[rule_loop_travelable_with_no_input]]
 # @spec-link [[rule_all_sizes_travel_loop_v1]]
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
+# @spec-link [[req_platform_and_performance_targets]]
 
 ## How far ahead of its last progress (px) a slime's progress may move in one
 ## projection. A slime moves at most max_speed / 60 = 20 px per tick.
@@ -117,6 +129,13 @@ const OUT_OF_BOUNDS := "out_of_bounds"
 ## How many cases `stalled` keeps (the latest).
 const STALL_LOG_SIZE := 64
 
+## The train hops taken so far, and those of them that landed short (see
+## the class doc), cumulative: the perf log prints the difference per line.
+## Debug counters, not state.
+# @spec-link [[req_platform_and_performance_targets]]
+var hops_taken := 0
+var short_hops_taken := 0
+
 ## The loop, and the gates opened so far (they pick the current loop).
 var loop: LoopData
 var open_gates: Array = []
@@ -138,6 +157,10 @@ var _pts := PackedVector2Array()
 var _dist := PackedFloat64Array()
 var _slide := PackedByteArray()
 var _len := 0.0
+## Slime id -> its progress at the take-off of its train hop still in the air
+## (the hop counters', see the class doc). Not state: not in dump() nor saves.
+# @spec-link [[req_platform_and_performance_targets]]
+var _takeoff := {}
 
 
 func _init(loop_data: LoopData = null, gates: Array = []) -> void:
@@ -363,11 +386,13 @@ func highest_between(from: float, to: float) -> float:
 
 # --- Slimes -----------------------------------------------------------------
 
-## Starts following slime `slime_id` at `distance` px along the loop.
+## Starts following slime `slime_id` at `distance` px along the loop,
+## afresh (a hop it is in the air for won't count as landed).
 func track(slime_id: int, distance: float) -> void:
 	var d := fposmod(distance, _len) if _len > 0.0 else 0.0
 	_records[slime_id] = {"distance": d, "laps": 0, "on_slide": false,
 			"mark": d, "marked_at": -1}
+	_takeoff.erase(slime_id)
 
 
 func tracks(slime_id: int) -> bool:
@@ -476,13 +501,16 @@ func steer(bodies: SlimeBodies, dt: float) -> void:
 
 ## After the bodies tick (and the split zones): follows every train slime,
 ## adopting new ones where the loop passes closest, and drops the others; a
-## stalled one goes to the start of the loop and is logged (see the class
-## doc).
+## stalled one goes to the start of the loop and is logged; counts the train
+## hops (see the class doc).
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
+# @spec-link [[req_platform_and_performance_targets]]
 func follow(bodies: SlimeBodies, tick: int) -> void:
 	for slime_id in tracked_ids():
 		if bodies.state_of(slime_id) != SlimeBodies.TRAIN:
 			_records.erase(slime_id)
+			_takeoff.erase(slime_id)
+	hops_taken += bodies.train_hopped.size()
 	for slime_id in bodies.ids():
 		var s := bodies.index_of(slime_id)
 		if bodies.state[s] != SlimeBodies.TRAIN:
@@ -490,7 +518,9 @@ func follow(bodies: SlimeBodies, tick: int) -> void:
 		var centre := bodies.centre_of(slime_id)
 		if not _records.has(slime_id):
 			track(slime_id, _closest_distance(centre))
+		var before := progress_of(slime_id)
 		advance(slime_id, centre, tick)
+		_count_landing(bodies, slime_id, s, before)
 		var reason := stall_of(slime_id, centre, tick)
 		if reason != "":
 			LoopStart.move(bodies, self, slime_id)
@@ -527,6 +557,22 @@ func dump() -> Dictionary:
 
 
 # --- Internals --------------------------------------------------------------
+
+## The hop counters for train slime `slime_id` (index `s`), just advanced
+## from progress `before`: a hop it took this tick takes off from `before`;
+## one in the air lands when the slime is supported, short when it advanced
+## less than half its hop_reach(); a parked slime's hop never lands.
+# @spec-link [[req_platform_and_performance_targets]]
+func _count_landing(bodies: SlimeBodies, slime_id: int, s: int, before: float) -> void:
+	if bodies.calm[s] == SlimeBodies.PARKED:
+		_takeoff.erase(slime_id)
+	elif bodies.train_hopped.has(slime_id):
+		_takeoff[slime_id] = before
+	elif _takeoff.has(slime_id) and bodies.supported[s] != 0:
+		if progress_of(slime_id) - _takeoff[slime_id] < hop_reach(bodies.size[s]) * 0.5:
+			short_hops_taken += 1
+		_takeoff.erase(slime_id)
+
 
 ## Placeholder slide: pulls the slime's speed along the route toward SLIDE_SPEED.
 func _carry(bodies: SlimeBodies, slime_id: int, distance: float) -> void:
