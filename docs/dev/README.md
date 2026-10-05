@@ -33,8 +33,10 @@ tools/test.sh -gdisable_colors           # plain output, for logs
 
 The suite runs on the native tick: `tools/test.sh` builds the extension's
 Linux debug library first when it is missing or out of date, and fails when
-it can't. `SLIME_TICK=gdscript tools/test.sh` runs it on the GDScript tick
-(see "Chunk 5N: U0b toolchain, loading and the tick switch").
+it can't; it then runs the slime tests again on the GDScript tick.
+`SLIME_TICK=gdscript tools/test.sh` runs it on the GDScript tick
+(see "Chunk 5N: U0b toolchain, loading and the tick switch" and "Chunk 5N:
+the native tick").
 
 The end-to-end suite also runs inside an exported Linux debug build:
 `tools/linux/e2e.sh` exports it and runs `tests/e2e/` in it (`--no-export`
@@ -5951,6 +5953,8 @@ and reloaded: the same hash, and after 200 more ticks); it is in
 `d6fc689a44b0630c52baf72497d0794f4d7edd24aaa9814b93775abacc5e33eb`, 2400
 ticks `95eac821553474cdb34c0bc8d8d852c0ea8208510db330f0caaae53a890c6dae`
 (the same as on the withdrawn branch); the 17 other fixtures' unchanged.
+Both changed since, with chunk 22h step A (`marked_at`); the current
+hashes of every fixture are under "Fixture hashes" in `docs/dev/native.md`.
 
 **Target and reading.** At least 30 fps on the reference phone (D153 (2),
 D154 (4)); `stress-moving`'s is the abuse target, at least 15 fps (D153
@@ -6377,6 +6381,53 @@ it skips the other game-root flags). Details in `docs/dev/native.md`.
     library, the descriptor and the list, and nothing under
     `src/test_mode/`, `src/debug/`, `tests/`, `levels/test/`, `tools/` or
     `addons/gut/`.
+
+## Chunk 5N: the native tick
+
+Build plan chunk 5N (D158; D140, D142), units U1 to U7 (U0a and U0b
+above; the phone, U8, still to come). The details are in
+`docs/dev/native.md`. No save, fixture or test-mode format change.
+
+- **What it built.** `SlimeSolver`, in the `slime_native` GDExtension
+  (C++), runs the solver part of a tick: integrate, the pair grid, the
+  contacts between slimes, the rings, the terrain with the shut doors, the
+  rest pass with the local wake, and the touching list.
+  - Units U1 to U5 ported one pass each, line for line, each tested
+    against its GDScript pass (the equivalence harness of U0c).
+  - U6 runs them all in one native call per tick,
+    `SlimeSolver.step(bodies, h)`: every field read once, every read-write
+    array written back once.
+  - The hops, the support reset, the topology changes (create, remove,
+    merge, split), the saves and all the behaviour code stay in GDScript;
+    `SlimeBodies` keeps its interface.
+- **The same results.** On this desktop the native tick gives the GDScript
+  tick's state bit for bit: every fixture has the same hash on both ticks
+  (the list: "Fixture hashes" in `docs/dev/native.md`). Hashes compare
+  within one platform: an Android build isn't expected to match Linux.
+- **Choosing the tick.** Native by default when the extension is loaded.
+  `--tick=gdscript` or `--tick=native` after `--` (debug builds only), or
+  `SLIME_TICK=gdscript` / `SLIME_TICK=native` (any build), choose it; every
+  run prints `TICK <kind> (<reason>)` to stderr. The tools take the
+  variable: `SLIME_TICK=gdscript tools/level.sh bench ...` (the bench
+  refuses `--tick` as an unknown argument);
+  `SLIME_TICK=gdscript tools/perf_slow.sh ...` (or `--tick=gdscript` as an
+  extra argument).
+- **The fallback.** Without the extension the game runs on the GDScript
+  tick (`TICK gdscript (extension missing)`). When `step` can't read the
+  bodies it changes nothing and that tick runs pass by pass, each pass the
+  solver refuses in GDScript. Saves load and run on under either tick.
+- **The tests.** `tools/test.sh` runs the whole suite on the native tick,
+  then the slime tests again on the GDScript tick (`SLIME_TICK=gdscript
+  -gselect=test_slime_`, not after a selection);
+  `SLIME_TICK=gdscript tools/test.sh` runs the whole suite on the GDScript
+  tick. At U6: 1486 tests, then 109, about 720 s.
+- **The bench** (U7, desktop): the solver part runs 18 to 19 times faster
+  in crowds, the tick drops by 28 to 47 % there (`stress-moving` 10.61 ->
+  5.65 ms, `s3-basket-59of60` 5.81 -> 3.17 ms, `stress-dense` 5.68 ->
+  4.09 ms) and by 16 to 19 % on the still scenes; the behaviour is now
+  95 to 98 % of the tick. The table is under "Bench" in
+  `docs/dev/native.md`, the whole report in
+  `docs/perf/2026-10-05-5n-desktop-bench.md`.
 
 ## Technical choices
 

@@ -62,6 +62,11 @@ and train slimes gather at the bottom of a dip so they can fuse there.
 Chunk 9 (sleepers, waking and the hint) places the level's sleepers as
 still obstacles that a free slime's touch on screen wakes, and shows a
 wordless hint by the first sleeper 10 s into a fresh game until the first call.
+Chunk 5N (native tick) moves the slimes' physics solver to C++, a
+GDExtension built for Linux and Android: one native call per tick, with
+the GDScript tick's results, its solver part about 19 times faster on the
+desktop in crowds. The GDScript tick stays as the fallback, used when the
+extension is missing.
 UX design (`ui_ux/`) has an inventory and open questions, no design yet.
 
 ## Direction so far

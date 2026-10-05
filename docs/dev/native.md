@@ -8,12 +8,13 @@ now, for headroom (D158). This document covers why it was measured, how the
 extension is built, loaded and chosen, how to test it, and how the port is
 done.
 
-Where the port stands (unit U6): the native solver, `SlimeSolver`, runs the
+Where the port stands (unit U7): the native solver, `SlimeSolver`, runs the
 whole solver part of a tick in one call (`step`), on the five passes ported
 line for line (units U1 to U5). It reads and writes a `SlimeBodies` (the
 marshalling) and checks it can. On the desktop its results are the GDScript
-tick's, bit for bit (the same state hashes). The GDScript tick stays as the
-fallback, per tick and per pass.
+tick's, bit for bit (the same state hashes), and its solver part runs 18 to
+19 times faster in crowds (see "Bench"). The GDScript tick stays as the
+fallback, per tick and per pass. The phone's numbers are unit U8's.
 
 ## Why it was measured
 
@@ -352,7 +353,9 @@ tests are then pending if it is missing.
   anchors within 1e-3 px by default (overridable per field), everything
   else exactly; a problem names the scene, the field, the index (and its
   slime) and both values. `phase_supported(phase)` / `skip_reason(phase)`
-  keep a test pending while its native pass is a stub. The scenes
+  keep a test pending when its native pass can't run: a stub (every pass
+  was one before units U1 to U5), or a run with `SLIME_TICK=gdscript`
+  without the extension. The scenes
   (`native_equivalence_scenes.gd`, built once per run on the GDScript
   tick): the fixtures `stress-moving`, `s3-basket-59of60`, `gate2-open`
   (shut doors), `stress-still` once its pile rests, and a synthetic box
@@ -436,7 +439,8 @@ change. Behind it:
   ring constraints, terrain contact (the shut doors too), then the touching
   list and the rest pass with the local wake. It reads and writes the
   `SlimeBodies` arrays (see "The marshalling") and keeps nothing between
-  calls but scratch (the pair grid, the door boxes).
+  calls but scratch (the pair grid, the door boxes, the rest pass's
+  union-find).
 - **The terrain:** `TerrainSegments` still bakes its segment arrays and grid
   in GDScript at level load; the solver reads them, read only (D97).
 - **What stays in GDScript:** the hop clears and the automatic hops (each
@@ -447,4 +451,79 @@ change. Behind it:
   calls, fusion, Offscreen, the loop-start queue).
 - **Pass by pass.** Each pass is ported and tested on its own against the
   GDScript one (units U1 to U5); `step` then runs them all in one call
-  (U6), and the golden hashes are recorded again for the native tick.
+  (U6). The fixtures' state hashes didn't change: on the desktop the native
+  tick gives the GDScript tick's (see "Fixture hashes").
+
+## Bench (unit U7)
+
+The desktop, both ticks, 2026-10-05, at the commit of unit U6. Full report:
+`docs/perf/2026-10-05-5n-desktop-bench.md` (the machine, the load, every
+run, the per-phase table, the slowed runs, the phone estimate and the open
+questions for the phone).
+
+Headless, full speed: `SLIME_TICK=<tick> tools/level.sh bench
+--fixture=<name> --phases`, seed 909, 600 timed ticks (`stress-dense` after
+a 3600-tick lead-in, the others after their own), the median of three runs,
+the two ticks alternating. Mean ms per tick; solver: the GDScript passes,
+or the one `native` lap; behaviour: the rest of the step, GDScript on both.
+
+| Fixture | GDScript tick | Native tick | Change | Solver µs (GDScript / native) | Solver speed-up | Behaviour µs (GDScript / native) |
+|---|---|---|---|---|---|---|
+| `stress-moving` | 10.61 ms | 5.65 ms | -47 % | 5141 / 265 | 19.4x | 5462 / 5376 |
+| `stress-dense` | 5.68 ms | 4.09 ms | -28 % | 1682 / 92 | 18.4x | 3994 / 3992 |
+| `s3-basket-59of60` | 5.81 ms | 3.17 ms | -45 % | 2764 / 146 | 18.9x | 3009 / 3021 |
+| `stress-still` | 1.03 ms | 0.83 ms | -19 % | 219 / 22 | 9.7x | 804 / 804 |
+| `start` | 0.97 ms | 0.82 ms | -16 % | 190 / 22 | 8.8x | 780 / 794 |
+
+- **The solver part** runs 18 to 19 times faster in crowds, about 9 times
+  on the still scenes, where what is left is fixed cost.
+- **The behaviour** (fusion, offscreen, the train, the frontier sets, the
+  loop-start queue) is unchanged and is now 95 to 98 % of the native tick.
+- **The marshalling** (`step` copies every read-write array once a tick)
+  doesn't show: on `stress-still` (no physics slime) the whole native lap,
+  copies included, is 22 µs against 219 µs for the GDScript passes. The
+  native tick is not slower anywhere.
+- **Slowed** (`tools/perf_slow.sh --pin=main --phase-timers`, windowed):
+  the tick goes 27.0 -> 11.7 ms on `stress-moving` (15.6 -> 29.0 fps),
+  23.3 -> 15.3 ms on `stress-dense` (17.0 -> 22.8 fps), 16.0 -> 10.9 ms on
+  `s3-basket-59of60` over 240 s (21.9 -> 31.6 fps; its section 1 crowd
+  18.9 -> 25.4 fps).
+- **The phone estimate** (D142: the full-speed cost × 2.1 cold, × 3.4
+  throttled, the GDScript tick's factors): the native tick 11.9 / 19.2 ms
+  on `stress-moving`, 8.6 / 13.9 ms on `stress-dense`, 6.7 / 10.8 ms on
+  `s3-basket-59of60` (the GDScript tick 22.3 / 36.1, 11.9 / 19.3,
+  12.2 / 19.7). The phone's perf log settles it (unit U8).
+
+### Fixture hashes
+
+The test level's 18 fixtures, seed 909, headless test mode
+(`godot --headless -- --test-mode --level=test --fixture=<name> --seed=909
+--run-ticks=<N>`), on Linux x86_64 (this desktop, glibc), 2026-10-05, at
+the commit of unit U6. They are the native tick's hashes and, on this
+desktop, the GDScript tick's too (checked at 600 and 2400 ticks on both
+ticks; unit U6 found the release library's the same). An Android build
+isn't expected to give the same (see "Caveat" under "Determinism"); the
+earlier hashes recorded with each chunk in `docs/dev/README.md` are each of
+that chunk's commit (the `stress-dense` ones of chunk 22m, for example,
+changed with chunk 22h step A's `marked_at`).
+
+| Fixture | 600 ticks | 2400 ticks |
+|---|---|---|
+| `bedtime` | `5a94fa65bf8e05b9c45cecfe6ab80e1fa9a745d20f21a9398aba739f840f4cd7` | `b02215f37ca327c09f693160e47945184681c5449b3b1d17d8e61252d2cfb749` |
+| `bump` | `4edc700ab29c8466e25b95f0cf95a926226039952b64a54404dbfe2193b2f0c5` | `5dc42b36d7622ab35798c2c0943dc8de3b6f60de8e953cbdd8a058ddf35b2a02` |
+| `fresh` | `b020ee7e6a00991a4cde595463a6d8c53d5ad3d2d36fd18a6b52038ac49178c0` | `6db234eb915631cc171867a8b7c83c1ddf5a1dc0159a28b0ca41b3cea0494dc5` |
+| `gate1-open` | `fb471f56be0fc75e99785e9fd0176ec1641eed19b9f2112eab56fbafddad076c` | `87d4a31669d409cbf2d42d006e90f786672a4aed12aba2c8de5d05b7bd53b6b2` |
+| `gate2-open` | `c96c61a34602ac84e4ed97ba4caad51ff31d5e605169366a48cf9fa77fa5cc2d` | `12c9da691f6c5135861cac2b637bff6809a9e4ce5288d8ee3b1504e179eb9f96` |
+| `lost` | `a25bab8eace16098cb07366bc45b3b8fd14593bed08d496580c15394f7df72c3` | `e66724c6fbbf5ff7779ea42d988c11bb8daf76b547eababdc541ea2cb0429029` |
+| `midair` | `9f805dea3a0779384cc95ee884ed01749ab412b953b79cd44f8d1093dc281a82` | `316ce5e8c0c0293dc6d18a43132c438c7e2be9a90c1cff06c5f4b23757db2666` |
+| `old-version` | `4f57cc33341f12262fea6be0bbf13d028d5e749f2f2b693bddc49e5ea0ef949a` | `d9883b052e6895ace9caf80737144046761efa09a39f9fa19f0456c39f6185fc` |
+| `s1-basket-5of6` | `09ce88ba5579baa20c8136623a2aca81363601d31f47adc0b3d83886c2cb09b9` | `4800113e2e0eb583f8ffb9ad3b021754a83d8d9b3bbdffd000e191d4cfb84bf5` |
+| `s1-optout` | `0a01989974e37d78a4b12a08e100a376b330a5297192d3c41baaffd4c8f0ca78` | `4e359fbaa0852076731a22db89186acbfccafde5c565a3db4b0812617a53d1ca` |
+| `s2-basket-offscreen` | `df9505ea337f43f30352b7e45a1ecd305344e83062009c5e1e767e83c31e3247` | `fcdb40131c591c9a351e9cc5d90730c87b62da47e65ad5b0e5fc859b1889bcd3` |
+| `s2-cave-return` | `ca1245d013105513dcd94f95aeb7109f780987ef9444e5fdfd849929cb0116ea` | `290f9c9e913772d8d3c92e48ad08ad3e21fea7a9226628b064d93d39e7a93e6c` |
+| `s3-basket-59of60` | `c1b5b0104e6a6c8c5ef22f8726484fe6e0dcf7b432306732b380bf9baa415c2d` | `ff30e8232e4d8adc5782e50331c2a42f8465386d0fb7bdf7ccd9fe725b1bc94b` |
+| `stress-dense` | `e4c54103dfd88cbb9f57f2948c624f5f918d2ac6e987cdeee5ee9f467d8af883` | `2a4bbb5244fe747f0b8cf86fc0059b03e436d5b1d42fd7bb2b46ceb8316c2c1d` |
+| `stress-moving` | `66d0f9b2934d1ccabf83c1819b6271d923ee808dd09668d3e48cde8d2a041060` | `4a1b622f8beda92a72ce91158d68e348ee0be19d9e6ec64ecb4372d91f8e0057` |
+| `stress-still` | `4c50a541d5a60dda72d85cfd5941782b28975e8352d1529ed12eedfdb8aa2f27` | `9efbbc6b1f014895180f7e007b574fd3a03309e29dec2798b913cf0260da49e7` |
+| `sunrise` | `8db8d2c83ee28167f22616d7187ab43f8e1bace7d29b88c492a35f7c3429c9eb` | `9a392ffc8257592c3bfc8b4247fd377aef36d5308d54819b26e91133acfb4759` |
+| `wind-down` | `1f6ba0b95667450033a0bf6d9fd123d23ea46fc2a6ae664fd731a32bda2a50eb` | `801144a13df0b9c9422e87ae353786d1c6c5e9c3973a61d67e6995c1aa92b851` |
