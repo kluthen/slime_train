@@ -74,8 +74,9 @@ PART_ROWS = (
 # order; the only PERF field that isn't a number.
 PHASES = "phases"
 # The solver's phases (PhaseTimers.SOLVER_PHASES): what chunk 5N moves to
-# native code; every other phase is behaviour.
-SOLVER_PHASES = ("integrate", "pairs", "contacts", "rings", "terrain", "doors", "rest")
+# native code, and the native step() that runs it all in one call; every
+# other phase is behaviour.
+SOLVER_PHASES = ("integrate", "pairs", "contacts", "rings", "terrain", "doors", "rest", "native")
 # Android's thermal status names (PowerManager.THERMAL_STATUS_*).
 THERMAL_NAMES = {0: "none", 1: "light", 2: "moderate", 3: "severe", 4: "critical", 5: "emergency",
                  6: "shutdown"}

@@ -2,7 +2,8 @@ extends GutTest
 ## The debug phase timers (src/debug/phase_timers.gd, chunk 5N U0a): off by
 ## default, and then never called (every call in src/sim behind a null
 ## check, no clock read there); on, Simulation.step and SlimeBodies.tick time
-## every phase once per tick in order; the means put the slime bodies' passes
+## every phase once per tick in order (on the native tick, the native step as
+## one phase); the means put the slime bodies' passes
 ## in place of the bodies' phase and add up to the step; the solver and
 ## behaviour split, the perf log's field and the bench's table; the game
 ## root's --phase-timers (debug builds only, by path, after the guard, every
@@ -70,8 +71,10 @@ func test_every_timer_call_in_src_sim_is_behind_its_null_check() -> void:
 		assert_false("Time." in FileAccess.get_file_as_string(path), path + " reads no clock")
 
 
+## On the GDScript tick, every pass is timed once, in order.
 func test_step_times_each_of_its_phases_once_in_order() -> void:
 	var sim := _sim()
+	assert_true(sim.slimes.use_native(false))
 	var step := Recorder.new()
 	var bodies := Recorder.new()
 	sim.phases = step
@@ -90,6 +93,25 @@ func test_step_times_each_of_its_phases_once_in_order() -> void:
 					SlimeBodies.TickPhase.TERRAIN, SlimeBodies.TickPhase.DOORS])
 	body_expected.append_array([SlimeBodies.TickPhase.TICK_OTHER, SlimeBodies.TickPhase.REST])
 	assert_eq(bodies.calls, body_expected)
+
+
+## On the native tick, the native step (SlimeSolver.step) runs every solver
+## pass in one call: one lap for it (NATIVE), after the hops and the support
+## reset. Pending on SLIME_TICK=gdscript without the extension.
+func test_the_native_step_is_timed_as_one_phase() -> void:
+	if not ClassDB.class_exists(TickChoice.SOLVER_CLASS):
+		if OS.get_environment(TickChoice.ENV) == TickChoice.GDSCRIPT:
+			pending("SLIME_TICK=gdscript and the slime_native extension isn't loaded")
+		else:
+			fail_test("SlimeSolver is not registered: the slime_native extension didn't load")
+		return
+	var sim := _sim()
+	assert_true(sim.slimes.use_native(true))
+	var bodies := Recorder.new()
+	sim.slimes.phases = bodies
+	sim.step()
+	assert_eq(bodies.calls, ["start", SlimeBodies.TickPhase.AUTO_HOPS, SlimeBodies.TickPhase.TICK_OTHER,
+			SlimeBodies.TickPhase.NATIVE])
 
 
 ## The timers leave the state alone: two runs, one timed, the same hash.
@@ -130,7 +152,7 @@ func test_means_put_the_bodies_passes_in_its_place_and_add_up_to_the_step() -> v
 	assert_eq(means["auto_hops"], 1.0)
 	assert_eq(means["tick_other"], 9.0)
 	var split := PhaseTimers.split(means)
-	assert_almost_eq(split.x, (2 + 3 + 4 + 5 + 6 + 7 + 8) * 1.0, 0.001, "integrate .. rest")
+	assert_almost_eq(split.x, (2 + 3 + 4 + 5 + 6 + 7 + 8 + 10) * 1.0, 0.001, "integrate .. rest, and native")
 	var total := 0.0
 	for name in means:
 		total += means[name]

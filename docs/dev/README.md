@@ -6158,13 +6158,20 @@ and what stays GDScript (the behaviour), before any porting.
     auto_hops (the hop clears too), integrate, pairs, contacts, rings,
     terrain, doors (the passes in `_solve_terrain`), rest (the touching list
     and `_rest`, `_rest_piles`, the local wake), tick_other (the support
-    reset, the centre cache cleared).
+    reset, the centre cache cleared), native.
+  - On the native tick (chunk 5N U6) one call, `SlimeSolver.step`, runs
+    every solver pass (and the centre cache's clearing and the touching
+    list): a tick is timed as auto_hops, tick_other (the support reset) and
+    native, the passes inside the call not one by one. On the GDScript tick
+    native stays 0. When `step` falls back, the passes are timed one by one
+    (a native terrain pass as terrain, its doors included).
   - Each `start()` and `lap(phase)` reads `Time.get_ticks_usec()` and adds
     the time since the last read to the phase. The laps chain, so the
     phases add up to the whole step. `means()` puts the bodies' passes in
     place of `bodies`.
   - Solver = `PhaseTimers.SOLVER_PHASES` (integrate, pairs, contacts,
-    rings, terrain, doors, rest). Behaviour = every other phase, the
+    rings, terrain, doors, rest, native; the same list in
+    `tools/android/perf_summary.py`). Behaviour = every other phase, the
     tick's GDScript glue (auto_hops, tick_other) included.
 - **Off costs nothing measurable.** Each phase costs one null check and no
   clock read. src/sim names nothing in src/debug (the `phases` fields are
@@ -6194,11 +6201,12 @@ and what stays GDScript (the behaviour), before any porting.
   - `perf_summary.py` prints `phases us/tick` (step, solver with its share,
     behaviour) and every phase. Each is weighted by ticks over the lines
     that carry the field.
-- **Tests.** `tests/unit/test_phase_timers.gd` (11) covers:
+- **Tests.** `tests/unit/test_phase_timers.gd` (12) covers:
   - off by default;
   - every timer call in src/sim sits under its null check, and src/sim
     reads no clock;
-  - one lap per phase, in order, in the step and in the bodies' tick;
+  - one lap per phase, in order, in the step and in the bodies' tick (the
+    GDScript tick), and one `native` lap for the native tick's step;
   - the same hash timed or not;
   - the means, the split, the field and the table;
   - take() clearing;

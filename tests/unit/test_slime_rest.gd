@@ -271,18 +271,26 @@ func test_a_parked_slime_moves_only_by_translate_and_lands_when_unparked() -> vo
 	assert_between(bodies.centre_of(slime).y, -30.0, 0.0, "it fell to the floor")
 
 
+## A parked slime is left out of the pair grid: no candidate pair names it,
+## not even one lying on an active slime (it would be paired if it were in
+## the grid), nor one far away; the others still pair. Checked on the pairs
+## the grid gives (_pairs), so it holds on either tick: the native pair grid
+## keeps its grid to itself (SlimeBodies' grid fields are only the GDScript
+## pass's scratch).
 func test_parked_slimes_are_left_out_of_the_pairs() -> void:
 	var bodies := Support.bodies_on_floor()
 	bodies.auto_hops = false
 	var a := bodies.create(0, 1, Vector2(0, -24))
 	var b := bodies.create(0, 1, Vector2(36, -24))
+	var on_a := bodies.create(0, 1, Vector2(10, -24))
 	var far := bodies.create(0, 1, Vector2(100000, -24))
+	bodies.park(on_a)
 	bodies.park(far)
 	_run(bodies, 1)
 	assert_true(bodies.touching(a, b), "the grid still pairs the others (overlapping, pushed apart)")
-	for s in bodies.slime_count:
-		if bodies.calm[s] == SlimeBodies.PARKED:
-			assert_eq(bodies._slime_cell[s], -1)
+	assert_gt(bodies.candidate_pair_count(), 0)
+	for k in bodies._pairs.size():
+		assert_ne(bodies.calm[bodies._pairs[k]], SlimeBodies.PARKED, "pair %d names a parked slime" % (k / 2))
 
 
 func test_a_detail_level_resamples_the_ring_and_back() -> void:

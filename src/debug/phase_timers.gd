@@ -30,9 +30,11 @@ extends RefCounted
 
 ## The phases that are the slime solver, as means() names them: what 5N
 ## moves to native code (integrate, the pair grid, contacts, rings, terrain
-## and door passes, the touching list and the rest pass). Everything else is
-## behaviour (or tick glue), which stays GDScript.
-const SOLVER_PHASES: PackedStringArray = ["integrate", "pairs", "contacts", "rings", "terrain", "doors", "rest"]
+## and door passes, the touching list and the rest pass), and the native
+## solver's step() that runs them all in one call (native). Everything else
+## is behaviour (or tick glue), which stays GDScript.
+const SOLVER_PHASES: PackedStringArray = ["integrate", "pairs", "contacts", "rings", "terrain", "doors", "rest",
+		"native"]
 ## The step phase the slime bodies' own phases replace in means().
 const BODIES_PHASE := "bodies"
 

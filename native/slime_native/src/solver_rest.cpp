@@ -23,6 +23,7 @@
 #include <cstring>
 #include <vector>
 
+#include "solver_passes.h"
 #include "solver_state.h"
 
 namespace godot {
@@ -39,11 +40,20 @@ struct RestArray {
 	A arr;
 	const T *r = nullptr;
 	T *wp = nullptr;
+	// False when bound to a whole tick's state (bind): never stored from here.
+	bool own = true;
 
 	// Takes the array; its read pointer.
 	void take(const Variant &p_value) {
 		arr = p_value;
 		r = arr.ptr();
+	}
+	// Binds the array to `p_data`, already writable (a whole tick's state,
+	// solver_passes.h): read and written in place, stored by its owner.
+	void bind(T *p_data) {
+		r = p_data;
+		wp = p_data;
+		own = false;
 	}
 	// The write pointer (the read pointer follows it).
 	T *w() {
@@ -62,7 +72,7 @@ struct RestArray {
 	}
 	// Writes the array back to `p_bodies` as `p_name` if it changed.
 	void store(Object *p_bodies, const char *p_name) const {
-		if (wp != nullptr) {
+		if (own && wp != nullptr) {
 			p_bodies->set(StringName(p_name), arr);
 		}
 	}
@@ -96,6 +106,12 @@ struct RestState {
 	// Reads the fields; false, with an error, when one is missing, retyped,
 	// or the sizes don't agree.
 	bool load(Object *p_bodies);
+	// Takes the fields from a whole tick's state (its arrays written in
+	// place); false, with an error, when _pairs and _pair_touch don't agree
+	// or a pair names no slime (SolverState::load checked the rest).
+	bool bind(SolverState &r_st);
+	// The checks load() and bind() share on the pairs.
+	bool pairs_valid() const;
 	// Writes back the arrays that changed.
 	void store(Object *p_bodies) const;
 
@@ -117,24 +133,11 @@ struct RestState {
 	}
 };
 
-// The field `p_name` of `p_bodies` into `r_value`, which must be of `p_type`;
-// prints an error and returns false otherwise.
-bool rest_fetch(Object *p_bodies, const char *p_name, Variant::Type p_type, Variant &r_value) {
-	r_value = p_bodies->get(StringName(p_name));
-	if (r_value.get_type() != p_type) {
-		ERR_PRINT(String("SlimeSolver.rest: SlimeBodies.") + p_name + " is " +
-				Variant::get_type_name(r_value.get_type()) + ", expected " + Variant::get_type_name(p_type) +
-				" (see check_schema).");
-		return false;
-	}
-	return true;
-}
-
 bool RestState::load(Object *p_bodies) {
 	ERR_FAIL_NULL_V_MSG(p_bodies, false, "SlimeSolver.rest: null bodies.");
 	Variant v;
 #define REST_FETCH(m_name, m_type) \
-	if (!rest_fetch(p_bodies, m_name, Variant::m_type, v)) { \
+	if (!solver_fetch(p_bodies, "SlimeSolver.rest", "SlimeBodies", m_name, Variant::m_type, v)) { \
 		return false; \
 	}
 	REST_FETCH("slime_count", INT)
@@ -182,8 +185,6 @@ bool RestState::load(Object *p_bodies) {
 	const int64_t points = pos_a.size();
 	ERR_FAIL_COND_V_MSG(prev.arr.size() != points, false, "SlimeSolver.rest: pos and prev differ in size.");
 	pair_count = pair_touch_a.size();
-	ERR_FAIL_COND_V_MSG(pairs_a.size() < 2 * pair_count, false,
-			"SlimeSolver.rest: _pairs holds fewer than two slimes per _pair_touch entry.");
 
 	state = state_a.ptr();
 	id = id_a.ptr();
@@ -198,9 +199,43 @@ bool RestState::load(Object *p_bodies) {
 		ERR_FAIL_COND_V_MSG(first[s] < 0 || npts[s] < 0 || int64_t(first[s]) + npts[s] > points, false,
 				"SlimeSolver.rest: a slime's point range is outside the point arrays.");
 	}
+	return pairs_valid();
+}
+
+bool RestState::pairs_valid() const {
+	ERR_FAIL_COND_V_MSG(pairs_a.size() < 2 * pair_count, false,
+			"SlimeSolver.rest: _pairs holds fewer than two slimes per _pair_touch entry.");
+	const int32_t *p = pairs_a.ptr();
 	for (int64_t k = 0; k < 2 * pair_count; k++) {
-		ERR_FAIL_COND_V_MSG(pairs[k] < 0 || pairs[k] >= n, false, "SlimeSolver.rest: a pair names no slime.");
+		ERR_FAIL_COND_V_MSG(p[k] < 0 || p[k] >= n, false, "SlimeSolver.rest: a pair names no slime.");
 	}
+	return true;
+}
+
+bool RestState::bind(SolverState &r_st) {
+	n = r_st.slime_count;
+	rest_enabled = r_st.rest_enabled;
+	pairs_a = r_st.pairs_a;
+	pair_touch_a = r_st.pair_touch_a;
+	pair_count = pair_touch_a.size();
+	if (!pairs_valid()) {
+		return false;
+	}
+	state = r_st.state;
+	id = r_st.id;
+	first = r_st.first;
+	npts = r_st.npts;
+	supported = r_st.supported;
+	pairs = pairs_a.ptr();
+	pair_touch = pair_touch_a.ptr();
+	centre = r_st.centre;
+	pos = r_st.pos;
+	calm.bind(r_st.calm);
+	still_ticks.bind(r_st.still_ticks);
+	rest_anchor.bind(r_st.rest_anchor);
+	pile.bind(r_st.pile);
+	drift.bind(r_st.drift);
+	prev.bind(r_st.prev);
 	return true;
 }
 
@@ -212,6 +247,14 @@ void RestState::store(Object *p_bodies) const {
 	drift.store(p_bodies, "_drift");
 	prev.store(p_bodies, "prev");
 }
+
+// rest_piles' union-find and its groups short of REST_TICKS, reused from
+// call to call (the simulation runs on one thread).
+struct RestScratch {
+	std::vector<int32_t> root;
+	std::vector<uint8_t> is_short;
+};
+RestScratch rest_scratch;
 
 // SlimeBodies._find: the root of `s` in the union-find `root`, halving the
 // path on the way.
@@ -229,7 +272,8 @@ int32_t find_root(int32_t *root, int32_t s) {
 // ascending id order, so the root, the group's lowest index, holds it).
 void rest_piles(RestState &st) {
 	const int64_t n = st.n;
-	std::vector<int32_t> root_v(n);
+	std::vector<int32_t> &root_v = rest_scratch.root;
+	root_v.resize(size_t(n));
 	int32_t *root = root_v.data();
 	for (int64_t s = 0; s < n; s++) {
 		root[s] = int32_t(s);
@@ -251,7 +295,8 @@ void rest_piles(RestState &st) {
 		}
 	}
 	// A group rests when none of its members is short of REST_TICKS.
-	std::vector<uint8_t> short_v(n, 0);
+	std::vector<uint8_t> &short_v = rest_scratch.is_short;
+	short_v.assign(size_t(n), 0);
 	for (int64_t s = 0; s < n; s++) {
 		if (calm[s] == ACTIVE && st.can_rest(s) && st.still_ticks.r[s] < REST_TICKS) {
 			short_v[find_root(root, int32_t(s))] = 1;
@@ -279,25 +324,16 @@ void rest_piles(RestState &st) {
 	}
 }
 
-} // namespace
-
-// SlimeBodies._rest, after the tick: the local wake, the still counts, and
-// the groups that come to rest (see the file header). `p_h` is the substep
-// length (SlimeBodies._h), which turns WAKE_SPEED into a drift per substep.
-// rest_enabled off: every slime wakes (no slime rests).
-// @spec-link [[req_offscreen_simulation]]
-bool SlimeSolver::rest(Object *p_bodies, double p_h) {
-	RestState st;
-	if (!st.load(p_bodies)) {
-		return false;
-	}
+// The pass on `st` once read (see the file header): the local wake, the
+// still counts, the groups that come to rest. rest_enabled off: every slime
+// wakes (no slime rests).
+void run_rest(RestState &st, double p_h) {
 	const int64_t n = st.n;
 	if (!st.rest_enabled) {
 		for (int64_t s = 0; s < n; s++) {
 			st.wake_at(s);
 		}
-		st.store(p_bodies);
-		return true;
+		return;
 	}
 	const double drift2 = REST_DRIFT * REST_DRIFT;
 	const double fast2 = WAKE_SPEED * p_h * WAKE_SPEED * p_h;
@@ -336,7 +372,32 @@ bool SlimeSolver::rest(Object *p_bodies, double p_h) {
 	if (ready) {
 		rest_piles(st);
 	}
+}
+
+} // namespace
+
+// SlimeBodies._rest, after the tick: the local wake, the still counts, and
+// the groups that come to rest (see the file header). `p_h` is the substep
+// length (SlimeBodies._h), which turns WAKE_SPEED into a drift per substep.
+// rest_enabled off: every slime wakes (no slime rests).
+// @spec-link [[req_offscreen_simulation]]
+bool SlimeSolver::rest(Object *p_bodies, double p_h) {
+	RestState st;
+	if (!st.load(p_bodies)) {
+		return false;
+	}
+	run_rest(st, p_h);
 	st.store(p_bodies);
+	return true;
+}
+
+// The rest pass on a whole tick's state (solver_passes.h).
+bool rest_state(SolverState &r_st, double p_h) {
+	RestState st;
+	if (!st.bind(r_st)) {
+		return false;
+	}
+	run_rest(st, p_h);
 	return true;
 }
 

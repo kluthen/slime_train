@@ -28,24 +28,12 @@
 #include <godot_cpp/variant/string_name.hpp>
 #include <godot_cpp/variant/variant.hpp>
 
+#include "solver_passes.h"
 #include "solver_state.h"
 
 namespace godot {
 
 namespace {
-
-// The field `p_name` of `p_bodies` into `r_value`, which must be of `p_type`;
-// prints an error and returns false otherwise.
-bool integrate_fetch(Object *p_bodies, const char *p_name, Variant::Type p_type, Variant &r_value) {
-	r_value = p_bodies->get(StringName(p_name));
-	if (r_value.get_type() != p_type) {
-		ERR_PRINT(String("SlimeSolver.integrate: SlimeBodies.") + p_name + " is " +
-				Variant::get_type_name(r_value.get_type()) + ", expected " + Variant::get_type_name(p_type) +
-				" (see check_schema).");
-		return false;
-	}
-	return true;
-}
 
 // The pass on raw arrays (see the file header). `p_pos` and `p_prev` may be
 // null when no slime is ACTIVE and awake (they are then only read through
@@ -105,12 +93,22 @@ void integrate_slimes(int64_t p_count, const int32_t *p_first, const int32_t *p_
 
 } // namespace
 
+// The pass on a whole tick's state (solver_passes.h): every array already
+// writable, so pos, prev and centre are read and written in place.
+void integrate_state(SolverState &r_st, double p_h) {
+	integrate_slimes(r_st.slime_count, r_st.first, r_st.npts, r_st.state, r_st.calm, r_st.pos, r_st.pos, r_st.prev,
+			r_st.centre, r_st.centre, r_st.angle0, r_st.drift, r_st.gravity, r_st.free_down, p_h, r_st.internal_damping,
+			r_st.air_drag, r_st.max_speed);
+}
+
+// SlimeBodies._integrate(h) on its own: reads the fields it needs, writes
+// back what changed (see the file header).
 bool SlimeSolver::integrate(Object *p_bodies, double p_h) {
 	using namespace slime_const;
 	ERR_FAIL_NULL_V_MSG(p_bodies, false, "SlimeSolver.integrate: null bodies.");
 	Variant v;
 #define INTEGRATE_FETCH(m_name, m_type, m_target) \
-	if (!integrate_fetch(p_bodies, m_name, Variant::m_type, v)) { \
+	if (!solver_fetch(p_bodies, "SlimeSolver.integrate", "SlimeBodies", m_name, Variant::m_type, v)) { \
 		return false; \
 	} \
 	m_target = v;

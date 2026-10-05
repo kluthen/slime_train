@@ -8,11 +8,12 @@ now, for headroom (D158). This document covers why it was measured, how the
 extension is built, loaded and chosen, how to test it, and how the port is
 done.
 
-Where the port stands (unit U0b): the toolchain, the loading, the tick
-switch and the fallback are in place. The native solver, `SlimeSolver`,
-reads and writes a `SlimeBodies` (the marshalling) and checks it can; its
-passes are stubs that return false, so every pass still runs in GDScript and
-the results are the GDScript tick's, bit for bit.
+Where the port stands (unit U6): the native solver, `SlimeSolver`, runs the
+whole solver part of a tick in one call (`step`), on the five passes ported
+line for line (units U1 to U5). It reads and writes a `SlimeBodies` (the
+marshalling) and checks it can. On the desktop its results are the GDScript
+tick's, bit for bit (the same state hashes). The GDScript tick stays as the
+fallback, per tick and per pass.
 
 ## Why it was measured
 
@@ -52,7 +53,8 @@ See `specs/decisions.md` and "Simulation performance" in
 | `native/slime_native/` | The extension's sources: `SConstruct` and `src/` |
 | `native/slime_native/src/slime_solver.{h,cpp}` | `SlimeSolver`, the native solver: `step`, the passes, `check_schema`, `probe_marshal` |
 | `native/slime_native/src/solver_state.{h,cpp}` | The marshalling: the schema (the fields and constants the solver relies on), `SolverState` (`load`, `store`) |
-| `native/slime_native/src/solver_*.cpp` | One pass per file: `solver_integrate`, `solver_contacts` (the pair grid and the contacts), `solver_rings`, `solver_terrain` (with the doors), `solver_rest` (with the local wake) |
+| `native/slime_native/src/solver_*.cpp` | One pass per file: `solver_integrate`, `solver_pairs` (the pair grid), `solver_contacts`, `solver_rings`, `solver_terrain` (with the doors), `solver_rest` (with the local wake) |
+| `native/slime_native/src/solver_passes.h` | The passes as `step` runs them, on one `SolverState` for the whole tick; the one-pass methods share the same code |
 | `native/slime_native/src/slime_native.{h,cpp}` | `SlimeNative`, the toolchain check (the build's name, the multiply-add probe) |
 | `native/.gdignore` | Keeps Godot from scanning `native/` (sources, objects, the godot-cpp checkout) |
 | `addons/slime_native/slime_native.gdextension` | The extension's descriptor: entry symbol and one library per platform; Godot registers it at startup |
@@ -62,6 +64,8 @@ See `specs/decisions.md` and "Simulation performance" in
 | `tests/unit/test_native_extension.gd`, `tests/unit/native_check.{gd,tscn}` | The toolchain test, and `native_check`, which prints a report (in the default suite) |
 | `tests/unit/test_native_solver.gd`, `tests/unit/test_tick_choice.gd` | The solver's boundary, the tick switch |
 | `tests/unit/native_equivalence_support.gd`, `tests/unit/native_equivalence_scenes.gd` | The equivalence harness: one pass, GDScript against native, on copies of five scenes (see "Testing") |
+| `tests/unit/test_native_{integrate,contacts,rings,terrain,rest}.gd`, `tests/unit/test_native_step.gd` | Each pass, then `step`, against GDScript (see "Testing") |
+| `tests/e2e/test_tick_cross_load_e2e.gd` | Saves crossing the ticks (see "Testing") |
 
 ## godot-cpp version
 
@@ -179,15 +183,75 @@ the build and the extension (tested in `tests/unit/test_tick_choice.gd`);
   `SlimeSolver.check_schema()` finds a field or constant it can't rely on;
   the GDScript tick then runs on.
 - **The dispatch.** `SlimeBodies.tick()` runs the hops and the support
-  reset in GDScript, then calls `SlimeSolver.step(bodies, h)`: true, the
-  native solver ran the whole solver part of the tick. False, the passes run
-  one by one (`_solve`, `_solve_iteration`), and each native pass that
-  returns false (`integrate`, `build_pairs`, `solve_contacts`,
-  `solve_rings`, `solve_terrain`, `rest`) is replaced by its GDScript pass.
-  With the debug phase timers on, a native terrain pass is timed as
-  `terrain` (doors included), and a native `step` isn't timed pass by pass.
+  reset in GDScript, then calls `SlimeSolver.step(bodies, h)` (see "One
+  call per tick"): true, the native solver ran the whole solver part of the
+  tick. False, the passes run one by one (`_solve`, `_solve_iteration`),
+  and each native pass that returns false (`integrate`, `build_pairs`,
+  `solve_contacts`, `solve_rings`, `solve_terrain`, `rest`) is replaced by
+  its GDScript pass.
+- **The fallback per tick and per pass.** `step` and every one-pass method
+  return false, with an error, before anything reaches the bodies, when
+  they can't read them: a field missing or of another type, sizes that
+  don't agree, a point range outside the points, a centre that isn't
+  finite, a pair that isn't two slimes, an empty ring with pairs, an
+  `angle0` out of [-PI, PI], a terrain or door grid that lists what it
+  doesn't have. A refused `step` costs that tick its one call: the tick
+  runs pass by pass, and only the passes that refuse too run in GDScript
+  (`tests/unit/test_native_step.gd` checks a door the solver can't read,
+  far from every slime: the tick is still the GDScript tick, exactly).
+- **The phase timers** (debug, `src/debug/phase_timers.gd`). On the native
+  tick a tick is timed as `auto_hops`, `tick_other` (the support reset) and
+  `native` (`step`, every solver pass in one call): the passes inside it
+  aren't timed one by one. `native` counts as solver (`SOLVER_PHASES`). On
+  the GDScript tick, and when `step` falls back, the passes are timed one
+  by one as before (a native terrain pass as `terrain`, doors included).
 - **Saves.** The solver keeps no state between calls (only scratch), and no
   save says which tick wrote it: a save loads and runs on under either tick.
+
+## One call per tick: `step`
+
+`SlimeSolver.step(bodies, h)` is `SlimeBodies._solve` in one call, in its
+order: `substeps` times integrate, the pair grid on the first substep, then
+`iterations` times the contacts, the rings and the terrain (the shut doors
+included); then `_centre_ok` cleared, the rest pass with the local wake, and
+the touching list.
+
+- **One read, one write.** `SolverState::load` reads every field once and
+  takes a writable copy of each read-write array (one copy each, see "The
+  marshalling"); the terrain and the doors are read once
+  (`read_terrain_pieces`: a door can't open or shut within a tick). The
+  passes run on that state in place, and `store` writes every read-write
+  array back once at the end. Nothing is written before then, so a pass
+  that fails halfway leaves the bodies as they were.
+- **One implementation per pass.** `solver_passes.h` declares the passes on
+  a whole tick's state (`integrate_state`, `build_pairs_state`,
+  `contacts_state`, `rings_state`, `terrain_state`, `rest_state`); each is
+  the same code as its one-pass method (`integrate`, `build_pairs`, ...),
+  which reads only the fields it needs and writes back only what it
+  changes. The equivalence tests check the one-pass methods, and
+  `test_native_step.gd` checks `step` as a whole.
+- **No per-tick allocation beyond scratch.** The pair grid, the door boxes
+  and the rest pass's union-find are file-level scratch, reused from tick
+  to tick (the simulation runs on one thread). Each tick allocates only the
+  copies of the arrays it writes (copy-on-write) and the new `_pairs` and
+  `_pair_touch`.
+- **The touching list is built natively,** in `step`, after the last pass
+  that can fail: `Vector2i(id a, id b)` for every pair whose `_pair_touch`
+  is set, in pair order, written into the bodies' own `_touching` Array (an
+  Array is shared, not copied: resized only when the count changes). It is
+  the list `_solve` builds, element for element (the rest pass changes
+  neither the pairs nor the ids, so building it after the rest pass gives
+  the same list). Native, so that no GDScript loop over the pairs is left in
+  a native tick; `test_native_step.gd` compares it with `_solve`'s at every
+  tick.
+- **The centre cache.** `step` clears `_centre_ok` (every point moved), as
+  `_solve` does, and leaves `_centre_cache` as it is: GDScript's
+  `centre_of()` refills an entry the first time it is read after a tick, so
+  the cache ends every tick exactly as the GDScript tick leaves it.
+- **Spec links.** `step` carries the atoms of the passes it runs
+  (`req_tilt_input`, `req_slime_states`, `req_waking_sleepers`,
+  `req_offscreen_simulation`); `tick()` and `_solve()` carry none of their
+  own.
 
 ## The marshalling (the copy-on-write boundary)
 
@@ -233,10 +297,19 @@ tests fail, instead of the solver reading an empty array.
 ## Testing
 
 ```sh
-tools/test.sh                         # the whole suite, on the native tick
+tools/test.sh                         # the whole suite on the native tick, then the
+                                      # slime tests on the GDScript tick (second pass)
 SLIME_TICK=gdscript tools/test.sh     # the whole suite, on the GDScript tick
 tools/build_native.sh --test          # Linux debug build, then test_native_*
 ```
+
+- **The second pass.** After the whole suite on the native tick,
+  `tools/test.sh` runs the slime tests again on the GDScript tick
+  (`SLIME_TICK=gdscript`, `-gselect=test_slime_`, the other arguments
+  kept), so the fallback keeps its own tests. Not after a selection
+  (`-gselect`, `-gtest`, `-gunit_test_name`, `-ginner_class`, `-gdir`), nor
+  when the first pass ran on the GDScript tick. The exit code is the first
+  failing pass's.
 
 `tools/test.sh` sets `SLIME_TICK=native` unless the environment says
 otherwise, builds the Linux debug library when it is missing or older than
@@ -253,11 +326,25 @@ tests are then pending if it is missing.
   `check_schema` passing on `SlimeBodies` (with a terrain, a door, none) and
   failing on a renamed field, a renamed or changed constant, a retyped
   field and a door of another class (scripts made from `slime_bodies.gd`'s
-  source with one change); `use_native` on, off and refused; the stub
-  passes falling back (native on and off, 240 ticks: the same arrays and
-  dump).
+  source with one change); `use_native` on, off and refused; the native
+  tick against the GDScript tick (240 ticks, a door shut: the same arrays
+  and dump, bit for bit).
+- `test_native_step.gd`: `step` against `_solve` on every scene of the
+  harness for 30 consecutive ticks, each copy run on its own (the
+  trajectories), every field exact (the touching list and the cleared
+  centre cache included, the caches filled before each tick); two native
+  runs bit-equal; bodies it can't read refused before any write (a short
+  array; a NaN point, refused by the pair grid after integrate ran); the
+  per-tick fallback (see "The tick switch and the fallback").
+- `tests/e2e/test_tick_cross_load_e2e.gd`: `s3-basket-59of60` and
+  `gate2-open`, run 120 ticks on one tick and saved through the save's
+  text, each save loaded under the other tick and run 600 ticks: no NaN,
+  the same slimes at the load (ids, species, sizes, states), the
+  population kept (per species, counted by size), every centre within the
+  terrain's grid; and a save loaded twice under the same tick runs to the
+  same hash, on each tick.
 - The equivalence harness (`native_equivalence_support.gd`, not a test
-  script), for the pass-by-pass tests (units U1 to U5): a copy of a scene
+  script), for the pass-by-pass tests (units U1 to U5) and `step`'s: a copy of a scene
   brought in GDScript to the moment of a tick when a pass runs
   (`prepared(scene, phase, substep, iteration)`), then the GDScript pass on
   one copy and the native one on another (`check`), every field of
@@ -296,15 +383,16 @@ uses `-O3` for release).
   instruction set has no FMA. The phone check below is what proves it on
   arm64.
 
-**Caveat: the native tick won't match the GDScript tick bit for bit.**
+**Caveat: bit for bit with GDScript only on the same C library.**
 GDScript mixes precisions (`float` is a double, `Vector2` components are
-32-bit, so is `PackedFloat32Array`), and a C++ port won't round at
-exactly the same places. Its `atan2`, `sin` and `cos` also come from the C
-library (glibc on Linux, bionic on Android), whose last bits can differ. So
-state hashes compare within one build: the same library gives the same run
-every time, which is what the end-to-end tests need. Golden hashes recorded
-with the GDScript tick have to be recorded again after the port, and a
-Linux hash isn't expected to equal an Android one. The flags above keep
+32-bit, so is `PackedFloat32Array`); the port follows the same split
+operation by operation, so on the desktop the native tick gives the
+GDScript tick's state, bit for bit (the same hashes for every fixture).
+Its `atan2` still comes from the C library (glibc on Linux, bionic on
+Android), as GDScript's does, and its last bits can differ from one
+library to another. So state hashes compare within one build: the
+same library gives the same run every time, which is what the end-to-end
+tests need, and a Linux hash isn't expected to equal an Android one. The flags above keep
 basic arithmetic and `sqrt` identical across builds; cross-platform
 equality would also need our own `atan2`, `sin` and `cos`.
 

@@ -3,8 +3,8 @@ extends GutTest
 ## it reads and writes a SlimeBodies' arrays by name (a write reaches the
 ## GDScript arrays), it checks it can (check_schema), and SlimeBodies runs
 ## its GDScript pass wherever a native pass doesn't run (use_native). The
-## passes are stubs for now, so the native tick gives the GDScript results.
-## Pending when the run asked for the GDScript tick without the extension
+## native tick (SlimeSolver.step) gives the GDScript tick's results, bit for
+## bit on the desktop. Pending when the run asked for the GDScript tick without the extension
 ## (SLIME_TICK=gdscript); failing otherwise.
 
 const Support := preload("res://tests/unit/slime_test_support.gd")
@@ -139,9 +139,11 @@ func test_use_native_refuses_bodies_the_solver_cant_read() -> void:
 	assert_false(renamed.uses_native(), "the GDScript tick runs on")
 
 
-## While the native passes are stubs, every pass falls back to GDScript: the
-## native tick and the GDScript tick give the same state, bit for bit.
-func test_stub_passes_fall_back_to_gdscript() -> void:
+## The native tick (one SlimeSolver.step per tick) and the GDScript tick
+## give the same state over 240 ticks, bit for bit (a door shut, a sleeper):
+## every native pass is a line-for-line port, with the same float32/double
+## split, compiled without fused multiply-adds (docs/dev/native.md).
+func test_the_native_tick_gives_the_gdscript_tick_bit_for_bit() -> void:
 	if _solver_or_fail() == null:
 		return
 	var on := _scene(7)

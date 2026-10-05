@@ -83,8 +83,10 @@ const STATE_NAMES: PackedStringArray = ["sleeper", "train", "free", "bedtime_asl
 ## first substep); slime contacts; rings; the terrain pass and the door
 ## passes (_solve_terrain); the touching list and the rest pass (REST: _rest,
 ## _rest_piles, the local wake); TICK_OTHER, the rest of tick() (the
-## support reset, the centre cache cleared).
-enum TickPhase { AUTO_HOPS, INTEGRATE, PAIRS, CONTACTS, RINGS, TERRAIN, DOORS, REST, TICK_OTHER }
+## support reset, the centre cache cleared); NATIVE, the native solver's
+## step() (SlimeSolver.step: every solver pass of the tick in one call, so
+## on the native tick the passes before it aren't timed one by one).
+enum TickPhase { AUTO_HOPS, INTEGRATE, PAIRS, CONTACTS, RINGS, TERRAIN, DOORS, REST, TICK_OTHER, NATIVE }
 
 const MAX_SIZE := 3
 ## Ring points per size (index 0 unused).
@@ -914,8 +916,10 @@ func set_active_detail(level: int) -> int:
 ## the debug phase timers on (`phases`), each pass (TickPhase) is timed as it
 ## ends. The hops and the support reset run here in GDScript; the solver
 ## passes run on the native solver when there is one (use_native): the whole
-## of them in one call (SlimeSolver.step), else pass by pass, each falling
-## back to its GDScript pass when the native one doesn't run (_solve).
+## of them in one call (SlimeSolver.step, timed as NATIVE), else pass by
+## pass, each falling back to its GDScript pass when the native one doesn't
+## run (_solve). step() builds the touching list and clears the centre
+## cache itself, as _solve does.
 func tick(dt: float) -> void:
 	var ph = phases
 	if ph != null:
@@ -933,8 +937,11 @@ func tick(dt: float) -> void:
 			supported[s] = 0
 	if ph != null:
 		ph.lap(TickPhase.TICK_OTHER)
-	# The native step isn't timed pass by pass.
-	if _solver == null or not _solver.step(self, _h):
+	# The native step isn't timed pass by pass: one lap for the whole of it.
+	if _solver != null and _solver.step(self, _h):
+		if ph != null:
+			ph.lap(TickPhase.NATIVE)
+	else:
 		_solve(ph)
 
 

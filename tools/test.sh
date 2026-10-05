@@ -13,6 +13,13 @@
 # run fails when it can't be built: it never falls back to the GDScript tick
 # on its own. SLIME_TICK=gdscript runs the suite on the GDScript tick, and
 # needs no library (the native tests are then pending if it is missing).
+#
+# The GDScript tick keeps its own tests: after the whole suite on the native
+# tick, a second pass runs the slime tests again on the GDScript tick
+# (SLIME_TICK=gdscript, -gselect=test_slime_, the other arguments kept).
+# Not after a selection (an argument -gselect, -gtest, -gunit_test_name,
+# -ginner_class or -gdir), nor when the first pass ran on the GDScript tick.
+# The exit code is the first failing pass's.
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
@@ -49,14 +56,38 @@ fi
 # really ran. GUT can quit early with code 0 (nothing matched a selection, for
 # example); a missing marker turns that into a failure.
 marker="$(mktemp)"
-rm -f "$marker"
 trap 'rm -f "$marker"' EXIT
 
-SLIME_TEST_MARKER="$marker" "$GODOT" --headless -s res://addons/gut/gut_cmdln.gd "$@"
+# One GUT run with the arguments given: its exit code, 3 when GUT quit
+# without running the suite.
+run_gut() {
+	rm -f "$marker"
+	SLIME_TEST_MARKER="$marker" "$GODOT" --headless -s res://addons/gut/gut_cmdln.gd "$@"
+	local code=$?
+	if [ "$code" -eq 0 ] && [ ! -f "$marker" ]; then
+		echo "tools/test.sh: GUT exited without running the suite." >&2
+		return 3
+	fi
+	return "$code"
+}
+
+selected=false
+for arg in "$@"; do
+	case "$arg" in
+	-gselect=* | -gtest=* | -gunit_test_name=* | -ginner_class=* | -gdir=*) selected=true ;;
+	esac
+done
+
+run_gut "$@"
 status=$?
 
-if [ "$status" -eq 0 ] && [ ! -f "$marker" ]; then
-	echo "tools/test.sh: GUT exited without running the suite." >&2
-	exit 3
+if [ "$SLIME_TICK" != gdscript ] && ! $selected; then
+	echo "tools/test.sh: second pass, the slime tests on the GDScript tick (SLIME_TICK=gdscript -gselect=test_slime_)."
+	export SLIME_TICK=gdscript
+	run_gut "$@" -gselect=test_slime_
+	second=$?
+	if [ "$status" -eq 0 ]; then
+		status=$second
+	fi
 fi
 exit "$status"

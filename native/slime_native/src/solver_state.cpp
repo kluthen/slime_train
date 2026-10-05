@@ -134,19 +134,18 @@ void check_terrain(const Variant &p_value, const String &p_prefix, PackedStringA
 	check_fields(piece, TERRAIN_FIELDS, TERRAIN_FIELD_COUNT, p_prefix + String("."), r_problems);
 }
 
-// The field `p_name` of `p_bodies`, which must be of `p_type`; prints an
-// error and returns false otherwise.
-bool fetch(Object *p_bodies, const char *p_name, Variant::Type p_type, Variant &r_value) {
-	r_value = p_bodies->get(StringName(p_name));
+} // namespace
+
+bool solver_fetch(Object *p_object, const char *p_where, const char *p_what, const char *p_name, Variant::Type p_type,
+		Variant &r_value) {
+	r_value = p_object->get(StringName(p_name));
 	if (r_value.get_type() != p_type) {
-		ERR_PRINT(String("SlimeSolver: SlimeBodies.") + p_name + " is " + Variant::get_type_name(r_value.get_type()) +
+		ERR_PRINT(String(p_where) + ": " + p_what + "." + p_name + " is " + Variant::get_type_name(r_value.get_type()) +
 				", expected " + Variant::get_type_name(p_type) + " (see check_schema).");
 		return false;
 	}
 	return true;
 }
-
-} // namespace
 
 PackedStringArray solver_schema_problems(Object *p_bodies) {
 	PackedStringArray problems;
@@ -185,7 +184,7 @@ bool SolverState::load(Object *p_bodies) {
 	ERR_FAIL_NULL_V_MSG(p_bodies, false, "SlimeSolver: null bodies.");
 	Variant v;
 #define SOLVER_FETCH(m_name, m_type, m_target) \
-	if (!fetch(p_bodies, m_name, Variant::m_type, v)) { \
+	if (!solver_fetch(p_bodies, "SlimeSolver", "SlimeBodies", m_name, Variant::m_type, v)) { \
 		return false; \
 	} \
 	m_target = v;
@@ -231,6 +230,7 @@ bool SolverState::load(Object *p_bodies) {
 #undef SOLVER_FETCH
 	// The terrain may be null (no terrain).
 	v = p_bodies->get(StringName("terrain"));
+	terrain_value = v;
 	if (v.get_type() == Variant::NIL) {
 		terrain = nullptr;
 	} else if (v.get_type() == Variant::OBJECT) {

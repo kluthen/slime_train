@@ -32,50 +32,12 @@
 #include <godot_cpp/variant/string_name.hpp>
 #include <godot_cpp/variant/variant.hpp>
 
+#include "solver_passes.h"
 #include "solver_state.h"
 
 namespace godot {
 
 namespace {
-
-// One TerrainSegments (the terrain or a door), read for one call.
-struct TerrainPiece {
-	PackedVector2Array seg_a_a, seg_d_a, seg_n_a, seg_na_a, seg_nb_a;
-	PackedFloat32Array seg_inv_len2_a;
-	PackedInt32Array cell_start_a, cell_items_a;
-	const Vector2 *seg_a = nullptr;
-	const Vector2 *seg_d = nullptr;
-	const Vector2 *seg_n = nullptr;
-	const Vector2 *seg_na = nullptr;
-	const Vector2 *seg_nb = nullptr;
-	const float *seg_inv_len2 = nullptr;
-	const int32_t *cell_start = nullptr;
-	const int32_t *cell_items = nullptr;
-	double ox = 0.0;
-	double oy = 0.0;
-	double inv = 0.0;
-	int64_t gw = 0;
-	int64_t gh = 0;
-	// The sizes the pass checks its reads against (a cell's range of
-	// items, an item's segment): checked as read, not up front, so a call
-	// costs nothing per cell of the grid.
-	int64_t segments = 0;
-	int64_t items = 0;
-	bool empty = true;
-};
-
-// The field `p_name` of `p_object` as `p_type`; false, with an error, when
-// it isn't.
-bool fetch_field(Object *p_object, const char *p_what, const char *p_name, Variant::Type p_type, Variant &r_value) {
-	r_value = p_object->get(StringName(p_name));
-	if (r_value.get_type() != p_type) {
-		ERR_PRINT(String("SlimeSolver.solve_terrain: ") + p_what + "." + p_name + " is " +
-				Variant::get_type_name(r_value.get_type()) + ", expected " + Variant::get_type_name(p_type) +
-				" (see check_schema).");
-		return false;
-	}
-	return true;
-}
 
 // Reads the TerrainSegments `p_value` (null: an empty piece). False, with an
 // error, when a field is missing or the arrays don't agree; the GDScript
@@ -93,7 +55,7 @@ bool read_piece(const Variant &p_value, const char *p_what, TerrainPiece &r_piec
 	}
 	Variant v;
 #define TERRAIN_FETCH(m_name, m_type, m_target) \
-	if (!fetch_field(tf, p_what, m_name, Variant::m_type, v)) { \
+	if (!solver_fetch(tf, "SlimeSolver.solve_terrain", p_what, m_name, Variant::m_type, v)) { \
 		return false; \
 	} \
 	m_target = v;
@@ -300,12 +262,75 @@ bool solve_against(TerrainBodies &b, const TerrainPiece &tf, bool p_measure, boo
 	return true;
 }
 
-// The field `p_name` of the SlimeBodies as `p_type`.
-bool fetch_bodies(Object *p_bodies, const char *p_name, Variant::Type p_type, Variant &r_value) {
-	return fetch_field(p_bodies, "SlimeBodies", p_name, p_type, r_value);
+// The terrain pass, then one pass per shut door (see
+// SlimeSolver::solve_terrain), on `b` against `p_pieces` (not empty). False
+// when a piece's grid can't be read.
+bool terrain_passes(TerrainBodies &b, const TerrainPieces &p_pieces) {
+	const bool door_shut = !p_pieces.shut.empty();
+	if (door_shut) {
+		const size_t n = size_t(b.slime_count);
+		if (box_scratch.size() < 2 * n) {
+			box_scratch.resize(2 * n);
+		}
+		b.box_lo = box_scratch.data();
+		b.box_hi = box_scratch.data() + n;
+	}
+	bool measured = false;
+	if (!p_pieces.terrain.empty) {
+		if (!solve_against(b, p_pieces.terrain, door_shut, false)) {
+			return false;
+		}
+		measured = door_shut;
+	}
+	for (const TerrainPiece &door : p_pieces.shut) {
+		if (!solve_against(b, door, !measured, measured)) {
+			return false;
+		}
+		measured = true;
+	}
+	return true;
 }
 
 } // namespace
+
+bool read_terrain_pieces(const Variant &p_terrain, const Array &p_doors, TerrainPieces &r_pieces) {
+	r_pieces.shut.clear();
+	if (!read_piece(p_terrain, "terrain", r_pieces.terrain)) {
+		return false;
+	}
+	const int64_t door_count = p_doors.size();
+	r_pieces.shut.reserve(door_count);
+	for (int64_t k = 0; k < door_count; k++) {
+		TerrainPiece door;
+		if (!read_piece(p_doors[k], "a door", door)) {
+			return false;
+		}
+		if (!door.empty) {
+			r_pieces.shut.push_back(std::move(door));
+		}
+	}
+	return true;
+}
+
+// The terrain contacts on a whole tick's state (solver_passes.h), against
+// the pieces step() read once for the tick.
+bool terrain_state(SolverState &r_st, const TerrainPieces &p_pieces) {
+	if (p_pieces.empty()) {
+		return true;
+	}
+	TerrainBodies b;
+	b.slime_count = r_st.slime_count;
+	b.first = r_st.first;
+	b.npts = r_st.npts;
+	b.state = r_st.state;
+	b.calm = r_st.calm;
+	b.keep = 1.0 - r_st.terrain_friction;
+	b.skin = r_st.terrain_skin;
+	b.pos = r_st.pos;
+	b.prev = r_st.prev;
+	b.supported = r_st.supported;
+	return terrain_passes(b, p_pieces);
+}
 
 // SlimeBodies._solve_terrain: the terrain pass, then one pass per shut door
 // (a door with segments). The first pass (the terrain's, else the first
@@ -322,7 +347,7 @@ bool SlimeSolver::solve_terrain(Object *p_bodies) {
 	double terrain_skin = 0.0;
 	Array doors;
 #define BODIES_FETCH(m_name, m_type, m_target) \
-	if (!fetch_bodies(p_bodies, m_name, Variant::m_type, v)) { \
+	if (!solver_fetch(p_bodies, "SlimeSolver.solve_terrain", "SlimeBodies", m_name, Variant::m_type, v)) { \
 		return false; \
 	} \
 	m_target = v;
@@ -339,24 +364,11 @@ bool SlimeSolver::solve_terrain(Object *p_bodies) {
 	BODIES_FETCH("doors", ARRAY, doors)
 #undef BODIES_FETCH
 
-	TerrainPiece terrain;
-	if (!read_piece(p_bodies->get(StringName("terrain")), "terrain", terrain)) {
+	TerrainPieces pieces;
+	if (!read_terrain_pieces(p_bodies->get(StringName("terrain")), doors, pieces)) {
 		return false;
 	}
-	// The doors with segments, in order (the empty and null ones do nothing).
-	const int64_t door_count = doors.size();
-	std::vector<TerrainPiece> shut;
-	shut.reserve(door_count);
-	for (int64_t k = 0; k < door_count; k++) {
-		TerrainPiece door;
-		if (!read_piece(doors[k], "a door", door)) {
-			return false;
-		}
-		if (!door.empty) {
-			shut.push_back(std::move(door));
-		}
-	}
-	if (terrain.empty && shut.empty()) {
+	if (pieces.empty()) {
 		// Nothing to collide with: nothing changes (as in GDScript).
 		return true;
 	}
@@ -382,27 +394,8 @@ bool SlimeSolver::solve_terrain(Object *p_bodies) {
 	b.pos = pos_a.ptrw();
 	b.prev = prev_a.ptrw();
 	b.supported = supported_a.ptrw();
-	const bool door_shut = !shut.empty();
-	if (door_shut) {
-		if (box_scratch.size() < size_t(2 * n)) {
-			box_scratch.resize(size_t(2 * n));
-		}
-		b.box_lo = box_scratch.data();
-		b.box_hi = box_scratch.data() + n;
-	}
-
-	bool measured = false;
-	if (!terrain.empty) {
-		if (!solve_against(b, terrain, door_shut, false)) {
-			return false;
-		}
-		measured = door_shut;
-	}
-	for (const TerrainPiece &door : shut) {
-		if (!solve_against(b, door, !measured, measured)) {
-			return false;
-		}
-		measured = true;
+	if (!terrain_passes(b, pieces)) {
+		return false;
 	}
 
 	p_bodies->set(StringName("pos"), pos_a);

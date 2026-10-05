@@ -18,9 +18,13 @@ namespace godot {
 // scripts parse without the extension (src/sim/tick_choice.gd picks the
 // tick).
 //
-// Every pass returns true when it ran natively and false when it didn't, and
-// SlimeBodies.tick() then runs its GDScript pass instead. The passes are
-// stubs for now: they all return false.
+// SlimeBodies.tick() calls step(), the whole solver part of the tick in one
+// call. It and every one-pass method return true when they ran natively and
+// false, with an error and before writing anything, when they can't read
+// the bodies: tick() then runs the passes one by one (SlimeBodies._solve),
+// each native pass that returns false replaced by its GDScript pass. The
+// one-pass methods share step()'s passes (solver_passes.h); the equivalence
+// tests check each of them against its GDScript pass.
 class SlimeSolver : public RefCounted {
 	GDCLASS(SlimeSolver, RefCounted)
 
@@ -29,8 +33,10 @@ protected:
 
 public:
 	// The whole solver part of one tick (substeps: integrate, the pair grid on
-	// the first, iterations of contacts, rings and terrain; then the touching
-	// list and the rest pass), with substep length `p_h` in seconds.
+	// the first, iterations of contacts, rings and terrain; then the centre
+	// cache cleared, the touching list and the rest pass), with substep
+	// length `p_h` in seconds: SlimeBodies._solve in one call, every field
+	// read once and written back once.
 	bool step(Object *p_bodies, double p_h);
 	// One pass each (SlimeBodies' _integrate, _build_pairs, _solve_contacts,
 	// _solve_rings, _solve_terrain with the doors, _rest).

@@ -24,6 +24,7 @@
 
 #include <godot_cpp/core/error_macros.hpp>
 
+#include "solver_passes.h"
 #include "solver_state.h"
 
 namespace godot {
@@ -154,20 +155,24 @@ void solve_rings_on(const RingsInput &p_in, Vector2 *p_pos) {
 	}
 }
 
-// The field `p_name` of `p_bodies` into `r_value`, which must be of
-// `p_type`; prints an error and returns false otherwise.
-bool fetch_field(Object *p_bodies, const char *p_name, Variant::Type p_type, Variant &r_value) {
-	r_value = p_bodies->get(StringName(p_name));
-	if (r_value.get_type() != p_type) {
-		ERR_PRINT(String("SlimeSolver.solve_rings: SlimeBodies.") + p_name + " is " +
-				Variant::get_type_name(r_value.get_type()) + ", expected " + Variant::get_type_name(p_type) +
-				" (see check_schema).");
-		return false;
-	}
-	return true;
-}
-
 } // namespace
+
+// The ring pass on a whole tick's state (solver_passes.h).
+void rings_state(SolverState &r_st) {
+	RingsInput in;
+	in.slime_count = r_st.slime_count;
+	in.first = r_st.first;
+	in.npts = r_st.npts;
+	in.state = r_st.state;
+	in.calm = r_st.calm;
+	in.rest_edge = r_st.rest_edge;
+	in.rest_area = r_st.rest_area;
+	in.rest_off = r_st.rest_off;
+	in.edge_stiffness = r_st.edge_stiffness;
+	in.area_stiffness = r_st.area_stiffness;
+	in.shape_stiffness = r_st.shape_stiffness;
+	solve_rings_on(in, r_st.pos);
+}
 
 // The ring constraints: SlimeBodies._solve_rings() natively. Reads the point
 // ranges, states, calms, rest shapes and stiffnesses, writes the points back.
@@ -183,7 +188,7 @@ bool SlimeSolver::solve_rings(Object *p_bodies) {
 	PackedVector2Array rest_off_a, pos_a;
 	RingsInput in;
 #define RINGS_FETCH(m_name, m_type, m_target) \
-	if (!fetch_field(p_bodies, m_name, Variant::m_type, v)) { \
+	if (!solver_fetch(p_bodies, "SlimeSolver.solve_rings", "SlimeBodies", m_name, Variant::m_type, v)) { \
 		return false; \
 	} \
 	m_target = v;

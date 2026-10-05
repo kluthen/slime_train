@@ -66,6 +66,27 @@ extern const int TERRAIN_FIELD_COUNT;
 extern const SolverConstant BODIES_CONSTANTS[];
 extern const int BODIES_CONSTANT_COUNT;
 
+// The field `p_name` of `p_object` into `r_value`, which must be of `p_type`;
+// prints an error ("<p_where>: <p_what>.<p_name> is <type>, expected
+// <type>", for example p_where "SlimeSolver.integrate" and p_what
+// "SlimeBodies") and returns false otherwise. Every read of the solver goes
+// through it.
+bool solver_fetch(Object *p_object, const char *p_where, const char *p_what, const char *p_name, Variant::Type p_type,
+		Variant &r_value);
+
+// solver_fetch() into a value of the field's type (an int64_t, a double, a
+// packed array...).
+template <typename T>
+bool solver_fetch_as(Object *p_object, const char *p_where, const char *p_what, const char *p_name,
+		Variant::Type p_type, T &r_value) {
+	Variant value;
+	if (!solver_fetch(p_object, p_where, p_what, p_name, p_type, value)) {
+		return false;
+	}
+	r_value = value;
+	return true;
+}
+
 // The problems with `bodies` as the solver's input: a missing field, a field
 // of another type, a missing or changed constant, a terrain or door missing
 // a field. Empty when the solver can read and write it.
@@ -105,8 +126,10 @@ struct SolverState {
 	double terrain_skin = 0.0;
 	double max_speed = 0.0;
 	bool rest_enabled = false;
-	// The TerrainSegments (or null) and the doors (Array of TerrainSegments).
+	// The TerrainSegments (or null) and the doors (Array of TerrainSegments);
+	// `terrain_value` is the terrain as read (a Variant, NIL for none).
 	Object *terrain = nullptr;
+	Variant terrain_value;
 	Array doors;
 
 	// Read and written.
