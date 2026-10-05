@@ -8,9 +8,11 @@
 #                         [--warm-minutes=M] [--period=P] [--no-build]
 #                         [--no-install] [--label=TEXT] [--wipe-save]
 #                         [--phase-timers] [--tick=gdscript|native]
+#                         [--census[=EVERY,UNTIL]]
 #   tools/android/perf.sh --free-play [--minutes=N] [--serial=S] [--period=P]
 #                         [--no-build] [--no-install] [--label=TEXT]
 #                         [--wipe-save] [--phase-timers] [--tick=gdscript|native]
+#                         [--census[=EVERY,UNTIL]]
 #
 #   --serial=S        the device (adb serial); default: the only one attached
 #   --fixture=NAME    fixture mode: a fixture of the test level, played in test
@@ -48,6 +50,14 @@
 #                     only). Default: the game's own choice (native when the
 #                     extension loads). perf.log's header keeps the game's
 #                     TICK line either way
+#   --census[=EVERY,UNTIL]
+#                     the slime census (src/debug/slime_census.gd): a status
+#                     line for every slime every EVERY s of game time until
+#                     UNTIL s (whole seconds; default 10,60: the first
+#                     minute), the game's --census-every=EVERY and
+#                     --census-until=UNTIL added to slime_args. Each census
+#                     freezes the game for a moment. Read them back with
+#                     tools/census.py DIR/logcat.txt (CSVs in DIR/census/)
 #
 # It exports and installs the debug APK, clears logcat, starts the app with
 # the perf log (the launch intent's "slime_args" extra, read by the
@@ -63,6 +73,9 @@
 #                elapsed_s=<s> thermal_status=<n> battery_c=<C>" (dumpsys
 #                thermalservice's status, dumpsys battery's temperature)
 #   summary.txt  the summary printed at the end
+#   census.txt, census/
+#                with --census: tools/census.py's tables (the train front
+#                first, per census) and its CSVs, one per census
 # Ctrl-C (SIGINT) in either mode stops the recording cleanly and summarises
 # what was recorded. The summary comes from the log only
 # (tools/android/perf_summary.py, which can be run again on a saved session:
@@ -117,9 +130,10 @@ label=run
 wipe_save=0
 phase_timers=0
 tick=""
+census=""
 
 usage() {
-	sed -n '7,50p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
+	sed -n '7,60p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
 	exit 2
 }
 
@@ -143,6 +157,8 @@ for arg in "$@"; do
 	--wipe-save) wipe_save=1 ;;
 	--phase-timers) phase_timers=1 ;;
 	--tick=*) tick="${arg#*=}" ;;
+	--census) census=10,60 ;;
+	--census=*) census="${arg#*=}" ;;
 	-h | --help) usage ;;
 	*) fail_args "unknown argument '$arg' (--help lists them)" ;;
 	esac
@@ -164,6 +180,10 @@ else
 	[ "$wipe_save" = 0 ] || [ "$fixture" = none ] || fail_args "--wipe-save is refused with a fixture (here '$fixture'): a fixture run never reads the player's save; use it with --free-play or --fixture=none"
 fi
 [ -z "$tick" ] || [ "$tick" = gdscript ] || [ "$tick" = native ] || fail_args "--tick expects gdscript or native, got '$tick'"
+if [ -n "$census" ]; then
+	[[ "$census" =~ ^([0-9]+),([0-9]+)$ ]] && [ "${BASH_REMATCH[1]}" -gt 0 ] && [ "${BASH_REMATCH[2]}" -gt 0 ] \
+		|| fail_args "--census=EVERY,UNTIL expects two whole numbers of seconds > 0, got '$census'"
+fi
 [[ "$period" =~ ^[0-9]+$ ]] && [ "$period" -gt 0 ] || fail_args "--period expects a whole number of seconds > 0, got '$period'"
 [[ "$thermal_every" =~ ^[0-9]+$ ]] && [ "$thermal_every" -gt 0 ] || fail_args "THERMAL_EVERY expects a whole number of seconds > 0, got '$thermal_every'"
 [[ "$label" =~ ^[A-Za-z0-9._-]+$ ]] || fail_args "--label expects letters, digits, '.', '_' or '-', got '$label'"
@@ -244,6 +264,7 @@ else
 fi
 [ "$phase_timers" = 0 ] || slime_args="$slime_args,--phase-timers"
 [ -z "$tick" ] || slime_args="$slime_args,--tick=$tick"
+[ -z "$census" ] || slime_args="$slime_args,--census-every=${census%,*},--census-until=${census#*,}"
 
 stamp="$(date +%Y%m%d-%H%M%S)"
 out_dir="$root/build/perf/$label-$mode-$stamp"
@@ -486,6 +507,13 @@ if [ "$errors" -gt 0 ]; then
 	} | tee -a "$summary_file"
 fi
 echo "Files: $out_dir/{logcat.txt,perf.log,thermal.log,summary.txt}"
+if [ -n "$census" ]; then
+	if python3 "$root/tools/census.py" "$logcat_file" >"$out_dir/census.txt"; then
+		echo "Census: $(grep -c '^Census ' "$out_dir/census.txt") censuses, tables in $out_dir/census.txt, CSVs in $out_dir/census/"
+	else
+		echo "Census: none found in logcat.txt (tools/census.py $logcat_file)" >&2
+	fi
+fi
 if [ "$failed" = 1 ]; then
 	echo "tools/android/perf.sh: $ended; logcat's last godot lines:" >&2
 	tail -20 "$logcat_file" >&2

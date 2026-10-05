@@ -24,6 +24,9 @@ extends CanvasLayer
 ##   simulation's: the slime under it goes to the start of the loop as a lost
 ##   slime (DebugKill). One use, a tap on no slime, or a click on another
 ##   control disarms it;
+## - Census: one press prints a census of every slime to the log
+##   (SlimeCensus, reason "button"; the game freezes for the moment it
+##   takes) and shows "census: <n> slimes logged";
 ## - the frame rate ("60 fps", Engine.get_frames_per_second(), rounded);
 ## - the "woken / available" counter (DebugCounts, in base slimes);
 ## - the slime counts, "Physics 18 : on screen 12 : in range 30 : parked 63"
@@ -66,6 +69,7 @@ const RESET_CONFIRM_TEXT := "Reset? click again"
 const KILL_TEXT := "Kill"
 const KILL_ARMED_TEXT := "Kill: tap a slime"
 const KILL_ARMED_COLOR := Color(1.0, 0.45, 0.45)
+const CENSUS_TEXT := "Census"
 
 ## Simulated seconds per real second (one of SPEEDS). The game root reads it.
 var speed := 1:
@@ -96,6 +100,7 @@ var speed_buttons := {}
 var reset_button: Button = null
 var labels_button: Button = null
 var kill_button: Button = null
+var census_button: Button = null
 var fps_label: Label = null
 var counter_label: Label = null
 var slimes_label: Label = null
@@ -236,6 +241,22 @@ func kill_at(at: Vector2) -> int:
 	return slime_id
 
 
+## A click on Census: prints a census of the running simulation (reason
+## "button", with test mode's fixture) and shows how many slimes it logged.
+## Disarms the kill tool. Returns that count, or -1 without a simulation.
+func take_census() -> int:
+	arm_kill(false)
+	var sim: Simulation = game.get("simulation") if game != null else null
+	if sim == null:
+		_show("census: no simulation")
+		return -1
+	var test_mode: Variant = game.get("test_mode")
+	var fixture: String = test_mode.fixture_name if test_mode != null else ""
+	var count := SlimeCensus.run(sim, SlimeCensus.BUTTON, fixture)
+	_show("census: %d slimes logged" % count)
+	return count
+
+
 ## A click on Reset at `now_ms`: the first asks, a second within
 ## RESET_CONFIRM_MS resets. Returns whether it reset.
 func press_reset(now_ms: int) -> bool:
@@ -283,7 +304,7 @@ func _buttons() -> Array[Button]:
 	var out: Array[Button] = []
 	for each in speed_buttons:
 		out.append(speed_buttons[each])
-	for button in [reset_button, labels_button, kill_button]:
+	for button in [reset_button, labels_button, kill_button, census_button]:
 		if button != null:
 			out.append(button)
 	return out
@@ -338,6 +359,9 @@ func _build() -> void:
 	kill_button.toggle_mode = true
 	kill_button.toggled.connect(arm_kill)
 	bar.add_child(kill_button)
+	census_button = _button(CENSUS_TEXT)
+	census_button.pressed.connect(take_census)
+	bar.add_child(census_button)
 	fps_label = _label()
 	bar.add_child(fps_label)
 	counter_label = _label()

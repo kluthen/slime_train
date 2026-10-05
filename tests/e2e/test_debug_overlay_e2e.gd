@@ -3,7 +3,8 @@ extends GutTest
 ## runs the very same ticks as 1x; Reset, clicked twice within 2 s, starts
 ## the level over and replaces its save; the armed kill tool takes the next
 ## tap (and its release) from the simulation and sends the slime under it to
-## the start of the loop; a touch on a control never reaches the simulation
+## the start of the loop; Census logs every slime and says how many, changing
+## nothing; a touch on a control never reaches the simulation
 ## while one elsewhere does; a release build gets no overlay, and a game a
 ## test adds gets one only when the test asks.
 ##
@@ -260,6 +261,22 @@ func test_another_control_disarms_the_kill_tool() -> void:
 	assert_eq(overlay.speed, 2)
 
 
+# --- Census -----------------------------------------------------------------------
+
+func test_the_census_button_logs_every_slime_and_says_how_many() -> void:
+	var game := _game(null, {"seed": SEED})
+	game.test_mode.run_ticks(30)
+	var overlay: Node = game.debug_overlay
+	var hash_before: String = game.simulation.state_hash()
+	overlay.arm_kill(true)
+	overlay.census_button.pressed.emit()
+	assert_false(overlay.kill_armed, "Census disarms the kill tool")
+	var count: int = game.simulation.slimes.slime_count
+	assert_eq(overlay.status, "census: %d slimes logged" % count)
+	assert_eq(game.simulation.state_hash(), hash_before, "a census changes nothing")
+	assert_true(overlay.census_button in overlay._buttons(), "one of the bar's buttons")
+
+
 # --- Input ------------------------------------------------------------------------
 
 func test_a_touch_on_a_control_is_the_overlays_and_one_elsewhere_the_games() -> void:
@@ -269,7 +286,8 @@ func test_a_touch_on_a_control_is_the_overlays_and_one_elsewhere_the_games() -> 
 	var button: Button = overlay.speed_buttons[5]
 	var on_button := button.get_global_rect().get_center()
 	assert_true(overlay.over_controls(on_button))
-	for each in overlay.speed_buttons.values() + [overlay.reset_button, overlay.labels_button, overlay.kill_button]:
+	for each in overlay.speed_buttons.values() + [overlay.reset_button, overlay.labels_button, overlay.kill_button,
+			overlay.census_button]:
 		assert_gte(each.get_global_rect().position.y, TapDispatcher.parent_zone_height(game.simulation.view),
 				"%s stays out of the parent band" % each.text)
 	_touch(game, on_button, true)

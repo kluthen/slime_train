@@ -53,7 +53,9 @@ extends Node2D
 ## every file in the main scene's user://saves/ at launch, before anything
 ## reads a save (src/debug/save_wipe.gd, named by path; see wipe_saves()).
 ## Likewise --phase-timers times every tick phase by phase for the perf log
-## (src/debug/phase_timers.gd; see use_phase_timers()).
+## (src/debug/phase_timers.gd; see use_phase_timers()), and
+## --census-every=S[,--census-until=T] prints a slime census every S seconds
+## of game time (src/debug/slime_census.gd; see use_census()).
 ##
 ## A build exported with the "spike_soft_slimes" feature tag (the "Android
 ## spike: soft slimes" preset) runs spike 1's phone benchmark instead of the
@@ -106,6 +108,13 @@ const PHASE_TIMERS_SCRIPT := "res://src/debug/phase_timers.gd"
 const PHASE_TIMERS_FLAG := "--phase-timers"
 const PHASE_TIMERS_ON := "Phase timers: on (--phase-timers)."
 const PHASE_TIMERS_IGNORED := "Phase timers: --phase-timers ignored, not a debug build."
+## The slime census's schedule (--census-every=S, --census-until=T): a
+## census of every slime printed every S seconds of game time until T
+## (src/debug/slime_census.gd). Debug builds only, named by path like the
+## perf log (see use_census()). A release build ignores the flags, saying so.
+const CENSUS_SCRIPT := "res://src/debug/slime_census.gd"
+const CENSUS_FLAGS: PackedStringArray = ["--census-every", "--census-until"]
+const CENSUS_IGNORED := "Census: --census-every/--census-until ignored, not a debug build."
 
 var simulation: Simulation
 ## The loaded level, or null (a release build has none yet).
@@ -187,6 +196,10 @@ var perf_log: Node = null
 ## build), else null: every simulation the game runs gets timers
 ## (_use_simulation). Loosely typed: src/debug/ is named by path only.
 var phase_timers: GDScript = null
+## The slime census's schedule when --census-every turned it on (a debug
+## build), else null: step_simulation() hands it every tick
+## (after_tick()). Loosely typed: src/debug/ is named by path only.
+var census: RefCounted = null
 ## The most ticks a frame runs at 1x (FixedStep.max_ticks_for scales it with
 ## the speed): MAX_TICKS_PER_FRAME, unless a debug measurement set another
 ## (--max-ticks-per-frame, read by add_perf_log()).
@@ -279,6 +292,17 @@ func _ready() -> void:
 	var timers_line := use_phase_timers(user_args)
 	if timers_line != "":
 		print(timers_line)
+	var census_use := use_census(user_args)
+	if census_use["line"] != "":
+		print(census_use["line"])
+	for error in census_use["errors"]:
+		printerr("Census: ", error)
+	# A capture asked for with a bad flag must not run as if uncaptured.
+	if not census_use["errors"].is_empty():
+		set_process(false)
+		set_process_unhandled_input(false)
+		get_tree().quit(1)
+		return
 	_use_simulation(_new_simulation(Rng.random_seed()))
 	if get_tree().current_scene == self:
 		var perf_errors := add_perf_log(user_args)
@@ -387,6 +411,8 @@ func step_simulation() -> void:
 		simulation.session.read_clock(session_clock.now())
 		tilt_feed.feed(simulation)
 	simulation.step()
+	if census != null:
+		census.after_tick(simulation, test_mode.fixture_name if test_mode != null else "")
 	if simulation.session.save_due:
 		simulation.session.save_due = false
 		if autosave.enabled:
@@ -758,6 +784,32 @@ func use_phase_timers(user_args: PackedStringArray) -> String:
 	if simulation != null:
 		phase_timers.attach(simulation)
 	return PHASE_TIMERS_ON
+
+
+## Turns the slime census's schedule on when `user_args` hold
+## --census-every=S (and maybe --census-until=T): in a debug build
+## (TestModeGuard), loads src/debug/slime_census.gd and keeps its schedule
+## in `census`, which step_simulation() hands every tick; in a release build
+## the flags are ignored. Returns {"line" (to print: what it turned on,
+## CENSUS_IGNORED, or "" without the flags), "errors" (a malformed flag:
+## nothing turned on)}.
+# @spec-link [[req_platform_and_performance_targets]]
+func use_census(user_args: PackedStringArray) -> Dictionary:
+	var asked := false
+	for arg in user_args:
+		asked = asked or arg.get_slice("=", 0) in CENSUS_FLAGS
+	if not asked:
+		return {"line": "", "errors": PackedStringArray()}
+	if not test_mode_guard.allows():
+		return {"line": CENSUS_IGNORED, "errors": PackedStringArray()}
+	var script: GDScript = load(CENSUS_SCRIPT)
+	var parsed: Dictionary = script.parse_args(user_args)
+	if not parsed["errors"].is_empty():
+		return {"line": "", "errors": parsed["errors"]}
+	census = script.new(parsed["every"], parsed["until"])
+	var until := "until %s s" % parsed["until"] if parsed["until"] > 0.0 else "with no end"
+	return {"line": "Census: every %s s of game time, %s." % [parsed["every"], until],
+			"errors": PackedStringArray()}
 
 
 ## The save wipe `user_args` ask for (--wipe-save, chunk 19w, D148), on

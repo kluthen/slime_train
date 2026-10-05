@@ -619,7 +619,7 @@ func test_ticks_run_in_batches_give_the_same_hash() -> void:
 func test_code_outside_debug_never_names_it() -> void:
 	var offenders := PackedStringArray()
 	var pattern := RegEx.create_from_string(
-			"\\b(DebugOverlay|DebugCounts|DebugClock|DebugKill|DebugSlimeLabels|PerfLog|PhaseTimers)\\b")
+			"\\b(DebugOverlay|DebugCounts|DebugClock|DebugKill|DebugSlimeLabels|PerfLog|PhaseTimers|SlimeCensus)\\b")
 	for path in _gd_files(SRC_ROOT):
 		if path.begins_with(DEBUG_DIR):
 			continue

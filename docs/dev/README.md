@@ -63,7 +63,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `src/sim/` | The simulation core: pure logic, with no scene dependencies, so it can be unit tested |
 | `src/test_mode_guard.gd` | The one check that keeps test mode out of release builds |
 | `src/test_mode/` | Test mode: scripted input, time control, fixtures and saves to start from, the on-screen marker |
-| `src/debug/` | The debug overlay, debug builds only: speed, reset, slime labels, the kill tool, the fps, the woken/available counter, the slime counts (see "Debug overlay"); the perf log (`PerfLog`, see "Measuring on the phone"); the largest awake cluster (`DebugCounts.largest_cluster()`, see "Chunk 22d: debug counters and the largest awake cluster"); the save wipe (`SaveWipe`, `--wipe-save`, see "Chunk 19w: the save wipe"); the phase timers (`PhaseTimers`, `--phase-timers`, see "Chunk 5N: U0a phase timers") |
+| `src/debug/` | The debug overlay, debug builds only: speed, reset, slime labels, the kill tool, the fps, the woken/available counter, the slime counts (see "Debug overlay"); the perf log (`PerfLog`, see "Measuring on the phone"); the largest awake cluster (`DebugCounts.largest_cluster()`, see "Chunk 22d: debug counters and the largest awake cluster"); the save wipe (`SaveWipe`, `--wipe-save`, see "Chunk 19w: the save wipe"); the phase timers (`PhaseTimers`, `--phase-timers`, see "Chunk 5N: U0a phase timers"); the slime census (`SlimeCensus`, the Census button and `--census-every`, see "Slime census") |
 | `src/save/` | The save files (`SaveStore`: one per level, never wiped), autosave timing (`Autosave`), the real clocks sessions count on (`SessionClock`) and the app's parent code (`ParentStore`, see "Parent gate and settings (chunk 18)"); the save format itself is `src/sim/save_data.gd` (see "Saves and fixtures") |
 | `src/parent/` | The parent layer: the parent buttons, the code prompt, settings and setup (`ParentGate` and its surfaces), their strings (`ParentText`) and sizes (`ParentLayout`) (see "Parent gate and settings (chunk 18)") |
 | `src/session/` | The session's screen effects (`SessionScreen`: the dusk tint, keeping the screen on); the session logic itself is `src/sim/session.gd` (see "Sessions (chunk 17)") |
@@ -292,7 +292,9 @@ across processes). Test mode leaves the perf log's flags, `--perf-log` and
 `--max-ticks-per-frame` (chunk 22), to the perf log, `--wipe-save` to
 the save wipe (chunk 19w; refused with `--load` or a script's `"load"`, see
 "Chunk 19w: the save wipe"), and `--phase-timers` to the game root's phase
-timers (see "Chunk 5N: U0a phase timers"). A run that can't start
+timers (see "Chunk 5N: U0a phase timers"), and `--census-every`,
+`--census-until` to the game root's slime census (see "Slime census"). A
+run that can't start
 quits with code 1. Without `--run-ticks`, in a window, the game plays the
 script in real time (scaled) with a pink "TEST MODE" banner and a ring on
 every finger down. To record a debug run without a screen, use Godot's movie
@@ -3254,6 +3256,7 @@ labels on and 2x at frame 3 and arming Kill at frame 150: tick 299 at frame
 | **Reset** | Asks ("Reset? click again"). A second click within 2 s starts the level over and replaces its save |
 | **Labels** | Draws each slime's runtime id and state under it (`#12 train`) and its stable ID on a second line (`s1.sleeper.04 +2`: its first member and how many more). Only for the slimes seen on screen (`LABEL_REACH`, 160 screen px past its edge), and nothing redrawn while off (chunk 22). They cost a lot on the phone: measure with labels off |
 | **Kill** | Arms the kill tool (red, "Kill: tap a slime"). The next tap sends the slime under it to the start of the loop, as a lost slime |
+| **Census** | Prints a census of every slime to the log ("census: 200 slimes logged"; see "Slime census") |
 | **60 fps** | The frame rate (`Engine.get_frames_per_second()`, rounded), refreshed at most every 250 ms |
 | **Woken n / available m** | The counter, in base slimes, refreshed at most every 250 ms (see below) |
 | **Physics a : on screen b : in range c : parked d** | The slime counts, in slimes, refreshed at most every 250 ms (see below; chunk 22d) |
@@ -3391,6 +3394,79 @@ run. The lint above covers `PerfLog` too. Tests:
 `tests/unit/test_perf_log.gd`. With `--phase-timers` (chunk 5N U0a, also
 by path, after the guard) the line ends with a `phases=` field: see "Chunk
 5N: U0a phase timers".
+
+### Slime census
+
+Debug tooling (2026-10-05, for the user's report that on the phone
+`stress-dense`'s slimes behind a held front slime keep making micro hops):
+an instant status dump of every slime, in the log. `src/debug/slime_census.gd`
+(`SlimeCensus`), debug builds only like the rest of `src/debug/` (the lint
+above covers it). It only reads the simulation: the 18 fixture hashes are
+the same with captures on. One census of 200 slimes takes about 10 ms on
+the desktop (the footer says how long), so the game freezes for a moment.
+
+- **The button.** The overlay's **Census** prints one census (reason
+  `button`) and shows "census: <n> slimes logged".
+- **Timed captures.** `--census-every=S` takes one every S seconds of game
+  time (from the level's start, tick 0, not counted), `--census-until=T`
+  stops after T s (default: no end); reason `timer`. The game root reads
+  them (`use_census()`, after `TestModeGuard`, by path) and hands the
+  schedule every tick (`step_simulation()`), so the census ticks are exact
+  at any speed, `--run-ticks` included. A release build ignores them; a
+  bad value quits with code 1. Desktop, headless, full speed:
+  `godot --headless -- --test-mode --level=test --fixture=stress-dense
+  --seed=909 --run-ticks=3600 --census-every=10 --census-until=60 >
+  run.log` (in a window, drop `--headless` and `--run-ticks`).
+- **On the phone.** `tools/android/perf.sh --fixture=stress-dense --census`
+  adds `--census-every=10,--census-until=60` to `slime_args` (the first
+  minute; `--census=EVERY,UNTIL` for others) and, at the end, runs the
+  extractor on the session's `logcat.txt` (`census.txt`, `census/`).
+- **The extractor.** `tools/census.py LOG` (a stdout log or a logcat
+  capture) writes one CSV per census (`census-<NN>-tick<T>.csv`, under
+  `census/` next to the log, or `--out=DIR`) and prints, per census, a
+  summary (states, holds, next hop kinds, slimes in the air, short last
+  hops) and the train front first (`--rows=N`, default 20).
+  `tools/census.py --self-test` checks it on a canned log.
+
+**The lines** (space-separated `key=value`, no space in a value, each well
+under logcat's 4 KB cut: a long list is cut to `...,+<n>`; the class doc
+lists every key):
+
+- `CENSUS begin tick= time= slimes= tick_kind= fixture= reason=`, then the
+  level's side: `open_gates`, `frontier`, `frontier_at`, `loop_len`,
+  `call`, `hop_rate`, `queue`, `next_turn`, `on_screen`, `in_range`,
+  `parked`;
+- `CENSUS slime`, one per slime in id order: identity (`id`, `sid`,
+  `species`, `size`), state and sub-states (`state`, `calm`, `detail`,
+  `held`, `supported`, `still`, `pile`), `pos`, `vel`, `hop_timer`,
+  `on_screen`, `in_range`, `fusion_view`; where it is (`section`,
+  `loop_segment`: the user's "corridor" or "segment" is the loop segment,
+  `route`: outgoing or return, `loop_gap`, `zones`: the named zones
+  holding its centre, `door`: the shut doors it is against, `<door>:floor` standing on it or
+  `<door>:wall` beside or under it); `hold` (what
+  holds it back: parked, resting, asleep, bedtime, basket, slide, held,
+  dip_holding, dip_gathering, door: against one as a wall; `-` for
+  nothing); `touch`,
+  `touch_held`, `contact` (fusion timers), `stuck`, `due` (the loop-start
+  queue). A train slime adds the loop side (`dist`, `laps`, `progress`,
+  `rank` front first, `ahead`, `gap_ahead`, `to_frontier`, `on_slide`,
+  `mark_age`, `stall_in`) and the hop decision: what `Train.steer()` reads
+  (`steer_from`, `off_route`, `slope`, `grip`, `dip_floor`, `nudge`,
+  `hop_due`, `reach`), what it would aim now (`next_kind`: ahead,
+  step_foot, step_over or drop; `next_target`, `next_apex`, `next_v`,
+  `capped`: the speed cap cuts it, it lands short) and its last train hop
+  (`last_hop`, `last_kind`, `last_from`, `last_target`, `landed`,
+  `last_advance`, `last_short`, and `in_air`). A free slime adds `phase`,
+  `since`, `call_point`, `route_back`, `away`, `left_alone`;
+- `CENSUS end tick= lines= ms=`.
+
+The decision records it reads are kept by the decision code, debug only
+and outside the state (not in `dump()` nor saves): `Train.last_target_kind`
+(the kind `hop_target()` gave), `Train.last_hops` (each train slime's last
+hop, from the hop counters' take-off and landing), `Fusion.nudged` (the
+slimes the last tick's dip nudge held, holding or gathering). Tests:
+`tests/unit/test_slime_census.gd`, and the button in
+`tests/e2e/test_debug_overlay_e2e.gd`.
 
 ## Saves and fixtures
 

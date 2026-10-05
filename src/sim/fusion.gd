@@ -61,6 +61,11 @@ extends RefCounted
 ## The short wait still lets slimes bunch up at the bottom, where
 ## same-species contacts fuse or bump (test level 1.3).
 ##
+## The nudge's record (debug, for the slime census,
+## src/debug/slime_census.gd): `nudged` holds the train slimes the last
+## tick's nudge held, and why (NUDGE_HOLDING or NUDGE_GATHERING). It only
+## notes what the nudge decided: not state, not in dump() nor saves.
+##
 ## State: the counts (pair of runtime ids -> ticks), in dump() and in saves.
 ## The dip floors are recomputed from the loop whenever the open gates
 ## change; they are not state.
@@ -99,6 +104,14 @@ const DIP_WAIT_SECONDS := 5.0
 const DIP_WAIT_TICKS := 300
 ## The hop timer a held slime is kept at, s: it hops soon after it is let go.
 const DIP_HOLD_SECONDS := 0.25
+## Why the nudge held a slime (`nudged`).
+const NUDGE_HOLDING := "holding"
+const NUDGE_GATHERING := "gathering"
+
+## Train slime id -> why the last tick's dip nudge held it (NUDGE_HOLDING or
+## NUDGE_GATHERING). Debug, for the census (see the class doc).
+# @spec-link [[req_platform_and_performance_targets]]
+var nudged := {}
 
 ## Pair of runtime ids Vector2i(lower, higher) -> ticks of continuous contact.
 var _contacts := {}
@@ -268,6 +281,8 @@ func _bump(bodies: SlimeBodies, a: int, b: int) -> void:
 ## train and the bodies pair by pair cost most of the tick.
 # @spec-link [[rule_dip_may_nudge_fusion]]
 func _nudge(sim: Simulation) -> void:
+	if not nudged.is_empty():
+		nudged.clear()
 	var train := sim.train
 	if train == null:
 		return
@@ -299,7 +314,13 @@ func _nudge(sim: Simulation) -> void:
 	var partners := _floor_partners(bodies, all, on_floor)
 	for k in on_floor:
 		var slime_id := all[k]
-		if _holding(bodies, partners, slime_id) or _gathering(sim, all, distances, shown, k):
+		var why := ""
+		if _holding(bodies, partners, slime_id):
+			why = NUDGE_HOLDING
+		elif _gathering(sim, all, distances, shown, k):
+			why = NUDGE_GATHERING
+		if why != "":
+			nudged[slime_id] = why
 			bodies.set_hop_timer(slime_id, maxf(bodies.hop_timer_of(slime_id), DIP_HOLD_SECONDS))
 
 
