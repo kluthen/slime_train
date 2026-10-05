@@ -7,10 +7,10 @@
 #   tools/android/perf.sh [--serial=S] [--fixture=NAME|none] [--seconds=N]
 #                         [--warm-minutes=M] [--period=P] [--no-build]
 #                         [--no-install] [--label=TEXT] [--wipe-save]
-#                         [--phase-timers]
+#                         [--phase-timers] [--tick=gdscript|native]
 #   tools/android/perf.sh --free-play [--minutes=N] [--serial=S] [--period=P]
 #                         [--no-build] [--no-install] [--label=TEXT]
-#                         [--wipe-save] [--phase-timers]
+#                         [--wipe-save] [--phase-timers] [--tick=gdscript|native]
 #
 #   --serial=S        the device (adb serial); default: the only one attached
 #   --fixture=NAME    fixture mode: a fixture of the test level, played in test
@@ -43,6 +43,11 @@
 #                     its window's mean us per tick by phase (phases=), and
 #                     the summary splits the tick into solver and behaviour.
 #                     The timers cost a few us a tick
+#   --tick=KIND       the simulation tick, gdscript or native (the game's
+#                     --tick=KIND added to slime_args, chunk 5N; debug builds
+#                     only). Default: the game's own choice (native when the
+#                     extension loads). perf.log's header keeps the game's
+#                     TICK line either way
 #
 # It exports and installs the debug APK, clears logcat, starts the app with
 # the perf log (the launch intent's "slime_args" extra, read by the
@@ -111,9 +116,10 @@ install=1
 label=run
 wipe_save=0
 phase_timers=0
+tick=""
 
 usage() {
-	sed -n '7,45p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
+	sed -n '7,50p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
 	exit 2
 }
 
@@ -136,6 +142,7 @@ for arg in "$@"; do
 	--label=*) label="${arg#*=}" ;;
 	--wipe-save) wipe_save=1 ;;
 	--phase-timers) phase_timers=1 ;;
+	--tick=*) tick="${arg#*=}" ;;
 	-h | --help) usage ;;
 	*) fail_args "unknown argument '$arg' (--help lists them)" ;;
 	esac
@@ -156,6 +163,7 @@ else
 	if [ "$fixture" = none ]; then mode=normal; else mode="$fixture"; fi
 	[ "$wipe_save" = 0 ] || [ "$fixture" = none ] || fail_args "--wipe-save is refused with a fixture (here '$fixture'): a fixture run never reads the player's save; use it with --free-play or --fixture=none"
 fi
+[ -z "$tick" ] || [ "$tick" = gdscript ] || [ "$tick" = native ] || fail_args "--tick expects gdscript or native, got '$tick'"
 [[ "$period" =~ ^[0-9]+$ ]] && [ "$period" -gt 0 ] || fail_args "--period expects a whole number of seconds > 0, got '$period'"
 [[ "$thermal_every" =~ ^[0-9]+$ ]] && [ "$thermal_every" -gt 0 ] || fail_args "THERMAL_EVERY expects a whole number of seconds > 0, got '$thermal_every'"
 [[ "$label" =~ ^[A-Za-z0-9._-]+$ ]] || fail_args "--label expects letters, digits, '.', '_' or '-', got '$label'"
@@ -235,6 +243,7 @@ else
 	slime_args="--test-mode,--fixture=$fixture,--seed=1,--perf-log=$period"
 fi
 [ "$phase_timers" = 0 ] || slime_args="$slime_args,--phase-timers"
+[ -z "$tick" ] || slime_args="$slime_args,--tick=$tick"
 
 stamp="$(date +%Y%m%d-%H%M%S)"
 out_dir="$root/build/perf/$label-$mode-$stamp"
@@ -455,6 +464,8 @@ echo "Session $ended after $((SECONDS - start_s)) s."
 		echo "# mode fixture $fixture, windows of $seconds s, warm after $warm_minutes min, period $period s"
 	fi
 	echo "# launch: --esa slime_args $slime_args"
+	tick_line="$(grep -oE 'TICK (native|gdscript) .*' "$logcat_file" | tr -d '\r' | head -1)"
+	echo "# tick: ${tick_line:-no TICK line in logcat}"
 	echo "# ended: $ended, after $((SECONDS - start_s)) s"
 	grep -oE 'PERF(_INFO)? .*' "$logcat_file" | tr -d '\r'
 } >"$perf_file"

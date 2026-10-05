@@ -358,7 +358,9 @@ test-mode class.
 The `Android release` preset (chunk 20, see "Android export (debug)")
 excludes `src/test_mode/*`, `src/debug/*` (the debug overlay, same guard,
 see "Debug overlay"), `tests/*`, `addons/gut/*`, `levels/test/*` and
-`spikes/*`, plus `tools/*` and `addons/slime_platform/*`. Chunk 20 checked
+`spikes/*`, plus `tools/*`, `addons/slime_platform/*` and `build/*` (the
+exports' own folder: a `.json` left there is a resource, and one shipped in
+both Android APKs until chunk 5N U8 left the folder out). Chunk 20 checked
 it by hand on `build/slime-train-release.apk`: its `assets/` folder and the
 `assets.sparsepck` index hold 177 `src/` entries and nothing under
 `src/test_mode/`, `src/debug/`, `tests/`, `levels/test/`, `tools/` or
@@ -3891,8 +3893,8 @@ build, install and run (chunk 20)" under "Chunk 20: Android".
 
 | Preset | Package, version | Build | ABIs | Edge to edge | Leaves out | Output |
 |---|---|---|---|---|---|---|
-| `Android debug` | `com.slimetrain.dev`, 0.1-dev | Gradle, with the SlimePlatform plugin | arm64-v8a (phone), x86_64 (emulator) | yes | `spikes/*` | `build/slime-train-debug.apk` |
-| `Android release` | `com.slimetrain`, 0.1 | Gradle, with the SlimePlatform plugin | arm64-v8a | yes | `src/test_mode/*`, `src/debug/*`, `tests/*`, `addons/gut/*`, `addons/slime_platform/*`, `levels/test/*`, `spikes/*`, `tools/*` | `build/slime-train-release.apk` |
+| `Android debug` | `com.slimetrain.dev`, 0.1-dev | Gradle, with the SlimePlatform plugin | arm64-v8a (phone), x86_64 (emulator) | yes | `spikes/*`, `build/*` | `build/slime-train-debug.apk` |
+| `Android release` | `com.slimetrain`, 0.1 | Gradle, with the SlimePlatform plugin | arm64-v8a | yes | `src/test_mode/*`, `src/debug/*`, `tests/*`, `addons/gut/*`, `addons/slime_platform/*`, `levels/test/*`, `spikes/*`, `tools/*`, `build/*` | `build/slime-train-release.apk` |
 | `Android spike: soft slimes` | `com.slimetrain.spike`, 0.1-spike | Godot's prebuilt template, no Gradle, no plugin | arm64-v8a | no | nothing | `build/spike-debug.apk` |
 
 - **The release APK has no level yet:** `levels/test/` is left out and no
@@ -6411,7 +6413,10 @@ above; the phone, U8, still to come). The details are in
   variable: `SLIME_TICK=gdscript tools/level.sh bench ...` (the bench
   refuses `--tick` as an unknown argument);
   `SLIME_TICK=gdscript tools/perf_slow.sh ...` (or `--tick=gdscript` as an
-  extra argument).
+  extra argument). On a device, `tools/android/perf.sh --tick=gdscript`
+  (or `native`) adds the flag to the launch's `slime_args` (an environment
+  variable can't reach an Android app), and `perf.log`'s header keeps the
+  game's `TICK` line (`# tick: TICK gdscript (--tick=gdscript)`).
 - **The fallback.** Without the extension the game runs on the GDScript
   tick (`TICK gdscript (extension missing)`). When `step` can't read the
   bodies it changes nothing and that tick runs pass by pass, each pass the
