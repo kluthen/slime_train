@@ -1,0 +1,29 @@
+/tmp/claude-1001/-home-bastien-work-slime-train/d543671e-c4c0-4b90-a9fc-42b12cf6a31a/scratchpad/dj2/out/det2_g,r,v1s_stress-dense_s1.txt
+/tmp/claude-1001/-home-bastien-work-slime-train/d543671e-c4c0-4b90-a9fc-42b12cf6a31a/scratchpad/dj2/out/gds_g,r,v1s_stress-dense_s1.txt
+/tmp/claude-1001/-home-bastien-work-slime-train/d543671e-c4c0-4b90-a9fc-42b12cf6a31a/scratchpad/dj2/out/gds_g,h_stress-dense_s1.txt
+/tmp/claude-1001/-home-bastien-work-slime-train/d543671e-c4c0-4b90-a9fc-42b12cf6a31a/scratchpad/dj2/out/nat_g,h_stress-dense_s1.txt
+DET_DONE
+base test_train exit=0 Tests                41 Passing Tests        41 
+base test_fusion exit=0 Tests                38 Passing Tests        38 
+base test_slime_hops exit=0 Tests                12 Passing Tests        12 
+g test_train exit=0 Tests                41 Passing Tests        41 
+g test_fusion exit=0 Tests                38 Passing Tests        38 
+g test_slime_hops exit=0 Tests                12 Passing Tests        12 
+h test_train exit=0 Tests                41 Passing Tests        41 
+h test_fusion exit=0 Tests                38 Passing Tests        38 
+h test_slime_hops exit=0 Tests                12 Passing Tests        12 
+g,h test_train exit=0 Tests                41 Passing Tests        41 
+g,h test_fusion exit=0 Tests                38 Passing Tests        38 
+g,h test_slime_hops exit=0 Tests                12 Passing Tests        12 
+g,h,v1s test_train exit=0 Tests                41 Passing Tests        41 
+g,h,v1s test_fusion exit=1 Tests                38 Passing Tests        37 Failing Tests         1 
+g,h,v1s test_slime_hops exit=0 Tests                12 Passing Tests        12 
+r test_train exit=0 Tests                41 Passing Tests        41 
+r test_fusion exit=0 Tests                38 Passing Tests        38 
+r test_slime_hops exit=0 Tests                12 Passing Tests        12 
+g,r test_train exit=0 Tests                41 Passing Tests        41 
+g,r test_fusion exit=0 Tests                38 Passing Tests        38 
+g,r test_slime_hops exit=0 Tests                12 Passing Tests        12 
+g,r,v1s test_train exit=0 Tests                41 Passing Tests        41 
+g,r,v1s test_fusion exit=1 Tests                38 Passing Tests        37 Failing Tests         1 
+g,r,v1s test_slime_hops exit=0 Tests                12 Passing Tests        12 

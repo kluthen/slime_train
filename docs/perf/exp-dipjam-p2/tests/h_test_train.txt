@@ -1,0 +1,96 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+---  GUT  ---
+[1m[INFO]:  [0musing [/home/bastien/.local/share/godot/app_userdata/Slime Train] for temporary output.
+Godot version:  4.7.2
+GUT version:  9.7.1
+[4m
+
+res://tests/unit/test_train_progress.gd
+[0m* test_the_train_reads_the_current_loop
+* test_progress_follows_the_slime_forward
+* test_progress_never_snaps_backward
+* test_progress_does_not_snap_across_the_level
+* test_progress_wraps_at_the_end_of_the_loop
+* test_a_tracked_slime_counts_its_laps
+* test_a_slime_whose_progress_stalls_for_a_minute_is_stalled
+* test_a_slime_that_leaves_the_level_bounds_is_out_of_bounds
+* test_an_aimed_hop_lands_on_its_target
+* test_an_aimed_hop_is_capped
+* test_bigger_slimes_hop_further_and_higher
+* test_the_hop_target_is_on_the_route_ahead
+* test_the_hop_target_goes_just_past_the_top_of_a_drop
+* test_the_hop_target_stops_at_the_foot_of_a_step
+* test_the_hop_target_skips_a_steep_rise_from_its_foot
+* test_a_slime_knocked_off_the_route_steers_from_the_route_near_it
+* test_a_train_slimes_automatic_hop_counts_one_hop_and_a_full_one_no_short_hop
+TICK native (SLIME_TICK=native)
+* test_a_hop_landing_less_than_half_its_reach_ahead_counts_a_short_hop
+* test_a_celebration_hop_is_no_train_hop
+* test_a_free_slimes_hop_is_no_train_hop
+* test_a_hop_that_never_lands_as_a_train_slime_is_no_short_hop
+[1m21/21 passed.
+[0m[4m
+
+res://tests/unit/test_train_stalled.gd
+[0m* test_a_wedged_train_slime_goes_to_the_start_after_60_s_and_is_logged
+* test_wedged_again_it_is_moved_and_logged_again
+* test_a_slime_out_of_the_level_bounds_is_moved_and_logged
+* test_a_slime_asleep_at_bedtime_is_never_counted_nor_moved
+* test_a_save_during_the_count_reloads_the_same_and_carries_on_the_same
+* test_same_seed_same_hash
+* test_a_parked_slime_that_never_advances_is_not_stalled
+* test_simulated_again_it_resumes_and_stalls_after_60_s_of_simulated_ticks
+* test_parked_from_its_first_follow_its_clock_never_starts
+* test_progress_while_parked_still_marks
+* test_a_parked_slime_out_of_bounds_is_due_at_once
+* test_a_stalled_slime_parked_while_it_waits_stays_due_from_when_it_came_due
+* test_a_parked_line_behind_a_wedged_front_waits_without_its_clock_running
+* test_a_save_during_a_parked_stretch_reloads_the_same_and_carries_on_the_same
+* test_the_log_keeps_the_last_cases
+[1m15/15 passed.
+[0m[4m
+
+res://tests/e2e/test_train_in_game.gd
+[0m* test_the_game_wakes_the_first_slime
+Slime Train booted (Godot 4.7.2-stable (official)).
+* test_a_restored_simulation_does_not_wake_a_second_slime
+Slime Train booted (Godot 4.7.2-stable (official)).
+* test_slimes_of_every_size_travel_the_loop
+Slime Train booted (Godot 4.7.2-stable (official)).
+    size 1: lap at tick 10440, split -1 px in
+Slime Train booted (Godot 4.7.2-stable (official)).
+    size 2: lap at tick 10410, split 17098 px in
+Slime Train booted (Godot 4.7.2-stable (official)).
+    size 3: lap at tick 10560, split 17081 px in
+* test_slimes_entering_the_split_zone_leave_as_base_slimes_on_the_train
+Slime Train booted (Godot 4.7.2-stable (official)).
+[1m4/4 passed.
+[0m[4m
+
+res://tests/e2e/test_train_session_e2e.gd
+[0m* test_the_train_loops_a_full_session_with_no_input
+Slime Train booted (Godot 4.7.2-stable (official)).
+    session: 54000 ticks in 45.5 s real time, 5 laps (progress 90012 px, loop 17638 px), wanted 4
+Slime Train booted (Godot 4.7.2-stable (official)).
+[1m1/1 passed.
+[0m
+
+
+
+[33m==============================================
+[0m[33m= Run Summary
+[0m[33m==============================================
+[0m
+Totals
+------
+Scripts               4
+Tests                41
+Passing Tests        41
+Asserts            3794
+Time              100.523s
+
+
+Ran Scripts matching "test_train"
+[32m---- All tests passed! ----
+[0m

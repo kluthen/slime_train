@@ -1,0 +1,10 @@
+Slime Train booted (Godot 4.7.2-stable (official)).
+TICK native (default)
+DJ fixture=stress-dense seed=1 variant= tick=native tick0=0 slimes=200 hold=(inf, inf) from 0
+DJ_LOOP length=38297 outgoing=19096 start=(241.92, 476.0)
+DJ_TOT hops=425 short=0.95 adv_med=2.8 gather_mean=23.6 gather_max=49 hold_mean=6.0 speed=5.5 front=23.1 slow=0.82 fus_min=60.00 bumps=4 creep=0.29 creep_v=13.7 stall=0 stuck=0
+DJ_LATE from=0 windows=2 arr=0.0 x240=0.0 x750=0.0
+DJ_CLIMB start=0.0 bowl=10.3 slide=1.8 alone=10.0 alone_n=811 stack=20 landings=415 over=0 over_adv_med=0.0 stall=0 oob=0 lost=0
+DJ_OVER 
+DJ_CLU max=0 mean=0.00 over=0 run_s=0.0
+STATE tick=1200 hash=c48c0308a68957521f00e1ebff806f04dc14719f72a6c7bc1342b48cf4d11d6f

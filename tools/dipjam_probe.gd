@@ -3,7 +3,7 @@ extends SceneTree
 ## a test-level fixture stepped with the game's own step
 ## (game.step_simulation, as --run-ticks does). Read only: the final STATE
 ## hash is a plain run's. The variant comes from SLIME_DIPJAM (Fusion.jam_v1,
-## jam_v2; Train.jam_v4), the tick from SLIME_TICK. Not a test.
+## jam_v2; Train.jam_v4, jam_g, jam_h), the tick from SLIME_TICK. Not a test.
 ##
 ## Run:   SLIME_DIPJAM=v3 godot --headless --no-header --path . -s res://tools/dipjam_probe.gd --
 ##            [--fixture=stress-dense] [--seed=1] [--ticks=3600] [--late-from=0]
@@ -30,10 +30,29 @@ extends SceneTree
 ##             in it), fus_min (fusions per minute), bumps, creep (share of
 ##             grounded slope ticks, see CREEP, a train slime between hops
 ##             slides back faster than CREEP_SPEED), creep_v (their mean back
-##             speed, px/s), stall, stuck
+##             speed, px/s), stall (stalled moves; phase 2: out of bounds
+##             no longer in it, see DJ_CLIMB), stuck
 ##   DJ_LATE   from --late-from on, per WINDOW ticks: arr (laps completed:
 ##             the return route's end), x240 and x750 (forward crossings of
 ##             those loop distances: the train's flow off the loop's start)
+##   DJ_CLIMB  (phase 2) per climb (CLIMBS, loop distances): speed (mean
+##             progress speed of the active train slimes on it, px/s, all
+##             ticks); slide (the mean move down the route over the tick of
+##             the centres of the grounded train slimes between hops on a
+##             rise, creep's ticks, px/s, signed: negative is up; creep is
+##             their velocity after the tick, phase 1's); alone (the same,
+##             of those touching no slime: gravity's slide alone) and
+##             alone_n (their ticks), stack (landed train hops ending on
+##             top of another slime, see _on_top), landings, over (of them
+##             aimed over the queue, Train.TARGET_OVER) and over_adv_med
+##             (their median advance, px), stall, oob (out of bounds
+##             moves), lost (Offscreen's lost)
+##   DJ_OVER   (phase 2, h) Train.over_counts: why a hop wasn't aimed over
+##             the queue, or taken
+##   DJ_CLU    (phase 2) from --late-from on: the largest awake cluster with
+##             a slime within NEAR px of the loop's start (exp/geyser's
+##             probe's rule): max, mean, ticks above LIMIT (rule 23's), the
+##             longest run of them (s)
 ##   STATE     the final tick and state hash
 # @spec-link [[req_platform_and_performance_targets]]
 
@@ -48,6 +67,11 @@ const SLOW := 60.0
 const CREEP_FROM := 0.2
 const CREEP_SPEED := 5.0
 const CROSS_AT := [240.0, 750.0]
+## Phase 2: the test level's two climbs, loop distances: the start basin's
+## exit (rise 0.7) and section 3's bowl's exit (rise 0.24 to 0.49).
+const CLIMBS := [[460.0, 1150.0], [17580.0, 18180.0]]
+const NEAR := 240.0
+const LIMIT := 20
 
 var fixture := "stress-dense"
 var seed_n := 1
@@ -144,6 +168,26 @@ func _run(game: Node) -> void:
 	var late_arr := 0
 	var late_cross := PackedInt32Array([0, 0])
 	var late_windows := 0
+	var climb_sum := PackedFloat64Array([0.0, 0.0])
+	var climb_n := PackedInt32Array([0, 0])
+	var slide_sum := 0.0
+	var slide_n := 0
+	var alone_sum := 0.0
+	var alone_n := 0
+	var cen := {}  # id -> its centre after the last tick
+	var stacks := 0
+	var over_adv := PackedFloat32Array()
+	var landings := 0
+	var oob := 0
+	var lost := 0
+	var clu_max := 0
+	var clu_sum := 0.0
+	var clu_n := 0
+	var clu_over := 0
+	var clu_run := 0
+	var clu_run_max := 0
+	var start := train.position_at(0.0)
+	print("DJ_LOOP length=%.0f outgoing=%.0f start=%s" % [train.length(), train.outgoing_length(), start])
 	for i in ticks:
 		if sim.tick % WINDOW == 0:
 			_window_start(sim, win_start, win_active)
@@ -160,6 +204,10 @@ func _run(game: Node) -> void:
 		gather_sum += gathering
 		gather_max = maxi(gather_max, gathering)
 		hold_sum += fusion.nudged.size() - gathering
+		var touched := {}
+		for pair: Vector2i in bodies.touching_pairs():
+			touched[pair.x] = true
+			touched[pair.y] = true
 		for id in train.tracked_ids():
 			var s := bodies.index_of(id)
 			var active := s >= 0 and bodies.state[s] == SlimeBodies.TRAIN and bodies.calm[s] != SlimeBodies.PARKED
@@ -170,6 +218,10 @@ func _run(game: Node) -> void:
 				if step >= 0.0 and step < MAX_STEP:
 					speed_sum += step
 					speed_n += 1
+					for c in CLIMBS.size():
+						if d >= CLIMBS[c][0] and d < CLIMBS[c][1]:
+							climb_sum[c] += step
+							climb_n[c] += 1
 			if not active and win_active.has(id):
 				win_active.erase(id)
 			if t >= late_from:
@@ -189,17 +241,48 @@ func _run(game: Node) -> void:
 				if absf(along.y) > absf(along.x) * CREEP_FROM and absf(along.y) <= absf(along.x) * Train.GRIP_MAX_SLOPE:
 					slope_ticks += 1
 					var back := -bodies.velocity_of(id).dot(along)
+					if cen.has(id) and along.y < 0.0:
+						var move: float = -(bodies.centre_of(id) - cen[id]).dot(along) * 60.0
+						slide_sum += move
+						slide_n += 1
+						if not touched.has(id):
+							alone_sum += move
+							alone_n += 1
 					if back > CREEP_SPEED:
 						creep_ticks += 1
 						creep_v += back
+			if s >= 0:
+				cen[id] = bodies.centre_of(id)
 		for id: int in train.last_hops:
 			var last: Dictionary = train.last_hops[id]
 			if last["landed"] >= 0 and landed_seen.get(id, -2) != last["landed"]:
 				landed_seen[id] = last["landed"]
 				advances.append(last["advance"])
+				landings += 1
+				if last["kind"] == Train.TARGET_OVER:
+					over_adv.append(last["advance"])
+				if _on_top(bodies, id):
+					stacks += 1
 		for e in train.stalled:
 			if e["tick"] == t:
-				stall += 1
+				if e["reason"] == Train.OUT_OF_BOUNDS:
+					oob += 1
+				else:
+					stall += 1
+		for e in sim.offscreen.lost:
+			if e["tick"] == t:
+				lost += 1
+		if t >= late_from:
+			var clu := _cluster_near(bodies, start)
+			clu_max = maxi(clu_max, clu)
+			clu_sum += clu
+			clu_n += 1
+			if clu > LIMIT:
+				clu_over += 1
+				clu_run += 1
+				clu_run_max = maxi(clu_run_max, clu_run)
+			else:
+				clu_run = 0
 		for e in sim.stuck_slimes.stuck:
 			if e["tick"] == t and e["moved"]:
 				stuck += 1
@@ -234,6 +317,18 @@ func _run(game: Node) -> void:
 	var per := maxf(late_windows, 1.0)
 	print("DJ_LATE from=%d windows=%d arr=%.1f x240=%.1f x750=%.1f" % [late_from, late_windows, late_arr / per,
 			late_cross[0] / per, late_cross[1] / per])
+	over_adv.sort()
+	print(("DJ_CLIMB start=%.1f bowl=%.1f slide=%.1f alone=%.1f alone_n=%d stack=%d landings=%d over=%d"
+			+ " over_adv_med=%.1f stall=%d oob=%d lost=%d") % [climb_sum[0] / maxi(climb_n[0], 1) * 60.0,
+			climb_sum[1] / maxi(climb_n[1], 1) * 60.0, slide_sum / maxi(slide_n, 1),
+			alone_sum / maxi(alone_n, 1), alone_n, stacks, landings, over_adv.size(),
+			over_adv[over_adv.size() / 2] if not over_adv.is_empty() else 0.0, stall, oob, lost])
+	var counts := []
+	for why: String in train.over_counts:
+		counts.append("%s:%d" % [why, train.over_counts[why]])
+	print("DJ_OVER %s" % " ".join(counts))
+	print("DJ_CLU max=%d mean=%.2f over=%d run_s=%.1f" % [clu_max, clu_sum / maxi(clu_n, 1), clu_over,
+			clu_run_max / 60.0])
 	print("STATE tick=%d hash=%s" % [sim.tick, sim.state_hash()])
 
 
@@ -283,3 +378,60 @@ static func _mean(values: PackedFloat32Array) -> float:
 	for v in values:
 		total += v
 	return total / maxi(values.size(), 1)
+
+
+## Phase 2: whether slime `slime_id`, just landed, rests on top of another
+## slime: one whose centre is below it by more than half the two radii and
+## within half of them sideways, the rings close (1.3 radii).
+func _on_top(bodies: SlimeBodies, slime_id: int) -> bool:
+	var c := bodies.centre_of(slime_id)
+	var r := bodies.radius_of(slime_id) + SlimeBodies.EDGE
+	for s in bodies.slime_count:
+		var other := bodies.id[s]
+		if other == slime_id:
+			continue
+		var o := bodies.centre_of(other)
+		var both := r + bodies.ring_radius[s] + SlimeBodies.EDGE
+		if o.y - c.y > both * 0.5 and absf(o.x - c.x) < both * 0.5 and o.distance_to(c) < both * 1.3:
+			return true
+	return false
+
+
+## Phase 2: the largest awake cluster (DebugCounts' rule) with a member
+## within NEAR px of `start` (exp/geyser's probe's).
+func _cluster_near(bodies: SlimeBodies, start: Vector2) -> int:
+	var physics := DebugCounts.physics_slime_ids(bodies)
+	var pairs: Array = DebugCounts.touching_by_distance(bodies, physics) if bodies.candidate_pair_count() == 0 \
+			else bodies.touching_pairs()
+	var index := {}
+	for i in physics.size():
+		index[physics[i]] = i
+	var parent := PackedInt32Array()
+	parent.resize(physics.size())
+	for i in physics.size():
+		parent[i] = i
+	for pair: Vector2i in pairs:
+		if not (index.has(pair.x) and index.has(pair.y)):
+			continue
+		var a := _root(parent, index[pair.x])
+		var b := _root(parent, index[pair.y])
+		if a != b:
+			parent[b] = a
+	var size := {}
+	var near := {}
+	for i in physics.size():
+		var r := _root(parent, i)
+		size[r] = size.get(r, 0) + 1
+		if bodies.centre_of(physics[i]).distance_to(start) <= NEAR:
+			near[r] = true
+	var best := 0
+	for r in near:
+		best = maxi(best, size[r])
+	return best
+
+
+static func _root(parent: PackedInt32Array, i: int) -> int:
+	while parent[i] != i:
+		parent[i] = parent[parent[i]]
+		i = parent[i]
+	return i

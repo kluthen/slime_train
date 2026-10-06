@@ -1,0 +1,1445 @@
+diff --git a/src/sim/geyser.gd b/src/sim/geyser.gd
+new file mode 100644
+index 0000000..c6a72a4
+--- /dev/null
++++ b/src/sim/geyser.gd
+@@ -0,0 +1,497 @@
++class_name Geyser
++extends RefCounted
++## EXPERIMENT (branch exp/geyser; D157 (5), O117): the geyser at the return
++## route's end, "high and wide" (the variant the user kept, 2026-10-06). Not
++## in the spec, no ATD atom yet. When a train slime reaches the end of the
++## return route (the "finish line": its progress wraps past the loop's end,
++## which is the loop's start, Train.lapped), it is lifted out from under the
++## slimes piled over it and launched high and wide, onto a free spot of the
++## loop LAND_MIN to LAND_MAX px from its start, so arrivals come down spread
++## along the loop instead of piling up on one point (level rule 24).
++##
++## The lift. The arrival is first moved straight up above the slimes stacked
++## over it (`lift_origin`: the highest ring overlapping its column, plus
++## LIFT_GAP; at most LIFT_MAX px, the lifted ring clear of the terrain by
++## CLEARANCE, else no lift), and flies from there: a launch from under the
++## pile was smothered by it within a few ticks.
++##
++## The flight. CANDIDATES spots are drawn uniformly LAND_MIN to LAND_MAX px
++## along the loop (the slime's centre lifted by its size above the loop
++## there, LoopStart.landing_point), and an apex APEX px above the higher end
++## of the flight, give or take APEX_JITTER. Of the spots that pass the
++## landing limits below, the emptiest wins (room_at: the nearest slime's ring
++## furthest; a slime in the air counted where it comes down). The slime gets
++## the take-off velocity at once (Train.aim, ballistic; SlimeBodies.launch:
++## its points' previous positions, as a hop's, and unsupported, so the
++## train's grip doesn't brake it on the next tick): the solver is untouched,
++## so it works the same on both ticks.
++##
++## The landing limits (O117), each draw checked in this order (`rejects`
++## counts the reasons):
++## - "gate": at or past the first gate along the loop (gate_limit), or on a
++##   return route's slide: the geyser never skips a gate.
++## - "zone": a fused slime lands only inside a split zone (on a level with
++##   any), where it splits at once. A base slime may land past the start's
++##   zone: the zone splits fused slimes and keeps the slimes inside it from
++##   fusing (Fusion), nothing else, so for a base slime landing past it is the
++##   walk out of the zone skipped; it may fuse there at once, as any train
++##   slime leaving the zone does.
++## - "ledge": not under nor beside a ledge rule 22 (b) guards (a terrain
++##   piece a sleeper rests on, its top within a called base slime's reach of
++##   the loop's ground there; guarded_ledges), the slime's ring kept
++##   CLEARANCE px clear of the ledge's sides: a slime landing there, on the
++##   slimes queued under it, bridged onto the ledge (test level: FirstLedge).
++## - "route": where the slime comes to rest must be the loop's own route:
++##   coming down the spot's column it stops on the terrain under the spot or
++##   on the first slime in the column (a slime in the air where it comes
++##   down), whichever is higher (rest_height), and that resting centre must
++##   lie within Train.OFF_ROUTE px of the route point, as a train slime on
++##   the route does. This keeps it off the queue stacked 2-3 deep on the
++##   loop's first stretch (it landed 80-130 px above the loop, knocked off
++##   the route) and off a spot with no ground under it.
++## - "flight": the flight keeps CLEARANCE px between the slime's ring and
++##   every terrain segment on the way (the ends' own neighbourhoods aside):
++##   no flying into an overhang.
++## - "room": off screen only (below), a spot where its ring would overlap
++##   another slime's (LoopStart.is_free's test).
++## With no draw passing them all, the arrival isn't lifted nor launched: it
++## carries on as without the geyser (the plain arrival at the loop's start,
++## followed by the train from there); `refused` counts them.
++##
++## Off screen (a parked slime, moved by Offscreen's proxy): no lift and no
++## flight. It is put straight on the emptiest drawn spot that passes the
++## limits (the flight's aside, the room's added), its progress moved there
++## (Train.place), as the loop-start queue's moves do (D150): the proxy
++## carries it on from there. With no such spot it stays in the proxies'
++## single file, as without the geyser.
++##
++## Randomness: the derived stream "geyser:<tick>:<slime id>" (Rng.derive),
++## the apex and all CANDIDATES draws taken every time: no draw from any other
++## stream, same seed, same launches. Nothing is saved: a launch is only a
++## velocity (in the bodies) or a progress (in the train record).
++##
++## `enabled` is a mode for the experiment's with/without runs (the same
++## build): off with the user argument --no-geyser or SLIME_GEYSER=off
++## (default_enabled()), or set by a test. Not in dump() nor saves.
++## Runs in Simulation.step right after Train.follow (which, with Offscreen's
++## proxies earlier in the tick, fills Train.lapped).
++
++## How high the flight tops out above the higher of its two ends, px. About
++## 40 % of the screen's height (648): a "high" geyser, seen from the
++## normal zoom, still under the speed limit (take-off ~950 px/s).
++const APEX := 260.0
++## The apex varies by up to this share either way, so arrivals a few ticks
++## apart don't fly the same arc.
++const APEX_JITTER := 0.25
++## Where along the loop a launched slime may land, px from its start. From
++## LAND_MIN: past the start's hump, the hole the slides come up through and
++## the terrace's first slimes (test level: x 362); to LAND_MAX: the user's
++## "wide dispersion" (test level: the slope up from the terrace, x 867).
++const LAND_MIN := 150.0
++const LAND_MAX := 700.0
++## How many landing spots are drawn per launch (the emptiest kept one wins).
++const CANDIDATES := 10
++## The room kept between the ring and the terrain along the flight, and
++## between the ring and a guarded ledge's sides, px.
++const CLEARANCE := 4.0
++## How many points along the flight are checked against the terrain.
++const SAMPLES := 16
++## The take-off speed cap, as a share of SlimeBodies.max_speed.
++const SPEED_SHARE := 0.95
++## The lifted arrival's ring keeps this much room above the highest ring
++## over it, px.
++const LIFT_GAP := 6.0
++## The furthest an arrival is lifted, px (about five base slimes stacked); a
++## higher pile and it flies from where it is.
++const LIFT_MAX := 240.0
++## A sleeper rests on the terrain piece whose top is at most this far below
++## its ring's bottom, px (the level checker's rule 22 (b) test,
++## LevelRulesStart.RESTS_WITHIN).
++const RESTS_WITHIN := 16.0
++## Two outline points this close are the same vertex when a terrain piece's
++## outline is walked (guarded_ledges), px.
++const VERTEX_EPS := 0.01
++## How many launches `launches_log` keeps (debug).
++const LOG_SIZE := 64
++
++## Whether arrivals are launched (see the class doc). Not saved.
++var enabled := true
++## Debug counters of the lift: how many arrivals were lifted, and by how
++## much in all and at most (px).
++var lifted := 0
++var lift_total := 0.0
++var lift_highest := 0.0
++## Debug counters (the experiment's probe), not state: the arrivals seen
++## (with or without the geyser), the launches made (flights and off-screen
++## placements), and the arrivals not launched for want of a spot passing the
++## limits.
++var arrivals := 0
++var launches := 0
++var refused := 0
++## The draws turned down, by reason ("gate", "zone", "ledge", "route",
++## "flight", "room": see the class doc). Debug, not state.
++var rejects := {}
++## The latest LOG_SIZE launches, oldest first: {"id", "tick", "distance"
++## (the landing spot along the loop), "parked" (bool), "at" (Vector2, the
++## landing centre)}. Debug, not state.
++var launches_log: Array[Dictionary] = []
++
++## The first gate's distance along the loop (cached, -1.0 until known).
++var _gate_limit := -1.0
++## The ledges rule 22 (b) guards (cached by guarded_ledges; null until known).
++var _ledges: Variant = null
++
++
++func _init() -> void:
++	enabled = default_enabled()
++
++
++## Whether this run launches arrivals: false with the user argument
++## --no-geyser or the environment variable SLIME_GEYSER=off.
++static func default_enabled() -> bool:
++	if OS.get_cmdline_user_args().has("--no-geyser"):
++		return false
++	return OS.get_environment("SLIME_GEYSER") != "off"
++
++
++## Launches every train slime that reached the return route's end this tick
++## (Train.lapped, emptied here), in id order (see the class doc).
++func step(sim: Simulation) -> void:
++	var train := sim.train
++	if train == null or train.lapped.is_empty():
++		return
++	var ids := PackedInt32Array(train.lapped.keys())
++	ids.sort()
++	train.lapped.clear()
++	for slime_id in ids:
++		var bodies := sim.slimes
++		if not bodies.has(slime_id) or bodies.state_of(slime_id) != SlimeBodies.TRAIN or not train.tracks(slime_id):
++			continue
++		arrivals += 1
++		if enabled:
++			launch(sim, slime_id)
++
++
++## Launches train slime `slime_id` (see the class doc). Returns whether it
++## was launched (or placed, parked).
++func launch(sim: Simulation, slime_id: int) -> bool:
++	var bodies := sim.slimes
++	var train := sim.train
++	var stream := sim.rng.derive("geyser:%d:%d" % [sim.tick, slime_id])
++	var apex := APEX * (1.0 + stream.randf_range(-APEX_JITTER, APEX_JITTER))
++	var parked := bodies.is_parked(slime_id)
++	var size := bodies.size_of(slime_id)
++	var from := bodies.centre_of(slime_id)
++	var origin := from if parked else lift_origin(bodies, slime_id)
++	var cap := bodies.max_speed * SPEED_SHARE
++	var best_distance := -1.0
++	var best_room := -INF
++	var best_at := Vector2.ZERO
++	var best_velocity := Vector2.ZERO
++	for k in CANDIDATES:
++		var distance := stream.randf_range(LAND_MIN, LAND_MAX)
++		var at := LoopStart.landing_point(train, size, distance)
++		var why := landing_limit(sim, slime_id, distance, at)
++		var velocity := Vector2.ZERO
++		if why == "" and not parked:
++			velocity = Train.aim(origin, at, apex, bodies.gravity.y, cap)
++			if not flight_clear(bodies, size, origin, velocity, at):
++				why = "flight"
++		var room := room_at(bodies, slime_id, at)
++		# Off screen there is no flight to sort it out: only a free spot (no
++		# ring there, LoopStart.is_free's test), else the proxy's single file.
++		if why == "" and parked and room < SlimeBodies.ring_radius_for(size) + 2.0 * SlimeBodies.EDGE:
++			why = "room"
++		if why != "":
++			rejects[why] = rejects.get(why, 0) + 1
++			continue
++		if room > best_room:
++			best_room = room
++			best_distance = distance
++			best_at = at
++			best_velocity = velocity
++	if best_distance < 0.0:
++		refused += 1
++		return false
++	if parked:
++		bodies.translate(slime_id, best_at - from)
++		train.place(slime_id, best_distance)
++	else:
++		if origin != from:
++			bodies.translate(slime_id, origin - from)
++			lifted += 1
++			lift_total += from.y - origin.y
++			lift_highest = maxf(lift_highest, from.y - origin.y)
++		bodies.launch(slime_id, best_velocity)
++	launches += 1
++	launches_log.append({"id": slime_id, "tick": sim.tick, "distance": best_distance, "parked": parked,
++			"at": best_at})
++	if launches_log.size() > LOG_SIZE:
++		launches_log.pop_front()
++	return true
++
++
++## Which of the landing limits (see the class doc) spot `at`, `distance` px
++## along the loop, breaks for slime `slime_id`, the flight's and the room's
++## aside: "gate", "zone", "ledge" or "route", or "" when it breaks none.
++func landing_limit(sim: Simulation, slime_id: int, distance: float, at: Vector2) -> String:
++	var bodies := sim.slimes
++	var train := sim.train
++	if distance >= gate_limit(sim) or train.is_slide_at(distance):
++		return "gate"
++	if bodies.size_of(slime_id) > 1 and not sim.split_zones.zones.is_empty() and not sim.split_zones.covers(at):
++		return "zone"
++	var radius := bodies.radius_of(slime_id)
++	if under_ledge(bodies.terrain, guarded_ledges(sim), at, radius, bodies.gravity.y):
++		return "ledge"
++	var rest := rest_height(bodies, slime_id, at)
++	if is_nan(rest) or Vector2(at.x, rest).distance_to(train.position_at(distance)) > Train.OFF_ROUTE:
++		return "route"
++	return ""
++
++
++## Where arrival `slime_id` flies from: its centre lifted straight up so its
++## ring clears, by LIFT_GAP, every ring overlapping its column above it (the
++## pile over the hole), or its centre when nothing is over it, the lift would
++## exceed LIFT_MAX, or the lifted ring would come within CLEARANCE px of the
++## terrain.
++static func lift_origin(bodies: SlimeBodies, slime_id: int) -> Vector2:
++	var from := bodies.centre_of(slime_id)
++	var radius := bodies.radius_of(slime_id)
++	var y := from.y
++	for other in bodies.ids():
++		if other == slime_id:
++			continue
++		var q := bodies.centre_of(other)
++		var r := bodies.radius_of(other)
++		if absf(q.x - from.x) < radius + r and q.y <= from.y + radius:
++			y = minf(y, q.y - r - radius - LIFT_GAP)
++	if y >= from.y or from.y - y > LIFT_MAX:
++		return from
++	var origin := Vector2(from.x, y)
++	var terrain := bodies.terrain
++	if terrain != null:
++		var reach := radius + CLEARANCE
++		for k in terrain.seg_a.size():
++			var on := Geometry2D.get_closest_point_to_segment(origin, terrain.seg_a[k], terrain.seg_b[k])
++			if origin.distance_to(on) < reach:
++				return from
++	return origin
++
++
++## The distance along the loop of the first gate (the loop point nearest any
++## of the level's gate boxes' centres), INF on a level without gates or a
++## train. Cached: the level doesn't change.
++func gate_limit(sim: Simulation) -> float:
++	if _gate_limit >= 0.0:
++		return _gate_limit
++	_gate_limit = INF
++	if sim.level != null and sim.level.loop != null and sim.train != null:
++		for gate_id in sim.level.gates:
++			var box: Rect2 = sim.level.gates[gate_id]["box"]
++			var d: float = sim.level.loop.closest(box.get_center(), sim.train.open_gates)["distance"]
++			_gate_limit = minf(_gate_limit, d)
++	return _gate_limit
++
++
++## The ledges rule 22 (b) guards: the terrain pieces the level's sleepers
++## rest on (the piece whose top, facing up, lies under a sleeper within its
++## ring's bottom plus RESTS_WITHIN px), each as its outline's segment
++## indices (walked from that top segment, vertex to vertex). Whether a piece
++## overhangs a spot within reach is under_ledge's test. Cached: the level
++## doesn't change. Empty without terrain or sleepers.
++func guarded_ledges(sim: Simulation) -> Array[PackedInt32Array]:
++	if _ledges != null:
++		return _ledges
++	var out: Array[PackedInt32Array] = []
++	var terrain := sim.slimes.terrain
++	if terrain != null and sim.level != null:
++		var below := SlimeBodies.ring_radius_for(1) + SlimeBodies.EDGE + RESTS_WITHIN
++		for sleeper_id in sim.level.sleepers:
++			var at: Vector2 = sim.level.sleepers[sleeper_id]["position"]
++			var k := _top_under(terrain, at, below)
++			if k >= 0:
++				var outline := _outline(terrain, k)
++				if not out.has(outline):
++					out.append(outline)
++	_ledges = out
++	return out
++
++
++## The terrain segment facing up whose height at `at`.x lies 0 to `below` px
++## under `at`, the nearest, or -1.
++static func _top_under(terrain: TerrainSegments, at: Vector2, below: float) -> int:
++	var best := -1
++	var best_gap := INF
++	for k in terrain.seg_a.size():
++		var a := terrain.seg_a[k]
++		var b := terrain.seg_b[k]
++		if terrain.seg_n[k].y >= 0.0 or a.x == b.x or at.x < minf(a.x, b.x) or at.x > maxf(a.x, b.x):
++			continue
++		var gap := lerpf(a.y, b.y, (at.x - a.x) / (b.x - a.x)) - at.y
++		if gap >= 0.0 and gap <= below and gap < best_gap:
++			best = k
++			best_gap = gap
++	return best
++
++
++## The segments of the closed terrain outline segment `first` is on, sorted:
++## walked from each segment's end to the segment starting there.
++static func _outline(terrain: TerrainSegments, first: int) -> PackedInt32Array:
++	var out := PackedInt32Array([first])
++	var k := first
++	for n in terrain.seg_a.size():
++		var next := -1
++		for j in terrain.seg_a.size():
++			if terrain.seg_a[j].distance_to(terrain.seg_b[k]) <= VERTEX_EPS:
++				next = j
++				break
++		if next < 0 or next == first:
++			break
++		out.append(next)
++		k = next
++	out.sort()
++	return out
++
++
++## Whether a slime of ring radius `radius` resting at `at` would be under or
++## beside one of `ledges` (guarded_ledges, outlines in `terrain`): some part
++## of the ledge's outline within its ring's width plus CLEARANCE px either
++## side of `at` lies above its ring's top, and the ledge's top there is
++## within a called base slime's reach (FreeSlimes.max_rise, at `gravity`) of
++## the ground (its ring's bottom), as rule 22 (b) measures.
++static func under_ledge(terrain: TerrainSegments, ledges: Array[PackedInt32Array], at: Vector2, radius: float,
++		gravity: float) -> bool:
++	if ledges.is_empty():
++		return false
++	var ring := radius + SlimeBodies.EDGE
++	var reach := FreeSlimes.max_rise(1, gravity)
++	var left := at.x - ring - CLEARANCE
++	var right := at.x + ring + CLEARANCE
++	for outline in ledges:
++		var top := INF
++		for k in outline:
++			var a := terrain.seg_a[k]
++			var b := terrain.seg_b[k]
++			var x0 := maxf(left, minf(a.x, b.x))
++			var x1 := minf(right, maxf(a.x, b.x))
++			if x0 > x1:
++				continue
++			# The highest point of the segment's part between x0 and x1.
++			var high := minf(a.y, b.y)
++			if a.x != b.x:
++				high = minf(lerpf(a.y, b.y, (x0 - a.x) / (b.x - a.x)), lerpf(a.y, b.y, (x1 - a.x) / (b.x - a.x)))
++			if high < at.y - ring:
++				top = minf(top, high)
++		if top < INF and at.y + ring - top <= reach:
++			return true
++	return false
++
++
++## The height (y) slime `slime_id` comes to rest at when it comes down spot
++## `at`'s column: on the terrain under it (its ring's bottom on the first
++## terrain surface met going down from Train.OFF_ROUTE px over its ring's
++## top, at most Train.OFF_ROUTE px under its bottom; only surfaces facing
++## up), or on the slimes in the
++## column (their rings touching its ring; a slime in the air counted where
++## it comes down to `at`'s height), whichever is higher. NAN with no terrain
++## under the spot within that reach.
++static func rest_height(bodies: SlimeBodies, slime_id: int, at: Vector2) -> float:
++	var radius := bodies.radius_of(slime_id) + SlimeBodies.EDGE
++	var rest := NAN
++	var terrain := bodies.terrain
++	if terrain == null:
++		return rest
++	var top := Vector2(at.x, at.y - radius - Train.OFF_ROUTE)
++	var bottom := Vector2(at.x, at.y + radius + Train.OFF_ROUTE)
++	for k in terrain.seg_a.size():
++		if terrain.seg_n[k].y >= 0.0:
++			continue
++		var hit: Variant = Geometry2D.segment_intersects_segment(top, bottom, terrain.seg_a[k], terrain.seg_b[k])
++		if hit != null and (is_nan(rest) or hit.y - radius < rest):
++			rest = hit.y - radius
++	if is_nan(rest):
++		return rest
++	for other in bodies.ids():
++		if other == slime_id:
++			continue
++		var q := where_down(bodies, other, at.y)
++		var reach := radius + bodies.radius_of(other) + SlimeBodies.EDGE
++		var dx := absf(q.x - at.x)
++		if dx < reach:
++			rest = minf(rest, q.y - sqrt(reach * reach - dx * dx))
++	return rest
++
++
++## Where slime `other` is, for a slime landing at height `y`: a slime in the
++## air (unsupported, awake) where its ballistic path (from its velocity)
++## comes down to `y`, any other where it is.
++static func where_down(bodies: SlimeBodies, other: int, y: float) -> Vector2:
++	var s := bodies.index_of(other)
++	var q := bodies.centre_of(other)
++	if bodies.supported[s] == 0 and bodies.calm[s] == SlimeBodies.ACTIVE:
++		var velocity := bodies.velocity_of(other)
++		var t := time_down_to(q, velocity, bodies.gravity.y, y)
++		if t > 0.0:
++			return Vector2(q.x + velocity.x * t, y)
++	return q
++
++
++## The time a ballistic flight from `from` at `velocity` under `gravity`
++## (px/s², down) takes to come down to height `y`, or -1.0 when it never
++## does (it stays above).
++static func time_down_to(from: Vector2, velocity: Vector2, gravity: float, y: float) -> float:
++	# from.y + vy t + g t² / 2 = y, the later root.
++	var disc := velocity.y * velocity.y + 2.0 * gravity * (y - from.y)
++	if disc < 0.0 or gravity <= 0.0:
++		return -1.0
++	var t := (-velocity.y + sqrt(disc)) / gravity
++	return t if t >= 0.0 else -1.0
++
++
++## Whether a slime of `size` flying from `from` at `velocity` down onto `at`
++## keeps CLEARANCE px between its ring and every terrain segment on the way,
++## SAMPLES points along the flight, those within a ring's width of either
++## end aside (the ground it leaves and lands on).
++static func flight_clear(bodies: SlimeBodies, size: int, from: Vector2, velocity: Vector2, at: Vector2) -> bool:
++	var gravity := bodies.gravity.y
++	var total := time_down_to(from, velocity, gravity, at.y)
++	if total <= 0.0:
++		return false
++	var terrain := bodies.terrain
++	if terrain == null:
++		return true
++	var reach := SlimeBodies.ring_radius_for(size) + CLEARANCE
++	var ends := 2.0 * SlimeBodies.ring_radius_for(size) + CLEARANCE
++	# Only the segments near the flight's box.
++	var top := from.y + velocity.y * velocity.y / (-2.0 * gravity) if velocity.y < 0.0 else minf(from.y, at.y)
++	var box := Rect2(Vector2(minf(from.x, at.x), minf(top, minf(from.y, at.y))), Vector2.ZERO)
++	box = box.expand(Vector2(maxf(from.x, at.x), maxf(from.y, at.y))).grow(reach)
++	var near := []
++	for k in terrain.seg_a.size():
++		var a := terrain.seg_a[k]
++		var b := terrain.seg_b[k]
++		if Rect2(a, Vector2.ZERO).expand(b).grow(1.0).intersects(box):
++			near.append(k)
++	for i in range(1, SAMPLES):
++		var t := total * i / SAMPLES
++		var p := from + velocity * t + Vector2(0.0, 0.5 * gravity * t * t)
++		if p.distance_to(from) < ends or p.distance_to(at) < ends:
++			continue
++		for k: int in near:
++			var on := Geometry2D.get_closest_point_to_segment(p, terrain.seg_a[k], terrain.seg_b[k])
++			if p.distance_to(on) < reach:
++				return false
++	return true
++
++
++## How much room a slime landing at `at` would have: the distance to the
++## nearest other slime's ring (centre distance less its radius), a slime in
++## the air counted where it comes down to `at`'s height (where_down). INF
++## with no other slime.
++static func room_at(bodies: SlimeBodies, slime_id: int, at: Vector2) -> float:
++	var room := INF
++	for other in bodies.ids():
++		if other != slime_id:
++			room = minf(room, where_down(bodies, other, at.y).distance_to(at) - bodies.radius_of(other))
++	return room
+diff --git a/src/sim/geyser.gd.uid b/src/sim/geyser.gd.uid
+new file mode 100644
+index 0000000..c62db22
+--- /dev/null
++++ b/src/sim/geyser.gd.uid
+@@ -0,0 +1 @@
++uid://bmh0vbgico61i
+diff --git a/src/sim/simulation.gd b/src/sim/simulation.gd
+index 9cb9043..211356f 100644
+--- a/src/sim/simulation.gd
++++ b/src/sim/simulation.gd
+@@ -65,7 +65,9 @@ extends RefCounted
+ ## hops are paced and every hop turns its slime; the split zones split (train
+ ## and free slimes inherit); slimes in contact fuse or bump, and train slimes
+ ## gather at dip bottoms (Fusion); the free slimes change phase or rejoin the
+-## train; the train follows (progress, stall clocks); every CHECK_TICKS, the
++## train; the train follows (progress, stall clocks), and (EXPERIMENT,
++## exp/geyser) the geyser launches the slimes that reached the return
++## route's end (Geyser); every CHECK_TICKS, the
+ ## slimes stuck inside each other are counted (StuckSlimes); the loop-start
+ ## queue moves one slime due (stalled, out of bounds, stuck or lost) to the
+ ## loop start when its turn has come (LoopStartQueue); the camera watches (idle clock, cue, the slime it follows,
+@@ -207,6 +209,10 @@ var stuck_slimes := StuckSlimes.new()
+ # @spec-link [[rule_stuck_slimes_moved_to_start]]
+ # @spec-link [[rule_left_alone_and_lost]]
+ var loop_start_queue := LoopStartQueue.new()
++## EXPERIMENT (exp/geyser, D157 (5)): launches the train slimes reaching the
++## return route's end (Geyser), right after the train follows. Its counters
++## are debug; nothing of it in dump() nor saves.
++var geyser := Geyser.new()
+ ## The debug phase timers of step() (chunk 5N, U0a: src/debug/phase_timers.gd,
+ ## PhaseTimers.attach), or null: off, as in every normal run, and then each
+ ## phase costs one null check and no clock is read. Measurement only: step()
+@@ -372,6 +378,7 @@ func step() -> void:
+ 		ph.lap(StepPhase.FREE_FOLLOW)
+ 	if train != null:
+ 		train.follow(slimes, tick)
++		geyser.step(self)
+ 	if ph != null:
+ 		ph.lap(StepPhase.TRAIN_FOLLOW)
+ 	stuck_slimes.step(self)
+diff --git a/src/sim/slime_bodies.gd b/src/sim/slime_bodies.gd
+index a2bef55..1819ebc 100644
+--- a/src/sim/slime_bodies.gd
++++ b/src/sim/slime_bodies.gd
+@@ -589,6 +589,18 @@ func set_velocity(slime_id: int, velocity: Vector2) -> void:
+ 		prev[i] = pos[i] - step
+ 
+ 
++## EXPERIMENT (exp/geyser): launches the slime: every point gets the
++## velocity `velocity` (px/s, as set_velocity) and the slime leaves the
++## ground (unsupported, as a hop's take-off), so nothing grips it on the
++## tick it flies off. For the Geyser.
++func launch(slime_id: int, velocity: Vector2) -> void:
++	var s := index_of(slime_id)
++	if s < 0:
++		return
++	set_velocity(slime_id, velocity)
++	supported[s] = 0
++
++
+ ## Takes `share` (0 to 1) of the slime's rigid motion away: its mean
+ ## velocity and its spin about its centre, so it neither slides nor rolls,
+ ## while its squish (the points' motion relative to that) is kept. How a slime
+diff --git a/src/sim/train.gd b/src/sim/train.gd
+index dd49fb1..e5a3b97 100644
+--- a/src/sim/train.gd
++++ b/src/sim/train.gd
+@@ -202,6 +202,12 @@ var stalled: Array[Dictionary] = []
+ ## moved on by the ticks parked since, see the class doc; -1 before the
+ ## first follow)}.
+ var _records := {}
++## EXPERIMENT (exp/geyser): the ids whose progress wrapped past the loop's
++## end (the return route's end, the loop's start) since the Geyser last
++## looked, as a set (id -> true). Filled by advance() (follow()'s and
++## Offscreen's proxies'), emptied by Geyser.step. Not state: not in dump()
++## nor saves.
++var lapped := {}
+ ## The current loop flattened into one closed polyline: points, cumulative
+ ## distances, and for each edge whether it is on a return route.
+ var _pts := PackedVector2Array()
+@@ -504,6 +510,7 @@ func advance(slime_id: int, centre: Vector2, tick: int) -> void:
+ 	if progress >= _len:
+ 		progress -= _len
+ 		record["laps"] += 1
++		lapped[slime_id] = true
+ 	record["distance"] = progress
+ 	var now := progress_of(slime_id)
+ 	if record["marked_at"] < 0 or now - record["mark"] >= STALL_ADVANCE:
+@@ -551,6 +558,17 @@ func log_stalled(slime_id: int, tick: int, reason: String) -> void:
+ 		stalled.pop_front()
+ 
+ 
++## EXPERIMENT (exp/geyser): puts followed slime `slime_id`'s progress
++## `distance` px along the loop from its start, in the same lap: how the
++## Geyser places a parked arrival further along the first stretch (forward
++## only, the slime having just wrapped). Its stall mark is left to
++## advance().
++func place(slime_id: int, distance: float) -> void:
++	var record: Dictionary = _records[slime_id]
++	assert(distance >= record["distance"], "Train.place: progress never goes back")
++	record["distance"] = distance
++
++
+ ## Split parts carry on from where the slime was: `parts` from
+ ## SlimeBodies.split, the original id first.
+ func inherit(parts: PackedInt32Array) -> void:
+diff --git a/src/test_mode/test_mode.gd b/src/test_mode/test_mode.gd
+index 2d4c522..acdcab9 100644
+--- a/src/test_mode/test_mode.gd
++++ b/src/test_mode/test_mode.gd
+@@ -417,6 +417,8 @@ static func load_config_file(path: String) -> Dictionary:
+ ##                            (src/sim/tick_choice.gd); skipped here
+ ##   --census-every=S         not test mode's: the game root's slime census
+ ##   --census-until=T         (src/debug/slime_census.gd); skipped here
++##   --no-geyser              not test mode's: the geyser off
++##                            (EXPERIMENT, src/sim/geyser.gd); skipped here
+ ## Returns {"config", "run_ticks" (-1 when absent), "print_state",
+ ## "save_path" ("" when absent), "errors"}.
+ static func config_from_args(user_args: PackedStringArray) -> Dictionary:
+@@ -431,7 +433,7 @@ static func config_from_args(user_args: PackedStringArray) -> Dictionary:
+ 			"--test-mode":
+ 				pass
+ 			"--perf-log", "--max-ticks-per-frame", "--wipe-save", "--phase-timers", "--tick", \
+-					"--census-every", "--census-until":
++					"--census-every", "--census-until", "--no-geyser":
+ 				pass
+ 			"--test-script":
+ 				var loaded := load_config_file(value)
+diff --git a/tests/unit/test_geyser.gd b/tests/unit/test_geyser.gd
+new file mode 100644
+index 0000000..7b2436b
+--- /dev/null
++++ b/tests/unit/test_geyser.gd
+@@ -0,0 +1,331 @@
++extends GutTest
++## EXPERIMENT (exp/geyser): the geyser at the return route's end
++## (src/sim/geyser.gd, D157 (5), O117), "high and wide". A train slime whose
++## progress wraps past the loop's end is lifted above the pile over it and
++## launched high onto a spot LAND_MIN to LAND_MAX px along the loop, its
++## flight clear of the terrain; the draws are seeded; off, nothing is
++## launched; the landing limits (gate, zone for a fused slime, guarded
++## ledge, the loop's own route) turn spots down, and with none left the
++## arrival is left alone; a parked arrival is put on a free spot, or left in
++## its single file.
++##
++## The world: a floor whose top is at y = 0 from x = -6000 to 6000. The loop
++## runs along it at y = -24 from x = -5000 to 5000 and returns under the
++## floor (y = 400), ending at the loop's start (-5000, -24). Loop distance d
++## is x = d - 5000 on the outgoing part. Split zone t.split covers the loop's
++## first 300 px. An arrival: a slime at the loop's start whose record says
++## it is 1 px before the loop's end, so the next follow wraps it (_arrival).
++# No ATD link: an experiment, not in the spec (the user decides first).
++
++const SPLIT_END := 300.0
++
++
++func _level(split_end := SPLIT_END) -> LevelData:
++	var data := LevelData.new("geyser", 1)
++	var loop := LoopData.new("t.loop")
++	loop.add_segment("t.loop.out", 1, LoopData.OUTGOING, PackedVector2Array([
++			Vector2(-5000, -24), Vector2(5000, -24)]))
++	loop.add_segment("t.loop.back", 1, LoopData.RETURN, PackedVector2Array([
++			Vector2(5000, -24), Vector2(5000, 400), Vector2(-5000, 400), Vector2(-5000, -24)]), "t.gate")
++	data.loop = loop
++	data.first_slime = {"id": "t.first-slime", "species": "A", "position": Vector2(-4900, -24)}
++	data.add_split_zone("t.split", Rect2(-5000, -300, split_end, 400))
++	return data
++
++
++func _terrain(extra: Array = []) -> TerrainSegments:
++	var polygons := [PackedVector2Array([Vector2(-6000, 0), Vector2(6000, 0), Vector2(6000, 300),
++			Vector2(-6000, 300)])]
++	polygons.append_array(extra)
++	return TerrainSegments.new(polygons)
++
++
++## A simulation on the synthetic level, no slime yet, nobody hopping, the
++## geyser on (whatever the run's arguments say).
++func _sim(master_seed := 5, split_end := SPLIT_END, extra: Array = []) -> Simulation:
++	var sim := Simulation.new(master_seed)
++	sim.slimes.terrain = _terrain(extra)
++	sim.load_level(_level(split_end))
++	for slime_id in sim.slimes.ids():
++		sim.slimes.remove(slime_id)
++	sim.view.set_to(Vector2(-4800, -200), 1.0, ScreenView.DEFAULT_SIZE)
++	sim.slimes.auto_hops = false
++	sim.geyser.enabled = true
++	return sim
++
++
++## A base train slime arriving: just past the loop's start (5 px, so its
++## centre projects onto the outgoing route, not the return's last, vertical
++## stretch), its record 1 px short of the loop's end. Returns its id.
++func _arrival(sim: Simulation, species := 0) -> int:
++	var slime := sim.spawn_train_slime(species, 1, 5.0)
++	sim.train.track(slime, sim.train.length() - 1.0)
++	return slime
++
++
++func test_an_arrival_is_launched_high_and_wide() -> void:
++	var sim := _sim()
++	var slime := _arrival(sim)
++	sim.step()
++	assert_eq(sim.geyser.arrivals, 1, "the wrap is an arrival")
++	assert_eq(sim.geyser.launches, 1, "and it is launched")
++	assert_eq(sim.train.laps_of(slime), 1)
++	var launch: Dictionary = sim.geyser.launches_log[0]
++	assert_eq(launch["id"], slime)
++	assert_false(launch["parked"])
++	assert_between(launch["distance"], Geyser.LAND_MIN, Geyser.LAND_MAX, "a spot of the landing stretch")
++	var velocity := sim.slimes.velocity_of(slime)
++	assert_lt(velocity.y, -700.0, "launched high")
++	assert_gt(velocity.x, 0.0, "the loop's way")
++	assert_lt(velocity.length(), sim.slimes.max_speed, "under the speed limit")
++
++
++func test_it_comes_down_on_its_spot() -> void:
++	var sim := _sim()
++	var slime := _arrival(sim)
++	sim.step()
++	var at: Vector2 = sim.geyser.launches_log[0]["at"]
++	var top := 0.0
++	for k in 150:
++		sim.step()
++		top = minf(top, sim.slimes.centre_of(slime).y)
++	assert_lt(top, -24.0 - Geyser.APEX * (1.0 - Geyser.APEX_JITTER) + 30.0, "it flew about APEX high")
++	assert_almost_eq(sim.slimes.centre_of(slime).x, at.x, 40.0, "it landed near its spot")
++	assert_gt(sim.train.distance_of(slime), Geyser.LAND_MIN - 40.0, "its progress is past the start")
++
++
++func test_the_draws_repeat_with_the_seed() -> void:
++	var a := _sim(11)
++	var b := _sim(11)
++	var c := _sim(12)
++	for sim in [a, b, c]:
++		_arrival(sim)
++		for k in 120:
++			sim.step()
++	assert_eq(a.geyser.launches_log[0]["distance"], b.geyser.launches_log[0]["distance"], "same seed, same spot")
++	assert_eq(a.state_hash(), b.state_hash(), "same seed, same run")
++	assert_ne(a.geyser.launches_log[0]["distance"], c.geyser.launches_log[0]["distance"], "another seed, another spot")
++
++
++func test_its_stream_is_its_own() -> void:
++	var sim := _sim(7)
++	var master_state := sim.rng.state
++	_arrival(sim)
++	sim.step()
++	assert_eq(sim.rng.state, master_state, "no draw from the master stream")
++
++
++func test_off_nothing_is_launched() -> void:
++	var sim := _sim()
++	sim.geyser.enabled = false
++	var slime := _arrival(sim)
++	sim.step()
++	assert_eq(sim.geyser.arrivals, 1, "the arrival is still counted")
++	assert_eq(sim.geyser.launches, 0)
++	assert_gt(sim.slimes.velocity_of(slime).y, -100.0, "not launched")
++	assert_true(sim.train.lapped.is_empty(), "the arrivals are consumed either way")
++
++
++func test_a_base_slime_may_land_past_the_split_zone() -> void:
++	var sim := _sim(5, Geyser.LAND_MIN - 20.0)
++	_arrival(sim)
++	sim.step()
++	assert_eq(sim.geyser.launches, 1)
++	assert_false(sim.split_zones.covers(sim.geyser.launches_log[0]["at"]), "past the split zone")
++
++
++func test_a_fused_arrival_lands_only_in_a_split_zone() -> void:
++	var sim := _sim(5, Geyser.LAND_MIN - 20.0)
++	# Launched straight away: a step would split it in the start's zone first.
++	var slime := sim.spawn_train_slime(0, 2, 5.0)
++	assert_false(sim.geyser.launch(sim, slime))
++	assert_eq(sim.geyser.refused, 1)
++	assert_eq(sim.geyser.rejects, {"zone": Geyser.CANDIDATES})
++	var wide := _sim(5, Geyser.LAND_MAX + 100.0)
++	var fused := wide.spawn_train_slime(0, 2, 5.0)
++	assert_true(wide.geyser.launch(wide, fused))
++	assert_true(wide.split_zones.covers(wide.geyser.launches_log[0]["at"]))
++
++
++func test_a_flight_into_an_overhang_is_refused() -> void:
++	# A slab 80 px over the start: every flight from it hits it.
++	var roof := PackedVector2Array([Vector2(-5100, -120), Vector2(-4600, -120), Vector2(-4600, -100),
++			Vector2(-5100, -100)])
++	var sim := _sim(5, SPLIT_END, [roof])
++	var slime := _arrival(sim)
++	sim.step()
++	assert_eq(sim.geyser.launches, 0)
++	assert_eq(sim.geyser.refused, 1)
++	assert_true(sim.geyser.rejects.has("flight"))
++	assert_gt(sim.slimes.velocity_of(slime).y, -100.0, "not launched: the plain arrival")
++
++
++func test_flight_clear_sees_a_ledge_beside_the_landing() -> void:
++	var sim := _sim()
++	var bodies := sim.slimes
++	var from := Vector2(-5000, -24)
++	var at := Vector2(-4800, -24)
++	var velocity := Train.aim(from, at, Geyser.APEX, bodies.gravity.y, bodies.max_speed)
++	assert_true(Geyser.flight_clear(bodies, 1, from, velocity, at), "open sky")
++	var ledge := PackedVector2Array([Vector2(-4795, -110), Vector2(-4700, -110), Vector2(-4700, -90),
++			Vector2(-4795, -90)])
++	bodies.terrain = _terrain([ledge])
++	assert_false(Geyser.flight_clear(bodies, 1, from, velocity, at), "the ring clips the ledge coming down")
++
++
++func test_the_emptiest_kept_spot_is_taken() -> void:
++	var sim := _sim()
++	# Slimes along part of the landing stretch.
++	for d in range(160, 400, 30):
++		sim.spawn_train_slime(1, 1, d)
++	var slime := sim.spawn_train_slime(0, 1, 0.0)
++	# The draws launch() will make: the apex, then the candidates.
++	var draws := sim.rng.derive("geyser:%d:%d" % [sim.tick, slime])
++	draws.randf()
++	var rooms := []
++	for k in Geyser.CANDIDATES:
++		var distance := draws.randf_range(Geyser.LAND_MIN, Geyser.LAND_MAX)
++		var at := LoopStart.landing_point(sim.train, 1, distance)
++		if sim.geyser.landing_limit(sim, slime, distance, at) == "":
++			rooms.append(Geyser.room_at(sim.slimes, slime, at))
++	assert_false(rooms.is_empty())
++	assert_true(sim.geyser.launch(sim, slime))
++	var launch: Dictionary = sim.geyser.launches_log[0]
++	assert_eq(launch["id"], slime)
++	assert_eq(Geyser.room_at(sim.slimes, slime, launch["at"]), rooms.max(), "the emptiest of the kept draws")
++
++
++func test_never_onto_a_slime_off_the_route() -> void:
++	var sim := _sim()
++	var slime := sim.spawn_train_slime(0, 1, 0.0)
++	var sitting := sim.spawn_train_slime(1, 1, 300.0)
++	var on := LoopStart.landing_point(sim.train, 1, 300.0)
++	assert_eq(sim.geyser.landing_limit(sim, slime, 300.0, on), "route", "it would come down on the slime there")
++	assert_eq(sim.geyser.landing_limit(sim, slime, 330.0, on + Vector2(30, 0)), "route", "its ring overlaps")
++	assert_eq(sim.geyser.landing_limit(sim, slime, 360.0, on + Vector2(60, 0)), "", "beside it, on the ground")
++	# A slime in the air counts where it comes down.
++	sim.slimes.launch(sitting, Vector2(300.0, -600.0))
++	var down := Geyser.where_down(sim.slimes, sitting, on.y)
++	assert_gt(down.x, on.x + 100.0)
++	var d := 300.0 + (down.x - on.x)
++	assert_eq(sim.geyser.landing_limit(sim, slime, d, LoopStart.landing_point(sim.train, 1, d)), "route")
++	assert_eq(sim.geyser.landing_limit(sim, slime, 300.0, on), "", "where it took off is free now")
++
++
++func test_never_onto_a_spot_with_no_ground() -> void:
++	var sim := _sim()
++	# The floor with a 100 px hole 500 to 600 px along the loop.
++	sim.slimes.terrain = TerrainSegments.new([
++			PackedVector2Array([Vector2(-6000, 0), Vector2(-4500, 0), Vector2(-4500, 300), Vector2(-6000, 300)]),
++			PackedVector2Array([Vector2(-4400, 0), Vector2(6000, 0), Vector2(6000, 300), Vector2(-4400, 300)])])
++	var slime := sim.spawn_train_slime(0, 1, 0.0)
++	var at := LoopStart.landing_point(sim.train, 1, 550.0)
++	assert_true(is_nan(Geyser.rest_height(sim.slimes, slime, at)))
++	assert_eq(sim.geyser.landing_limit(sim, slime, 550.0, at), "route")
++	assert_eq(sim.geyser.landing_limit(sim, slime, 450.0, at - Vector2(100, 0)), "")
++
++
++func test_never_under_a_guarded_ledge() -> void:
++	# A ledge 400 to 500 px along the loop, its top 120 px over the ground (a
++	# called base slime reaches it), a sleeper on it; another, 160 px up, out
++	# of reach, 600 to 650 px along, a sleeper on it too.
++	var low := PackedVector2Array([Vector2(-4600, -120), Vector2(-4500, -120), Vector2(-4500, -100),
++			Vector2(-4600, -100)])
++	var high := PackedVector2Array([Vector2(-4400, -160), Vector2(-4350, -160), Vector2(-4350, -140),
++			Vector2(-4400, -140)])
++	var sim := _sim(5, SPLIT_END, [low, high])
++	sim.level.add_sleeper("t.sleeper.low", "A", Vector2(-4550, -144))
++	sim.level.add_sleeper("t.sleeper.high", "A", Vector2(-4375, -184))
++	assert_eq(sim.geyser.guarded_ledges(sim).size(), 2, "both pieces a sleeper rests on")
++	var slime := sim.spawn_train_slime(0, 1, 0.0)
++	for d in [450.0, 380.0, 520.0]:
++		assert_eq(sim.geyser.landing_limit(sim, slime, d, LoopStart.landing_point(sim.train, 1, d)), "ledge",
++				"under it or beside it, at %.0f" % d)
++	for d in [360.0, 540.0, 625.0]:
++		assert_eq(sim.geyser.landing_limit(sim, slime, d, LoopStart.landing_point(sim.train, 1, d)), "",
++				"clear of it, or under one out of reach, at %.0f" % d)
++
++
++func test_never_at_or_past_a_gate() -> void:
++	var sim := _sim()
++	# Added to the level's data after the load (the frontier sets don't know
++	# it, so launches only, no step): the geyser reads the gates when asked.
++	sim.level.add_gate("t.gate", Rect2(-4620, -100, 40, 100))
++	assert_almost_eq(sim.geyser.gate_limit(sim), 400.0, 0.5, "the gate's loop point")
++	for k in 8:
++		var slime := sim.spawn_train_slime(0, 1, 5.0)
++		assert_true(sim.geyser.launch(sim, slime))
++		sim.slimes.remove(slime)
++	for launch in sim.geyser.launches_log:
++		assert_lt(launch["distance"], 400.0, "before the gate")
++	assert_gt(sim.geyser.rejects.get("gate", 0), 0)
++
++
++func test_with_no_spot_left_the_arrival_is_plain() -> void:
++	var sim := _sim()
++	# The whole landing stretch taken, one slime every 40 px.
++	for d in range(int(Geyser.LAND_MIN) - 40, int(Geyser.LAND_MAX) + 40, 40):
++		sim.spawn_train_slime(1, 1, d)
++	var slime := _arrival(sim)
++	var from := sim.slimes.centre_of(slime)
++	sim.step()
++	assert_eq(sim.geyser.launches, 0)
++	assert_eq(sim.geyser.refused, 1)
++	assert_eq(sim.geyser.lifted, 0, "not lifted either")
++	assert_almost_eq(sim.slimes.centre_of(slime).x, from.x, 5.0, "left at the loop's start")
++	assert_gt(sim.slimes.velocity_of(slime).y, -100.0, "not launched")
++
++
++func test_a_parked_arrival_is_put_on_a_free_spot() -> void:
++	var sim := _sim()
++	var slime := _arrival(sim)
++	sim.slimes.park(slime)
++	sim.train.advance(slime, sim.slimes.centre_of(slime), 0)
++	assert_true(sim.train.lapped.has(slime), "Offscreen's proxy wraps it")
++	sim.geyser.step(sim)
++	assert_eq(sim.geyser.launches, 1)
++	var launch: Dictionary = sim.geyser.launches_log[0]
++	assert_true(launch["parked"])
++	assert_almost_eq(sim.train.distance_of(slime), launch["distance"], 0.001, "its progress moved there")
++	assert_almost_eq(sim.slimes.centre_of(slime).distance_to(launch["at"]), 0.0, 0.01, "and its body")
++
++
++func test_a_parked_arrival_with_no_free_spot_stays_in_line() -> void:
++	var sim := _sim()
++	# The whole landing stretch taken, one slime every 20 px.
++	for d in range(int(Geyser.LAND_MIN) - 20, int(Geyser.LAND_MAX) + 40, 20):
++		sim.spawn_train_slime(1, 1, d)
++	var slime := _arrival(sim)
++	sim.slimes.park(slime)
++	sim.train.advance(slime, sim.slimes.centre_of(slime), 0)
++	var before := sim.train.distance_of(slime)
++	sim.geyser.step(sim)
++	assert_eq(sim.geyser.launches, 0)
++	assert_eq(sim.geyser.refused, 1)
++	assert_eq(sim.train.distance_of(slime), before, "left where the proxy has it")
++
++
++func test_it_lifts_the_arrival_above_the_pile() -> void:
++	var sim := _sim()
++	var slime := _arrival(sim)
++	var from := sim.slimes.centre_of(slime)
++	var above := sim.slimes.create(1, 1, from + Vector2(5, -44), SlimeBodies.TRAIN)
++	sim.train.track(above, 10.0)
++	var pile_top := sim.slimes.centre_of(above).y - sim.slimes.radius_of(above)
++	sim.step()
++	assert_eq(sim.geyser.launches, 1)
++	assert_eq(sim.geyser.lifted, 1, "lifted out from under the pile")
++	assert_lt(sim.slimes.centre_of(slime).y + sim.slimes.radius_of(slime), pile_top, "its ring above the pile's")
++	assert_gt(sim.slimes.velocity_of(above).y, -300.0, "the one above isn't launched")
++
++
++func test_lift_origin_leaves_a_free_or_buried_slime_where_it_is() -> void:
++	var sim := _sim()
++	var bodies := sim.slimes
++	var slime := bodies.create(0, 1, Vector2(-5000, -24), SlimeBodies.TRAIN)
++	assert_eq(Geyser.lift_origin(bodies, slime), bodies.centre_of(slime), "nothing above")
++	var y := -24.0 - 44.0
++	while -24.0 - y < Geyser.LIFT_MAX + 50.0:
++		bodies.create(1, 1, Vector2(-5000, y), SlimeBodies.TRAIN)
++		y -= 44.0
++	assert_eq(Geyser.lift_origin(bodies, slime), bodies.centre_of(slime), "a pile higher than LIFT_MAX")
+diff --git a/tests/unit/test_geyser.gd.uid b/tests/unit/test_geyser.gd.uid
+new file mode 100644
+index 0000000..dce261c
+--- /dev/null
++++ b/tests/unit/test_geyser.gd.uid
+@@ -0,0 +1 @@
++uid://273lppet5f07
+diff --git a/tests/unit/test_offscreen_single_file.gd b/tests/unit/test_offscreen_single_file.gd
+index f4831f2..d03e40b 100644
+--- a/tests/unit/test_offscreen_single_file.gd
++++ b/tests/unit/test_offscreen_single_file.gd
+@@ -80,6 +80,11 @@ func _run_keeping_order(sim: Simulation, behind: int, ahead: int, room: float, t
+ 
+ func test_a_parked_slime_on_the_slide_waits_behind_the_parked_slime_ahead() -> void:
+ 	var sim := _sim()
++	# The single file across the loop's end, the geyser off (EXPERIMENT,
++	# exp/geyser): with it, the one behind, wrapping past the loop's end, is
++	# put on a free spot 150 to 700 px along the loop on purpose, ahead of
++	# the one ahead (tests/unit/test_geyser.gd covers that placement).
++	sim.geyser.enabled = false
+ 	var length := sim.train.length()
+ 	# The one behind comes off the slide (at the slide's speed) 0.28 s later,
+ 	# when the one ahead is only about 24 px into the outgoing part.
+diff --git a/tools/geyser_probe.gd b/tools/geyser_probe.gd
+new file mode 100644
+index 0000000..b660d0c
+--- /dev/null
++++ b/tools/geyser_probe.gd
+@@ -0,0 +1,440 @@
++extends SceneTree
++## EXPERIMENT (exp/geyser): rule 24's checks (D157 (4)) at the loop's start
++## over a long headless run of a test-level fixture, with or without the
++## geyser (src/sim/geyser.gd; --no-geyser turns it off, same build). Stepped
++## with the game's own step (game.step_simulation, as --run-ticks does), read
++## only: the final STATE hash is a plain run's. Not a test.
++##
++## Run:   godot --headless --no-header --path . -s res://tools/geyser_probe.gd --
++##            [--fixture=s3-basket-59of60] [--seed=1] [--ticks=10000]
++##            [--census-at=T1,T2,...] [--no-geyser]
++##            [--tick=gdscript] [--hold-view=X,Y --hold-from=T]
++##            [--trace=N --trace-from=T]
++##
++## "Near the start": a slime's centre within NEAR px of the loop's start
++## point (D150's landing stretch is the loop's first 240 px).
++## Output (one line each):
++##   GP          fixture, seed, geyser on/off, tick kind, start point
++##   GP_WIN      every WINDOW ticks: tick; arr (arrivals: a train slime's
++##               laps went up, the return route's end); dep (train slimes
++##               crossing loop distance DEPART forward: leaving the first
++##               stretch); clu_max (the largest awake cluster with a slime
++##               near the start, max over the window); near_max (slimes
++##               near the start, any calm); stuck (stuck moves), stuck_arr
++##               (of slimes that arrived within ARRIVAL_TICKS before),
++##               stall, oob
++##   GP_TOT      the totals, and: clu_max, clu_mean, clu_over (ticks with
++##               that cluster above LIMIT), clu_run (the longest run of such
++##               ticks), near_mean, near_max, clear_med / clear_p90 (ticks
++##               from arrival to crossing DEPART, of the arrivals that did),
++##               not_clear (arrivals that hadn't when the run ended),
++##               landed_off (arrivals that LANDED_CHECK ticks after arriving
++##               are no train slime, outside every split zone, more than
++##               OFF_LOOP px from their loop point, or out of bounds),
++##               off_launched (those of them the geyser had launched),
++##               back (arrivals still short of BACK_AT px along the loop
++##               LANDED_CHECK ticks on), launches, refused (Geyser
++##               counters), rejects (the draws the landing limits turned
++##               down, by reason)
++##   GP_LATE     from tick LATE_FROM on (the arrivals' part): per 600 ticks,
++##               arr and the forward crossings of each CROSS_AT loop
++##               distance (x240 is dep); pocket_mean (train slimes behind
++##               the loop's start, near it: x below it, sampled every 60
++##               ticks); tick_ms mean and p95 (game.step_simulation, wall
++##               clock, headless); the geyser's lift counters
++##   GP_OFF      the first OFF_SHOWN arrivals counted in landed_off: their
++##               centre, their loop point, the loop distance nearest them,
++##               the slimes right under them
++##   GP_CENSUS   at each --census-at tick: the slimes near the start by state,
++##               calm, support and hold (SlimeCensus' tokens)
++##   STATE       the final tick and state hash
++# @spec-link [[req_platform_and_performance_targets]]
++
++const WINDOW := 600
++const NEAR := 240.0
++const DEPART := 240.0
++const LIMIT := 20
++const ARRIVAL_TICKS := 600
++const LANDED_CHECK := 180
++const OFF_LOOP := 80.0
++const MAX_STEP := 5000.0
++## An arrival still short of this loop distance LANDED_CHECK ticks on is
++## counted as back at the start (`back`: smothered, or never launched).
++const BACK_AT := 100.0
++## Where the GP_LATE crossings are counted, px along the loop.
++const CROSS_AT := [240.0, 500.0, 750.0, 1000.0, 1500.0]
++## GP_LATE's part of the run starts here (arrivals start about tick 9000).
++const LATE_FROM := 9000
++## How many landings off the loop GP_OFF shows (where, what is under them).
++const OFF_SHOWN := 12
++## GP_HIST's pile over the hole: slimes within this many px of the start's x.
++const STACK_X := 60.0
++
++var fixture := "s3-basket-59of60"
++var seed_n := 1
++var ticks := 10000
++var census_at := PackedInt32Array()
++## --trace=N: the first N arrivals' centres every TRACE_EVERY ticks for
++## TRACE_TICKS ticks (GP_TRACE).
++var trace_n := 0
++var trace_from := 0
++## --hold-view=X,Y: the camera put back there after every step (the
++## start area watched throughout, whatever the idle camera follows).
++var hold_view := Vector2.INF
++## --hold-from=T: from tick T on (default 0). Held from the start, section
++## 3's basket is never in view, never fires, and nobody comes home.
++var hold_from := 0
++const TRACE_EVERY := 6
++const TRACE_TICKS := 180
++
++
++func _initialize() -> void:
++	var problem := _parse()
++	if problem != "":
++		printerr("geyser_probe: ", problem)
++		quit(2)
++		return
++	var game: Node = load("res://src/main.tscn").instantiate()
++	root.add_child(game)
++	await process_frame
++	var parsed: Dictionary = load("res://src/test_mode/test_mode.gd").config_from_args(PackedStringArray(
++			["--test-mode", "--level=test", "--fixture=" + fixture, "--seed=%d" % seed_n]))
++	var errs: PackedStringArray = game.enable_test_mode(parsed["config"])
++	if not errs.is_empty():
++		printerr("geyser_probe: ", errs)
++		quit(2)
++		return
++	_run(game)
++	quit(0)
++
++
++## Reads the user arguments; returns the problem, or "" when valid.
++func _parse() -> String:
++	for arg in OS.get_cmdline_user_args():
++		if arg == "--no-geyser" or arg.begins_with("--tick="):
++			continue
++		var p := arg.trim_prefix("--").split("=", true, 1)
++		if p.size() != 2:
++			return "expected --name=value, got '%s'" % arg
++		match p[0]:
++			"fixture":
++				fixture = p[1]
++			"seed":
++				seed_n = int(p[1])
++			"ticks":
++				ticks = int(p[1])
++			"trace":
++				trace_n = int(p[1])
++			"hold-view":
++				var xy := p[1].split(",")
++				hold_view = Vector2(float(xy[0]), float(xy[1]))
++			"hold-from":
++				hold_from = int(p[1])
++			"trace-from":
++				trace_from = int(p[1])
++			"census-at":
++				for t in p[1].split(","):
++					census_at.append(int(t))
++			_:
++				return "unknown argument '%s'" % arg
++	return ""
++
++
++func _run(game: Node) -> void:
++	var sim: Simulation = game.simulation
++	var train: Train = sim.train
++	var bodies: SlimeBodies = sim.slimes
++	var start := train.position_at(0.0)
++	print("GP fixture=%s seed=%d geyser=%s land=%.0f-%.0f tick=%s start=%s tick0=%d slimes=%d" % [fixture, seed_n,
++			"on" if sim.geyser.enabled else "off", Geyser.LAND_MIN, Geyser.LAND_MAX,
++			"native" if bodies.uses_native() else "gdscript", start, sim.tick, bodies.slime_count])
++	var laps := {}
++	var dist := {}
++	for id in train.tracked_ids():
++		laps[id] = train.laps_of(id)
++		dist[id] = train.distance_of(id)
++	var arrived := {}  # id -> last arrival tick
++	var pending_clear := {}  # id -> arrival tick, until it crosses DEPART
++	var to_check := []  # [check tick, id]
++	var clear_times := PackedInt32Array()
++	var w := _zero()
++	var tot := _zero()
++	var clu_sum := 0.0
++	var clu_over := 0
++	var clu_run := 0
++	var clu_run_max := 0
++	var near_sum := 0.0
++	var landed_off := 0
++	var traced := {}  # id -> arrival tick
++	var fell_back := 0
++	var off_kinds := {}
++	var off_shown := 0
++	# The launched arrivals: id -> the launch's tick (Geyser.launches_log).
++	var launched := {}
++	var launches_seen := 0
++	var off_launched := 0
++	var late_arr := 0
++	var late_cross := PackedInt32Array()
++	late_cross.resize(CROSS_AT.size())
++	var pocket_sum := 0
++	var pocket_n := 0
++	var step_us := PackedInt32Array()
++	for i in ticks:
++		var t0 := Time.get_ticks_usec()
++		game.step_simulation()
++		if sim.tick > LATE_FROM:
++			step_us.append(Time.get_ticks_usec() - t0)
++		if hold_view != Vector2.INF and sim.tick >= hold_from:
++			sim.camera.position = hold_view
++		var recent := sim.geyser.launches_log
++		for j in range(maxi(0, recent.size() - (sim.geyser.launches - launches_seen)), recent.size()):
++			launched[recent[j]["id"]] = recent[j]["tick"]
++		launches_seen = sim.geyser.launches
++		var t := sim.tick - 1
++		for id in train.tracked_ids():
++			var l := train.laps_of(id)
++			var d := train.distance_of(id)
++			if laps.has(id) and l > laps[id]:
++				w["arr"] += 1
++				if t >= LATE_FROM:
++					late_arr += 1
++				arrived[id] = t
++				pending_clear[id] = t
++				to_check.append([t + LANDED_CHECK, id])
++				if traced.size() < trace_n and t >= trace_from:
++					traced[id] = t
++			if dist.has(id):
++				var p: float = dist[id]
++				if t >= LATE_FROM and d >= p and d - p < MAX_STEP:
++					for c in CROSS_AT.size():
++						if p < CROSS_AT[c] and d >= CROSS_AT[c]:
++							late_cross[c] += 1
++				if d >= p and d - p < MAX_STEP and p < DEPART and d >= DEPART:
++					w["dep"] += 1
++					if pending_clear.has(id):
++						clear_times.append(t - pending_clear[id])
++						pending_clear.erase(id)
++			laps[id] = l
++			dist[id] = d
++		for e in train.stalled:
++			if e["tick"] == t:
++				w["stall" if e["reason"] == Train.STALLED else "oob"] += 1
++				pending_clear.erase(e["id"])
++		for e in sim.stuck_slimes.stuck:
++			if e["tick"] == t and e["moved"]:
++				w["stuck"] += 1
++				if arrived.has(e["id"]) and t - arrived[e["id"]] <= ARRIVAL_TICKS:
++					w["stuck_arr"] += 1
++				pending_clear.erase(e["id"])
++		while not to_check.is_empty() and to_check[0][0] <= t:
++			var kind := _landed_off(sim, to_check[0][1])
++			var checked: int = to_check[0][1]
++			if bodies.has(checked) and train.tracks(checked) and train.distance_of(checked) < BACK_AT:
++				fell_back += 1
++			if kind != "" and off_shown < OFF_SHOWN and bodies.has(checked):
++				off_shown += 1
++				var c := bodies.centre_of(checked)
++				var under := 0
++				for other in bodies.ids():
++					var q := bodies.centre_of(other)
++					if other != checked and absf(q.x - c.x) < 30.0 and q.y > c.y and q.y - c.y < 60.0:
++						under += 1
++				print("GP_OFF id=%d kind=%s pos=%s loop_pt=%s dist=%.0f near_d=%.0f under=%d supported=%d" % [checked,
++						kind, c.round(), train.position_at(train.distance_of(checked)).round(), train.distance_of(checked),
++						train._closest_distance(c), under, bodies.supported[bodies.index_of(checked)]])
++			if kind != "":
++				landed_off += 1
++				off_kinds[kind] = off_kinds.get(kind, 0) + 1
++				if launched.get(checked, -INF) >= t - LANDED_CHECK - 2:
++					off_launched += 1
++			to_check.pop_front()
++		for id in traced:
++			var age: int = t - traced[id]
++			if age <= TRACE_TICKS and (age % TRACE_EVERY == 0 or age < 12) and bodies.has(id):
++				var s := bodies.index_of(id)
++				var touch := []
++				for pair: Vector2i in bodies.touching_pairs():
++					if pair.x == id or pair.y == id:
++						var o := pair.y if pair.x == id else pair.x
++						touch.append("%d@%s" % [o, bodies.centre_of(o).round()])
++				print("GP_TRACE id=%d age=%d pos=%s vel=%s sup=%d calm=%d dist=%.0f touch=%s" % [id, age,
++						bodies.centre_of(id).round(), bodies.velocity_of(id).round(), bodies.supported[s],
++						bodies.calm[s], train.distance_of(id), ",".join(touch)])
++		var near := _near_count(bodies, start)
++		var clu := _cluster_near(bodies, start)
++		w["clu_max"] = maxi(w["clu_max"], clu)
++		w["near_max"] = maxi(w["near_max"], near)
++		clu_sum += clu
++		near_sum += near
++		if clu > LIMIT:
++			clu_over += 1
++			clu_run += 1
++			clu_run_max = maxi(clu_run_max, clu_run)
++		else:
++			clu_run = 0
++		if t >= LATE_FROM and t % 60 == 0:
++			pocket_sum += _pocket(sim, start)
++			pocket_n += 1
++		if census_at.has(t):
++			_census(sim, start, t)
++		if sim.tick % WINDOW == 0 or i == ticks - 1:
++			print("GP_WIN tick=%d arr=%d dep=%d clu_max=%d near_max=%d stuck=%d stuck_arr=%d stall=%d oob=%d cam=%s" % [
++					sim.tick, w["arr"], w["dep"], w["clu_max"], w["near_max"], w["stuck"], w["stuck_arr"],
++					w["stall"], w["oob"], sim.view.centre.round()])
++			for k in w:
++				if k.ends_with("_max"):
++					tot[k] = maxi(tot[k], w[k])
++				else:
++					tot[k] += w[k]
++			w = _zero()
++	clear_times.sort()
++	var med := clear_times[clear_times.size() / 2] if not clear_times.is_empty() else -1
++	var p90 := clear_times[int(clear_times.size() * 0.9)] if not clear_times.is_empty() else -1
++	print(("GP_TOT tick=%d arr=%d dep=%d stuck=%d stuck_arr=%d stall=%d oob=%d clu_max=%d clu_mean=%.2f"
++			+ " clu_over=%d clu_run=%d near_mean=%.2f near_max=%d clear_med=%d clear_p90=%d not_clear=%d"
++			+ " landed_off=%d %s off_launched=%d back=%d launches=%d refused=%d rejects=%s") % [sim.tick, tot["arr"], tot["dep"], tot["stuck"],
++			tot["stuck_arr"], tot["stall"], tot["oob"], tot["clu_max"], clu_sum / ticks, clu_over, clu_run_max,
++			near_sum / ticks, tot["near_max"], med, p90, pending_clear.size(), landed_off, off_kinds, off_launched, fell_back,
++			sim.geyser.launches, sim.geyser.refused, JSON.stringify(sim.geyser.rejects)])
++	var late_windows := maxf(1.0, (sim.tick - LATE_FROM) / float(WINDOW))
++	var cross := []
++	for c in CROSS_AT.size():
++		cross.append("x%d=%.1f" % [CROSS_AT[c], late_cross[c] / late_windows])
++	step_us.sort()
++	var ms_mean := 0.0
++	for us in step_us:
++		ms_mean += us
++	ms_mean = ms_mean / maxf(1.0, step_us.size()) / 1000.0
++	var ms_p95 := step_us[int(step_us.size() * 0.95)] / 1000.0 if not step_us.is_empty() else -1.0
++	var geyser := sim.geyser
++	print("GP_LATE from=%d arr=%.1f %s pocket_mean=%.1f tick_ms=%.2f p95=%.2f lifted=%d lift_mean=%.0f lift_max=%.0f" % [
++			LATE_FROM, late_arr / late_windows, " ".join(cross), pocket_sum / maxf(1.0, pocket_n), ms_mean, ms_p95,
++			geyser.lifted, geyser.lift_total / maxf(1.0, geyser.lifted), geyser.lift_highest])
++	print("STATE tick=%d hash=%s" % [sim.tick, sim.state_hash()])
++
++
++func _zero() -> Dictionary:
++	return {"arr": 0, "dep": 0, "clu_max": 0, "near_max": 0, "stuck": 0, "stuck_arr": 0, "stall": 0, "oob": 0}
++
++
++## Why arrival `slime_id` landed off, LANDED_CHECK ticks on ("" when fine).
++func _landed_off(sim: Simulation, slime_id: int) -> String:
++	var bodies := sim.slimes
++	if not bodies.has(slime_id):
++		return "gone"
++	if bodies.state_of(slime_id) != SlimeBodies.TRAIN:
++		return "state_%s" % SlimeBodies.STATE_NAMES[bodies.state_of(slime_id)]
++	var c := bodies.centre_of(slime_id)
++	if sim.train.is_out_of_bounds(c):
++		return "oob"
++	if not sim.train.tracks(slime_id):
++		return "untracked"
++	if c.distance_to(sim.train.position_at(sim.train.distance_of(slime_id))) > OFF_LOOP:
++		return "off_loop"
++	return ""
++
++
++func _near_count(bodies: SlimeBodies, start: Vector2) -> int:
++	var n := 0
++	for s in bodies.slime_count:
++		if bodies.centre_of(bodies.id[s]).distance_to(start) <= NEAR:
++			n += 1
++	return n
++
++
++## The largest awake cluster (DebugCounts' rule) with a member near the start.
++func _cluster_near(bodies: SlimeBodies, start: Vector2) -> int:
++	var physics := DebugCounts.physics_slime_ids(bodies)
++	var pairs: Array = DebugCounts.touching_by_distance(bodies, physics) if bodies.candidate_pair_count() == 0 \
++			else bodies.touching_pairs()
++	var index := {}
++	for i in physics.size():
++		index[physics[i]] = i
++	var parent := PackedInt32Array()
++	parent.resize(physics.size())
++	for i in physics.size():
++		parent[i] = i
++	for pair: Vector2i in pairs:
++		if not (index.has(pair.x) and index.has(pair.y)):
++			continue
++		var a := _root(parent, index[pair.x])
++		var b := _root(parent, index[pair.y])
++		if a != b:
++			parent[b] = a
++	var size := {}
++	var near := {}
++	for i in physics.size():
++		var r := _root(parent, i)
++		size[r] = size.get(r, 0) + 1
++		if bodies.centre_of(physics[i]).distance_to(start) <= NEAR:
++			near[r] = true
++	var best := 0
++	for r in near:
++		best = maxi(best, size[r])
++	return best
++
++
++func _root(parent: PackedInt32Array, i: int) -> int:
++	while parent[i] != i:
++		parent[i] = parent[parent[i]]
++		i = parent[i]
++	return i
++
++
++## GP_CENSUS: the census tokens of the slimes near the start, counted.
++func _census(sim: Simulation, start: Vector2, t: int) -> void:
++	var counts := {}
++	var n := 0
++	for line in SlimeCensus.lines(sim, "probe", fixture):
++		var tokens := {}
++		for part in line.split(" "):
++			var kv := part.split("=", true, 1)
++			if kv.size() == 2:
++				tokens[kv[0]] = kv[1]
++		if not tokens.has("pos"):
++			continue
++		var xy: PackedStringArray = tokens["pos"].split(",")
++		if xy.size() != 2 or Vector2(float(xy[0]), float(xy[1])).distance_to(start) > NEAR:
++			continue
++		n += 1
++		for key in ["state", "calm", "supported", "hold", "in_air", "stuck", "next_kind"]:
++			if tokens.has(key):
++				var k := "%s=%s" % [key, tokens[key]]
++				counts[k] = counts.get(k, 0) + 1
++	var keys := counts.keys()
++	keys.sort()
++	var parts := []
++	for k in keys:
++		parts.append("%s:%d" % [k, counts[k]])
++	print("GP_CENSUS tick=%d near=%d %s" % [t, n, " ".join(parts)])
++	# Where the train slimes of the first 1000 px are: 100 px bins of loop
++	# distance, and those in the pocket (behind the loop's start: near it, x
++	# below it).
++	var bins := {}
++	var bodies := sim.slimes
++	for id in sim.train.tracked_ids():
++		var d := sim.train.distance_of(id)
++		if d < 2000.0:
++			var b := int(d / 100.0)
++			bins[b] = bins.get(b, 0) + 1
++	var hist := []
++	for b in range(20):
++		hist.append("%d:%d" % [b * 100, bins.get(b, 0)])
++	# The pile over the hole: the highest ring top within STACK_X px of the
++	# start's x, near the start (start.y less it: the pile's height).
++	var top := start.y
++	for s in bodies.slime_count:
++		var c := bodies.centre_of(bodies.id[s])
++		if absf(c.x - start.x) < STACK_X and c.distance_to(start) <= NEAR:
++			top = minf(top, c.y - bodies.radius_of(bodies.id[s]))
++	print("GP_HIST tick=%d pocket=%d stack=%.0f %s" % [t, _pocket(sim, start), start.y - top, " ".join(hist)])
++
++
++## The train slimes in the pocket behind the loop's start: near it, x below it.
++func _pocket(sim: Simulation, start: Vector2) -> int:
++	var pocket := 0
++	var bodies := sim.slimes
++	for id in sim.train.tracked_ids():
++		if bodies.centre_of(id).x < start.x and bodies.centre_of(id).distance_to(start) <= NEAR:
++			pocket += 1
++	return pocket
+diff --git a/tools/geyser_probe.gd.uid b/tools/geyser_probe.gd.uid
+new file mode 100644
+index 0000000..6105d99
+--- /dev/null
++++ b/tools/geyser_probe.gd.uid
+@@ -0,0 +1 @@
++uid://bgfb2dosln1j4

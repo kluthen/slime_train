@@ -614,6 +614,21 @@ func brake(slime_id: int, share: float) -> void:
 		prev[i] += (v + Vector2(-r.y, r.x) * spin) * k
 
 
+## EXPERIMENT (exp/dip-jam phase 2, Train.jam_g): holds the slime on a slope
+## running along `tangent` (unit, the way up): its mean motion down the slope
+## is taken away, and `lift` px/s up it added (the Train's share of the
+## tick's pull down the slope, so the tick ends where it started). Its spin,
+## squish and motion up the slope are left alone.
+func hold_on_slope(slime_id: int, tangent: Vector2, lift: float) -> void:
+	var s := index_of(slime_id)
+	if s < 0:
+		return
+	var along := _velocity_at(s).dot(tangent)
+	var step := tangent * (maxf(along, 0.0) + lift - along) * _h
+	for i in range(first[s], first[s] + npts[s]):
+		prev[i] -= step
+
+
 ## Whether the slime hops on its own: train and free slimes not held still.
 func can_hop(slime_id: int) -> bool:
 	var s := index_of(slime_id)

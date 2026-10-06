@@ -102,3 +102,8 @@ touching-row test. No stalls in any run.
 2. Pick v1s for the nudge if the user wants it anyway (then rewrite the touching-row
    test and D119/rule 5's wording; a v2 would need `_held` in dump() and saves).
 3. Drop v5.
+
+## Phase 2 (2026-10-06): CUT OFF by an API error (529) mid-run, state saved by the orchestrator
+- Brief: ~/.claude/projects/-home-bastien-work-slime-train/handoff-2026-10-01/briefs-2026-10-06/brief-dipjam-p2.md (variants G hold on a climb, H hop past the queue, combos + V1s, then combined with geyser C from exp/geyser 8b116e4).
+- The code for the phase 2 variants (src/sim/train.gd, src/sim/slime_bodies.gd, tools/dipjam_probe.gd) is committed as a WIP commit: NOT reviewed, tests were running when the agent stopped (its last words: "Determinism and native == GDScript confirmed. Tests now running.").
+- Its raw measurement outputs are copied to docs/perf/exp-dipjam-p2/ (matrix.log, det.log, loop.txt, out/<batch>_<variant>_<fixture>_s<seed>.txt). No summary table was written yet: a fresh executor must read these, re-run what's missing, finish the tests per variant and the geyser-combined run, then write the phase 2 section here.

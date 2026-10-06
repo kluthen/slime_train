@@ -149,6 +149,49 @@ static var jam_v4 := false
 const BLOCK_SHARE := 0.5
 const BLOCK_HOLD := 0.25
 static var jam_v5 := false
+## EXPERIMENT (exp/dip-jam phase 2, token g): hold on a climb. A standing
+## train slime between hops on the outgoing route, on a stretch rising more
+## than HOLD_FROM (up to GRIP_MAX_SLOPE), after GRIP keeps its place: its
+## motion down the slope is cancelled, and it is given HOLD_LIFT of the pull
+## gravity puts along the slope in one tick, up the slope, so the tick's
+## gravity brings it back to rest where it was instead of sliding it down
+## (GRIP only halves the motion: the slope's pull creeps it back 5 to 17 px/s
+## between hops). Its motion up the slope (the queue's push) is GRIP's.
+const HOLD_FROM := 0.1
+const HOLD_LIFT := 0.5
+static var jam_g := false
+## EXPERIMENT (phase 2, token h): hop over the queue on a climb. A train slime
+## about to hop where the route rises more than CLIMB_FROM over its reach,
+## whose next train slime ahead would be in the way (the hop's target within
+## reach of touching it) and isn't one it may fuse with, aims instead at the
+## first free gap ahead along the loop (room for it between two train slimes,
+## OVER_ROOM px clear of each), at most MAX_REACH_FACTOR of its reach ahead,
+## with an apex high enough to clear the slimes it passes over by OVER_ROOM;
+## a gap it can't reach within hop_cap() isn't taken. With none, it hops as
+## before (onto the slime ahead: the queue's push).
+const CLIMB_FROM := 0.2
+const OVER_ROOM := 4.0
+## How many apex raises _over_velocity() tries to clear the slimes ahead, and
+## how many points of the flight it checks.
+const OVER_TRIES := 6
+const OVER_SAMPLES := 12
+const TARGET_OVER := "over_queue"
+static var jam_h := false
+## EXPERIMENT (phase 2, token r, extra): the relay. A packed queue moves
+## at its hop timers' pace: a slime only gains ground once the one ahead has
+## gone, and its own timer (1.5 to 3 s) fires on its own, mostly while it is
+## still blocked (a micro hop, the timer drawn again). With the relay, when a
+## train slime takes off, the train slime right behind it (within its reach
+## of touching it, standing, on the outgoing route) has its hop timer cut to
+## RELAY_DELAY at most: it follows into the room just made, and so on down the
+## queue, a wave.
+const RELAY_DELAY := 0.15
+static var jam_r := false
+## EXPERIMENT (jam h): debug counters, not state: why _aim_over() left a hop
+## to the usual aim, or "taken", reason -> count.
+var over_counts := {}
+## Why the last _over_velocity() gave INF: "cap" or "clear".
+var _over_fail := ""
 static var _jam_read := false
 ## Placeholder slide: the speed slimes are carried at on a return route, px/s.
 const SLIDE_SPEED := 360.0
@@ -584,9 +627,15 @@ func steer(bodies: SlimeBodies, dt: float) -> void:
 		var tokens := OS.get_environment("SLIME_DIPJAM").to_lower().split(",", false)
 		jam_v4 = tokens.has("v4")
 		jam_v5 = tokens.has("v5")
+		jam_g = tokens.has("g")
+		jam_h = tokens.has("h")
+		jam_r = tokens.has("r")
 	if not _aims.is_empty():
 		_aims.clear()
 	var ahead := _ahead_of(bodies) if jam_v5 else {}
+	var queue := _queue_order(bodies) if jam_h or jam_r else []
+	if jam_r and not bodies.train_hopped.is_empty():
+		_relay(bodies, queue)
 	for slime_id in tracked_ids():
 		var s := bodies.index_of(slime_id)
 		# A parked slime moves off screen at its pace (Offscreen).
@@ -606,8 +655,11 @@ func steer(bodies: SlimeBodies, dt: float) -> void:
 		if bodies.supported[s] != 0:
 			var slope := direction_at(progress)
 			if absf(slope.y) <= absf(slope.x) * GRIP_MAX_SLOPE:
+				var waiting := bodies.hop_timer[s] > dt * 1.5
 				var steep := jam_v4 and absf(slope.y) > absf(slope.x) * GRIP_SLOPE_FROM
-				bodies.brake(slime_id, GRIP_SLOPE if steep and bodies.hop_timer[s] > dt * 1.5 else GRIP)
+				bodies.brake(slime_id, GRIP_SLOPE if steep and waiting else GRIP)
+				if jam_g and waiting and -slope.y > absf(slope.x) * HOLD_FROM and bodies.calm[s] == SlimeBodies.ACTIVE:
+					bodies.hold_on_slope(slime_id, slope, -bodies.gravity.dot(slope) * dt * HOLD_LIFT)
 		if bodies.hop_timer[s] > dt * 1.5:
 			continue
 		var size := bodies.size[s]
@@ -616,6 +668,8 @@ func steer(bodies: SlimeBodies, dt: float) -> void:
 			if next[1] < hop_reach(size) * BLOCK_SHARE and not bodies.can_merge(slime_id, next[0]):
 				bodies.set_hop_timer(slime_id, BLOCK_HOLD)
 				continue
+		if jam_h and _aim_over(bodies, queue, slime_id, progress, from):
+			continue
 		var target := hop_target(progress, hop_reach(size))
 		var high := minf(highest_between(progress, progress + hop_reach(size)), target.y)
 		var apex := hop_apex(size) + maxf(0.0, minf(from.y, target.y) - high)
@@ -651,6 +705,163 @@ func _ahead_of(bodies: SlimeBodies) -> Dictionary:
 		next = me
 		k = j
 	return out
+
+
+## EXPERIMENT (jam h): the train slimes along the loop, front of the loop
+## last: [distances (PackedFloat64Array, ascending), their ids].
+func _queue_order(bodies: SlimeBodies) -> Array:
+	var order := []
+	for slime_id in tracked_ids():
+		if bodies.state_of(slime_id) == SlimeBodies.TRAIN:
+			order.append(Vector2(_records[slime_id]["distance"], slime_id))
+	order.sort()
+	var dists := PackedFloat64Array()
+	var ids := PackedInt32Array()
+	for v: Vector2 in order:
+		dists.append(v.x)
+		ids.append(int(v.y))
+	return [dists, ids]
+
+
+## EXPERIMENT (jam r): cuts the hop timer of the train slime right behind
+## each train slime that took off on the last tick (see RELAY_DELAY).
+func _relay(bodies: SlimeBodies, queue: Array) -> void:
+	var dists: PackedFloat64Array = queue[0]
+	var ids: PackedInt32Array = queue[1]
+	var n := ids.size()
+	if n < 2:
+		return
+	var at := {}
+	for k in n:
+		at[ids[k]] = k
+	for hopped in bodies.train_hopped:
+		if not at.has(hopped):
+			continue
+		var k: int = at[hopped]
+		var j := k - 1 if k > 0 else n - 1
+		var behind := ids[j]
+		var gap := dists[k] - dists[j] + (_len if j > k else 0.0)
+		var b := bodies.index_of(behind)
+		if b < 0 or bodies.train_hopped.has(behind) or bodies.calm[b] == SlimeBodies.PARKED \
+				or bodies.supported[b] == 0 or _records[behind]["on_slide"]:
+			continue
+		var room := bodies.radius_of(hopped) + bodies.radius_of(behind) + 2.0 * SlimeBodies.EDGE
+		if gap < hop_reach(bodies.size[b]) + room and bodies.hop_timer[b] > RELAY_DELAY:
+			bodies.set_hop_timer(behind, RELAY_DELAY)
+
+
+## EXPERIMENT (jam h): aims train slime `slime_id` (at `from`, steering from
+## `progress`), about to hop on a climb behind a queue, over it onto the first
+## free gap ahead (see TARGET_OVER's doc). True when it did; false leaves the
+## hop to the usual aim.
+func _aim_over(bodies: SlimeBodies, queue: Array, slime_id: int, progress: float, from: Vector2) -> bool:
+	var why := _try_over(bodies, queue, slime_id, progress, from)
+	over_counts[why] = over_counts.get(why, 0) + 1
+	return why == "taken"
+
+
+## EXPERIMENT (jam h): _aim_over()'s work; returns "taken" when it aimed the
+## hop, else why not.
+func _try_over(bodies: SlimeBodies, queue: Array, slime_id: int, progress: float, from: Vector2) -> String:
+	if _len <= 0.0:
+		return "no_loop"
+	var size := bodies.size_of(slime_id)
+	var reach := hop_reach(size)
+	var p0 := position_at(progress)
+	var p1 := position_at(progress + reach)
+	if p0.y - p1.y <= absf(p1.x - p0.x) * CLIMB_FROM:
+		return "flat"
+	hop_target(progress, reach)
+	if last_target_kind != TARGET_AHEAD:
+		return "step"
+	var far := reach * MAX_REACH_FACTOR
+	var me := bodies.radius_of(slime_id) + SlimeBodies.EDGE
+	# The train slimes ahead within reach of the furthest landing, in order.
+	var dists: PackedFloat64Array = queue[0]
+	var ids: PackedInt32Array = queue[1]
+	var base := fposmod(progress, _len)
+	var rels := PackedFloat64Array()
+	var others := PackedInt32Array()
+	var n := dists.size()
+	var k := dists.bsearch(base, false)
+	for step in n:
+		var j := (k + step) % n
+		var rel := dists[j] - base + (_len if j < k else 0.0)
+		if rel > far + 4.0 * me:
+			break
+		if ids[j] == slime_id or rel <= 0.0:
+			continue
+		rels.append(rel)
+		others.append(ids[j])
+	if others.is_empty():
+		return "free"
+	var radii := PackedFloat64Array()
+	var blocked := false
+	for i in others.size():
+		radii.append(bodies.radius_of(others[i]) + SlimeBodies.EDGE)
+		if rels[i] - radii[i] - me < reach:
+			blocked = true
+	if not blocked:
+		return "free"
+	if bodies.can_merge(slime_id, others[0]):
+		return "partner"
+	# The first free gap past the first slime ahead.
+	for i in others.size():
+		var lo := rels[i] + radii[i] + me + OVER_ROOM
+		if lo > far:
+			return "no_gap"
+		var hi := INF
+		if i + 1 < others.size():
+			hi = rels[i + 1] - radii[i + 1] - me - OVER_ROOM
+		if hi < lo:
+			continue
+		var land := minf((lo + hi) * 0.5, far) if hi < INF else minf(lo + me * 0.5, far)
+		var v := _over_velocity(bodies, size, progress, from, land, me, others, radii)
+		if v == Vector2.INF:
+			return _over_fail
+		bodies.set_hop_aim(slime_id, v)
+		last_target_kind = TARGET_OVER
+		_aims[slime_id] = [TARGET_OVER, position_at(progress + land)]
+		return "taken"
+	return "no_gap"
+
+
+## EXPERIMENT (jam h): the take-off velocity from `from` landing `land` px
+## along the loop from `progress`, for a slime of `size` and radius `me`,
+## whose flight (OVER_SAMPLES points) keeps OVER_ROOM clear of every slime of
+## `others` (radii `radii`; one it touches at take-off, no closer than it
+## starts); INF when it would need more than hop_cap() or doesn't clear them
+## within OVER_TRIES apex raises.
+func _over_velocity(bodies: SlimeBodies, size: int, progress: float, from: Vector2, land: float, me: float,
+		others: PackedInt32Array, radii: PackedFloat64Array) -> Vector2:
+	var target := position_at(progress + land)
+	var g := bodies.gravity.y
+	var cap := hop_cap(size)
+	var high := minf(highest_between(progress, progress + land), target.y)
+	var apex := hop_apex(size) + maxf(0.0, minf(from.y, target.y) - high)
+	var centres := PackedVector2Array()
+	var needs := PackedFloat64Array()
+	for i in others.size():
+		var c := bodies.centre_of(others[i])
+		centres.append(c)
+		needs.append(minf(radii[i] + me + OVER_ROOM, from.distance_to(c)))
+	for attempt in OVER_TRIES:
+		var v := aim(from, target, apex, g, INF)
+		if v.length() > cap or absf(v.x) < 1.0:
+			_over_fail = "cap"
+			return Vector2.INF
+		var flight := (target.x - from.x) / v.x
+		var deficit := 0.0
+		for k in range(1, OVER_SAMPLES + 1):
+			var t := flight * k / OVER_SAMPLES
+			var at := from + v * t + Vector2(0.0, 0.5 * g * t * t)
+			for i in centres.size():
+				deficit = maxf(deficit, needs[i] - at.distance_to(centres[i]))
+		if deficit <= 0.0:
+			return v
+		apex += deficit + 1.0
+	_over_fail = "clear"
+	return Vector2.INF
 
 
 ## After the bodies tick (and the split zones): follows every train slime,
