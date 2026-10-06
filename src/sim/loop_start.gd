@@ -21,8 +21,9 @@ extends RefCounted
 ## other stream, so a run with no move keeps its hash). A spot is free when
 ## the slime's centre there lies inside a split zone (on a level that has
 ## any) and no other slime's ring, parked ones included, would overlap its
-## own: two rings put on one centre never come apart (O91, the very case the
-## stuck net is for). free_spot() gives the first free draw, or NO_SPOT when
+## own: two rings put on one centre drew each other in for good before O91's
+## fix in the contacts (the very case the stuck net is for), and part with a
+## jolt since. free_spot() gives the first free draw, or NO_SPOT when
 ## every draw is taken: the queue then moves nobody and tries again later.
 # @spec-link [[rule_left_alone_and_lost]]
 # @spec-link [[rule_stuck_slimes_moved_to_start]]

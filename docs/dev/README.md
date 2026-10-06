@@ -88,6 +88,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `tools/bench_rest.gd`, `tools/bench_rest/` | The resting-pile rule measured on the test level (`tools/level.sh rest`, see "Resting piles (D107)") |
 | `tools/perf_slow.sh` | A windowed perf-log run of a fixture on the desktop, slowed or at full speed, and its summary (see "Chunk 22b: drawing", "How to measure the parts"; the counts and the largest awake cluster: "Chunk 22d: debug counters and the largest awake cluster") |
 | `tools/thru.gd` | The train's throughput over a long run (10,000 ticks by default) of a test-level fixture, headless: stalls, stuck moves, hops and the bowl's count per 600 ticks (see "How to measure the parts") |
+| `tools/gobble_probe.gd` | Slimes that can't fuse lodged inside each other over a long run of a test-level fixture, headless: each overlap's start (both slimes, what last moved them: an unpark, a split, a jump), how long it lasts, the stuck moves, the fastest slime (see "Solver", deep overlaps) |
 | `tools/compare_frames.py` | Compares two sets of movie frames pixel by pixel (see "Chunk 22b: drawing", "The look") |
 | `tools/make_fixture.gd` | Writes a level's fixtures (see "Saves and fixtures") |
 | `tools/check_level.gd`, `tools/level_check/` | The level-rules checker, rules 1 to 22, on any level (see [level-tooling.md](level-tooling.md)) |
@@ -755,6 +756,16 @@ reach, so each slime checks its own cell and its neighbours).
   slimes can pile up. Two rings within `TOUCH_SKIN` (2 px) count as
   touching (`touching`, `touching_pairs`); a slime resting on another's top
   is `supported`.
+- **Deep overlaps part (O91).** A point that has gone past the other ring's
+  centre (the centres closer than the pushed ring's radius) is pushed out
+  along its offset mirrored back to its own side of that centre, same size.
+  Pushed straight out from the other's centre, as before, it moved on away
+  from its own ring: the two rings drew each other in until their centres
+  met, where no point was inside the other any more, and a slime stayed
+  inside another for good (a different species, or sizes that can't fuse:
+  "a slime gobbled by another"). Shallower contacts are unchanged. Native
+  and GDScript alike (`solver_contacts.cpp`); `tools/gobble_probe.gd`
+  finds such pairs over a long run of a fixture.
 
 ### Terrain contact (O78)
 

@@ -11,8 +11,12 @@ extends GutTest
 ## counted, a pair neither of which may move is only logged; parked slimes
 ## aren't checked. The log and the counts are in the dump and in saves.
 ##
-## Two rings put on one centre never come apart (O91, the reason for the net):
-## the tests make stuck pairs that way.
+## The tests put a pair on one centre and hold it there (_run_held): the
+## stuck check and the loop-start queue run tick by tick as Simulation.step()
+## runs them, last, and nothing else moves the slimes. The solver itself now
+## parts two rings put on one centre (O91's fix, SlimeBodies._solve_contacts);
+## the net is the backstop for a pair something else keeps there. Once
+## moved, the slimes ride on with the whole step (sim.run).
 ##
 ## The world: a floor whose top is at y = 0 from x = -6000 to 6000. The loop
 ## runs along it at a base slime's centre height (y = -24) from x = -5000 to
@@ -57,6 +61,16 @@ func _sim(master_seed := 5, look := Vector2(0, -200)) -> Simulation:
 	return sim
 
 
+## Steps `sim` `ticks` ticks with every slime held where it is: only the
+## stuck check and the loop-start queue run, in Simulation.step()'s order
+## (see the class doc).
+func _run_held(sim: Simulation, ticks: int) -> void:
+	for i in ticks:
+		sim.stuck_slimes.step(sim)
+		sim.loop_start_queue.step(sim)
+		sim.tick += 1
+
+
 ## A slime of `species` and `size` in `state` at `at`; a train slime is
 ## followed from where the loop passes.
 func _slime(sim: Simulation, species: int, size: int, state := SlimeBodies.TRAIN, at := OVERLAP) -> int:
@@ -90,10 +104,10 @@ func test_two_species_on_one_centre_the_smaller_goes_to_the_start_after_about_2_
 	var sim := _sim()
 	var big := _slime(sim, 0, 2)
 	var small := _slime(sim, 1, 1)
-	sim.run(STUCK_TICK)
+	_run_held(sim, STUCK_TICK)
 	assert_eq(sim.stuck_slimes.stuck, [] as Array[Dictionary], "three checks: not yet")
 	assert_lt(sim.slimes.centre_of(small).distance_to(sim.slimes.centre_of(big)), 3.0, "still on one centre")
-	sim.run(1)
+	_run_held(sim, 1)
 	assert_eq(sim.stuck_slimes.stuck, [_entry(small, big, STUCK_TICK)] as Array[Dictionary], "logged as stuck")
 	assert_eq(sim.slimes.state_of(small), SlimeBodies.TRAIN, "back on the train")
 	_at_loop_start(sim, small)
@@ -108,7 +122,7 @@ func test_on_a_tie_the_higher_id_moves() -> void:
 	var sim := _sim()
 	var low := _slime(sim, 0, 1)
 	var high := _slime(sim, 1, 1)
-	sim.run(STUCK_TICK + 1)
+	_run_held(sim, STUCK_TICK + 1)
 	assert_eq(sim.stuck_slimes.stuck, [_entry(high, low, STUCK_TICK)] as Array[Dictionary])
 	_at_loop_start(sim, high)
 
@@ -117,7 +131,7 @@ func test_a_free_slime_is_moved_back_on_the_train() -> void:
 	var sim := _sim()
 	var train_slime := _slime(sim, 0, 3)
 	var free := _slime(sim, 1, 1, SlimeBodies.FREE)
-	sim.run(STUCK_TICK + 1)
+	_run_held(sim, STUCK_TICK + 1)
 	assert_eq(sim.stuck_slimes.stuck, [_entry(free, train_slime, STUCK_TICK)] as Array[Dictionary])
 	assert_eq(sim.slimes.state_of(free), SlimeBodies.TRAIN)
 	assert_true(sim.train.tracks(free))
@@ -129,7 +143,7 @@ func test_a_same_species_pair_too_big_to_fuse_is_stuck() -> void:
 	var a := _slime(sim, 2, 2)
 	var b := _slime(sim, 2, 2)
 	assert_false(sim.slimes.can_merge(a, b), "sizes add up to 4")
-	sim.run(STUCK_TICK + 1)
+	_run_held(sim, STUCK_TICK + 1)
 	assert_eq(sim.stuck_slimes.stuck, [_entry(b, a, STUCK_TICK)] as Array[Dictionary])
 
 
@@ -137,6 +151,9 @@ func test_a_same_species_pair_that_can_fuse_is_left_to_fuse() -> void:
 	var sim := _sim()
 	var a := _slime(sim, 0, 1)
 	var b := _slime(sim, 0, 2)
+	_run_held(sim, (StuckSlimes.CHECKS + 2) * StuckSlimes.CHECK_TICKS)
+	assert_eq(sim.stuck_slimes.dump()["counts"], [], "on one centre, never counted")
+	sim.slimes.auto_hops = false
 	sim.run(Fusion.CONTACT_TICKS + 30)
 	assert_eq(sim.stuck_slimes.stuck, [] as Array[Dictionary], "never counted")
 	assert_false(sim.slimes.has(b), "they fused")
@@ -159,7 +176,7 @@ func test_only_a_train_or_free_slime_moves_even_when_bigger() -> void:
 	var sim := _sim()
 	var asleep := _slime(sim, 0, 1, SlimeBodies.BEDTIME_ASLEEP)
 	var train_slime := _slime(sim, 1, 2)
-	sim.run(STUCK_TICK + 1)
+	_run_held(sim, STUCK_TICK + 1)
 	assert_eq(sim.stuck_slimes.stuck, [_entry(train_slime, asleep, STUCK_TICK)] as Array[Dictionary])
 	assert_eq(sim.slimes.state_of(asleep), SlimeBodies.BEDTIME_ASLEEP, "the asleep one is never moved")
 	_at_loop_start(sim, train_slime)
@@ -170,9 +187,9 @@ func test_a_pair_neither_of_which_may_move_is_only_logged_once() -> void:
 	var a := _slime(sim, 0, 1, SlimeBodies.BEDTIME_ASLEEP)
 	var b := _slime(sim, 1, 1, SlimeBodies.IN_BASKET)
 	var before := [sim.slimes.centre_of(a), sim.slimes.centre_of(b)]
-	sim.run(STUCK_TICK + 1)
+	_run_held(sim, STUCK_TICK + 1)
 	assert_eq(sim.stuck_slimes.stuck, [_entry(b, a, STUCK_TICK, false)] as Array[Dictionary], "logged, not moved")
-	sim.run(10 * StuckSlimes.CHECK_TICKS)
+	_run_held(sim, 10 * StuckSlimes.CHECK_TICKS)
 	assert_eq(sim.stuck_slimes.stuck.size(), 1, "once while they stay so")
 	assert_eq(sim.slimes.state_of(a), SlimeBodies.BEDTIME_ASLEEP)
 	assert_eq(sim.slimes.state_of(b), SlimeBodies.IN_BASKET)
@@ -198,7 +215,7 @@ func test_a_moved_slime_does_not_land_on_one_already_at_the_start() -> void:
 	var waiting := sim.slimes.create(3, 1, _start_of(1), SlimeBodies.SLEEPER)
 	var big := _slime(sim, 0, 2)
 	var small := _slime(sim, 1, 1)
-	sim.run(STUCK_TICK + 1)
+	_run_held(sim, STUCK_TICK + 1)
 	assert_eq(sim.stuck_slimes.stuck, [_entry(small, big, STUCK_TICK)] as Array[Dictionary])
 	var room := 2.0 * (SlimeBodies.ring_radius_for(1) + SlimeBodies.EDGE)
 	assert_gte(sim.slimes.centre_of(small).distance_to(sim.slimes.centre_of(waiting)), room - 0.5,
@@ -212,27 +229,33 @@ func test_the_counts_and_the_log_are_in_the_dump() -> void:
 	var sim := _sim()
 	var big := _slime(sim, 0, 2)
 	var small := _slime(sim, 1, 1)
-	sim.run(StuckSlimes.CHECK_TICKS + 1)
+	_run_held(sim, StuckSlimes.CHECK_TICKS + 1)
 	assert_eq(sim.dump()["stuck_slimes"]["counts"], [[big, small, 2]], "two checks so far")
-	sim.run(StuckSlimes.CHECK_TICKS * 2)
+	_run_held(sim, StuckSlimes.CHECK_TICKS * 2)
 	assert_eq(sim.dump()["stuck_slimes"]["stuck"], [_entry(small, big, STUCK_TICK)])
 	assert_eq(sim.dump()["stuck_slimes"]["counts"], [], "the count goes with the move")
 
 
 func test_a_save_during_the_count_reloads_the_same_and_carries_on_the_same() -> void:
+	# Settled apart first, then put on one centre: a reload puts down a slime
+	# in the air (MidairLanding), and a held slime never lands by itself.
 	var sim := _sim()
-	_slime(sim, 0, 2)
-	var small := _slime(sim, 1, 1)
-	_slime(sim, 2, 1, SlimeBodies.BEDTIME_ASLEEP, Vector2(1000, -40))
-	_slime(sim, 3, 1, SlimeBodies.BEDTIME_ASLEEP, Vector2(1000, -40))
-	sim.run(STUCK_TICK - 10)
+	sim.slimes.auto_hops = false
+	var big := _slime(sim, 0, 2)
+	var small := _slime(sim, 1, 1, SlimeBodies.TRAIN, OVERLAP + Vector2(200, 0))
+	var asleep := _slime(sim, 2, 1, SlimeBodies.BEDTIME_ASLEEP, Vector2(1000, -40))
+	var other := _slime(sim, 3, 1, SlimeBodies.BEDTIME_ASLEEP, Vector2(1200, -40))
+	sim.run(StuckSlimes.CHECK_TICKS)
+	for pair in [[small, big], [other, asleep]]:
+		sim.slimes.translate(pair[0], sim.slimes.centre_of(pair[1]) - sim.slimes.centre_of(pair[0]))
+	_run_held(sim, STUCK_TICK - 10)
 	var text := SaveData.to_text(sim.to_save())
 	var copy := Simulation.from_save(JSON.parse_string(text), _level(), _terrain())
 	assert_not_null(copy)
 	assert_eq(copy.stuck_slimes.dump(), sim.stuck_slimes.dump())
 	assert_eq(copy.state_hash(), sim.state_hash(), "the reloaded state")
-	sim.run(300)
-	copy.run(300)
+	_run_held(sim, 300)
+	_run_held(copy, 300)
 	assert_eq(sim.stuck_slimes.stuck.size(), 2, "the move and the logged pair")
 	assert_eq(copy.stuck_slimes.dump(), sim.stuck_slimes.dump())
 	assert_eq(copy.state_hash(), sim.state_hash(), "and it carries on the same")
@@ -247,7 +270,7 @@ func test_same_seed_same_hash() -> void:
 		_slime(sim, 1, 1)
 		_slime(sim, 2, 1, SlimeBodies.FREE, Vector2(600, -40))
 		_slime(sim, 3, 2, SlimeBodies.FREE, Vector2(600, -40))
-		sim.run(400)
+		_run_held(sim, 400)
 		assert_eq(sim.stuck_slimes.stuck.size(), 2)
 		runs.append(sim.state_hash())
 	assert_eq(runs[0], runs[1])
