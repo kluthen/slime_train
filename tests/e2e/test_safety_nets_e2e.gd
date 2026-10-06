@@ -2,7 +2,10 @@ extends GutTest
 ## The safety nets on the test level, through the real game scene and test
 ## mode (off-screen simulation on) (chunk 23A, build plan items 23.3 and
 ## 23.13): two base train slimes of different species put on one centre on
-## screen are stuck, and the higher id goes to the start of the loop (a tie
+## screen, and held there (before every tick the second one's ring is put
+## back on the first one's: the solver parts two rings on one centre since
+## O91's fix, the net is the backstop for a pair something else keeps
+## there), are stuck, and the higher id goes to the start of the loop (a tie
 ## in size), logged in the state dump; from `wind-down`, through bedtime and
 ## more than a minute of it, no slime asleep at bedtime is counted as
 ## stalled or moved.
@@ -41,7 +44,14 @@ func test_two_train_slimes_on_one_centre_one_goes_to_the_start() -> void:
 	var first := sim.spawn_train_slime(Species.from_letter("B"), 1, distance)
 	var second := sim.spawn_train_slime(Species.from_letter("C"), 1, distance)
 	var from := sim.tick
-	game.test_mode.run_ticks(StuckSlimes.CHECKS * StuckSlimes.CHECK_TICKS)
+	for i in StuckSlimes.CHECKS * StuckSlimes.CHECK_TICKS:
+		if sim.stuck_slimes.stuck.is_empty():
+			var body := sim.slimes.body_of(second)
+			var under := sim.slimes.body_of(first)
+			for key in ["points", "previous", "centre"]:
+				body[key] = under[key]
+			assert_true(sim.slimes.set_body(second, body), "held on one centre")
+		game.test_mode.run_ticks(1)
 	var stuck: Array = sim.dump()["stuck_slimes"]["stuck"]
 	assert_eq(stuck.size(), 1, "one stuck case, in the state dump")
 	if stuck.size() == 1:

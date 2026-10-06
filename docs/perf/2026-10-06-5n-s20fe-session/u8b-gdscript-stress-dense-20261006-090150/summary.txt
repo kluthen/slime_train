@@ -1,0 +1,59 @@
+# tools/android/perf.sh --serial=RFCNA0WV2AR --phase-timers --no-build --no-install --fixture=stress-dense --tick=gdscript --label=u8b-gdscript (20261006-090150)
+# device RFCNA0WV2AR: samsung SM-G781B, Android 13 (API 33)
+# mode fixture stress-dense, windows of 60 s, warm after 5 min, period 1 s
+# launch: --esa slime_args --test-mode,--fixture=stress-dense,--seed=1,--perf-log=1,--phase-timers,--tick=gdscript
+# tick: TICK gdscript (--tick=gdscript)
+# ended: completed, after 305 s
+PERF_INFO seconds=1.0 model=SM-G781B renderer=gl_compatibility driver=opengl3 refresh_hz=60.0 window=2400x1080 vsync=1 max_ticks_per_frame=2
+== session: 297 PERF lines, t=2.8..303.0 s
+  fps             p50 59.0  p5 25.5  min 22.8
+  frame_ms p95    median 18.88  max 46.12  (worst frame 61.57)
+  per frame       ticks 1.21 (max 2)  in ticks 16.41 ms  rest 4.12 ms
+  per tick        13.58 ms   process per frame 16.93 ms
+  solver (mean)   active 40.0  pairs 33.8
+  slimes          physics 42.1 (5..96)  on_screen 32.7 (1..76)  in_range 42.1 (5..96)  parked 140.5 (104..182)  resting 0.0 (0..0)  bodies 182.7 (175..200)
+  largest cluster max 96 (mean 22.8)
+  train hops      per line: hops 12.3  short_hops 10.0   short share 81.1 % (2964 of 3656)
+  section (lines) s1 49  s3 248
+  phases us/tick  step 13429  solver 2886 (21.5 %)  behaviour 10542  (297 lines)
+  phases          input 3  session 11  offscreen 4255  train_steer 554  free_steer 7  auto_hops 85  integrate 303  pairs 191  contacts 635  rings 691  terrain 653  doors 366  rest 47  tick_other 12  native 0  sleepers 59  free_paced 4  face_hops 3  split_zones 143  fusion 1886  frontier 813  free_follow 105  train_follow 1809  stuck 9  loop_start_queue 509  camera 35  tidy 239
+  zoom            0.500..0.500
+  parts ms/frame  slimes 0.26  eyes 0.35  frontier 0.06  hud 0.02  debug 0.33  main 0.02
+  render ms/frame setup 0.01  render_cpu 0.88  render_gpu 0.00  field_cpu 0.37  field_gpu 0.00
+  render /frame   draw_calls 100  objects 459  primitives 16157
+== cold (first 60 s): 60 PERF lines, t=2.8..62.7 s
+  fps             p50 30.9  p5 26.2  min 25.5
+  frame_ms p95    median 33.98  max 40.84  (worst frame 61.57)
+  per frame       ticks 1.81 (max 2)  in ticks 27.28 ms  rest 3.23 ms
+  per tick        15.06 ms   process per frame 27.82 ms
+  solver (mean)   active 70.0  pairs 72.4
+  slimes          physics 70.4 (62..96)  on_screen 57.9 (51..76)  in_range 70.4 (62..96)  parked 110.7 (104..117)  resting 0.0 (0..0)  bodies 181.2 (179..200)
+  largest cluster max 96 (mean 51.4)
+  train hops      per line: hops 19.4  short_hops 18.0   short share 92.9 % (1081 of 1163)
+  section (lines) s3 60
+  phases us/tick  step 14931  solver 4320 (28.9 %)  behaviour 10611  (60 lines)
+  phases          input 2  session 9  offscreen 3265  train_steer 756  free_steer 6  auto_hops 81  integrate 377  pairs 271  contacts 1224  rings 1000  terrain 932  doors 449  rest 66  tick_other 11  native 0  sleepers 109  free_paced 3  face_hops 3  split_zones 132  fusion 3069  frontier 726  free_follow 94  train_follow 1610  stuck 10  loop_start_queue 462  camera 84  tidy 181
+  zoom            0.500..0.500
+  parts ms/frame  slimes 0.29  eyes 0.39  frontier 0.05  hud 0.02  debug 0.33  main 0.02
+  render ms/frame setup 0.01  render_cpu 0.82  render_gpu 0.00  field_cpu 0.37  field_gpu 0.00
+  render /frame   draw_calls 101  objects 494  primitives 17082
+== warm (last 60 s): 59 PERF lines, t=243.9..303.0 s
+  fps             p50 26.8  p5 25.0  min 22.8
+  frame_ms p95    median 38.94  max 46.12  (worst frame 46.67)
+  per frame       ticks 1.54 (max 2)  in ticks 24.00 ms  rest 4.15 ms
+  per tick        15.61 ms   process per frame 24.66 ms
+  solver (mean)   active 22.5  pairs 16.6
+  slimes          physics 25.9 (7..49)  on_screen 18.5 (2..38)  in_range 25.9 (7..49)  parked 163.9 (144..176)  resting 0.0 (0..0)  bodies 189.8 (183..193)
+  largest cluster max 25 (mean 9.4)
+  train hops      per line: hops 5.5  short_hops 3.3   short share 59.4 % (193 of 325)
+  section (lines) s1 49  s3 10
+  phases us/tick  step 15432  solver 2551 (16.5 %)  behaviour 12880  (59 lines)
+  phases          input 3  session 12  offscreen 6046  train_steer 522  free_steer 8  auto_hops 108  integrate 323  pairs 188  contacts 416  rings 627  terrain 623  doors 331  rest 43  tick_other 15  native 0  sleepers 39  free_paced 4  face_hops 3  split_zones 177  fusion 1190  frontier 1075  free_follow 140  train_follow 2440  stuck 11  loop_start_queue 675  camera 27  tidy 384
+  zoom            0.500..0.500
+  parts ms/frame  slimes 0.30  eyes 0.39  frontier 0.08  hud 0.02  debug 0.45  main 0.03
+  render ms/frame setup 0.02  render_cpu 1.08  render_gpu 0.00  field_cpu 0.46  field_gpu 0.00
+  render /frame   draw_calls 89  objects 312  primitives 17599
+== thermal: 22 samples over 305 s
+  thermal status  first 0 (none)  max 0 (none)  last 0 (none)
+  timeline        0 (none) at +0 s
+  battery         first 33.1 C  max 34.4 C  last 34.3 C

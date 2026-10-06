@@ -10,7 +10,7 @@ extends GutTest
 ## momentum kept by the native contacts; a tick walked with one pass native
 ## and the other in GDScript (as SlimeBodies._solve mixes them); a bodies the
 ## native contacts can't rely on refused untouched; two native runs bit for
-## bit.
+## bit; rings deep inside each other (O91) exactly.
 
 # @test-link [[req_waking_sleepers]]
 
@@ -352,3 +352,35 @@ func test_two_native_runs_are_bit_equal() -> void:
 				var label := "%s, substep %d" % [name, sub]
 				var problems := Eq.check_kinds(bodies, phase, label, Eq.NATIVE, Eq.NATIVE, Eq.EXACT)
 				assert_eq(problems, PackedStringArray(), "\n".join(problems))
+
+
+## Rings deep inside each other (O91): a point of one ring past the other's
+## centre is pushed back out on its own side (SlimeBodies._solve_contacts).
+## The native contacts do it bit for bit, at every substep, as the rings
+## part a few ticks in. Pairs of other species, one centre a share of the
+## smaller radius from the other, far apart from the next pair.
+func test_the_contacts_match_gdscript_exactly_for_rings_deep_inside_each_other() -> void:
+	var why := Eq.skip_reason(Eq.CONTACTS)
+	if why != "":
+		pending(why)
+		return
+	var source := SlimeBodies.new(Rng.new(5))
+	source.use_native(false)
+	source.gravity = Vector2.ZERO
+	source.rest_enabled = false
+	var x := 0.0
+	for sizes: Vector2i in [Vector2i(1, 1), Vector2i(1, 3), Vector2i(2, 3), Vector2i(3, 3)]:
+		var radius := minf(SlimeBodies.ring_radius_for(sizes.x), SlimeBodies.ring_radius_for(sizes.y))
+		for depth in [0.1, 0.5, 0.9]:
+			source.create(1, sizes.y, Vector2(x, 0.0), SlimeBodies.BEDTIME_ASLEEP)
+			source.create(0, sizes.x, Vector2(x + depth * radius, 0.25), SlimeBodies.BEDTIME_ASLEEP)
+			x += 400.0
+	for ticks in [0, 1, 3]:
+		for sub in source.substeps:
+			var bodies := Eq.clone(source)
+			for t in ticks:
+				bodies.tick(Eq.DT)
+			assert_true(Eq.prepare(bodies, Eq.CONTACTS, sub), "%d ticks in, substep %d prepares" % [ticks, sub])
+			var label := "deep pairs, %d ticks in, substep %d" % [ticks, sub]
+			var problems := Eq.check(bodies, Eq.CONTACTS, label, Eq.EXACT)
+			assert_eq(problems, PackedStringArray(), "\n".join(problems))

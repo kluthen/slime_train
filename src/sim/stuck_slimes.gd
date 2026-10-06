@@ -31,7 +31,9 @@ extends RefCounted
 ## "reason": STUCK, "moved"}.
 ##
 ## Stuck is its own case, not lost (D10): it isn't in Offscreen's lost log.
-## It is a safety net until the cause is found and prevented (O91).
+## It stays as the backstop. The cause found (O91): the contacts drew two
+## rings deeper than a radius inside each other together until their centres
+## met; they now push them apart (SlimeBodies._solve_contacts).
 ##
 ## Cost: the pairs come from one sweep along x (a native sort of the
 ## simulated slimes' centres, then only neighbours within the largest

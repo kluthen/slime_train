@@ -126,12 +126,19 @@ bool contact_side(const ContactArrays &p_arr, int64_t p_a, int64_t p_b, double p
 			rests = true;
 		}
 		if (d < r && !still) {
-			const Vector2 push = rel * real_t((r - d) * share / d);
+			// Past b's centre: mirrored back to a's side (see
+			// _solve_contacts' doc).
+			Vector2 out = rel;
+			const double along = rel.dot(dir);
+			if (along > 0.0) {
+				out = rel - dir * real_t(2.0 * along / double(dir.length_squared()));
+			}
+			const Vector2 push = out * real_t((r - d) * share / d);
 			const Vector2 moved = p[j] + push;
 			p[j] = moved;
 			react -= push;
 			// Friction: slow the point's sliding along b's surface.
-			const Vector2 nrm = rel / real_t(d);
+			const Vector2 nrm = out / real_t(d);
 			Vector2 slide = moved - o[j] - vb;
 			slide = (slide - nrm * slide.dot(nrm)) * real_t(p_mu);
 			o[j] += slide;

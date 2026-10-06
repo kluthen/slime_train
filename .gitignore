@@ -14,7 +14,8 @@
 __pycache__/
 
 # Build outputs
-/build/
+/build/*
+!/build/.gdignore
 
 # OS / editors
 .DS_Store

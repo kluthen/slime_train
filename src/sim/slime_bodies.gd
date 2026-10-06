@@ -1534,6 +1534,15 @@ func _build_pairs() -> void:
 ## around its centre) move out by half the overlap, and the whole of ring b
 ## moves back by the same total, so momentum is kept. Also records touching
 ## pairs and support (a point resting on the upper half of another ring).
+##
+## Out of b means out on a's side of b's centre. A point of a that has gone
+## past b's centre (seen from a's centre: the rings are deeper in each other
+## than a's radius) moves out along its offset from b's centre mirrored
+## across the line through b's centre square to the centres' line, so the
+## push still parts the rings (same size, away from b's centre). Pushed
+## straight out from b's centre, it moved on away from a's centre: a was
+## drawn into b, the deeper the stronger, until the two centres met and no
+## point was inside the other any more (a slime gobbled by another, O91).
 func _solve_contacts() -> void:
 	var p := pos
 	var o := prev
@@ -1604,12 +1613,17 @@ func _solve_contacts() -> void:
 				if rel.y < -SUPPORT_NORMAL_Y * d:
 					rests = true
 				if d < r and not still:
-					var push := rel * ((r - d) * share / d)
+					# Past b's centre: mirrored back to a's side (see the doc).
+					var out := rel
+					var along := rel.dot(dir)
+					if along > 0.0:
+						out = rel - dir * (2.0 * along / dir.length_squared())
+					var push := out * ((r - d) * share / d)
 					var moved: Vector2 = p[j] + push
 					p[j] = moved
 					react -= push
 					# Friction: slow the point's sliding along b's surface.
-					var nrm := rel / d
+					var nrm := out / d
 					var slide: Vector2 = moved - o[j] - vb
 					slide = (slide - nrm * slide.dot(nrm)) * mu
 					o[j] += slide
