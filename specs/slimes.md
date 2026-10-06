@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v23 (every wake local: a fusion, a split, a slime taken out of the level, a call, a trapdoor, gate or lid opening or shutting, and a tilt change too, D156 (7); earlier, v22: moves to the loop start one at a time, 0.5 to 2 s apart, to a random free spot, and no stall clock while parked, chunk 22h, D150, the user's, details proposed; the local wake, chunk 22l, D156; the fps session after 0196c25 withdrawn, D155: the lean stays as approved in direction, unbuilt; the train leans away from clusters, D143, approved in direction, D144; its numbers proposed, O107)
+Status: draft v24 (the cause of stuck slimes found and fixed, the net kept as a backstop, D159 (1); the geyser at the loop's start and the dip nudge's jam, D159, proposed; earlier, v23: every wake local: a fusion, a split, a slime taken out of the level, a call, a trapdoor, gate or lid opening or shutting, and a tilt change too, D156 (7); earlier, v22: moves to the loop start one at a time, 0.5 to 2 s apart, to a random free spot, and no stall clock while parked, chunk 22h, D150, the user's, details proposed; the local wake, chunk 22l, D156; the fps session after 0196c25 withdrawn, D155: the lean stays as approved in direction, unbuilt; the train leans away from clusters, D143, approved in direction, D144; its numbers proposed, O107)
 
 ## States
 
@@ -49,7 +49,11 @@ and it may roll downhill. Phase names were adopted in D75.
 - Slimes of different species have been seen stuck inside one another
   (the user's report, 2026-09-29). It isn't fusion: only the same species
   fuse.
-- Until the cause is fixed (O91), a safety net: the simulation checks every 0.5 s for two
+- *The cause, fixed (D159 (1), O91 closed):* two rings deeper than a radius
+  in each other were drawn together by the contacts until their centres
+  met; a contact point past the other's centre is now pushed back to its
+  own side.
+- Kept as a backstop since that fix, a safety net: the simulation checks every 0.5 s for two
   simulated slimes that can't fuse whose centres are closer than a quarter
   of the smaller one's radius. Found so 4 times in a row (about 2 s), the
   smaller one is moved to the start of the loop and rides the train again
@@ -91,6 +95,15 @@ and it may roll downhill. Phase names were adopted in D75.
   free spot on the loop's first 240 px, inside the start's split zone,
   never onto another slime (replacing the first free spot of 8); with
   none free, nobody moves and the queue tries again 0.5 s later.
+- **The geyser** *(D159, the user's; details proposed; chunk 24g)*: a
+  train slime coming home by a return route, on reaching the loop's
+  start, is lifted above the slimes piled there and launched high, to
+  come down on the emptiest of a few seeded free spots along the loop's
+  first stretch (150 to 700 px), only on the loop's own route, never on
+  the waiting queue, never onto a ledge rule 22 (b) guards, never at or
+  past a gate; a fused slime lands only inside a split zone. Off screen
+  the arrival is placed on a free spot directly. A move to the loop
+  start is never launched.
 - DoD 1's "no slime ever becomes lost" includes stalled train slimes: the
   safety net is for play, and a stall in the DoD 1 test is still a failure.
 
@@ -143,7 +156,11 @@ Slimes move only by hopping.
   to be tuned). A hop that breaks contact resets the count.
 - It happens mostly through the call: slimes held in place, or piled up at a
   spot they can't reach. It can also happen on its own, and a dip in the loop
-  can nudge slimes toward fusing.
+  can nudge slimes toward fusing. *(Proposed, D159 (5):)* the dip nudge
+  never jams the train: a slime waiting on a dip floor for a partner
+  further back counts its own time there (a push from behind doesn't
+  restart it), and it is let go when the slimes pressing it from behind
+  aren't partners.
 - The fused slime's size is the sum of the two.
 
 ## Splitting

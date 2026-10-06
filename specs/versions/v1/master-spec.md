@@ -30,7 +30,12 @@ pile is local: only the slimes reached wake, never the whole pile (5.3,
 D156). Definition of done 30 and section 7 carry the two stress targets,
 the abuse case's an abuse target of 15 fps, not 30 (D153, D154; how they
 are measured proposed). A frame-rate experiment run from 2026-09-30 to 2026-10-02
-was withdrawn; only the points above came back from it (D155).
+was withdrawn; only the points above came back from it (D155). Two
+fixes the user made mandatory before v1 closes (D159): the cause of
+slimes of different species ending up inside each other is fixed, the
+stuck net kept as a backstop (5.2, Known gap 6 closed); and the
+**geyser** at the loop's start, with the dip nudge kept from jamming
+the train (5.2, its details proposed; chunk 24g).
 
 ## 1. Concept and objective
 
@@ -247,7 +252,9 @@ One term per concept, used everywhere in the code and documents.
   each other for about 2 s are stuck. Stuck is its own state, not "lost",
   with the same effect: the smaller one (only ever a train or free slime) is
   moved to the start of the loop and rides the train again, and each case
-  is logged. It is a safety net until the cause is found and fixed.
+  is logged. Its cause (two rings deeper than a radius in each other
+  drawn together by the contacts) is fixed; the net stays as a backstop
+  (D159).
   "Can't fuse" means the two couldn't fuse right now: another species,
   sizes adding up to more than 3, or one of them not awake; so a
   same-species sleeper caught inside a train slime counts as stuck.
@@ -266,6 +273,15 @@ One term per concept, used everywhere in the code and documents.
   moved; a slime that recovers before its turn isn't moved (D150, the
   user's; the order, the stretch and what a waiting slime does are
   proposed; the numbers are in `tuning.md`).
+- **The geyser** (D159, the user's; its details proposed; chunk 24g): a
+  train slime coming home by a return route, on reaching the loop's
+  start, is lifted above the slimes piled there and launched high, so it
+  comes down on the emptiest of a few free spots along the loop's first
+  stretch rather than on the pile. It lands only on the loop's own
+  route, never on the waiting queue, onto a ledge level rule 22 guards,
+  or at or past a gate; a fused slime lands only inside a split zone.
+  Off screen the arrival is put on a free spot directly. A move to the
+  loop start is never launched. Seeded, like every draw.
 
 **Waking**
 
@@ -311,7 +327,10 @@ minute of a session every slime hops more slowly.
   of the two.
 - Fusion mostly happens through the call (slimes clumped at the call point),
   but can happen on its own, and a dip in the loop can nudge slimes into
-  fusing.
+  fusing. The nudge never jams the train: a slime waiting on a dip floor
+  for a partner further back counts its own time there, and is let go
+  when the slimes pressing it from behind aren't partners (proposed,
+  D159).
 - Only split zones split slimes. A split zone splits a slime back into base
   slimes instantly. In v1 the only split zone is at the start of the loop.
 
@@ -1026,10 +1045,8 @@ Still undecided.
    tick, the phone's GPU cost of the blending (it can't be read on Android
    with this renderer, so only the frame rate shows it), and tilt input. Android audio
    latency matters only from the version that adds sound.
-6. **Why slimes of different species sometimes end up inside each other.**
-   The build moves one of them back to the start of the loop as a
-   safety net (5.2, "stuck"); the cause is still to be found and prevented.
-   Not urgent.
+6. *(Closed, D159.)* Why slimes of different species sometimes ended up
+   inside each other: found and fixed; the stuck net stays (5.2).
 7. **Whether the stalled measure still fits the real level** (5.2). A
    stalled train slime is moved to the start of the loop, as lost and
    stuck slimes are. Whether 24 px of progress in 60 s is the right

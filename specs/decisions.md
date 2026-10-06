@@ -3953,3 +3953,165 @@ native set aside for now), the user: **"go native."**
 
 **Documents:** `versions/v1/build-plan.md` (order, 5N's heading and
 intro; 19w, 22h step A and 22m part 2 marked done); `README.md`.
+
+## D159 — v1's two blockers: O91 fixed; the geyser kept for v1, level rule 24 strengthened, the dip nudge's jam; chunk 24g (2026-10-06)
+Settles O91 and O117 (out of v2, into v1); opens O118 and O119.
+
+The user's words (2026-10-06): two "mandatory fixes prior version lock":
+"slimes of different species gobbling each other", and "the end of the
+return route's geyser": "we must add the geyser thing when reached to
+prevent clustering at start point (it's happening right now)". After the
+experiment (§2), on its recommendation: "I'll follow your
+recommendation, we must take care of this in the level design rules as
+well (preventing scenario were cluster forms at loop start)."
+**Decided by the user:** the geyser goes into v1 in its "high and wide"
+form (variant C) with its landing limits fixed; the train's jam at the
+dips is fixed with it, so the train takes slimes off the start faster;
+then measure again; if the start still crowds, pace the return route's
+end next; rule 24 covers the case. **Everything else below is proposed.**
+
+**1. O91 resolved, as built (3a27d86, merged 0061ccf; hashes d48c519).**
+The cause: where two rings sat deeper than a radius in each other, a
+point of ring a past b's centre was pushed straight out from b's centre,
+which pulled a further into b until the centres met. Such a point is now
+pushed along its offset mirrored back to a's side; nothing changes while
+the centres are at least a's radius apart (GDScript and native alike,
+bit for bit). The deep overlaps came from parked train slimes unparked
+at almost the same progress (the bowl, the slide's end) and from the
+slide carrying slimes into its pile. The gobble probe, `s3-basket-59of60`
+seed 1, 18,000 ticks: overlaps lasting 2 s or more 139 -> 3, stuck moves
+11 -> 0. Tests: `test_slime_deep_overlap`, a deep pair in
+`test_native_contacts`; only `stress-moving`'s hashes changed. **D100's
+stuck net stays,** as a backstop. Master spec Known gap 6 is closed.
+O91's chunk 22 finding (bedtime-asleep slimes parked on one spot, D138)
+is carried into O105's note: unchecked since the fix.
+
+**2. The experiment (exp/geyser, throwaway, D155's rule).**
+`s3-basket-59of60`, camera held on the start from tick 9000, 14,000
+ticks, seeds 1/2, per 600 ticks from 9000:
+
+| | off | C (high and wide) |
+|---|---|---|
+| arrivals | 16.1 / 14.8 | 17.8 / 16.7 |
+| largest awake cluster | 123 / 128 | 107 / 120 |
+| slimes within 240 px of the start (mean) | 24.8 / 25.5 | 13.4 / 15.5 |
+| departures past 240 px | 5.9 / 6.4 | 11.8 / 8.6 |
+| departures past 750 px | 2.0 / 2.4 | 3.2 / 3.0 |
+| pocket behind the start (mean) | 30.0 / 29.1 | 11.4 / 13.5 |
+| ticks to clear 240 px (median) | 888 / 1341 | 38 / 41 |
+| landed off the loop | 18 / 25 | 81 / 68 |
+
+Tick cost unchanged. **Verdict:** the geyser clears the start point, but
+the queue only moves onto the terrace: downstream the train takes about
+3 slimes per 10 s against about 17 arriving (D157 §3's rate limit). The
+`stress-dense` census (cb7e6f5; phone, 0f3d027) shows why the train is
+slow: it jams behind slimes held by the dip nudge (§5). C's problems:
+landings on top of the stacked queue, some slimes on `FirstLedge` (the
+ledge rule 22 (b) guards), base slimes past the start's split zone
+(which ends near 410 px).
+
+**3. The geyser, in v1 (the user's; details proposed).**
+- **Where:** the loop's start, where a return route brings slimes home.
+  In v1 it is part of the loop's start in every level, not an object a
+  level places or tunes (proposed; a placeable object stays a later
+  option).
+- **When:** a train slime coming home by a return route reaches the
+  loop's start. A move to the loop start (D150) is never launched: it
+  already lands on a free spot (proposed; the experiment counted any
+  wrap of the loop, a knocked-off slime put back near the start
+  included).
+- **What (variant C):** the arriving slime is lifted straight up above
+  the slimes piled over it, then launched high, and comes down on the
+  emptiest of a few seeded spots along the loop's first stretch. A spot
+  whose flight would hit the terrain isn't used; with no usable spot the
+  slime isn't launched and carries on as today.
+- **Landing limits (proposed, fixing §2's problems):** (a) only on the
+  loop's own route, on a free spot (no ring there, slimes in flight
+  counted where they come down), so never on top of the waiting queue;
+  (b) never onto a ledge rule 22 (b) guards, nor anywhere else off the
+  loop (the experiment's `FirstLedge` cases came from the stacked queue
+  bridging up to the ledge, not from flights: (a) and §5 should remove
+  them, and the build checks it); (c) never at or past a gate; (d) a
+  fused slime lands only inside a split zone; a base slime may land
+  past the start's split zone, since it has nothing to split (as on the
+  branch; every landing inside the zone would halve the spread on the
+  test level).
+- **Off screen:** a parked arrival isn't flown: it is placed directly on
+  a free drawn spot; with none free it stays in the parked single file
+  (as on the branch).
+- **Deterministic:** its own derived stream, `geyser:<tick>:<id>`; the
+  same hash on both ticks; no save change (a slime in flight is ordinary
+  physics).
+- **Numbers, tuned in the build** (rows in `tuning.md`): lift at most
+  240 px, 6 px clear of the pile; apex about 260 px above the higher end,
+  ±25 % seeded; 10 draws on 150 to 700 px along the loop (the branch's
+  variant C draws 10, not 6).
+- **Seen, not changed:** the idle camera may follow a launched slime
+  away from the start (the experiment saw it). A by-eye item.
+
+**4. Level rule 24 strengthened (the user's ask; wording and check
+proposed).** A level must not let arrivals at the loop's start outpace
+what the train takes off it. The geyser gives the arrivals room; only
+the train's pace takes them away, so the rule is a rate.
+- **Check:** over the level's own scripted runs, from the first arrival
+  on: the mean arrivals at the loop's start per 600 ticks stay at or
+  below the mean departures past the end of the first stretch (past the
+  geyser's farthest landing: 750 px on the test level) per 600 ticks;
+  and the largest awake cluster with a slime within 240 px of the start
+  stays within rule 23's limit (O107). Measured by the experiment's
+  probe, kept as a level run tool in chunk 24g. The window and the
+  threshold are O119. The by-eye item stays; still no check in the
+  scene-only level-rules checker. The `stress-*` fixtures are excepted.
+- **When it fails, the designer:** gives the first stretch more room (a
+  longer or wider first stretch), makes the train faster off it (a
+  gentler first slope), or, once it exists, paces the return route's end
+  (O118).
+- **The test level fails it today** (about 15 to 18 arrivals per 600
+  ticks after basket 3 fires against 2 to 3 departures past 750 px, with
+  the geyser or without). Chunk 24g measures it again after the geyser
+  and §5; if it still fails, the next step is O118, the user's call.
+
+**5. The dip nudge must not jam the train (proposed; ships with the
+geyser).** The user's report (2026-10-05, the phone, `stress-dense`):
+"movement wise, it fails grossly": the front slime is held, the slimes
+behind keep hopping into it and stay in place (micro hops; cold minute,
+93 % short hops). The census (cb7e6f5 on the desktop; 0f3d027 on the
+phone): 19 to 32 train slimes held by the dip nudge's gathering, 56 to
+68 of 60 to 68 last hops short, chains advancing 0 to 17 px. The cause,
+as the code reads (`src/sim/fusion.gd`, `_gathering`): a slime on a dip
+floor waits for a partner within 300 px behind; for one with other
+slimes between them, D119's 5 s limit counts from the train's stall
+mark, which moves on whenever the slime is pushed forward, so the
+slimes hopping into it from behind keep restarting its wait.
+- **Rule (proposed; the exact form is the build's, measured on
+  `stress-dense` and `s3-basket-59of60`):** a gathering slime's wait
+  counts its own time on the dip floor and isn't restarted by a push;
+  and it is let go when the slimes pressing it from behind aren't
+  partners.
+- **Must still hold:** fusion still happens in dips (rule 5); [DoD 1];
+  the `bump` fixture's two bumps (D119 kept the 5 s wait for the 3 + 1
+  bump, where a size 1 waits with a size 3 behind it: letting go on a
+  non-partner's push may lose that bump; if both can't hold, it is the
+  user's call, D119's alternative).
+
+**6. Next, only if the start still crowds after 24g: pace the return
+route's end (O118, not scheduled).** Like D150: arrivals held at the
+return route's end and let onto the loop's start at the pace the train
+takes them, the geyser spreading them.
+
+**7. Chunk 24g** (build plan): the geyser, §5, rule 24's run check and
+the measures against §2's numbers. It runs before v1 closes; proposed:
+next after 5N, before 22c and chunk 22's repeat (which then measures the
+game with it).
+
+**Documents:** `level-design.md` rule 24; `concept.md` Terminology
+(geyser, proposed); `slimes.md` (stuck, fusion); `tuning.md` (the
+geyser's rows, the dip wait's row); `open-questions.md` (O91 and O117
+out, O118 and O119 in); `versions/v1/master-spec.md` (header, 5.2,
+Known gap 6); `versions/v1/build-plan.md` (chunk 24g, the order);
+`versions/v2/README.md` (the geyser moves to v1); `levels/test/README.md`
+(rule 24's row); `README.md`. **Flagged:** for documentalist,
+`rule_dip_may_nudge_fusion` (§5), `rule_stuck_slimes_moved_to_start`
+(the net now a backstop), rule 24's atom under `req_level_design_rules`,
+and an atom for the geyser; outside `specs/`, the `level-review` skill
+and `docs/level-design/` still list rules only up to 22.

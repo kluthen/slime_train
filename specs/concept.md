@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v40 (local wake widened to every wake, D156 (7); earlier, v39: the fps session after 0196c25 withdrawn, D155, its terms with it; local wake added, D156; move to the loop start and loop-start queue added, stalled amended (no clock while parked), lost reworded, D150, the user's, details proposed; shipped added, save wipe for automated testing only, the save format before the first store release, D149, proposed; save wipe added, D148, approved in direction)
+Status: draft v41 (geyser added, D159, the user's, details proposed, chunk 24g; earlier, v40: local wake widened to every wake, D156 (7); earlier, v39: the fps session after 0196c25 withdrawn, D155, its terms with it; local wake added, D156; move to the loop start and loop-start queue added, stalled amended (no clock while parked), lost reworded, D150, the user's, details proposed; shipped added, save wipe for automated testing only, the save format before the first store release, D149, proposed; save wipe added, D148, approved in direction)
 
 ## One-liner
 
@@ -259,6 +259,7 @@ survives the app being killed.
 | stalled | a train slime whose progress along the loop hasn't advanced for 60 s, or that left the level's bounds; not "lost", but with the same effect: moved to the loop start and logged (D118, D121). The build says "lost as stalled". *From chunk 22h (D150, the user's):* the 60 s count only while it is simulated; parked, its clock is paused |
 | move to the loop start | *(D150, the user's "emergency teleport"; details proposed; chunk 22h)* the one move lost, stuck and stalled slimes take: back on the train, at a random free spot on the loop's first 240 px, inside the start's split zone, never onto another slime. Taken one at a time, through the **loop-start queue** |
 | loop-start queue | *(D150, the user's; details proposed; chunk 22h)* the slimes due a move to the loop start, waiting their turn: one move at a time, the next 0.5 to 2 s (random) after the last; first due, first moved (out of bounds first). A waiting slime carries on as it was; one that recovers before its turn leaves without a move. Not a line of train slimes waiting single file on the loop |
+| geyser | *(D159, the user's; details proposed; chunk 24g)* what the loop's start does with a train slime coming home by a return route: lifts it above the slimes piled there and launches it high, so it comes down on the emptiest of a few free spots along the loop's first stretch instead of on the pile (level rule 24). Only on the loop's own route, never on the waiting queue, onto a guarded ledge or past a gate. Off screen, the arrival is put on a free spot directly. Part of the loop's start in v1, not an object a level places. Not a **move to the loop start**, which is never launched |
 | free slime | an awake slime attracted away from the loop, driven by physics alone until it rejoins |
 | session | one timed play period (15 min for now) |
 | level | a whole world with its own loop, sections and save file; v1 has the test level only (D134) |

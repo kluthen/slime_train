@@ -108,6 +108,6 @@ Items are settled. The decision IDs point to
 
 ## Open for v1
 
-O14, O65, O91 and O101 (O22 and O62 now serve the first real level, v2) (see `../../open-questions.md`). The UX
+O14, O65, O101, O118 and O119 (O91 fixed, D159; O22 and O62 now serve the first real level, v2) (see `../../open-questions.md`). The UX
 review's interaction details (O67–O77) are settled (D102), and so are the
 build's points O79–O87 (D103–D107).

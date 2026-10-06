@@ -1,6 +1,6 @@
 # Level design requirements
 
-Status: draft v14 (rule 24, arrivals clear faster than they come, D157, the user's, wording and check proposed; v13: rule 23, clusters, D143, approved in direction, D144; its limit proposed, O107)
+Status: draft v15 (rule 24 strengthened: at the loop's start arrivals never outpace what the train takes off it, a rate check over the scripted runs, what to do when it fails, D159, the user's ask, wording and check proposed; v14: rule 24, arrivals clear faster than they come, D157, the user's, wording and check proposed; v13: rule 23, clusters, D143, approved in direction, D144; its limit proposed, O107)
 
 Rules every level must follow, whoever builds it. These rules make up the
 checklist for every level's design (see `levels/`). Levels are
@@ -134,29 +134,38 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     points at them. The number is calibrated in chunk 24 (O107). A
     cluster the player builds with calls is accepted: crowd detail and
     the tick cap cover it.
-24. *(D157, the user's; wording, reading and check proposed.)* **Where
-    slimes arrive fast, they get away faster than they arrive.** The
-    place where a flow lands slimes (the end of a return route at the
-    loop's start, a slide's end, a basket's outlet) gives them enough
-    room and a clear way onward to move off before the next ones land.
-    Otherwise each arrival lands on the ones before it and the pile feeds
-    itself. This is rule 23's case of a gathering spot the flow itself
-    makes. Where a split zone meets the arrivals, count them in base
-    slimes (a size 3 lands as three). The way onward counts by its pace,
-    not only its room: at the loop's start slimes leave by joining the
-    train at its hop pace, so a return route that brings them faster
-    than the train carries them off fills the start however wide it is.
-    Moves to the loop start (lost, stuck, stalled) are paced by the
-    loop-start queue and land on free spots (D150); this rule is about
-    the level's own arrivals, which nothing paces.
-    *Check (proposed):* by eye in test mode, each arrival spot clears
-    while slimes keep coming (no pile there grows); the largest awake
-    cluster with a slime within 240 px of where they land stays within
-    rule 23's limit (O107) over the level's scripted runs; over a
-    10,000-tick `tools/thru.gd` run, no slime is stuck again within
-    10 s of landing there (`thru.gd` counts stuck moves level-wide
-    today; telling the arrival apart is a small tool addition, not
-    scheduled). **No automatic check in v1:** the rule hangs on rates
-    only a run shows, so the level-rules checker leaves it to the
-    by-eye checklist. Launching arrivals high and wide (the geyser,
-    O117) is an idea, not a requirement.
+24. *(D157, the user's; strengthened by D159, the user's ask; wording,
+    reading and check proposed.)* **Where slimes arrive fast, they get
+    away faster than they arrive; at the loop's start, arrivals never
+    outpace what the train takes off it.** The place where a flow lands
+    slimes (the end of a return route at the loop's start, a slide's end,
+    a basket's outlet) gives them enough room and a clear way onward to
+    move off before the next ones land. Otherwise each arrival lands on
+    the ones before it and the pile feeds itself. This is rule 23's case
+    of a gathering spot the flow itself makes. Where a split zone meets
+    the arrivals, count them in base slimes (a size 3 lands as three).
+    The way onward counts by its pace, not only its room: at the loop's
+    start slimes leave by joining the train at its hop pace, so a return
+    route that brings them faster than the train carries them off fills
+    the start however wide it is. The geyser (D159) spreads the arrivals
+    over the first stretch; it gives them room, not pace. Moves to the
+    loop start (lost, stuck, stalled) are paced by the loop-start queue
+    and land on free spots (D150); this rule is about the level's own
+    arrivals.
+    *Check (proposed):* over the level's own scripted runs (the `stress-*`
+    fixtures excepted), from the first arrival on: **the arrival rate at
+    the loop's start is at most the departure rate off its first
+    stretch**: the mean arrivals per 600 ticks stay at or below the mean
+    departures per 600 ticks past the end of the first stretch (past the
+    geyser's farthest landing; 750 px on the test level); and **the
+    largest awake cluster** with a slime within 240 px of the loop's start
+    stays within rule 23's limit (O107); and over a 10,000-tick
+    `tools/thru.gd` run no slime is stuck again within 10 s of landing
+    there (D157). The run tool (chunk 24g) counts the rates and the
+    cluster; the window and the threshold are O119. *By eye, in test mode:*
+    each arrival spot clears while slimes keep coming (no pile there
+    grows). The scene-only level-rules checker can't see rates, so it
+    lists this rule as a run check and a by-eye item.
+    *When it fails:* give the first stretch more room (longer, or wider so
+    waiting slimes sit apart), make the train faster off it (a gentler
+    first slope), or pace the return route's end (O118, not yet built).

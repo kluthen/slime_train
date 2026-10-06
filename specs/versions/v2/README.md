@@ -1,6 +1,6 @@
 # v2 — Content, level design and music
 
-Status: themes only (D134); no spec yet; two cluster aids proposed (D143); one idea parked, the geyser (D157, O117)
+Status: themes only (D134); no spec yet; two cluster aids proposed (D143); the geyser, once a parked idea, moved into v1 (D159)
 
 Themes, set by the user (D134):
 
@@ -60,10 +60,8 @@ gather awake):
   when v2 is scoped: slimes or weight, which stretch it counts, off
   screen (D70), which branch the camera follows.
 
-An idea, not proposed (D157), serving level rule 24 (arrivals clear
-faster than they come):
-
-- **The geyser** (O117, parked; the user: "not urgent"): a return
-  route's end launches arriving slimes high and wide, so they come down
-  spread over the start area. A throwaway experiment on a branch first,
-  measured, before any spec commitment.
+*Moved to v1 (D159):* the geyser (once O117, an idea parked here,
+D157) is built in v1, chunk 24g, as part of the loop's start. A geyser
+a level places or tunes as an object stays a possible v2 reusable
+mechanic, not proposed. Pacing the return route's end, if v1's start
+still crowds, is O118.

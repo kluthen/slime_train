@@ -88,7 +88,7 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | On screen for fusion (`VIEW_MARGIN`) | a slime's centre at least 24 px inside the view's edge (a base slime's radius, so its whole body shows) | D70 |
 | Dip floor (where the loop nudges slimes together) | a rise of at least 100 px on both sides, and the floor within 30 px of the bottom | D20 |
 | Gathering window on a dip floor | 300 px behind | D20 |
-| Waiting for a partner on a dip floor (`Fusion.DIP_WAIT_SECONDS`; chunk 16f) | a train slime on a dip floor waits without limit only for a partner directly behind it (no other train slime between them); for a partner further back, at most 5 s | D20, D119 |
+| Waiting for a partner on a dip floor (`Fusion.DIP_WAIT_SECONDS`; chunk 16f) | a train slime on a dip floor waits without limit only for a partner directly behind it (no other train slime between them); for a partner further back, at most 5 s. *To change in chunk 24g (proposed, D159 (5)):* the 5 s counted as its own time on the floor (today from the stall mark, which a push from behind restarts), and let go when the slimes pressing it from behind aren't partners | D20, D119, D159 |
 | Hop timer while gathering or holding | held at 0.25 s | D74 |
 
 ### Frontier sets, gates and completion (chunk 14)
@@ -195,6 +195,21 @@ random spot. The rest **proposed**.
 | Landing stretch | a distance along the loop drawn uniformly in 0 to 240 px from its start, the centre lifted by the slime's size; inside a split zone (proposed) | D150 |
 | Landing draws per turn | 8, from `loop_start:spot:<tick>`; the first free one (no ring overlapping, parked ones included) is used (proposed) | D150 |
 | No free spot | nobody moves; the head tries again on the next tick that is a multiple of 30 (0.5 s) (proposed) | D150 |
+
+### The geyser (D159, chunk 24g)
+
+The user's: the geyser in v1, the experiment's "high and wide" form
+(exp/geyser's variant C). The numbers are the branch's, **tuned in the
+build**; the limits are proposed.
+
+| Value | Start at | Source |
+|---|---|---|
+| Lift before the launch | straight up until the ring is 6 px clear of the slimes piled over it, at most 240 px, the ring clear of terrain | D159 |
+| Apex | about 260 px above the higher of the launch point and the landing, ±25 %, seeded | D159 |
+| Landing draws | 10 per arrival, from `geyser:<tick>:<id>`, uniform on 150 to 700 px along the loop; the emptiest free one whose flight clears the terrain (slimes in flight counted where they land) | D159 |
+| Landing limits | the loop's own route only, a free spot (never on the waiting queue), never onto a ledge rule 22 (b) guards, never at or past a gate; a fused slime only inside a split zone (proposed) | D159 |
+| Off screen | a parked arrival is placed on a free drawn spot; none free, it stays in the parked single file | D159 |
+| Rule 24's departure line | 750 px along the loop on the test level (past the farthest landing); the rate window 600 ticks (O119) | D159 |
 
 ### Session, wind-down, bedtime and sunrise (chunk 17)
 
