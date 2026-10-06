@@ -7,8 +7,7 @@ extends SceneTree
 ##
 ## Run:   godot --headless --no-header --path . -s res://tools/geyser_probe.gd --
 ##            [--fixture=s3-basket-59of60] [--seed=1] [--ticks=10000]
-##            [--census-at=T1,T2,...] [--no-geyser] [--geyser-solo]
-##            [--geyser-high] [--geyser-rate]
+##            [--census-at=T1,T2,...] [--no-geyser]
 ##            [--tick=gdscript] [--hold-view=X,Y --hold-from=T]
 ##            [--trace=N --trace-from=T]
 ##
@@ -32,9 +31,11 @@ extends SceneTree
 ##               landed_off (arrivals that LANDED_CHECK ticks after arriving
 ##               are no train slime, outside every split zone, more than
 ##               OFF_LOOP px from their loop point, or out of bounds),
+##               off_launched (those of them the geyser had launched),
 ##               back (arrivals still short of BACK_AT px along the loop
-##               LANDED_CHECK ticks on), launches, refused, carried (Geyser
-##               counters; launches include the carried ones)
+##               LANDED_CHECK ticks on), launches, refused (Geyser
+##               counters), rejects (the draws the landing limits turned
+##               down, by reason)
 ##   GP_LATE     from tick LATE_FROM on (the arrivals' part): per 600 ticks,
 ##               arr and the forward crossings of each CROSS_AT loop
 ##               distance (x240 is dep); pocket_mean (train slimes behind
@@ -110,7 +111,7 @@ func _initialize() -> void:
 ## Reads the user arguments; returns the problem, or "" when valid.
 func _parse() -> String:
 	for arg in OS.get_cmdline_user_args():
-		if arg in ["--no-geyser", "--geyser-solo", "--geyser-high", "--geyser-rate"] or arg.begins_with("--tick="):
+		if arg == "--no-geyser" or arg.begins_with("--tick="):
 			continue
 		var p := arg.trim_prefix("--").split("=", true, 1)
 		if p.size() != 2:
@@ -144,10 +145,9 @@ func _run(game: Node) -> void:
 	var train: Train = sim.train
 	var bodies: SlimeBodies = sim.slimes
 	var start := train.position_at(0.0)
-	print("GP fixture=%s seed=%d geyser=%s carry=%s wide=%s land=%.0f-%.0f rate=%s tick=%s start=%s tick0=%d slimes=%d" % [fixture, seed_n,
-			"on" if sim.geyser.enabled else "off", sim.geyser.carry, sim.geyser.wide, sim.geyser.land_min,
-			sim.geyser.land_max, sim.geyser.by_rate, "native" if bodies.uses_native() else "gdscript", start,
-			sim.tick, bodies.slime_count])
+	print("GP fixture=%s seed=%d geyser=%s land=%.0f-%.0f tick=%s start=%s tick0=%d slimes=%d" % [fixture, seed_n,
+			"on" if sim.geyser.enabled else "off", Geyser.LAND_MIN, Geyser.LAND_MAX,
+			"native" if bodies.uses_native() else "gdscript", start, sim.tick, bodies.slime_count])
 	var laps := {}
 	var dist := {}
 	for id in train.tracked_ids():
@@ -169,6 +169,10 @@ func _run(game: Node) -> void:
 	var fell_back := 0
 	var off_kinds := {}
 	var off_shown := 0
+	# The launched arrivals: id -> the launch's tick (Geyser.launches_log).
+	var launched := {}
+	var launches_seen := 0
+	var off_launched := 0
 	var late_arr := 0
 	var late_cross := PackedInt32Array()
 	late_cross.resize(CROSS_AT.size())
@@ -182,6 +186,10 @@ func _run(game: Node) -> void:
 			step_us.append(Time.get_ticks_usec() - t0)
 		if hold_view != Vector2.INF and sim.tick >= hold_from:
 			sim.camera.position = hold_view
+		var recent := sim.geyser.launches_log
+		for j in range(maxi(0, recent.size() - (sim.geyser.launches - launches_seen)), recent.size()):
+			launched[recent[j]["id"]] = recent[j]["tick"]
+		launches_seen = sim.geyser.launches
 		var t := sim.tick - 1
 		for id in train.tracked_ids():
 			var l := train.laps_of(id)
@@ -237,6 +245,8 @@ func _run(game: Node) -> void:
 			if kind != "":
 				landed_off += 1
 				off_kinds[kind] = off_kinds.get(kind, 0) + 1
+				if launched.get(checked, -INF) >= t - LANDED_CHECK - 2:
+					off_launched += 1
 			to_check.pop_front()
 		for id in traced:
 			var age: int = t - traced[id]
@@ -282,10 +292,10 @@ func _run(game: Node) -> void:
 	var p90 := clear_times[int(clear_times.size() * 0.9)] if not clear_times.is_empty() else -1
 	print(("GP_TOT tick=%d arr=%d dep=%d stuck=%d stuck_arr=%d stall=%d oob=%d clu_max=%d clu_mean=%.2f"
 			+ " clu_over=%d clu_run=%d near_mean=%.2f near_max=%d clear_med=%d clear_p90=%d not_clear=%d"
-			+ " landed_off=%d %s back=%d launches=%d refused=%d carried=%d") % [sim.tick, tot["arr"], tot["dep"], tot["stuck"],
+			+ " landed_off=%d %s off_launched=%d back=%d launches=%d refused=%d rejects=%s") % [sim.tick, tot["arr"], tot["dep"], tot["stuck"],
 			tot["stuck_arr"], tot["stall"], tot["oob"], tot["clu_max"], clu_sum / ticks, clu_over, clu_run_max,
-			near_sum / ticks, tot["near_max"], med, p90, pending_clear.size(), landed_off, off_kinds, fell_back,
-			sim.geyser.launches, sim.geyser.refused, sim.geyser.carried])
+			near_sum / ticks, tot["near_max"], med, p90, pending_clear.size(), landed_off, off_kinds, off_launched, fell_back,
+			sim.geyser.launches, sim.geyser.refused, JSON.stringify(sim.geyser.rejects)])
 	var late_windows := maxf(1.0, (sim.tick - LATE_FROM) / float(WINDOW))
 	var cross := []
 	for c in CROSS_AT.size():

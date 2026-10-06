@@ -89,6 +89,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `tools/perf_slow.sh` | A windowed perf-log run of a fixture on the desktop, slowed or at full speed, and its summary (see "Chunk 22b: drawing", "How to measure the parts"; the counts and the largest awake cluster: "Chunk 22d: debug counters and the largest awake cluster") |
 | `tools/thru.gd` | The train's throughput over a long run (10,000 ticks by default) of a test-level fixture, headless: stalls, stuck moves, hops and the bowl's count per 600 ticks (see "How to measure the parts") |
 | `tools/gobble_probe.gd` | Slimes that can't fuse lodged inside each other over a long run of a test-level fixture, headless: each overlap's start (both slimes, what last moved them: an unpark, a split, a jump), how long it lasts, the stuck moves, the fastest slime (see "Solver", deep overlaps) |
+| `tools/geyser_probe.gd` | EXPERIMENT (branch `exp/geyser`): rule 24's checks at the loop's start over a long headless run of a test-level fixture, with or without the geyser: arrivals, departures, the largest awake cluster near the start, the pocket, landings off the loop (see "The geyser") |
 | `tools/compare_frames.py` | Compares two sets of movie frames pixel by pixel (see "Chunk 22b: drawing", "The look") |
 | `tools/make_fixture.gd` | Writes a level's fixtures (see "Saves and fixtures") |
 | `tools/check_level.gd`, `tools/level_check/` | The level-rules checker, rules 1 to 22, on any level (see [level-tooling.md](level-tooling.md)) |
@@ -3478,6 +3479,62 @@ hop, from the hop counters' take-off and landing), `Fusion.nudged` (the
 slimes the last tick's dip nudge held, holding or gathering). Tests:
 `tests/unit/test_slime_census.gd`, and the button in
 `tests/e2e/test_debug_overlay_e2e.gd`.
+
+### The geyser (experiment)
+
+EXPERIMENT, branch `exp/geyser` only (D157 (5), O117): not in the spec, no
+ATD atom; the user decides what is kept. `src/sim/geyser.gd` (`Geyser`,
+`Simulation.geyser`) runs in `Simulation.step` right after `Train.follow`.
+A train slime whose progress wraps past the loop's end (the return route's
+end, the loop's start: `Train.lapped`, filled by `Train.advance`, which
+covers followed and parked slimes) is lifted straight up above the slimes
+piled over it (`lift_origin`: LIFT_GAP 6 px over the highest ring in its
+column, at most LIFT_MAX 240 px, the lifted ring clear of the terrain) and
+launched (`SlimeBodies.launch`: the velocity, unsupported; the solver is
+untouched) to the emptiest of CANDIDATES 10 spots drawn 150 to 700 px
+along the loop (LAND_MIN, LAND_MAX), APEX 260 px over the higher end
+(±APEX_JITTER 25 %), the take-off capped at SPEED_SHARE 0.95 of the speed
+limit. A drawn spot is turned down (`landing_limit`, `rejects` counts the
+reasons) when it is:
+
+- at or past the first gate along the loop, or on a slide (`gate`);
+- outside every split zone for a fused slime (`zone`; a base slime may
+  land past the start's zone: the zone only splits and holds fusion off);
+- under or beside a ledge rule 22 (b) guards (`ledge`): a terrain piece a
+  sleeper rests on (`guarded_ledges`, the outline walked from the top
+  segment under the sleeper), some of it over the ring's top within the
+  ring's width plus CLEARANCE either side, its top within a called base
+  slime's reach (`FreeSlimes.max_rise`) of the ground;
+- off the loop's own route (`route`): coming down the spot's column the
+  slime rests on the terrain under it or the first slime there (a slime in
+  the air counted where it comes down: `where_down`), and that centre must
+  lie within `Train.OFF_ROUTE` (36 px) of the route point; no ground
+  within reach under the spot is a `route` too;
+- a flight that comes within CLEARANCE (4 px) of the terrain (`flight`);
+- off screen, a spot where the ring would overlap another slime's
+  (`room`).
+
+With every spot turned down the arrival is neither lifted nor launched:
+the plain arrival (it carries on from the loop's start as without the
+geyser). A parked arrival is not flown: it is put on the emptiest spot
+that passes (`Train.place`), else left in the proxies' single file. Draws:
+the derived stream `geyser:<tick>:<slime id>`. Nothing is saved; the
+counters (`arrivals`, `launches`, `refused`, `rejects`, `lifted`,
+`launches_log`) are debug.
+
+Off for with/without runs on the same build: the user argument
+`--no-geyser` or `SLIME_GEYSER=off` (test mode skips the argument). The
+probe: `godot --headless --no-header --path . -s res://tools/geyser_probe.gd
+-- --fixture=s3-basket-59of60 --seed=1 --ticks=14000 --hold-view=720,361
+--hold-from=9000 [--no-geyser] [--tick=gdscript] [--census-at=T,...]`
+(`--hold-view` pins the camera on the start from `--hold-from`: the idle
+camera otherwise follows a launched slime away and the start parks). Its
+lines: `GP_WIN` per 600 ticks, `GP_TOT` (arrivals, departures past 240 px,
+the cluster, `near_mean`, `clear_med`, `landed_off`, `back`, the geyser's
+counters and rejects), `GP_LATE` (from tick 9000: the rates, the crossings
+at 240 to 1500 px, `pocket_mean`, tick ms), `GP_HIST`, `GP_CENSUS`,
+`STATE`. Measurements: `docs/perf/2026-10-06-geyser.md`. Tests:
+`tests/unit/test_geyser.gd`.
 
 ## Saves and fixtures
 

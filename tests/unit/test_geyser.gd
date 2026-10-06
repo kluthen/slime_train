@@ -1,13 +1,13 @@
 extends GutTest
 ## EXPERIMENT (exp/geyser): the geyser at the return route's end
-## (src/sim/geyser.gd, D157 (5), O117). A train slime whose progress wraps
-## past the loop's end is launched high onto a spot of the loop's first
-## stretch (LAND_MIN to LAND_MAX px), inside a split zone, its flight clear
-## of the terrain; the draws are seeded; off, nothing is launched; the jet
-## carries the slimes above the arrival; a parked arrival is put on a free
-## spot, or left in its single file. Phase 2's variants: C (high) lifts the
-## arrival above the pile and lands it further on, a base slime past the
-## split zone too; D (rate) spreads the landings over the stretch's bins.
+## (src/sim/geyser.gd, D157 (5), O117), "high and wide". A train slime whose
+## progress wraps past the loop's end is lifted above the pile over it and
+## launched high onto a spot LAND_MIN to LAND_MAX px along the loop, its
+## flight clear of the terrain; the draws are seeded; off, nothing is
+## launched; the landing limits (gate, zone for a fused slime, guarded
+## ledge, the loop's own route) turn spots down, and with none left the
+## arrival is left alone; a parked arrival is put on a free spot, or left in
+## its single file.
 ##
 ## The world: a floor whose top is at y = 0 from x = -6000 to 6000. The loop
 ## runs along it at y = -24 from x = -5000 to 5000 and returns under the
@@ -41,7 +41,7 @@ func _terrain(extra: Array = []) -> TerrainSegments:
 
 
 ## A simulation on the synthetic level, no slime yet, nobody hopping, the
-## geyser on (whatever the run's arguments say) with its carry.
+## geyser on (whatever the run's arguments say).
 func _sim(master_seed := 5, split_end := SPLIT_END, extra: Array = []) -> Simulation:
 	var sim := Simulation.new(master_seed)
 	sim.slimes.terrain = _terrain(extra)
@@ -51,7 +51,6 @@ func _sim(master_seed := 5, split_end := SPLIT_END, extra: Array = []) -> Simula
 	sim.view.set_to(Vector2(-4800, -200), 1.0, ScreenView.DEFAULT_SIZE)
 	sim.slimes.auto_hops = false
 	sim.geyser.enabled = true
-	sim.geyser.set_variant(Geyser.VARIANT_CARRY)
 	return sim
 
 
@@ -64,7 +63,7 @@ func _arrival(sim: Simulation, species := 0) -> int:
 	return slime
 
 
-func test_an_arrival_is_launched_high_onto_the_first_stretch() -> void:
+func test_an_arrival_is_launched_high_and_wide() -> void:
 	var sim := _sim()
 	var slime := _arrival(sim)
 	sim.step()
@@ -74,8 +73,7 @@ func test_an_arrival_is_launched_high_onto_the_first_stretch() -> void:
 	var launch: Dictionary = sim.geyser.launches_log[0]
 	assert_eq(launch["id"], slime)
 	assert_false(launch["parked"])
-	assert_between(launch["distance"], Geyser.LAND_MIN, Geyser.LAND_MAX, "a spot on the first stretch")
-	assert_true(sim.split_zones.covers(launch["at"]), "inside the split zone")
+	assert_between(launch["distance"], Geyser.LAND_MIN, Geyser.LAND_MAX, "a spot of the landing stretch")
 	var velocity := sim.slimes.velocity_of(slime)
 	assert_lt(velocity.y, -700.0, "launched high")
 	assert_gt(velocity.x, 0.0, "the loop's way")
@@ -128,24 +126,38 @@ func test_off_nothing_is_launched() -> void:
 	assert_true(sim.train.lapped.is_empty(), "the arrivals are consumed either way")
 
 
-func test_no_spot_inside_a_split_zone_no_launch() -> void:
+func test_a_base_slime_may_land_past_the_split_zone() -> void:
 	var sim := _sim(5, Geyser.LAND_MIN - 20.0)
+	_arrival(sim)
+	sim.step()
+	assert_eq(sim.geyser.launches, 1)
+	assert_false(sim.split_zones.covers(sim.geyser.launches_log[0]["at"]), "past the split zone")
+
+
+func test_a_fused_arrival_lands_only_in_a_split_zone() -> void:
+	var sim := _sim(5, Geyser.LAND_MIN - 20.0)
+	# Launched straight away: a step would split it in the start's zone first.
+	var slime := sim.spawn_train_slime(0, 2, 5.0)
+	assert_false(sim.geyser.launch(sim, slime))
+	assert_eq(sim.geyser.refused, 1)
+	assert_eq(sim.geyser.rejects, {"zone": Geyser.CANDIDATES})
+	var wide := _sim(5, Geyser.LAND_MAX + 100.0)
+	var fused := wide.spawn_train_slime(0, 2, 5.0)
+	assert_true(wide.geyser.launch(wide, fused))
+	assert_true(wide.split_zones.covers(wide.geyser.launches_log[0]["at"]))
+
+
+func test_a_flight_into_an_overhang_is_refused() -> void:
+	# A slab 80 px over the start: every flight from it hits it.
+	var roof := PackedVector2Array([Vector2(-5100, -120), Vector2(-4600, -120), Vector2(-4600, -100),
+			Vector2(-5100, -100)])
+	var sim := _sim(5, SPLIT_END, [roof])
 	var slime := _arrival(sim)
 	sim.step()
 	assert_eq(sim.geyser.launches, 0)
 	assert_eq(sim.geyser.refused, 1)
-	assert_gt(sim.slimes.velocity_of(slime).y, -100.0, "not launched")
-
-
-func test_a_flight_into_an_overhang_is_refused() -> void:
-	# A slab 60 px over the start and the first stretch: every flight hits it.
-	var roof := PackedVector2Array([Vector2(-5100, -120), Vector2(-4600, -120), Vector2(-4600, -100),
-			Vector2(-5100, -100)])
-	var sim := _sim(5, SPLIT_END, [roof])
-	_arrival(sim)
-	sim.step()
-	assert_eq(sim.geyser.launches, 0)
-	assert_eq(sim.geyser.refused, 1)
+	assert_true(sim.geyser.rejects.has("flight"))
+	assert_gt(sim.slimes.velocity_of(slime).y, -100.0, "not launched: the plain arrival")
 
 
 func test_flight_clear_sees_a_ledge_beside_the_landing() -> void:
@@ -161,10 +173,10 @@ func test_flight_clear_sees_a_ledge_beside_the_landing() -> void:
 	assert_false(Geyser.flight_clear(bodies, 1, from, velocity, at), "the ring clips the ledge coming down")
 
 
-func test_the_emptiest_spot_is_taken() -> void:
+func test_the_emptiest_kept_spot_is_taken() -> void:
 	var sim := _sim()
-	# Slimes on most of the first stretch; only its far end is free.
-	for d in range(100, 200, 20):
+	# Slimes along part of the landing stretch.
+	for d in range(160, 400, 30):
 		sim.spawn_train_slime(1, 1, d)
 	var slime := sim.spawn_train_slime(0, 1, 0.0)
 	# The draws launch() will make: the apex, then the candidates.
@@ -172,38 +184,96 @@ func test_the_emptiest_spot_is_taken() -> void:
 	draws.randf()
 	var rooms := []
 	for k in Geyser.CANDIDATES:
-		var at := LoopStart.landing_point(sim.train, 1, draws.randf_range(Geyser.LAND_MIN, Geyser.LAND_MAX))
-		rooms.append(Geyser.room_at(sim.slimes, slime, at))
+		var distance := draws.randf_range(Geyser.LAND_MIN, Geyser.LAND_MAX)
+		var at := LoopStart.landing_point(sim.train, 1, distance)
+		if sim.geyser.landing_limit(sim, slime, distance, at) == "":
+			rooms.append(Geyser.room_at(sim.slimes, slime, at))
+	assert_false(rooms.is_empty())
 	assert_true(sim.geyser.launch(sim, slime))
 	var launch: Dictionary = sim.geyser.launches_log[0]
 	assert_eq(launch["id"], slime)
-	assert_eq(Geyser.room_at(sim.slimes, slime, launch["at"]), rooms.max(), "the emptiest of the draws")
+	assert_eq(Geyser.room_at(sim.slimes, slime, launch["at"]), rooms.max(), "the emptiest of the kept draws")
 
 
-func test_the_jet_carries_the_slime_above() -> void:
+func test_never_onto_a_slime_off_the_route() -> void:
 	var sim := _sim()
+	var slime := sim.spawn_train_slime(0, 1, 0.0)
+	var sitting := sim.spawn_train_slime(1, 1, 300.0)
+	var on := LoopStart.landing_point(sim.train, 1, 300.0)
+	assert_eq(sim.geyser.landing_limit(sim, slime, 300.0, on), "route", "it would come down on the slime there")
+	assert_eq(sim.geyser.landing_limit(sim, slime, 330.0, on + Vector2(30, 0)), "route", "its ring overlaps")
+	assert_eq(sim.geyser.landing_limit(sim, slime, 360.0, on + Vector2(60, 0)), "", "beside it, on the ground")
+	# A slime in the air counts where it comes down.
+	sim.slimes.launch(sitting, Vector2(300.0, -600.0))
+	var down := Geyser.where_down(sim.slimes, sitting, on.y)
+	assert_gt(down.x, on.x + 100.0)
+	var d := 300.0 + (down.x - on.x)
+	assert_eq(sim.geyser.landing_limit(sim, slime, d, LoopStart.landing_point(sim.train, 1, d)), "route")
+	assert_eq(sim.geyser.landing_limit(sim, slime, 300.0, on), "", "where it took off is free now")
+
+
+func test_never_onto_a_spot_with_no_ground() -> void:
+	var sim := _sim()
+	# The floor with a 100 px hole 500 to 600 px along the loop.
+	sim.slimes.terrain = TerrainSegments.new([
+			PackedVector2Array([Vector2(-6000, 0), Vector2(-4500, 0), Vector2(-4500, 300), Vector2(-6000, 300)]),
+			PackedVector2Array([Vector2(-4400, 0), Vector2(6000, 0), Vector2(6000, 300), Vector2(-4400, 300)])])
+	var slime := sim.spawn_train_slime(0, 1, 0.0)
+	var at := LoopStart.landing_point(sim.train, 1, 550.0)
+	assert_true(is_nan(Geyser.rest_height(sim.slimes, slime, at)))
+	assert_eq(sim.geyser.landing_limit(sim, slime, 550.0, at), "route")
+	assert_eq(sim.geyser.landing_limit(sim, slime, 450.0, at - Vector2(100, 0)), "")
+
+
+func test_never_under_a_guarded_ledge() -> void:
+	# A ledge 400 to 500 px along the loop, its top 120 px over the ground (a
+	# called base slime reaches it), a sleeper on it; another, 160 px up, out
+	# of reach, 600 to 650 px along, a sleeper on it too.
+	var low := PackedVector2Array([Vector2(-4600, -120), Vector2(-4500, -120), Vector2(-4500, -100),
+			Vector2(-4600, -100)])
+	var high := PackedVector2Array([Vector2(-4400, -160), Vector2(-4350, -160), Vector2(-4350, -140),
+			Vector2(-4400, -140)])
+	var sim := _sim(5, SPLIT_END, [low, high])
+	sim.level.add_sleeper("t.sleeper.low", "A", Vector2(-4550, -144))
+	sim.level.add_sleeper("t.sleeper.high", "A", Vector2(-4375, -184))
+	assert_eq(sim.geyser.guarded_ledges(sim).size(), 2, "both pieces a sleeper rests on")
+	var slime := sim.spawn_train_slime(0, 1, 0.0)
+	for d in [450.0, 380.0, 520.0]:
+		assert_eq(sim.geyser.landing_limit(sim, slime, d, LoopStart.landing_point(sim.train, 1, d)), "ledge",
+				"under it or beside it, at %.0f" % d)
+	for d in [360.0, 540.0, 625.0]:
+		assert_eq(sim.geyser.landing_limit(sim, slime, d, LoopStart.landing_point(sim.train, 1, d)), "",
+				"clear of it, or under one out of reach, at %.0f" % d)
+
+
+func test_never_at_or_past_a_gate() -> void:
+	var sim := _sim()
+	# Added to the level's data after the load (the frontier sets don't know
+	# it, so launches only, no step): the geyser reads the gates when asked.
+	sim.level.add_gate("t.gate", Rect2(-4620, -100, 40, 100))
+	assert_almost_eq(sim.geyser.gate_limit(sim), 400.0, 0.5, "the gate's loop point")
+	for k in 8:
+		var slime := sim.spawn_train_slime(0, 1, 5.0)
+		assert_true(sim.geyser.launch(sim, slime))
+		sim.slimes.remove(slime)
+	for launch in sim.geyser.launches_log:
+		assert_lt(launch["distance"], 400.0, "before the gate")
+	assert_gt(sim.geyser.rejects.get("gate", 0), 0)
+
+
+func test_with_no_spot_left_the_arrival_is_plain() -> void:
+	var sim := _sim()
+	# The whole landing stretch taken, one slime every 40 px.
+	for d in range(int(Geyser.LAND_MIN) - 40, int(Geyser.LAND_MAX) + 40, 40):
+		sim.spawn_train_slime(1, 1, d)
 	var slime := _arrival(sim)
-	var above := sim.slimes.create(1, 1, Vector2(-5000, -24 - 44), SlimeBodies.TRAIN)
-	sim.train.track(above, 10.0)
-	var beside := sim.slimes.create(2, 1, Vector2(-5000 + 90, -24 - 44), SlimeBodies.TRAIN)
-	sim.train.track(beside, 60.0)
+	var from := sim.slimes.centre_of(slime)
 	sim.step()
-	assert_eq(sim.geyser.carried, 1, "the one above, not the one beside")
-	assert_lt(sim.slimes.velocity_of(above).y, -600.0, "carried up")
-	assert_gt(sim.slimes.velocity_of(beside).y, -300.0, "left alone")
-	assert_eq(sim.geyser.launches, 2)
-	assert_lt(sim.slimes.velocity_of(slime).y, -600.0)
-
-
-func test_without_carry_only_the_arrival_flies() -> void:
-	var sim := _sim()
-	sim.geyser.carry = false
-	_arrival(sim)
-	var above := sim.slimes.create(1, 1, Vector2(-5000, -24 - 44), SlimeBodies.TRAIN)
-	sim.train.track(above, 10.0)
-	sim.step()
-	assert_eq(sim.geyser.carried, 0)
-	assert_eq(sim.geyser.launches, 1)
+	assert_eq(sim.geyser.launches, 0)
+	assert_eq(sim.geyser.refused, 1)
+	assert_eq(sim.geyser.lifted, 0, "not lifted either")
+	assert_almost_eq(sim.slimes.centre_of(slime).x, from.x, 5.0, "left at the loop's start")
+	assert_gt(sim.slimes.velocity_of(slime).y, -100.0, "not launched")
 
 
 func test_a_parked_arrival_is_put_on_a_free_spot() -> void:
@@ -235,24 +305,8 @@ func test_a_parked_arrival_with_no_free_spot_stays_in_line() -> void:
 	assert_eq(sim.train.distance_of(slime), before, "left where the proxy has it")
 
 
-func test_the_variants_set_the_stretch() -> void:
-	var geyser := Geyser.new()
-	geyser.set_variant(Geyser.VARIANT_HIGH)
-	assert_true(geyser.wide)
-	assert_false(geyser.carry, "the lift replaces the carry")
-	assert_eq([geyser.land_min, geyser.land_max], [Geyser.HIGH_LAND_MIN, Geyser.HIGH_LAND_MAX])
-	geyser.set_variant(Geyser.VARIANT_RATE)
-	assert_true(geyser.by_rate)
-	assert_eq(geyser.land_max, Geyser.HIGH_LAND_MIN + Geyser.RATE_LENGTH)
-	geyser.set_variant(Geyser.VARIANT_SOLO)
-	assert_false(geyser.wide or geyser.carry or geyser.by_rate)
-	assert_eq([geyser.land_min, geyser.land_max], [Geyser.LAND_MIN, Geyser.LAND_MAX])
-
-
-func test_high_lifts_the_arrival_above_the_pile_and_lands_it_further() -> void:
-	# The split zone ends before the wide stretch: a base slime lands anyway.
-	var sim := _sim(5, Geyser.HIGH_LAND_MIN - 20.0)
-	sim.geyser.set_variant(Geyser.VARIANT_HIGH)
+func test_it_lifts_the_arrival_above_the_pile() -> void:
+	var sim := _sim()
 	var slime := _arrival(sim)
 	var from := sim.slimes.centre_of(slime)
 	var above := sim.slimes.create(1, 1, from + Vector2(5, -44), SlimeBodies.TRAIN)
@@ -263,19 +317,6 @@ func test_high_lifts_the_arrival_above_the_pile_and_lands_it_further() -> void:
 	assert_eq(sim.geyser.lifted, 1, "lifted out from under the pile")
 	assert_lt(sim.slimes.centre_of(slime).y + sim.slimes.radius_of(slime), pile_top, "its ring above the pile's")
 	assert_gt(sim.slimes.velocity_of(above).y, -300.0, "the one above isn't launched")
-	var launch: Dictionary = sim.geyser.launches_log[0]
-	assert_between(launch["distance"], Geyser.HIGH_LAND_MIN, Geyser.HIGH_LAND_MAX)
-	assert_false(sim.split_zones.covers(launch["at"]), "past the split zone")
-
-
-func test_high_a_fused_arrival_still_lands_in_a_split_zone() -> void:
-	var sim := _sim(5, Geyser.HIGH_LAND_MIN - 20.0)
-	sim.geyser.set_variant(Geyser.VARIANT_HIGH)
-	# Launched straight away: a step would split it in the start's zone first.
-	var slime := sim.spawn_train_slime(0, 2, 5.0)
-	assert_false(sim.geyser.launch(sim, slime))
-	assert_eq(sim.geyser.launches, 0)
-	assert_eq(sim.geyser.refused, 1)
 
 
 func test_lift_origin_leaves_a_free_or_buried_slime_where_it_is() -> void:
@@ -288,17 +329,3 @@ func test_lift_origin_leaves_a_free_or_buried_slime_where_it_is() -> void:
 		bodies.create(1, 1, Vector2(-5000, y), SlimeBodies.TRAIN)
 		y -= 44.0
 	assert_eq(Geyser.lift_origin(bodies, slime), bodies.centre_of(slime), "a pile higher than LIFT_MAX")
-
-
-func test_rate_spreads_the_landings_over_the_bins() -> void:
-	var sim := _sim()
-	sim.geyser.set_variant(Geyser.VARIANT_RATE)
-	var bins := {}
-	for k in 6:
-		var slime := sim.spawn_train_slime(0, 1, 0.0)
-		assert_true(sim.geyser.launch(sim, slime))
-		var bin := int(sim.geyser.launches_log[k]["distance"] / Geyser.RATE_BIN)
-		bins[bin] = bins.get(bin, 0) + 1
-		sim.slimes.remove(slime)
-	assert_eq(bins.size(), 6, "six landings, six bins: a bin landed on lately loses")
-	assert_eq(sim.geyser.gate_limit(sim), INF, "no gate on this level")

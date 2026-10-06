@@ -1,79 +1,78 @@
 class_name Geyser
 extends RefCounted
 ## EXPERIMENT (branch exp/geyser; D157 (5), O117): the geyser at the return
-## route's end. Not in the spec, no ATD atom: the user decides whether it
-## stays. When a train slime reaches the end of the return route (the
-## "finish line": its progress wraps past the loop's end, which is the
-## loop's start, Train.lapped), it is launched high with a wide horizontal
-## spread, so arrivals come down spread over the loop's first stretch
-## instead of popping out on one point, and get away from the start before
-## the next ones arrive (level rule 24).
+## route's end, "high and wide" (the variant the user kept, 2026-10-06). Not
+## in the spec, no ATD atom yet. When a train slime reaches the end of the
+## return route (the "finish line": its progress wraps past the loop's end,
+## which is the loop's start, Train.lapped), it is lifted out from under the
+## slimes piled over it and launched high and wide, onto a free spot of the
+## loop LAND_MIN to LAND_MAX px from its start, so arrivals come down spread
+## along the loop instead of piling up on one point (level rule 24).
 ##
-## The launch. For each arrival, CANDIDATES landing spots are drawn along the
-## loop, uniformly LAND_MIN to LAND_MAX px from its start (the slime's centre
-## lifted by its size above the loop there, LoopStart.landing_point), and an
-## apex APEX px above the higher end of the flight, give or take
-## APEX_JITTER. A spot is kept only when it lies inside a split zone (on a
-## level with any: the start's; a fused slime still splits at once) and its
-## flight (Train.aim: ballistic, no drag) keeps CLEARANCE px between the
-## slime's ring and every terrain segment on the way (the ends' own
-## neighbourhoods aside): no flying into an overhang, no landing on or under
-## a ledge (rule 22 (b)'s, on the test level FirstLedge). Of the spots kept,
-## the emptiest is taken: the one whose nearest slime is furthest (a slime
-## in the air counted where it will come down at that height: its
-## ballistic path, from its velocity; D150's "never onto another slime",
-## made cheap). The slime gets the take-off velocity at once
-## (SlimeBodies.launch: its points' previous positions, as a hop's, and
-## unsupported, so the train's grip doesn't brake it on the next tick):
-## the solver is untouched, so it works the same on both ticks. With no spot
-## kept, it isn't launched and carries on as without the geyser.
+## The lift. The arrival is first moved straight up above the slimes stacked
+## over it (`lift_origin`: the highest ring overlapping its column, plus
+## LIFT_GAP; at most LIFT_MAX px, the lifted ring clear of the terrain by
+## CLEARANCE, else no lift), and flies from there: a launch from under the
+## pile was smothered by it within a few ticks.
 ##
-## Off screen (a parked slime, moved by Offscreen's proxy): no flight. It is
-## put straight on the emptiest of the drawn spots inside a split zone where
-## its ring overlaps no other slime's (LoopStart.is_free's test), its
-## progress moved there (Train.place), as the loop-start queue's moves do
-## (D150): the proxy carries it on from there. With no such spot it isn't
-## placed: it carries on in the proxies' single file, as without the geyser
-## (placing it anyway stacked parked slimes on one another, which unpark as
-## a stuck pile).
+## The flight. CANDIDATES spots are drawn uniformly LAND_MIN to LAND_MAX px
+## along the loop (the slime's centre lifted by its size above the loop
+## there, LoopStart.landing_point), and an apex APEX px above the higher end
+## of the flight, give or take APEX_JITTER. Of the spots that pass the
+## landing limits below, the emptiest wins (room_at: the nearest slime's ring
+## furthest; a slime in the air counted where it comes down). The slime gets
+## the take-off velocity at once (Train.aim, ballistic; SlimeBodies.launch:
+## its points' previous positions, as a hop's, and unsupported, so the
+## train's grip doesn't brake it on the next tick): the solver is untouched,
+## so it works the same on both ticks.
+##
+## The landing limits (O117), each draw checked in this order (`rejects`
+## counts the reasons):
+## - "gate": at or past the first gate along the loop (gate_limit), or on a
+##   return route's slide: the geyser never skips a gate.
+## - "zone": a fused slime lands only inside a split zone (on a level with
+##   any), where it splits at once. A base slime may land past the start's
+##   zone: the zone splits fused slimes and keeps the slimes inside it from
+##   fusing (Fusion), nothing else, so for a base slime landing past it is the
+##   walk out of the zone skipped; it may fuse there at once, as any train
+##   slime leaving the zone does.
+## - "ledge": not under nor beside a ledge rule 22 (b) guards (a terrain
+##   piece a sleeper rests on, its top within a called base slime's reach of
+##   the loop's ground there; guarded_ledges), the slime's ring kept
+##   CLEARANCE px clear of the ledge's sides: a slime landing there, on the
+##   slimes queued under it, bridged onto the ledge (test level: FirstLedge).
+## - "route": where the slime comes to rest must be the loop's own route:
+##   coming down the spot's column it stops on the terrain under the spot or
+##   on the first slime in the column (a slime in the air where it comes
+##   down), whichever is higher (rest_height), and that resting centre must
+##   lie within Train.OFF_ROUTE px of the route point, as a train slime on
+##   the route does. This keeps it off the queue stacked 2-3 deep on the
+##   loop's first stretch (it landed 80-130 px above the loop, knocked off
+##   the route) and off a spot with no ground under it.
+## - "flight": the flight keeps CLEARANCE px between the slime's ring and
+##   every terrain segment on the way (the ends' own neighbourhoods aside):
+##   no flying into an overhang.
+## - "room": off screen only (below), a spot where its ring would overlap
+##   another slime's (LoopStart.is_free's test).
+## With no draw passing them all, the arrival isn't lifted nor launched: it
+## carries on as without the geyser (the plain arrival at the loop's start,
+## followed by the train from there); `refused` counts them.
+##
+## Off screen (a parked slime, moved by Offscreen's proxy): no lift and no
+## flight. It is put straight on the emptiest drawn spot that passes the
+## limits (the flight's aside, the room's added), its progress moved there
+## (Train.place), as the loop-start queue's moves do (D150): the proxy
+## carries it on from there. With no such spot it stays in the proxies'
+## single file, as without the geyser.
 ##
 ## Randomness: the derived stream "geyser:<tick>:<slime id>" (Rng.derive),
-## all CANDIDATES draws and the apex's taken every time: no draw from any
-## other stream, same seed, same launches. Nothing is saved: a launch is
-## only a velocity (in the bodies) or a progress (in the train record).
+## the apex and all CANDIDATES draws taken every time: no draw from any other
+## stream, same seed, same launches. Nothing is saved: a launch is only a
+## velocity (in the bodies) or a progress (in the train record).
 ##
-## The jet carries what sits above (`carry`, variant B). An arrival comes up
-## under the train slimes waiting at the loop's start (on the test level,
-## stacked over the hole the slides come up through, on the hump before the
-## terrace): launched alone it smacks into them and drops back (variant A,
-## measured). So with `carry`, the train slimes the arrival's jet meets, those
-## simulated whose ring overlaps the arrival's column (horizontally within the
-## two radii, CARRY_REACH px above its centre at most) and that haven't left
-## the start yet (progress below LAND_MIN), are launched with it, each to its
-## own spot from its own stream, the same tick.
-##
-## Phase 2, "high and wide" (`wide`, variants C and D). The launch starts
-## clear of the pile: the arrival is first lifted straight up above the
-## slimes stacked over it (`lift_origin`: the highest ring overlapping its
-## column, plus LIFT_GAP; at most LIFT_MAX px, the lifted ring clear of the
-## terrain by CLEARANCE, else no lift), then flies from there. Landing spots
-## are drawn much further along the loop, `land_min` to `land_max` px (C:
-## HIGH_LAND_MIN to HIGH_LAND_MAX; D: HIGH_LAND_MIN to HIGH_LAND_MIN +
-## RATE_LENGTH, the length the measured departure rate absorbs), WIDE_CANDIDATES
-## of them, never at or past the first gate along the loop (`gate_limit`).
-## C keeps the emptiest; D the one whose RATE_BIN px bin got the fewest
-## landings lately (so no metre is fed faster than it clears), then the
-## emptiest.
-## Past the start's split zone a base slime may land (nothing to split); a
-## fused one still only inside a split zone. No carry (the lift replaces it).
-##
-## `enabled` and `carry` are modes for the experiment's with/without runs
-## (the same build): the geyser off with the user argument --no-geyser or
-## SLIME_GEYSER=off, the carry off (variant A) with --geyser-solo or
-## SLIME_GEYSER=solo (default_enabled(), default_carry()); variant C with
-## --geyser-high or SLIME_GEYSER=high, D with --geyser-rate or
-## SLIME_GEYSER=rate (default_variant(), set_variant()); or set by a test.
-## Not in dump() nor saves.
+## `enabled` is a mode for the experiment's with/without runs (the same
+## build): off with the user argument --no-geyser or SLIME_GEYSER=off
+## (default_enabled()), or set by a test. Not in dump() nor saves.
 ## Runs in Simulation.step right after Train.follow (which, with Offscreen's
 ## proxies earlier in the tick, fills Train.lapped).
 
@@ -85,75 +84,38 @@ const APEX := 260.0
 ## apart don't fly the same arc.
 const APEX_JITTER := 0.25
 ## Where along the loop a launched slime may land, px from its start. From
-## LAND_MIN: past the start's hump and the hole the slides come up through
-## (test level: the terrace's left edge, x 300); to LAND_MAX: the loop's
-## first stretch, D150's landing stretch (LoopStart.STRETCH).
-const LAND_MIN := 100.0
-const LAND_MAX := LoopStart.STRETCH
+## LAND_MIN: past the start's hump, the hole the slides come up through and
+## the terrace's first slimes (test level: x 362); to LAND_MAX: the user's
+## "wide dispersion" (test level: the slope up from the terrace, x 867).
+const LAND_MIN := 150.0
+const LAND_MAX := 700.0
 ## How many landing spots are drawn per launch (the emptiest kept one wins).
-const CANDIDATES := 6
-## The room kept between the ring and the terrain along the flight, px.
+const CANDIDATES := 10
+## The room kept between the ring and the terrain along the flight, and
+## between the ring and a guarded ledge's sides, px.
 const CLEARANCE := 4.0
 ## How many points along the flight are checked against the terrain.
 const SAMPLES := 16
 ## The take-off speed cap, as a share of SlimeBodies.max_speed.
 const SPEED_SHARE := 0.95
-## How far above an arrival's centre its jet carries the slimes it meets, px
-## (about two base slimes stacked).
-const CARRY_REACH := 90.0
+## The lifted arrival's ring keeps this much room above the highest ring
+## over it, px.
+const LIFT_GAP := 6.0
+## The furthest an arrival is lifted, px (about five base slimes stacked); a
+## higher pile and it flies from where it is.
+const LIFT_MAX := 240.0
+## A sleeper rests on the terrain piece whose top is at most this far below
+## its ring's bottom, px (the level checker's rule 22 (b) test,
+## LevelRulesStart.RESTS_WITHIN).
+const RESTS_WITHIN := 16.0
+## Two outline points this close are the same vertex when a terrain piece's
+## outline is walked (guarded_ledges), px.
+const VERTEX_EPS := 0.01
 ## How many launches `launches_log` keeps (debug).
 const LOG_SIZE := 64
-## Variants C and D: the landing stretch starts past the hump, the hole and
-## the terrace's first slimes (test level: x 362), px along the loop.
-const HIGH_LAND_MIN := 150.0
-## Variant C: the landing stretch ends 700 px along the loop (test level: the
-## slope up from the terrace, x 867; the user's "wide dispersion").
-const HIGH_LAND_MAX := 700.0
-## Variant D: the landing stretch's length, px: the length over which the
-## measured arrivals are absorbed at the measured clearing rate of a crowded
-## loop start. Probe (tools/geyser_probe.gd), s3-basket-59of60 seeds 1 and 2
-## without the geyser, camera on the start, ticks 9000 to 14000: 15.4
-## arrivals and 6.1 departures past 240 px per 600 ticks, so a crowded
-## stretch clears 6.1 / 240 = 0.0255 slimes per px per 600 ticks, and 15.4
-## arrivals need 15.4 / 0.0255 = 605 px. Rounded to 600 (150 to 750 px).
-const RATE_LENGTH := 600.0
-## Variant D: the stretch is cut into bins this long, px; a spot is scored
-## by the landings its bin got in the last RATE_WINDOW ticks (at the rate
-## above, a 50 px bin clears about 1.3 slimes per 600 ticks), the fewest
-## winning, the emptiest spot breaking ties.
-const RATE_BIN := 50.0
-const RATE_WINDOW := 600
-## Variants C and D: spots drawn per launch (a stretch twice as long).
-const WIDE_CANDIDATES := 10
-## Variants C and D: the lifted arrival's ring keeps this much room above the
-## highest ring over it, px.
-const LIFT_GAP := 6.0
-## Variants C and D: the furthest an arrival is lifted, px (about five base
-## slimes stacked); a higher pile and it flies from where it is.
-const LIFT_MAX := 240.0
-
-## The variants (default_variant()).
-const VARIANT_CARRY := "carry"
-const VARIANT_SOLO := "solo"
-const VARIANT_HIGH := "high"
-const VARIANT_RATE := "rate"
 
 ## Whether arrivals are launched (see the class doc). Not saved.
 var enabled := true
-## Whether the jet carries the slimes above an arrival (see the class doc).
-var carry := true
-## Variants C and D: lift the arrival above the pile and land it further on
-## (see the class doc). Not saved.
-var wide := false
-## Variant D: spots scored by their bin's recent landings (see RATE_BIN).
-var by_rate := false
-## Variant D: the ticks of the recent landings, by bin (debug state of the
-## experiment, not saved: a reload forgets them).
-var _bin_landings := {}
-## Where along the loop a launched slime may land, px (LAND_MIN and LAND_MAX
-## unless `wide`).
-var land_min := LAND_MIN
-var land_max := LAND_MAX
 ## Debug counters of the lift: how many arrivals were lifted, and by how
 ## much in all and at most (px).
 var lifted := 0
@@ -161,52 +123,27 @@ var lift_total := 0.0
 var lift_highest := 0.0
 ## Debug counters (the experiment's probe), not state: the arrivals seen
 ## (with or without the geyser), the launches made (flights and off-screen
-## placements), and the arrivals not launched for want of a kept spot.
+## placements), and the arrivals not launched for want of a spot passing the
+## limits.
 var arrivals := 0
 var launches := 0
 var refused := 0
-var carried := 0
+## The draws turned down, by reason ("gate", "zone", "ledge", "route",
+## "flight", "room": see the class doc). Debug, not state.
+var rejects := {}
 ## The latest LOG_SIZE launches, oldest first: {"id", "tick", "distance"
 ## (the landing spot along the loop), "parked" (bool), "at" (Vector2, the
 ## landing centre)}. Debug, not state.
 var launches_log: Array[Dictionary] = []
 
-
 ## The first gate's distance along the loop (cached, -1.0 until known).
 var _gate_limit := -1.0
+## The ledges rule 22 (b) guards (cached by guarded_ledges; null until known).
+var _ledges: Variant = null
 
 
 func _init() -> void:
 	enabled = default_enabled()
-	carry = default_carry()
-	set_variant(default_variant())
-
-
-## The variant of this run: VARIANT_HIGH with the user argument
-## --geyser-high or SLIME_GEYSER=high, VARIANT_RATE with --geyser-rate or
-## SLIME_GEYSER=rate, VARIANT_SOLO without the carry, else VARIANT_CARRY.
-static func default_variant() -> String:
-	var args := OS.get_cmdline_user_args()
-	var env := OS.get_environment("SLIME_GEYSER")
-	if args.has("--geyser-high") or env == VARIANT_HIGH:
-		return VARIANT_HIGH
-	if args.has("--geyser-rate") or env == VARIANT_RATE:
-		return VARIANT_RATE
-	return VARIANT_CARRY if default_carry() else VARIANT_SOLO
-
-
-## Sets `carry`, `wide` and the landing stretch for `variant` (leaves
-## `enabled` alone).
-func set_variant(variant: String) -> void:
-	wide = variant == VARIANT_HIGH or variant == VARIANT_RATE
-	carry = variant == VARIANT_CARRY
-	by_rate = variant == VARIANT_RATE
-	land_min = HIGH_LAND_MIN if wide else LAND_MIN
-	land_max = LAND_MAX
-	if variant == VARIANT_HIGH:
-		land_max = HIGH_LAND_MAX
-	elif variant == VARIANT_RATE:
-		land_max = HIGH_LAND_MIN + RATE_LENGTH
 
 
 ## Whether this run launches arrivals: false with the user argument
@@ -217,17 +154,8 @@ static func default_enabled() -> bool:
 	return OS.get_environment("SLIME_GEYSER") != "off"
 
 
-## Whether the jet carries the slimes above (variant B): false with the user
-## argument --geyser-solo or SLIME_GEYSER=solo.
-static func default_carry() -> bool:
-	if OS.get_cmdline_user_args().has("--geyser-solo"):
-		return false
-	return OS.get_environment("SLIME_GEYSER") != "solo"
-
-
 ## Launches every train slime that reached the return route's end this tick
-## (Train.lapped, emptied here), in id order, and with `carry` the slimes
-## each one's jet meets (see the class doc).
+## (Train.lapped, emptied here), in id order (see the class doc).
 func step(sim: Simulation) -> void:
 	var train := sim.train
 	if train == null or train.lapped.is_empty():
@@ -240,34 +168,8 @@ func step(sim: Simulation) -> void:
 		if not bodies.has(slime_id) or bodies.state_of(slime_id) != SlimeBodies.TRAIN or not train.tracks(slime_id):
 			continue
 		arrivals += 1
-		if not enabled:
-			continue
-		var parked := bodies.is_parked(slime_id)
-		if launch(sim, slime_id) and carry and not parked:
-			for other in in_jet(sim, slime_id):
-				if launch(sim, other):
-					carried += 1
-
-
-## The train slimes the jet of arrival `slime_id` meets (see the class doc),
-## in id order: simulated, not yet past LAND_MIN, their ring overlapping the
-## column CARRY_REACH px above the arrival's centre.
-func in_jet(sim: Simulation, slime_id: int) -> PackedInt32Array:
-	var bodies := sim.slimes
-	var train := sim.train
-	var out := PackedInt32Array()
-	var from := bodies.centre_of(slime_id)
-	var radius := bodies.radius_of(slime_id)
-	for other in bodies.ids():
-		if other == slime_id or bodies.state_of(other) != SlimeBodies.TRAIN or bodies.calm_of(other) != SlimeBodies.ACTIVE:
-			continue
-		if not train.tracks(other) or train.distance_of(other) >= LAND_MIN or train.is_slide_at(train.distance_of(other)):
-			continue
-		var at := bodies.centre_of(other)
-		var rise := from.y - at.y
-		if absf(at.x - from.x) < radius + bodies.radius_of(other) and rise >= 0.0 and rise <= CARRY_REACH:
-			out.append(other)
-	return out
+		if enabled:
+			launch(sim, slime_id)
 
 
 ## Launches train slime `slime_id` (see the class doc). Returns whether it
@@ -280,38 +182,30 @@ func launch(sim: Simulation, slime_id: int) -> bool:
 	var parked := bodies.is_parked(slime_id)
 	var size := bodies.size_of(slime_id)
 	var from := bodies.centre_of(slime_id)
-	var origin := from
-	if wide and not parked:
-		origin = lift_origin(bodies, slime_id)
+	var origin := from if parked else lift_origin(bodies, slime_id)
 	var cap := bodies.max_speed * SPEED_SHARE
-	var top := minf(land_max, gate_limit(sim) - 1.0) if wide else land_max
-	var draws := WIDE_CANDIDATES if wide else CANDIDATES
-	var zoned := not sim.split_zones.zones.is_empty() and (not wide or size > 1)
 	var best_distance := -1.0
 	var best_room := -INF
-	var best_score := 0x7fffffff
 	var best_at := Vector2.ZERO
 	var best_velocity := Vector2.ZERO
-	for k in draws:
-		var distance := stream.randf_range(land_min, land_max)
-		if distance >= top:
-			continue
+	for k in CANDIDATES:
+		var distance := stream.randf_range(LAND_MIN, LAND_MAX)
 		var at := LoopStart.landing_point(train, size, distance)
-		if zoned and not sim.split_zones.covers(at):
-			continue
+		var why := landing_limit(sim, slime_id, distance, at)
 		var velocity := Vector2.ZERO
-		if not parked:
+		if why == "" and not parked:
 			velocity = Train.aim(origin, at, apex, bodies.gravity.y, cap)
 			if not flight_clear(bodies, size, origin, velocity, at):
-				continue
+				why = "flight"
 		var room := room_at(bodies, slime_id, at)
 		# Off screen there is no flight to sort it out: only a free spot (no
 		# ring there, LoopStart.is_free's test), else the proxy's single file.
-		if parked and room < SlimeBodies.ring_radius_for(size) + 2.0 * SlimeBodies.EDGE:
+		if why == "" and parked and room < SlimeBodies.ring_radius_for(size) + 2.0 * SlimeBodies.EDGE:
+			why = "room"
+		if why != "":
+			rejects[why] = rejects.get(why, 0) + 1
 			continue
-		var score := _bin_score(distance, sim.tick) if by_rate else 0
-		if score < best_score or (score == best_score and room > best_room):
-			best_score = score
+		if room > best_room:
 			best_room = room
 			best_distance = distance
 			best_at = at
@@ -329,11 +223,6 @@ func launch(sim: Simulation, slime_id: int) -> bool:
 			lift_total += from.y - origin.y
 			lift_highest = maxf(lift_highest, from.y - origin.y)
 		bodies.launch(slime_id, best_velocity)
-	if by_rate:
-		var bin := int(best_distance / RATE_BIN)
-		var recent: Array = _bin_landings.get(bin, [])
-		recent.append(sim.tick)
-		_bin_landings[bin] = recent
 	launches += 1
 	launches_log.append({"id": slime_id, "tick": sim.tick, "distance": best_distance, "parked": parked,
 			"at": best_at})
@@ -342,23 +231,30 @@ func launch(sim: Simulation, slime_id: int) -> bool:
 	return true
 
 
-## Variant D: how many landings the bin of `distance` got in the
-## RATE_WINDOW ticks before `tick` (older ones forgotten).
-func _bin_score(distance: float, tick: int) -> int:
-	var bin := int(distance / RATE_BIN)
-	if not _bin_landings.has(bin):
-		return 0
-	var recent: Array = _bin_landings[bin]
-	while not recent.is_empty() and tick - int(recent[0]) >= RATE_WINDOW:
-		recent.pop_front()
-	return recent.size()
+## Which of the landing limits (see the class doc) spot `at`, `distance` px
+## along the loop, breaks for slime `slime_id`, the flight's and the room's
+## aside: "gate", "zone", "ledge" or "route", or "" when it breaks none.
+func landing_limit(sim: Simulation, slime_id: int, distance: float, at: Vector2) -> String:
+	var bodies := sim.slimes
+	var train := sim.train
+	if distance >= gate_limit(sim) or train.is_slide_at(distance):
+		return "gate"
+	if bodies.size_of(slime_id) > 1 and not sim.split_zones.zones.is_empty() and not sim.split_zones.covers(at):
+		return "zone"
+	var radius := bodies.radius_of(slime_id)
+	if under_ledge(bodies.terrain, guarded_ledges(sim), at, radius, bodies.gravity.y):
+		return "ledge"
+	var rest := rest_height(bodies, slime_id, at)
+	if is_nan(rest) or Vector2(at.x, rest).distance_to(train.position_at(distance)) > Train.OFF_ROUTE:
+		return "route"
+	return ""
 
 
-## Where arrival `slime_id` flies from in the wide variants: its centre
-## lifted straight up so its ring clears, by LIFT_GAP, every ring overlapping
-## its column above it (the pile over the hole), or its centre when nothing
-## is over it, the lift would exceed LIFT_MAX, or the lifted ring would come
-## within CLEARANCE px of the terrain.
+## Where arrival `slime_id` flies from: its centre lifted straight up so its
+## ring clears, by LIFT_GAP, every ring overlapping its column above it (the
+## pile over the hole), or its centre when nothing is over it, the lift would
+## exceed LIFT_MAX, or the lifted ring would come within CLEARANCE px of the
+## terrain.
 static func lift_origin(bodies: SlimeBodies, slime_id: int) -> Vector2:
 	var from := bodies.centre_of(slime_id)
 	var radius := bodies.radius_of(slime_id)
@@ -396,6 +292,149 @@ func gate_limit(sim: Simulation) -> float:
 			var d: float = sim.level.loop.closest(box.get_center(), sim.train.open_gates)["distance"]
 			_gate_limit = minf(_gate_limit, d)
 	return _gate_limit
+
+
+## The ledges rule 22 (b) guards: the terrain pieces the level's sleepers
+## rest on (the piece whose top, facing up, lies under a sleeper within its
+## ring's bottom plus RESTS_WITHIN px), each as its outline's segment
+## indices (walked from that top segment, vertex to vertex). Whether a piece
+## overhangs a spot within reach is under_ledge's test. Cached: the level
+## doesn't change. Empty without terrain or sleepers.
+func guarded_ledges(sim: Simulation) -> Array[PackedInt32Array]:
+	if _ledges != null:
+		return _ledges
+	var out: Array[PackedInt32Array] = []
+	var terrain := sim.slimes.terrain
+	if terrain != null and sim.level != null:
+		var below := SlimeBodies.ring_radius_for(1) + SlimeBodies.EDGE + RESTS_WITHIN
+		for sleeper_id in sim.level.sleepers:
+			var at: Vector2 = sim.level.sleepers[sleeper_id]["position"]
+			var k := _top_under(terrain, at, below)
+			if k >= 0:
+				var outline := _outline(terrain, k)
+				if not out.has(outline):
+					out.append(outline)
+	_ledges = out
+	return out
+
+
+## The terrain segment facing up whose height at `at`.x lies 0 to `below` px
+## under `at`, the nearest, or -1.
+static func _top_under(terrain: TerrainSegments, at: Vector2, below: float) -> int:
+	var best := -1
+	var best_gap := INF
+	for k in terrain.seg_a.size():
+		var a := terrain.seg_a[k]
+		var b := terrain.seg_b[k]
+		if terrain.seg_n[k].y >= 0.0 or a.x == b.x or at.x < minf(a.x, b.x) or at.x > maxf(a.x, b.x):
+			continue
+		var gap := lerpf(a.y, b.y, (at.x - a.x) / (b.x - a.x)) - at.y
+		if gap >= 0.0 and gap <= below and gap < best_gap:
+			best = k
+			best_gap = gap
+	return best
+
+
+## The segments of the closed terrain outline segment `first` is on, sorted:
+## walked from each segment's end to the segment starting there.
+static func _outline(terrain: TerrainSegments, first: int) -> PackedInt32Array:
+	var out := PackedInt32Array([first])
+	var k := first
+	for n in terrain.seg_a.size():
+		var next := -1
+		for j in terrain.seg_a.size():
+			if terrain.seg_a[j].distance_to(terrain.seg_b[k]) <= VERTEX_EPS:
+				next = j
+				break
+		if next < 0 or next == first:
+			break
+		out.append(next)
+		k = next
+	out.sort()
+	return out
+
+
+## Whether a slime of ring radius `radius` resting at `at` would be under or
+## beside one of `ledges` (guarded_ledges, outlines in `terrain`): some part
+## of the ledge's outline within its ring's width plus CLEARANCE px either
+## side of `at` lies above its ring's top, and the ledge's top there is
+## within a called base slime's reach (FreeSlimes.max_rise, at `gravity`) of
+## the ground (its ring's bottom), as rule 22 (b) measures.
+static func under_ledge(terrain: TerrainSegments, ledges: Array[PackedInt32Array], at: Vector2, radius: float,
+		gravity: float) -> bool:
+	if ledges.is_empty():
+		return false
+	var ring := radius + SlimeBodies.EDGE
+	var reach := FreeSlimes.max_rise(1, gravity)
+	var left := at.x - ring - CLEARANCE
+	var right := at.x + ring + CLEARANCE
+	for outline in ledges:
+		var top := INF
+		for k in outline:
+			var a := terrain.seg_a[k]
+			var b := terrain.seg_b[k]
+			var x0 := maxf(left, minf(a.x, b.x))
+			var x1 := minf(right, maxf(a.x, b.x))
+			if x0 > x1:
+				continue
+			# The highest point of the segment's part between x0 and x1.
+			var high := minf(a.y, b.y)
+			if a.x != b.x:
+				high = minf(lerpf(a.y, b.y, (x0 - a.x) / (b.x - a.x)), lerpf(a.y, b.y, (x1 - a.x) / (b.x - a.x)))
+			if high < at.y - ring:
+				top = minf(top, high)
+		if top < INF and at.y + ring - top <= reach:
+			return true
+	return false
+
+
+## The height (y) slime `slime_id` comes to rest at when it comes down spot
+## `at`'s column: on the terrain under it (its ring's bottom on the first
+## terrain surface met going down from Train.OFF_ROUTE px over its ring's
+## top, at most Train.OFF_ROUTE px under its bottom; only surfaces facing
+## up), or on the slimes in the
+## column (their rings touching its ring; a slime in the air counted where
+## it comes down to `at`'s height), whichever is higher. NAN with no terrain
+## under the spot within that reach.
+static func rest_height(bodies: SlimeBodies, slime_id: int, at: Vector2) -> float:
+	var radius := bodies.radius_of(slime_id) + SlimeBodies.EDGE
+	var rest := NAN
+	var terrain := bodies.terrain
+	if terrain == null:
+		return rest
+	var top := Vector2(at.x, at.y - radius - Train.OFF_ROUTE)
+	var bottom := Vector2(at.x, at.y + radius + Train.OFF_ROUTE)
+	for k in terrain.seg_a.size():
+		if terrain.seg_n[k].y >= 0.0:
+			continue
+		var hit: Variant = Geometry2D.segment_intersects_segment(top, bottom, terrain.seg_a[k], terrain.seg_b[k])
+		if hit != null and (is_nan(rest) or hit.y - radius < rest):
+			rest = hit.y - radius
+	if is_nan(rest):
+		return rest
+	for other in bodies.ids():
+		if other == slime_id:
+			continue
+		var q := where_down(bodies, other, at.y)
+		var reach := radius + bodies.radius_of(other) + SlimeBodies.EDGE
+		var dx := absf(q.x - at.x)
+		if dx < reach:
+			rest = minf(rest, q.y - sqrt(reach * reach - dx * dx))
+	return rest
+
+
+## Where slime `other` is, for a slime landing at height `y`: a slime in the
+## air (unsupported, awake) where its ballistic path (from its velocity)
+## comes down to `y`, any other where it is.
+static func where_down(bodies: SlimeBodies, other: int, y: float) -> Vector2:
+	var s := bodies.index_of(other)
+	var q := bodies.centre_of(other)
+	if bodies.supported[s] == 0 and bodies.calm[s] == SlimeBodies.ACTIVE:
+		var velocity := bodies.velocity_of(other)
+		var t := time_down_to(q, velocity, bodies.gravity.y, y)
+		if t > 0.0:
+			return Vector2(q.x + velocity.x * t, y)
+	return q
 
 
 ## The time a ballistic flight from `from` at `velocity` under `gravity`
@@ -448,20 +487,11 @@ static func flight_clear(bodies: SlimeBodies, size: int, from: Vector2, velocity
 
 ## How much room a slime landing at `at` would have: the distance to the
 ## nearest other slime's ring (centre distance less its radius), a slime in
-## the air counted where its ballistic path comes down to `at`'s height
-## (from its velocity), parked ones where they are. INF with no other slime.
+## the air counted where it comes down to `at`'s height (where_down). INF
+## with no other slime.
 static func room_at(bodies: SlimeBodies, slime_id: int, at: Vector2) -> float:
 	var room := INF
-	var gravity := bodies.gravity.y
 	for other in bodies.ids():
-		if other == slime_id:
-			continue
-		var s := bodies.index_of(other)
-		var q := bodies.centre_of(other)
-		if bodies.supported[s] == 0 and bodies.calm[s] == SlimeBodies.ACTIVE:
-			var velocity := bodies.velocity_of(other)
-			var t := time_down_to(q, velocity, gravity, at.y)
-			if t > 0.0:
-				q = Vector2(q.x + velocity.x * t, at.y)
-		room = minf(room, q.distance_to(at) - bodies.radius_of(other))
+		if other != slime_id:
+			room = minf(room, where_down(bodies, other, at.y).distance_to(at) - bodies.radius_of(other))
 	return room
