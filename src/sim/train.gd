@@ -134,6 +134,22 @@ const MAX_REACH_FACTOR := 2.5
 const GRIP := 0.5
 ## The steepest stretch of route (rise over run) a standing slime grips: 45°.
 const GRIP_MAX_SLOPE := 1.0
+## EXPERIMENT (exp/dip-jam, SLIME_DIPJAM token v4): on a stretch rising more
+## than GRIP_SLOPE_FROM (up to GRIP_MAX_SLOPE), a standing train slime
+## between hops grips harder, GRIP_SLOPE of its rigid motion per tick: GRIP
+## alone lets gravity creep it back down at about g * sin * dt per tick.
+const GRIP_SLOPE_FROM := 0.2
+const GRIP_SLOPE := 0.9
+static var jam_v4 := false
+## EXPERIMENT (exp/dip-jam, token v5): a train slime about to hop whose
+## next train slime ahead along the loop is less than BLOCK_SHARE of its
+## reach ahead (the hop would land short, against it) and isn't one it may
+## fuse with waits instead, its hop timer put back to BLOCK_HOLD: no micro
+## hop into the slime in front; it hops once that one has moved on.
+const BLOCK_SHARE := 0.5
+const BLOCK_HOLD := 0.25
+static var jam_v5 := false
+static var _jam_read := false
 ## Placeholder slide: the speed slimes are carried at on a return route, px/s.
 const SLIDE_SPEED := 360.0
 ## Placeholder slide: share of the gap to SLIDE_SPEED closed per tick.
@@ -563,8 +579,14 @@ func inherit(parts: PackedInt32Array) -> void:
 ## Before the bodies tick: aims the hops about to happen, and holds and
 ## carries the slimes on a slide.
 func steer(bodies: SlimeBodies, dt: float) -> void:
+	if not _jam_read:
+		_jam_read = true
+		var tokens := OS.get_environment("SLIME_DIPJAM").to_lower().split(",", false)
+		jam_v4 = tokens.has("v4")
+		jam_v5 = tokens.has("v5")
 	if not _aims.is_empty():
 		_aims.clear()
+	var ahead := _ahead_of(bodies) if jam_v5 else {}
 	for slime_id in tracked_ids():
 		var s := bodies.index_of(slime_id)
 		# A parked slime moves off screen at its pace (Offscreen).
@@ -584,15 +606,51 @@ func steer(bodies: SlimeBodies, dt: float) -> void:
 		if bodies.supported[s] != 0:
 			var slope := direction_at(progress)
 			if absf(slope.y) <= absf(slope.x) * GRIP_MAX_SLOPE:
-				bodies.brake(slime_id, GRIP)
+				var steep := jam_v4 and absf(slope.y) > absf(slope.x) * GRIP_SLOPE_FROM
+				bodies.brake(slime_id, GRIP_SLOPE if steep and bodies.hop_timer[s] > dt * 1.5 else GRIP)
 		if bodies.hop_timer[s] > dt * 1.5:
 			continue
 		var size := bodies.size[s]
+		if jam_v5 and ahead.has(slime_id):
+			var next: Array = ahead[slime_id]
+			if next[1] < hop_reach(size) * BLOCK_SHARE and not bodies.can_merge(slime_id, next[0]):
+				bodies.set_hop_timer(slime_id, BLOCK_HOLD)
+				continue
 		var target := hop_target(progress, hop_reach(size))
 		var high := minf(highest_between(progress, progress + hop_reach(size)), target.y)
 		var apex := hop_apex(size) + maxf(0.0, minf(from.y, target.y) - high)
 		bodies.set_hop_aim(slime_id, aim(from, target, apex, bodies.gravity.y, hop_cap(size)))
 		_aims[slime_id] = [last_target_kind, target]
+
+
+## EXPERIMENT (jam v5): each train slime's next train slime ahead along the
+## loop and the gap to it, id -> [ahead id, px].
+func _ahead_of(bodies: SlimeBodies) -> Dictionary:
+	var order := []
+	for slime_id in tracked_ids():
+		if bodies.state_of(slime_id) == SlimeBodies.TRAIN:
+			order.append(Vector2(_records[slime_id]["distance"], slime_id))
+	order.sort()
+	var out := {}
+	if order.size() < 2:
+		return out
+	# Front to back: the nearest one strictly further along (slimes at the
+	# same distance are not ahead of each other); the front one's is the
+	# back one, round the loop.
+	var next: Vector2 = order[0]
+	next.x += _len
+	var k := order.size() - 1
+	while k >= 0:
+		var me: Vector2 = order[k]
+		out[int(me.y)] = [int(next.y), next.x - me.x]
+		var j := k
+		while j >= 0 and order[j].x == me.x:
+			if j != k:
+				out[int(order[j].y)] = [int(next.y), next.x - me.x]
+			j -= 1
+		next = me
+		k = j
+	return out
 
 
 ## After the bodies tick (and the split zones): follows every train slime,

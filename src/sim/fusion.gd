@@ -108,6 +108,31 @@ const DIP_HOLD_SECONDS := 0.25
 const NUDGE_HOLDING := "holding"
 const NUDGE_GATHERING := "gathering"
 
+## EXPERIMENT (exp/dip-jam): the train's dip-nudge jam variants, from the
+## environment variable SLIME_DIPJAM (comma-separated; read once):
+##   v1: gathering lets go when the train slime directly behind touches it
+##       and isn't a partner (another species, or past size 3): it plugs the
+##       way, so no partner further back can catch up;
+##   v2: the wait for a partner further back counts the slime's own time on
+##       the floor held by gathering (`_held`), not the stall mark, which
+##       the queue's push from behind (>= Train.STALL_ADVANCE) resets;
+##   v3: v1 and v2 together. (v4, the slope grip, is Train's.)
+##   v1s / v3s: v1 / v3 letting go only for another species touching it
+##       (a same-species slime past size 3 still keeps it waiting: the
+##       `bump` fixture's 3 + 1 bump, D119).
+static var jam_v1 := false
+static var jam_v1_species := false
+static var jam_v2 := false
+static var _jam_read := false
+
+## Train slime id -> ticks gathering has held it on the dip floor it is on
+## (jam v2). Dropped when the slime is not on a floor. EXPERIMENT: not in
+## dump() nor saves (a production version would save it like the counts).
+var _held := {}
+## Debug counters (EXPERIMENT, the dip-jam probe): fusions and bumps so far.
+var fused_count := 0
+var bumped_count := 0
+
 ## Train slime id -> why the last tick's dip nudge held it (NUDGE_HOLDING or
 ## NUDGE_GATHERING). Debug, for the census (see the class doc).
 # @spec-link [[req_platform_and_performance_targets]]
@@ -122,6 +147,17 @@ var _floors_for := ""
 
 
 # --- Queries ----------------------------------------------------------------
+
+## EXPERIMENT: reads SLIME_DIPJAM once (see jam_v1).
+static func read_jam() -> void:
+	if _jam_read:
+		return
+	_jam_read = true
+	var tokens := OS.get_environment("SLIME_DIPJAM").to_lower().split(",", false)
+	jam_v1_species = tokens.has("v1s") or tokens.has("v3s")
+	jam_v1 = tokens.has("v1") or tokens.has("v3") or jam_v1_species
+	jam_v2 = tokens.has("v2") or tokens.has("v3") or tokens.has("v3s")
+
 
 ## Ticks of continuous contact counted for slimes `a` and `b` (0 when none).
 func contact_ticks(a: int, b: int) -> int:
@@ -211,9 +247,11 @@ func step(sim: Simulation) -> void:
 			continue
 		if bodies.can_merge(pair.x, pair.y):
 			if sim.fuse(pair.x, pair.y) >= 0:
+				fused_count += 1
 				changed[pair.x] = true
 				changed[pair.y] = true
 		else:
+			bumped_count += 1
 			_bump(bodies, pair.x, pair.y)
 	if not changed.is_empty():
 		# The fused slime is a fresh ring: its contacts start again.
@@ -281,6 +319,7 @@ func _bump(bodies: SlimeBodies, a: int, b: int) -> void:
 ## train and the bodies pair by pair cost most of the tick.
 # @spec-link [[rule_dip_may_nudge_fusion]]
 func _nudge(sim: Simulation) -> void:
+	read_jam()
 	if not nudged.is_empty():
 		nudged.clear()
 	var train := sim.train
@@ -291,6 +330,7 @@ func _nudge(sim: Simulation) -> void:
 		_floors_for = key
 		_floors = dip_floors(train.loop, train.open_gates)
 	if _floors.is_empty():
+		_held.clear()
 		return
 	var bodies := sim.slimes
 	# The train slimes (in id order), their distances along the loop, which
@@ -310,15 +350,25 @@ func _nudge(sim: Simulation) -> void:
 		distances.append(distance)
 		shown.append(1 if visible else 0)
 	if on_floor.is_empty():
+		_held.clear()
 		return
 	var partners := _floor_partners(bodies, all, on_floor)
+	var touches := _floor_touches(bodies, all, on_floor) if jam_v1 else {}
+	if jam_v2:
+		var still_on := {}
+		for k in on_floor:
+			if _held.has(all[k]):
+				still_on[all[k]] = _held[all[k]]
+		_held = still_on
 	for k in on_floor:
 		var slime_id := all[k]
 		var why := ""
 		if _holding(bodies, partners, slime_id):
 			why = NUDGE_HOLDING
-		elif _gathering(sim, all, distances, shown, k):
+		elif _gathering(sim, all, distances, shown, k, touches):
 			why = NUDGE_GATHERING
+			if jam_v2:
+				_held[slime_id] = _held.get(slime_id, 0) + 1
 		if why != "":
 			nudged[slime_id] = why
 			bodies.set_hop_timer(slime_id, maxf(bodies.hop_timer_of(slime_id), DIP_HOLD_SECONDS))
@@ -338,6 +388,20 @@ func _floor_partners(bodies: SlimeBodies, all: Array[int], on_floor: PackedInt32
 	return partners
 
 
+## EXPERIMENT (jam v1): every slime touching each of `on_floor` (indices
+## into `all`), as id -> {other id: true}.
+func _floor_touches(bodies: SlimeBodies, all: Array[int], on_floor: PackedInt32Array) -> Dictionary:
+	var touches := {}
+	for k in on_floor:
+		touches[all[k]] = {}
+	for pair: Vector2i in bodies.touching_pairs():
+		if touches.has(pair.x):
+			touches[pair.x][pair.y] = true
+		if touches.has(pair.y):
+			touches[pair.y][pair.x] = true
+	return touches
+
+
 ## Holding (the dip nudge): whether train slime `slime_id`, on screen on a
 ## dip's floor, touches a slime it may fuse with that is on screen on a
 ## dip's floor too (`partners`, from _floor_partners).
@@ -355,7 +419,7 @@ func _holding(bodies: SlimeBodies, partners: Dictionary, slime_id: int) -> bool:
 ## has not advanced for DIP_WAIT_TICKS for one with other slimes between
 ## them.
 func _gathering(sim: Simulation, all: Array[int], distances: PackedFloat64Array, shown: PackedByteArray,
-		k: int) -> bool:
+		k: int, touches: Dictionary) -> bool:
 	var train := sim.train
 	var slime_id := all[k]
 	var at := distances[k]
@@ -371,9 +435,17 @@ func _gathering(sim: Simulation, all: Array[int], distances: PackedFloat64Array,
 		return false
 	if shown[next] != 0 and sim.slimes.can_merge(slime_id, all[next]):
 		return true
-	var marked_at := train.marked_at_of(slime_id)
-	if marked_at >= 0 and sim.tick - marked_at >= DIP_WAIT_TICKS:
-		return false
+	if jam_v1 and touches.has(slime_id) and touches[slime_id].has(all[next]):
+		var bodies := sim.slimes
+		if not jam_v1_species or bodies.species_of(slime_id) != bodies.species_of(all[next]):
+			return false
+	if jam_v2:
+		if _held.get(slime_id, 0) >= DIP_WAIT_TICKS:
+			return false
+	else:
+		var marked_at := train.marked_at_of(slime_id)
+		if marked_at >= 0 and sim.tick - marked_at >= DIP_WAIT_TICKS:
+			return false
 	for j in all.size():
 		if shown[j] == 0 or j == k:
 			continue
