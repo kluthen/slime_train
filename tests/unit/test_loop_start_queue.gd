@@ -18,7 +18,10 @@ extends GutTest
 ## 5000 and returns under the floor (y = 400). Loop distance d is x = d - 5000
 ## on the outgoing part. Split zone t.split covers the loop's first SPLIT_END
 ## px. The wedge: no slime hops (SlimeBodies.auto_hops off), so a train
-## slime's progress can't advance and it stalls at 60 s.
+## slime's progress can't advance and it stalls at 60 s. A stuck pair: two
+## base train slimes on one centre, held there (_pair_on_one_centre): the
+## solver parts two rings put on one centre (O91's fix), so before every tick
+## the second one's ring is put back on the first one's, until it is moved.
 # @test-link [[rule_stalled_train_slime_moved_to_start]]
 # @test-link [[rule_stuck_slimes_moved_to_start]]
 # @test-link [[rule_left_alone_and_lost]]
@@ -31,6 +34,13 @@ const OVERLAP := Vector2(0, -40)
 const STUCK_TICK := StuckSlimes.CHECK_TICKS * (StuckSlimes.CHECKS - 1)
 ## Two base slimes' room: closer, their rings overlap.
 const ROOM := 2.0 * (SlimeBodies.RING_RADIUS_SIZE_1 + SlimeBodies.EDGE)
+
+## The stuck pairs held on one centre: [mover, other] (_pair_on_one_centre).
+var _held: Array = []
+
+
+func before_each() -> void:
+	_held = []
 
 
 func _level(split_end := SPLIT_END) -> LevelData:
@@ -50,6 +60,34 @@ func _terrain() -> TerrainSegments:
 	return TerrainSegments.new([
 		PackedVector2Array([Vector2(-6000, 0), Vector2(6000, 0), Vector2(6000, 300), Vector2(-6000, 300)]),
 	])
+
+
+## A stuck pair on `sim`: two base train slimes of other species on one
+## centre at OVERLAP, held there (see the class doc). Returns [the first,
+## the second]; on a tie in size the second (the higher id) is the one moved.
+func _pair_on_one_centre(sim: Simulation) -> Array[int]:
+	var first := sim.slimes.create(0, 1, OVERLAP, SlimeBodies.TRAIN)
+	sim.train.track(first, 5000.0)
+	var second := sim.slimes.create(1, 1, OVERLAP, SlimeBodies.TRAIN)
+	sim.train.track(second, 5000.0)
+	_held.append([second, first])
+	return [first, second]
+
+
+## Puts each held slime's ring back on its pair's, until it is moved to the
+## loop start (see the class doc).
+func _hold(sim: Simulation) -> void:
+	for pair in _held:
+		var mover: int = pair[0]
+		if not sim.slimes.has(mover) or not sim.slimes.has(pair[1]):
+			continue
+		if sim.stuck_slimes.stuck.any(func(e: Dictionary) -> bool: return e["id"] == mover and e["moved"]):
+			continue
+		var body := sim.slimes.body_of(mover)
+		var under := sim.slimes.body_of(pair[1])
+		for key in ["points", "previous", "centre"]:
+			body[key] = under[key]
+		assert_true(sim.slimes.set_body(mover, body), "slime %d held on slime %d" % pair)
 
 
 ## A simulation on the synthetic level, no slime yet (the first slime is
@@ -94,17 +132,18 @@ func _moves(sim: Simulation) -> Array:
 	return out
 
 
-## Runs `sim` until tick `tick` (that tick not yet stepped). With `clear`,
+## Runs `sim` until tick `tick` (that tick not yet stepped), the stuck pairs
+## held (_hold). With `clear`,
 ## each slime moved to the loop start is checked where it landed
 ## (_landed_free), then put out of the way, 60 px apart by id from x -3500
 ## (wedged, it would stay there and take the spots).
 func _run_to(sim: Simulation, tick: int, clear := true) -> void:
-	if not clear:
-		sim.run(tick - sim.tick)
-		return
 	while sim.tick < tick:
-		var before := _moves(sim).size()
+		var before := _moves(sim).size() if clear else 0
+		_hold(sim)
 		sim.run(1)
+		if not clear:
+			continue
 		var moves := _moves(sim)
 		for k in range(before, moves.size()):
 			var slime_id: int = moves[k]["id"]
@@ -222,20 +261,17 @@ func test_a_slime_that_recovers_while_it_waits_leaves_without_a_move_or_a_wait()
 func test_lost_and_stuck_slimes_go_through_the_queue() -> void:
 	var sim := _sim()
 	sim.offscreen.enabled = true
-	var big := sim.slimes.create(0, 2, OVERLAP, SlimeBodies.TRAIN)
-	sim.train.track(big, 5000.0)
-	var small := sim.slimes.create(1, 1, OVERLAP, SlimeBodies.TRAIN)
-	sim.train.track(small, 5000.0)
+	var pair := _pair_on_one_centre(sim)
 	# A free slime far off screen with no way back: left alone, then lost.
 	var free := sim.slimes.create(2, 1, Vector2(-3000, -1000), SlimeBodies.FREE)
-	sim.run(1)
+	_run_to(sim, 1, false)
 	assert_eq(sim.offscreen.away[free], 0)
 	# Its count started earlier: it is lost from tick STUCK_TICK, as the pair
 	# is stuck: due on one tick, the lower id goes first.
 	sim.offscreen.away[free] = STUCK_TICK - Offscreen.LEFT_ALONE_TICKS - Offscreen.LOST_TICKS
 	_run_to(sim, STUCK_TICK + 1)
-	assert_eq(_moves(sim), [{"id": small, "tick": STUCK_TICK, "reason": StuckSlimes.STUCK}])
-	assert_eq(sim.stuck_slimes.stuck.back()["other"], big)
+	assert_eq(_moves(sim), [{"id": pair[1], "tick": STUCK_TICK, "reason": StuckSlimes.STUCK}])
+	assert_eq(sim.stuck_slimes.stuck.back()["other"], pair[0])
 	assert_eq(sim.slimes.state_of(free), SlimeBodies.FREE, "the lost one waits")
 	assert_true(sim.offscreen.away.has(free), "its count kept")
 	var lost_at := STUCK_TICK + _gap(sim, STUCK_TICK)
@@ -249,23 +285,21 @@ func test_the_stuck_count_goes_on_while_its_mover_waits() -> void:
 	# A seed whose wait after tick 80 keeps the turn shut past two checks.
 	var sim := _sim(_seed_with_gap(80, 75))
 	var lone := _wedged(sim, [1000.0])[0]
-	var big := sim.slimes.create(0, 2, OVERLAP, SlimeBodies.TRAIN)
-	sim.train.track(big, 5000.0)
-	var small := sim.slimes.create(1, 1, OVERLAP, SlimeBodies.TRAIN)
-	sim.train.track(small, 5000.0)
+	var pair := _pair_on_one_centre(sim)
 	_run_to(sim, 80)
 	assert_true(DebugKill.send_to_start(sim, lone))
 	var opens := 80 + _gap(sim, 80)
 	assert_gt(opens, 150)
 	_run_to(sim, STUCK_TICK + 1)
-	assert_eq(sim.stuck_slimes.dump()["counts"], [[big, small, StuckSlimes.CHECKS]], "stuck at tick 90")
+	assert_eq(sim.stuck_slimes.dump()["counts"], [[pair[0], pair[1], StuckSlimes.CHECKS]], "stuck at tick 90")
 	assert_eq(sim.stuck_slimes.stuck, [] as Array[Dictionary], "not moved: the turn is shut")
 	_run_to(sim, 151)
-	assert_eq(sim.stuck_slimes.dump()["counts"], [[big, small, StuckSlimes.CHECKS + 2]], "two more checks")
-	assert_eq(sim.stuck_slimes.stuck_since(Vector2i(big, small), sim.tick - 1), STUCK_TICK, "stuck since tick 90")
+	assert_eq(sim.stuck_slimes.dump()["counts"], [[pair[0], pair[1], StuckSlimes.CHECKS + 2]], "two more checks")
+	assert_eq(sim.stuck_slimes.stuck_since(Vector2i(pair[0], pair[1]), sim.tick - 1), STUCK_TICK,
+			"stuck since tick 90")
 	assert_eq(LoopStartQueue.due(sim)[0]["since"], STUCK_TICK)
 	_run_to(sim, opens + 1)
-	assert_eq(sim.stuck_slimes.stuck, [{"id": small, "other": big, "tick": opens, "reason": StuckSlimes.STUCK,
+	assert_eq(sim.stuck_slimes.stuck, [{"id": pair[1], "other": pair[0], "tick": opens, "reason": StuckSlimes.STUCK,
 			"moved": true}] as Array[Dictionary], "moved at its turn")
 	assert_eq(sim.stuck_slimes.dump()["counts"], [], "its counts go with the move")
 
@@ -356,10 +390,7 @@ func test_a_save_and_reload_mid_queue_carries_on_the_same() -> void:
 	# A pair put on one centre at tick 3510: stuck at the check of tick 3600,
 	# when the four wedged ones stall; it waits in line behind them.
 	_run_to(sim, STALL_TICKS - 90)
-	var big := sim.slimes.create(0, 2, OVERLAP, SlimeBodies.TRAIN)
-	sim.train.track(big, 5000.0)
-	var small := sim.slimes.create(1, 1, OVERLAP, SlimeBodies.TRAIN)
-	sim.train.track(small, 5000.0)
+	var pair := _pair_on_one_centre(sim)
 	var second := STALL_TICKS + _gap(sim, STALL_TICKS)
 	_run_to(sim, second - 1)
 	assert_eq(sim.train.stalled.size(), 1, "one moved")
@@ -373,7 +404,7 @@ func test_a_save_and_reload_mid_queue_carries_on_the_same() -> void:
 	_run_to(copy, copy.tick + 600)
 	assert_eq(sim.train.stalled.size(), 4, "the four wedged ones moved")
 	assert_eq(sim.stuck_slimes.stuck.size(), 1, "and the stuck one")
-	assert_eq(sim.stuck_slimes.stuck.back()["id"], small)
+	assert_eq(sim.stuck_slimes.stuck.back()["id"], pair[1])
 	assert_eq(copy.train.stalled, sim.train.stalled, "the same moves on the same ticks")
 	assert_eq(copy.stuck_slimes.stuck, sim.stuck_slimes.stuck)
 	assert_eq(copy.state_hash(), sim.state_hash(), "and it carries on the same")

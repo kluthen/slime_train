@@ -34,8 +34,9 @@ extends RefCounted
 ##              the tick, so the order the proxies move in doesn't matter;
 ##              on one spot, the higher id is ahead). (Without it, a parked
 ##              slime faster than the one ahead, on the slide or bigger, ran
-##              through it, and the two came back on screen on one spot,
-##              where two rings never come apart.) Over an open
+##              through it, and the two came back on screen on one spot:
+##              two rings that then pushed each other in, before O91's fix
+##              in the contacts, and that now part with a jolt.) Over an open
 ##              trapdoor (its box grown ENTRY_REACH upward) it drops into
 ##              the basket instead: it is put in the basket box's next free
 ##              clear slot (a grid its own width plus SLOT_GAP apart,
