@@ -8,13 +8,15 @@ now, for headroom (D158). This document covers why it was measured, how the
 extension is built, loaded and chosen, how to test it, and how the port is
 done.
 
-Where the port stands (unit U7): the native solver, `SlimeSolver`, runs the
-whole solver part of a tick in one call (`step`), on the five passes ported
+Where the port stands (units U7 and U8): the native solver, `SlimeSolver`,
+runs the whole solver part of a tick in one call (`step`), on the five passes ported
 line for line (units U1 to U5). It reads and writes a `SlimeBodies` (the
 marshalling) and checks it can. On the desktop its results are the GDScript
 tick's, bit for bit (the same state hashes), and its solver part runs 18 to
 19 times faster in crowds (see "Bench"). The GDScript tick stays as the
-fallback, per tick and per pass. The phone's numbers are unit U8's.
+fallback, per tick and per pass. On the reference phone (unit U8) the
+native tick holds `stress-dense` at 59 fps, where the GDScript tick gets 33
+(see "On the phone (unit U8)").
 
 ## Why it was measured
 
@@ -507,6 +509,13 @@ earlier hashes recorded with each chunk in `docs/dev/README.md` are each of
 that chunk's commit (the `stress-dense` ones of chunk 22m, for example,
 changed with chunk 22h step A's `marked_at`).
 
+**On the phone (unit U8, 2026-10-06):** the S20 FE (arm64, bionic) gave
+these same 600-tick hashes for `stress-dense` and `stress-moving`, on both
+ticks, two runs each. That wasn't expected: bionic's `atan2` happened to
+agree with glibc's on these runs. It says nothing about the other fixtures,
+longer runs or other phones, so hashes are still compared within one build
+and platform.
+
 | Fixture | 600 ticks | 2400 ticks |
 |---|---|---|
 | `bedtime` | `5a94fa65bf8e05b9c45cecfe6ab80e1fa9a745d20f21a9398aba739f840f4cd7` | `b02215f37ca327c09f693160e47945184681c5449b3b1d17d8e61252d2cfb749` |
@@ -527,3 +536,38 @@ changed with chunk 22h step A's `marked_at`).
 | `stress-still` | `4c50a541d5a60dda72d85cfd5941782b28975e8352d1529ed12eedfdb8aa2f27` | `9efbbc6b1f014895180f7e007b574fd3a03309e29dec2798b913cf0260da49e7` |
 | `sunrise` | `8db8d2c83ee28167f22616d7187ab43f8e1bace7d29b88c492a35f7c3429c9eb` | `9a392ffc8257592c3bfc8b4247fd377aef36d5308d54819b26e91133acfb4759` |
 | `wind-down` | `1f6ba0b95667450033a0bf6d9fd123d23ea46fc2a6ae664fd731a32bda2a50eb` | `801144a13df0b9c9422e87ae353786d1c6c5e9c3973a61d67e6995c1aa92b851` |
+
+## On the phone (unit U8)
+
+The S20 FE, 2026-10-06, the debug APK of cb7e6f5, both ticks in ABBA order
+(`tools/android/perf.sh --phase-timers --tick=<tick>`, seed 1, a 5 min run;
+`stress-still` 2 min). Full report:
+`docs/perf/2026-10-06-5n-s20fe-session.md`, with the conditions, every
+window, the phone factors, U7's five open questions, the hashes, the census
+and what is left for chunk 22's repeat. The fps column is the mean over
+the first 60 s; the step split (µs per tick) is from the same window.
+Rows marked "slow phone" ran while the phone ran about 1.6 times slower
+than on 2026-10-03 (thermal status 0; see the report). Both ticks of those
+fixtures ran in that state.
+
+| Fixture | fps, GDScript → native | Tick ms, GDScript → native | Solver µs, GDScript passes → native lap | Behaviour µs (native tick) |
+|---|---|---|---|---|
+| `stress-dense` | 32.8 → 59.0 | 15.06 → 11.30 | 4320 → 283 | 10849 |
+| `stress-moving` (slow phone) | 13.2 → 23.2 | 34.99 → 18.74 | 15786 → 700 | 17857 |
+| `s3-basket-59of60` (slow phone) | 21.4 → 35.7 | 20.71 → 13.54 | 7897 → 418 | 12936 |
+| `stress-still` | 55.6 → 59.1 | 6.71 → 5.42 | 2218 → 316 | 4830 |
+
+- **The native lap's phone factor** (phone µs / the desktop bench's) is
+  2.6 to 3.1 in crowds, about the GDScript solver's own. On the resting
+  `stress-still` it is 11.6 (22 → 256 µs). On the phone the native lap
+  has a fixed part of about 0.2 to 0.25 ms a tick (the loads, the copies,
+  the stores, the loops over all 200 slimes). That is still 3.8 times less
+  than the GDScript passes (968 µs) and 2 to 6 % of the step.
+- **The behaviour is the floor:** 9.5 to 10.8 ms a tick on `stress-dense`
+  and more in the other crowds, on either tick. It alone misses D138's
+  8 ms simulation budget. Porting it is outside 5N.
+- **DoD 30's stress targets pass on the native tick:** `stress-dense`
+  59.0 fps cold and 59.1 warm (target 30); `stress-moving` 23.2 cold, p5
+  18.4 (target 15), measured on the slow phone. Release-template numbers
+  can't be taken: the perf log and test mode are debug-only. The native
+  library is built with the same flags in debug and release.
