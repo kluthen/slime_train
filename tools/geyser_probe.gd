@@ -8,6 +8,7 @@ extends SceneTree
 ## Run:   godot --headless --no-header --path . -s res://tools/geyser_probe.gd --
 ##            [--fixture=s3-basket-59of60] [--seed=1] [--ticks=10000]
 ##            [--census-at=T1,T2,...] [--no-geyser] [--geyser-solo]
+##            [--geyser-high] [--geyser-rate]
 ##            [--tick=gdscript] [--hold-view=X,Y --hold-from=T]
 ##            [--trace=N --trace-from=T]
 ##
@@ -34,6 +35,15 @@ extends SceneTree
 ##               back (arrivals still short of BACK_AT px along the loop
 ##               LANDED_CHECK ticks on), launches, refused, carried (Geyser
 ##               counters; launches include the carried ones)
+##   GP_LATE     from tick LATE_FROM on (the arrivals' part): per 600 ticks,
+##               arr and the forward crossings of each CROSS_AT loop
+##               distance (x240 is dep); pocket_mean (train slimes behind
+##               the loop's start, near it: x below it, sampled every 60
+##               ticks); tick_ms mean and p95 (game.step_simulation, wall
+##               clock, headless); the geyser's lift counters
+##   GP_OFF      the first OFF_SHOWN arrivals counted in landed_off: their
+##               centre, their loop point, the loop distance nearest them,
+##               the slimes right under them
 ##   GP_CENSUS   at each --census-at tick: the slimes near the start by state,
 ##               calm, support and hold (SlimeCensus' tokens)
 ##   STATE       the final tick and state hash
@@ -50,6 +60,14 @@ const MAX_STEP := 5000.0
 ## An arrival still short of this loop distance LANDED_CHECK ticks on is
 ## counted as back at the start (`back`: smothered, or never launched).
 const BACK_AT := 100.0
+## Where the GP_LATE crossings are counted, px along the loop.
+const CROSS_AT := [240.0, 500.0, 750.0, 1000.0, 1500.0]
+## GP_LATE's part of the run starts here (arrivals start about tick 9000).
+const LATE_FROM := 9000
+## How many landings off the loop GP_OFF shows (where, what is under them).
+const OFF_SHOWN := 12
+## GP_HIST's pile over the hole: slimes within this many px of the start's x.
+const STACK_X := 60.0
 
 var fixture := "s3-basket-59of60"
 var seed_n := 1
@@ -92,7 +110,7 @@ func _initialize() -> void:
 ## Reads the user arguments; returns the problem, or "" when valid.
 func _parse() -> String:
 	for arg in OS.get_cmdline_user_args():
-		if arg == "--no-geyser" or arg == "--geyser-solo" or arg.begins_with("--tick="):
+		if arg in ["--no-geyser", "--geyser-solo", "--geyser-high", "--geyser-rate"] or arg.begins_with("--tick="):
 			continue
 		var p := arg.trim_prefix("--").split("=", true, 1)
 		if p.size() != 2:
@@ -126,8 +144,9 @@ func _run(game: Node) -> void:
 	var train: Train = sim.train
 	var bodies: SlimeBodies = sim.slimes
 	var start := train.position_at(0.0)
-	print("GP fixture=%s seed=%d geyser=%s carry=%s tick=%s start=%s tick0=%d slimes=%d" % [fixture, seed_n,
-			"on" if sim.geyser.enabled else "off", sim.geyser.carry, "native" if bodies.uses_native() else "gdscript", start,
+	print("GP fixture=%s seed=%d geyser=%s carry=%s wide=%s land=%.0f-%.0f rate=%s tick=%s start=%s tick0=%d slimes=%d" % [fixture, seed_n,
+			"on" if sim.geyser.enabled else "off", sim.geyser.carry, sim.geyser.wide, sim.geyser.land_min,
+			sim.geyser.land_max, sim.geyser.by_rate, "native" if bodies.uses_native() else "gdscript", start,
 			sim.tick, bodies.slime_count])
 	var laps := {}
 	var dist := {}
@@ -149,8 +168,18 @@ func _run(game: Node) -> void:
 	var traced := {}  # id -> arrival tick
 	var fell_back := 0
 	var off_kinds := {}
+	var off_shown := 0
+	var late_arr := 0
+	var late_cross := PackedInt32Array()
+	late_cross.resize(CROSS_AT.size())
+	var pocket_sum := 0
+	var pocket_n := 0
+	var step_us := PackedInt32Array()
 	for i in ticks:
+		var t0 := Time.get_ticks_usec()
 		game.step_simulation()
+		if sim.tick > LATE_FROM:
+			step_us.append(Time.get_ticks_usec() - t0)
 		if hold_view != Vector2.INF and sim.tick >= hold_from:
 			sim.camera.position = hold_view
 		var t := sim.tick - 1
@@ -159,6 +188,8 @@ func _run(game: Node) -> void:
 			var d := train.distance_of(id)
 			if laps.has(id) and l > laps[id]:
 				w["arr"] += 1
+				if t >= LATE_FROM:
+					late_arr += 1
 				arrived[id] = t
 				pending_clear[id] = t
 				to_check.append([t + LANDED_CHECK, id])
@@ -166,6 +197,10 @@ func _run(game: Node) -> void:
 					traced[id] = t
 			if dist.has(id):
 				var p: float = dist[id]
+				if t >= LATE_FROM and d >= p and d - p < MAX_STEP:
+					for c in CROSS_AT.size():
+						if p < CROSS_AT[c] and d >= CROSS_AT[c]:
+							late_cross[c] += 1
 				if d >= p and d - p < MAX_STEP and p < DEPART and d >= DEPART:
 					w["dep"] += 1
 					if pending_clear.has(id):
@@ -188,6 +223,17 @@ func _run(game: Node) -> void:
 			var checked: int = to_check[0][1]
 			if bodies.has(checked) and train.tracks(checked) and train.distance_of(checked) < BACK_AT:
 				fell_back += 1
+			if kind != "" and off_shown < OFF_SHOWN and bodies.has(checked):
+				off_shown += 1
+				var c := bodies.centre_of(checked)
+				var under := 0
+				for other in bodies.ids():
+					var q := bodies.centre_of(other)
+					if other != checked and absf(q.x - c.x) < 30.0 and q.y > c.y and q.y - c.y < 60.0:
+						under += 1
+				print("GP_OFF id=%d kind=%s pos=%s loop_pt=%s dist=%.0f near_d=%.0f under=%d supported=%d" % [checked,
+						kind, c.round(), train.position_at(train.distance_of(checked)).round(), train.distance_of(checked),
+						train._closest_distance(c), under, bodies.supported[bodies.index_of(checked)]])
 			if kind != "":
 				landed_off += 1
 				off_kinds[kind] = off_kinds.get(kind, 0) + 1
@@ -216,6 +262,9 @@ func _run(game: Node) -> void:
 			clu_run_max = maxi(clu_run_max, clu_run)
 		else:
 			clu_run = 0
+		if t >= LATE_FROM and t % 60 == 0:
+			pocket_sum += _pocket(sim, start)
+			pocket_n += 1
 		if census_at.has(t):
 			_census(sim, start, t)
 		if sim.tick % WINDOW == 0 or i == ticks - 1:
@@ -237,6 +286,20 @@ func _run(game: Node) -> void:
 			tot["stuck_arr"], tot["stall"], tot["oob"], tot["clu_max"], clu_sum / ticks, clu_over, clu_run_max,
 			near_sum / ticks, tot["near_max"], med, p90, pending_clear.size(), landed_off, off_kinds, fell_back,
 			sim.geyser.launches, sim.geyser.refused, sim.geyser.carried])
+	var late_windows := maxf(1.0, (sim.tick - LATE_FROM) / float(WINDOW))
+	var cross := []
+	for c in CROSS_AT.size():
+		cross.append("x%d=%.1f" % [CROSS_AT[c], late_cross[c] / late_windows])
+	step_us.sort()
+	var ms_mean := 0.0
+	for us in step_us:
+		ms_mean += us
+	ms_mean = ms_mean / maxf(1.0, step_us.size()) / 1000.0
+	var ms_p95 := step_us[int(step_us.size() * 0.95)] / 1000.0 if not step_us.is_empty() else -1.0
+	var geyser := sim.geyser
+	print("GP_LATE from=%d arr=%.1f %s pocket_mean=%.1f tick_ms=%.2f p95=%.2f lifted=%d lift_mean=%.0f lift_max=%.0f" % [
+			LATE_FROM, late_arr / late_windows, " ".join(cross), pocket_sum / maxf(1.0, pocket_n), ms_mean, ms_p95,
+			geyser.lifted, geyser.lift_total / maxf(1.0, geyser.lifted), geyser.lift_highest])
 	print("STATE tick=%d hash=%s" % [sim.tick, sim.state_hash()])
 
 
@@ -338,16 +401,30 @@ func _census(sim: Simulation, start: Vector2, t: int) -> void:
 	# distance, and those in the pocket (behind the loop's start: near it, x
 	# below it).
 	var bins := {}
-	var pocket := 0
 	var bodies := sim.slimes
 	for id in sim.train.tracked_ids():
 		var d := sim.train.distance_of(id)
-		if bodies.centre_of(id).x < start.x and bodies.centre_of(id).distance_to(start) <= NEAR:
-			pocket += 1
-		if d < 1000.0:
+		if d < 2000.0:
 			var b := int(d / 100.0)
 			bins[b] = bins.get(b, 0) + 1
 	var hist := []
-	for b in range(10):
+	for b in range(20):
 		hist.append("%d:%d" % [b * 100, bins.get(b, 0)])
-	print("GP_HIST tick=%d pocket=%d %s" % [t, pocket, " ".join(hist)])
+	# The pile over the hole: the highest ring top within STACK_X px of the
+	# start's x, near the start (start.y less it: the pile's height).
+	var top := start.y
+	for s in bodies.slime_count:
+		var c := bodies.centre_of(bodies.id[s])
+		if absf(c.x - start.x) < STACK_X and c.distance_to(start) <= NEAR:
+			top = minf(top, c.y - bodies.radius_of(bodies.id[s]))
+	print("GP_HIST tick=%d pocket=%d stack=%.0f %s" % [t, _pocket(sim, start), start.y - top, " ".join(hist)])
+
+
+## The train slimes in the pocket behind the loop's start: near it, x below it.
+func _pocket(sim: Simulation, start: Vector2) -> int:
+	var pocket := 0
+	var bodies := sim.slimes
+	for id in sim.train.tracked_ids():
+		if bodies.centre_of(id).x < start.x and bodies.centre_of(id).distance_to(start) <= NEAR:
+			pocket += 1
+	return pocket

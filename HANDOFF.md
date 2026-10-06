@@ -1,4 +1,4 @@
-# HANDOFF: experiment exp/geyser (rotation checkpoint, 2026-10-06)
+# HANDOFF: experiment exp/geyser (phase 2 done, 2026-10-06)
 
 Brief: `/tmp/claude-1001/-home-bastien-work-slime-train/d543671e-c4c0-4b90-a9fc-42b12cf6a31a/scratchpad/brief-geyser.md`.
 Branch `exp/geyser` (base cb7e6f5). No edits to specs/, ui_ux/, atoms, no ATD tags.
@@ -67,3 +67,53 @@ out-of-bounds, stuck about 11-12 in every run (none at the arrival). landed_off 
 - Launches under a pile are smothered; the carry launches many slimes repeatedly (904 launches for 174 arrivals).
 - room_at ignores slimes that will arrive later. Landing spots aren't checked against the slope or the train ahead.
 - The trigger is "laps went up", so any wrap counts, including a knocked-off slime re-projected near the start.
+
+## Phase 2 (brief-geyser-p2.md): C "high and wide", D "wide by rate"
+Built in `src/sim/geyser.gd` behind flags (same build): C `--geyser-high` / `SLIME_GEYSER=high`,
+D `--geyser-rate` / `SLIME_GEYSER=rate` (`Geyser.set_variant`, `default_variant`). Both: no carry; the arrival is
+first lifted straight up above the rings over its column (`lift_origin`, LIFT_GAP 6, at most LIFT_MAX 240 px, the
+lifted ring clear of terrain), then flies (APEX 260 above the higher end) to the emptiest of WIDE_CANDIDATES=10
+spots; never at/past the first gate (`gate_limit`, test level: s1.gate far away); a base slime may land past the
+split zone (the start's zone ends near 410 px), a fused one only inside one.
+- C: spots on 150-700 px. D: 150-750 px, RATE_LENGTH=600 from the off runs (15.4 arrivals and 6.1 departures past
+  240 px per 600 ticks: 6.1/240 = 0.0255 slimes/px/600 ticks; 15.4/0.0255 = 605 px), spots scored first by the
+  landings their 50 px bin got in the last 600 ticks (no metre fed faster than it clears), then emptiest.
+  D's bin memory is not saved (experiment).
+- Probe: GP_LATE (from tick 9000: per-600 rates, crossings at 240/500/750/1000/1500 px, pocket_mean, tick_ms
+  mean/p95, lift counters), GP_HIST to 2000 px + `stack` (pile height over the hole), GP_OFF (landed_off details).
+- Tests: test_geyser 18/18 (72 asserts) native and SLIME_TICK=gdscript. Off hashes unchanged vs phase 1
+  (s1 6060c713..., s2 243c6ca7...); C s1 run twice: same hash (fbb9159e...). No full suite, no hash sweep.
+- Logs: build/geyser/*-p2-*.txt, batch4.sh.
+
+| s3-basket-59of60, hold 720,361 from 9000, 14k ticks, s1/s2 | off | C high | D rate |
+|---|---|---|---|
+| arrivals /600 t (late) | 16.1 / 14.8 | 17.8 / 16.7 | 17.0 / 17.9 |
+| clu_max | 123 / 128 | 107 / 120 | 112 / 113 |
+| clu_mean (whole run) | 28.2 / 28.9 | 24.8 / 26.3 | 23.9 / 24.9 |
+| near_mean (within 240 px) | 24.8 / 25.5 | 13.4 / 15.5 | 14.1 / 14.1 |
+| departures past 240 px /600 t | 5.9 / 6.4 | 11.8 / 8.6 | 9.5 / 11.4 |
+| crossings past 750 px /600 t | 2.0 / 2.4 | 3.2 / 3.0 | 3.0 / 3.1 |
+| pocket mean (behind the start) | 30.0 / 29.1 | 11.4 / 13.5 | 11.7 / 12.3 |
+| back (<100 px 3 s after arrival) | 129 / 122 | 20 / 28 | 23 / 18 |
+| clear_med (ticks to 240 px) | 888 / 1341 | 38 / 41 | 39 / 37 |
+| stuck moves (at arrival) | 11 (0) / 11 (1) | 13 (0) / 12 (0) | 13 (0) / 12 (0) |
+| stall / oob | 0 / 0 | 0 / 0 | 0 / 0 |
+| landed_off (all off_loop) | 18 / 25 | 81 / 68 | 81 / 84 |
+| tick ms mean (headless, late) | 3.63 / 3.78 | 3.44 / 3.48 | 3.64 / 3.39 |
+| lifted (mean lift px) | - | 126 (151) / 95 (147) | 101 (146) / 132 (153) |
+
+Reading:
+- Both C and D empty the start itself (near_mean -45 %, pocket -60 %, arrivals clear in ~40 ticks instead of
+  900-1300) but not the cluster: clu_max stays 107-120. The queue moves onto the terrace (bins 100-700 hold
+  ~100 slimes at tick 13999 in every run, off included: same count, spread differently), 2-3 deep, still touching
+  the start, so the largest awake cluster barely changes.
+- The rate limit is downstream: past 750 px (the slope after the terrace) the train takes only ~3 slimes per
+  600 ticks whatever lands before it (C/D 3.0-3.2, off 2.0-2.4), against ~17 arrivals. The slide delivers at up to
+  360 px/s; a saturated hopping single file moves about one slime per hop interval (1.5-3 s). No landing spread on
+  the first stretch can absorb a ~5x surplus; it only chooses where the queue sits.
+- New problem: landed_off 68-84 (vs 18-25): GP_OFF shows arrivals sitting 80-130 px above the loop on the queue
+  (stacked 2-3 deep on the terrace), and some on FirstLedge (e.g. (523,315), nothing under it): the stacked queue
+  under the ledge bridges onto it (rule 22 (b)), though no flight hits it.
+- Next (not built): pace the return route's end (D150-like: hold arrivals on the slide's end / meter them to the
+  train's measured take-up, ~3 per 10 s here), and/or a holding area at the start where waiting slimes sit apart,
+  and/or a faster train off the start. A geyser only makes sense on top of pacing (spread the metered arrivals).

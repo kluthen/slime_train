@@ -5,7 +5,9 @@ extends GutTest
 ## stretch (LAND_MIN to LAND_MAX px), inside a split zone, its flight clear
 ## of the terrain; the draws are seeded; off, nothing is launched; the jet
 ## carries the slimes above the arrival; a parked arrival is put on a free
-## spot, or left in its single file.
+## spot, or left in its single file. Phase 2's variants: C (high) lifts the
+## arrival above the pile and lands it further on, a base slime past the
+## split zone too; D (rate) spreads the landings over the stretch's bins.
 ##
 ## The world: a floor whose top is at y = 0 from x = -6000 to 6000. The loop
 ## runs along it at y = -24 from x = -5000 to 5000 and returns under the
@@ -49,7 +51,7 @@ func _sim(master_seed := 5, split_end := SPLIT_END, extra: Array = []) -> Simula
 	sim.view.set_to(Vector2(-4800, -200), 1.0, ScreenView.DEFAULT_SIZE)
 	sim.slimes.auto_hops = false
 	sim.geyser.enabled = true
-	sim.geyser.carry = true
+	sim.geyser.set_variant(Geyser.VARIANT_CARRY)
 	return sim
 
 
@@ -231,3 +233,72 @@ func test_a_parked_arrival_with_no_free_spot_stays_in_line() -> void:
 	assert_eq(sim.geyser.launches, 0)
 	assert_eq(sim.geyser.refused, 1)
 	assert_eq(sim.train.distance_of(slime), before, "left where the proxy has it")
+
+
+func test_the_variants_set_the_stretch() -> void:
+	var geyser := Geyser.new()
+	geyser.set_variant(Geyser.VARIANT_HIGH)
+	assert_true(geyser.wide)
+	assert_false(geyser.carry, "the lift replaces the carry")
+	assert_eq([geyser.land_min, geyser.land_max], [Geyser.HIGH_LAND_MIN, Geyser.HIGH_LAND_MAX])
+	geyser.set_variant(Geyser.VARIANT_RATE)
+	assert_true(geyser.by_rate)
+	assert_eq(geyser.land_max, Geyser.HIGH_LAND_MIN + Geyser.RATE_LENGTH)
+	geyser.set_variant(Geyser.VARIANT_SOLO)
+	assert_false(geyser.wide or geyser.carry or geyser.by_rate)
+	assert_eq([geyser.land_min, geyser.land_max], [Geyser.LAND_MIN, Geyser.LAND_MAX])
+
+
+func test_high_lifts_the_arrival_above_the_pile_and_lands_it_further() -> void:
+	# The split zone ends before the wide stretch: a base slime lands anyway.
+	var sim := _sim(5, Geyser.HIGH_LAND_MIN - 20.0)
+	sim.geyser.set_variant(Geyser.VARIANT_HIGH)
+	var slime := _arrival(sim)
+	var from := sim.slimes.centre_of(slime)
+	var above := sim.slimes.create(1, 1, from + Vector2(5, -44), SlimeBodies.TRAIN)
+	sim.train.track(above, 10.0)
+	var pile_top := sim.slimes.centre_of(above).y - sim.slimes.radius_of(above)
+	sim.step()
+	assert_eq(sim.geyser.launches, 1)
+	assert_eq(sim.geyser.lifted, 1, "lifted out from under the pile")
+	assert_lt(sim.slimes.centre_of(slime).y + sim.slimes.radius_of(slime), pile_top, "its ring above the pile's")
+	assert_gt(sim.slimes.velocity_of(above).y, -300.0, "the one above isn't launched")
+	var launch: Dictionary = sim.geyser.launches_log[0]
+	assert_between(launch["distance"], Geyser.HIGH_LAND_MIN, Geyser.HIGH_LAND_MAX)
+	assert_false(sim.split_zones.covers(launch["at"]), "past the split zone")
+
+
+func test_high_a_fused_arrival_still_lands_in_a_split_zone() -> void:
+	var sim := _sim(5, Geyser.HIGH_LAND_MIN - 20.0)
+	sim.geyser.set_variant(Geyser.VARIANT_HIGH)
+	# Launched straight away: a step would split it in the start's zone first.
+	var slime := sim.spawn_train_slime(0, 2, 5.0)
+	assert_false(sim.geyser.launch(sim, slime))
+	assert_eq(sim.geyser.launches, 0)
+	assert_eq(sim.geyser.refused, 1)
+
+
+func test_lift_origin_leaves_a_free_or_buried_slime_where_it_is() -> void:
+	var sim := _sim()
+	var bodies := sim.slimes
+	var slime := bodies.create(0, 1, Vector2(-5000, -24), SlimeBodies.TRAIN)
+	assert_eq(Geyser.lift_origin(bodies, slime), bodies.centre_of(slime), "nothing above")
+	var y := -24.0 - 44.0
+	while -24.0 - y < Geyser.LIFT_MAX + 50.0:
+		bodies.create(1, 1, Vector2(-5000, y), SlimeBodies.TRAIN)
+		y -= 44.0
+	assert_eq(Geyser.lift_origin(bodies, slime), bodies.centre_of(slime), "a pile higher than LIFT_MAX")
+
+
+func test_rate_spreads_the_landings_over_the_bins() -> void:
+	var sim := _sim()
+	sim.geyser.set_variant(Geyser.VARIANT_RATE)
+	var bins := {}
+	for k in 6:
+		var slime := sim.spawn_train_slime(0, 1, 0.0)
+		assert_true(sim.geyser.launch(sim, slime))
+		var bin := int(sim.geyser.launches_log[k]["distance"] / Geyser.RATE_BIN)
+		bins[bin] = bins.get(bin, 0) + 1
+		sim.slimes.remove(slime)
+	assert_eq(bins.size(), 6, "six landings, six bins: a bin landed on lately loses")
+	assert_eq(sim.geyser.gate_limit(sim), INF, "no gate on this level")
