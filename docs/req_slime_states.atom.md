@@ -10,6 +10,7 @@ dependents:
   - [[req_call_mechanic]]
   - [[req_hopping_behavior]]
   - [[req_waking_sleepers]]
+  - [[rule_contact_pushes_slimes_apart]]
   - [[rule_stuck_slimes_moved_to_start]]
 type: REQUIREMENT
 priority: 5

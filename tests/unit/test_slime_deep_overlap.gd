@@ -8,6 +8,7 @@ extends GutTest
 ## simulate, never hop), rest off, on whichever tick the run uses (a test_slime_
 ## script: tools/test.sh runs it on both).
 # @test-link [[req_slime_states]]
+# @test-link [[rule_contact_pushes_slimes_apart]]
 
 const Support := preload("res://tests/unit/slime_test_support.gd")
 const DT := 1.0 / 60.0

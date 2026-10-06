@@ -1531,6 +1531,7 @@ func _build_pairs() -> void:
 ## straight out from b's centre, it moved on away from a's centre: a was
 ## drawn into b, the deeper the stronger, until the two centres met and no
 ## point was inside the other any more (a slime gobbled by another, O91).
+# @spec-link [[rule_contact_pushes_slimes_apart]]
 func _solve_contacts() -> void:
 	var p := pos
 	var o := prev

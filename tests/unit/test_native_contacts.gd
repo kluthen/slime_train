@@ -359,6 +359,7 @@ func test_two_native_runs_are_bit_equal() -> void:
 ## The native contacts do it bit for bit, at every substep, as the rings
 ## part a few ticks in. Pairs of other species, one centre a share of the
 ## smaller radius from the other, far apart from the next pair.
+# @test-link [[rule_contact_pushes_slimes_apart]]
 func test_the_contacts_match_gdscript_exactly_for_rings_deep_inside_each_other() -> void:
 	var why := Eq.skip_reason(Eq.CONTACTS)
 	if why != "":

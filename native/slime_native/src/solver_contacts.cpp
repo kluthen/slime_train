@@ -60,6 +60,7 @@ struct ContactArrays {
 // ring `p_b` against b's radial profile; marks the pair touching
 // (`r_touched`) and a's support. False, with an error, when b's profile is
 // read off an index outside its ring (an angle0 out of [-PI, PI]).
+// @spec-link [[rule_contact_pushes_slimes_apart]]
 bool contact_side(const ContactArrays &p_arr, int64_t p_a, int64_t p_b, double p_mu, bool &r_touched) {
 	using namespace slime_const;
 	const double inv_tau = 1.0 / CONTACTS_TAU;

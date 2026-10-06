@@ -16,6 +16,7 @@ dependents:
   - [[req_persistence_and_saves]]
   - [[req_session_lifecycle]]
   - [[req_slime_states]]
+  - [[rule_geyser_spreads_arrivals_at_loop_start]]
   - [[rule_split_zone_only_splitter]]
   - [[rule_stalled_train_slime_moved_to_start]]
 ---
