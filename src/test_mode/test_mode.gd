@@ -417,6 +417,9 @@ static func load_config_file(path: String) -> Dictionary:
 ##                            (src/sim/tick_choice.gd); skipped here
 ##   --census-every=S         not test mode's: the game root's slime census
 ##   --census-until=T         (src/debug/slime_census.gd); skipped here
+##   --no-geyser              not test mode's: the geyser off, or without
+##   --geyser-solo            its carry (EXPERIMENT, src/sim/geyser.gd);
+##                            skipped here
 ## Returns {"config", "run_ticks" (-1 when absent), "print_state",
 ## "save_path" ("" when absent), "errors"}.
 static func config_from_args(user_args: PackedStringArray) -> Dictionary:
@@ -431,7 +434,7 @@ static func config_from_args(user_args: PackedStringArray) -> Dictionary:
 			"--test-mode":
 				pass
 			"--perf-log", "--max-ticks-per-frame", "--wipe-save", "--phase-timers", "--tick", \
-					"--census-every", "--census-until":
+					"--census-every", "--census-until", "--no-geyser", "--geyser-solo":
 				pass
 			"--test-script":
 				var loaded := load_config_file(value)

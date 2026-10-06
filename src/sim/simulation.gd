@@ -65,7 +65,9 @@ extends RefCounted
 ## hops are paced and every hop turns its slime; the split zones split (train
 ## and free slimes inherit); slimes in contact fuse or bump, and train slimes
 ## gather at dip bottoms (Fusion); the free slimes change phase or rejoin the
-## train; the train follows (progress, stall clocks); every CHECK_TICKS, the
+## train; the train follows (progress, stall clocks), and (EXPERIMENT,
+## exp/geyser) the geyser launches the slimes that reached the return
+## route's end (Geyser); every CHECK_TICKS, the
 ## slimes stuck inside each other are counted (StuckSlimes); the loop-start
 ## queue moves one slime due (stalled, out of bounds, stuck or lost) to the
 ## loop start when its turn has come (LoopStartQueue); the camera watches (idle clock, cue, the slime it follows,
@@ -207,6 +209,10 @@ var stuck_slimes := StuckSlimes.new()
 # @spec-link [[rule_stuck_slimes_moved_to_start]]
 # @spec-link [[rule_left_alone_and_lost]]
 var loop_start_queue := LoopStartQueue.new()
+## EXPERIMENT (exp/geyser, D157 (5)): launches the train slimes reaching the
+## return route's end (Geyser), right after the train follows. Its counters
+## are debug; nothing of it in dump() nor saves.
+var geyser := Geyser.new()
 ## The debug phase timers of step() (chunk 5N, U0a: src/debug/phase_timers.gd,
 ## PhaseTimers.attach), or null: off, as in every normal run, and then each
 ## phase costs one null check and no clock is read. Measurement only: step()
@@ -372,6 +378,7 @@ func step() -> void:
 		ph.lap(StepPhase.FREE_FOLLOW)
 	if train != null:
 		train.follow(slimes, tick)
+		geyser.step(self)
 	if ph != null:
 		ph.lap(StepPhase.TRAIN_FOLLOW)
 	stuck_slimes.step(self)
