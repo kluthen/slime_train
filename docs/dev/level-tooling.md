@@ -427,8 +427,11 @@ MANUAL and points at both, as rule 12's played test is its proof):
   without failing on them until items 24.3 and 24.8 have landed (O107; its
   numbers: `docs/dev/README.md`, "Level rule 23 on the test level").
   `tests/e2e/test_rule_23_e2e.gd` plays a synthetic level whose basket
-  drains into a bowl, which fails, and the same level with the bowl apart,
-  which passes.
+  (quota 19) drains into a bowl where 18 train slimes queue, which fails
+  (largest 32, 12.1 s above in a row), and the same level with the basket
+  and its outlet a screen away from the bowl, which passes (largest 20,
+  never above). Both counts stay under the limit, so neither the queue nor
+  the basket's own pile is a cluster above it alone.
 - **The level bench**, numbers only (a bench case isn't a level's played
   run): every `RESULT` line ends with `largest_cluster`, `above_limit_s`
   and `longest_above_s` over its timed ticks, and the table has the three
