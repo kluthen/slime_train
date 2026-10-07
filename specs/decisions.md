@@ -4582,3 +4582,90 @@ one build and one platform). Outside `specs/`: the `level-review`
 skill's rule 23 line and `docs/level-design/` (06-population,
 09-check-the-rules) need the basket's fill left out once `ClusterWatch`
 does; `CODING_RULE.md`'s health list gains `Train._behind`'s linear scan.
+
+## D164 — Item 24.3 and rule 23's basket exclusion as built: basket 3's outlet over slide 3's drop; the test level passes rule 23 in every section; O107 (c) narrowed (2026-10-07)
+Facts as built, with one proposed acceptance (the orchestrator's) and one
+new question (O126). Narrows O107 (c); notes on O62 and O119. Sources:
+the merge messages of 18d1a86 (item 24.3) and b14f0d5 (rule 23's
+exclusion); `docs/dev/README.md`, "A fired basket empties (item 24.3)"
+and "Level rule 23 on the test level".
+
+**1. Item 24.3 done** (18d1a86; suite 1582/1582 native, 126/126 the
+GDScript pass).
+- **The cause was the outlet's clearance, not switch 3's trapdoor.** The
+  trapdoor shut at tick 570, before the fire at 675, and no released slime
+  fell back in. A release waits until the outlet is clear
+  (`OUTLET_CLEARANCE`); a released slime sat at rest on basket 3's outlet
+  (on the plateau, over the trapdoor) until its own hop timer ran out (1.5
+  to 3 s), and from about 8 s after the fire the bowl's train crossed the
+  outlet and kept it busy. Before the fix, 7 of 61 slimes were out 28 s
+  after firing.
+- **The fix, the test level only (proposed, the orchestrator's
+  acceptance of the build's fix):** basket 3's `outlet_point` is
+  (535.68, -134), at x 18979.2, y -144: over slide 3's drop, in the middle
+  of its shaft (x 18893 to 19066), at the loop's height, past the
+  plateau's end. Was: a point on the plateau 200 px before slide 3's
+  entrance (chunk 16). A released slime falls clear at once and the
+  bowl's train only crosses that point falling, so the 0.3 s pace holds.
+  Basket 2, the default outlet and the release code are unchanged.
+- **Measured:** basket 3 is empty **18.4 s** after firing (1104 ticks;
+  done-when 28 s), 0 caught again; 60 s later all 200 slimes are train
+  slimes and none is stalled. Basket 2 is empty **13.1 s** after firing
+  (done-when 14.5 s). Bedtime pauses the releases and sunrise resumes
+  them. New test `test_basket_drain_e2e`; three tests changed for the new
+  outlet; only `s3-basket-59of60`'s hash at 2400 ticks changed.
+- **Against rule 24** (an outlet is a place where a flow lands slimes; it
+  gives them room and a clear way onward): the new outlet meets it as
+  measured. The released slimes fall down the shaft and ride slide 3 home
+  (about 4 in the shaft and 11 to 16 along its bottom at once, riding
+  on); the drain's largest awake cluster outside the basket's box is 5.
+  What the measure doesn't cover: the drain now comes home at the full
+  0.3 s pace, and whether that burst may outpace the train at the loop's
+  start is rule 24's rate check, after v1 (O119's note).
+- **O62 stays open:** where a basket's outlet goes is the basket object's
+  own design. The test level's move is one placement, and it adds a
+  lesson to O62: an outlet where a released slime rests, or where a flow
+  crosses, can't keep the release pace.
+- **New, O126:** baskets 1 and 2 still release at about one slime per
+  hop interval (a released slime rests on the outlet until it hops).
+  Basket 2's fixture (6 slimes) passes. But a basket filled with base
+  slimes may not empty within D128's bound (quota × 0.3 s plus 10 s,
+  "however busy the outlet"). This is not measured.
+
+**2. Rule 23's basket exclusion built** (b14f0d5; D163 (2), the user's).
+`DebugCounts.largest_cluster` takes boxes to leave out, by a slime's
+centre, before clustering (so piles can't join through a basket);
+`ClusterWatch` passes the level's basket boxes; the debug overlay and the
+PERF line still count every slime. D163's proposed reading (inside by the
+centre, the cluster taken over the other slimes) is what was built.
+- **The test level passes rule 23 in every section** on the merged tree
+  (18d1a86): section 3's play peaks at 23 slimes for 0.1 s in a row (was
+  59, 21.9 s); section 3's drain at 5 (was 55, 11.3 s). Sections 1 and 2
+  stay far under the limit.
+- **The bench:** `s3-basket-59of60` (lead-in 60) reads 37 slimes, above
+  the limit for 2.6 s in a row (was 59, 5.9 s), under the 5 s hold: the
+  pile outside the basket, which still counts. `stress-moving` (excepted)
+  still reads one cluster of 133.
+- **O107 (c) narrowed (proposed):** section 3 needs no edit for rule 23
+  under the proposed limit. It is measured with the local wake, 24.3 and
+  the exclusion in. Still open in (c): the numbers again after the lean
+  (24.8), and again if (a)'s calibration moves the limit.
+
+**3. The order:** 24.3 done (18d1a86); next 24.8 (running), then 24.2,
+24.1's record, the phone's session 7 (with chunk 20's checks by hand),
+the health review.
+
+**Documents:** `levels/test/README.md` (section 3, the outlet, rules 23
+and 24's rows); `tuning.md` (basket 3's outlet, the emptying bound's
+measures, `ClusterWatch`'s row); `level-design.md` (rule 23's note);
+`versions/v1/build-plan.md` (header, Progress, 24.3, 24.7);
+`versions/v1/master-spec.md` (Known gap 3); `open-questions.md` (O62,
+O107, O119, O126); `README.md`.
+**Flagged:** for documentalist, rule 23's atom (the exclusion now built)
+and 24.3's post-task sync (`req_switch_basket_gate_set`; basket 3's
+outlet placement, proposed). Outside `specs/`: in `docs/dev/README.md`,
+the "Since item 24.3" paragraph and 24.3's "Level rule 23" paragraph give
+section 3's drain with the fill counted (57 slimes, 9.2 s in a row) and
+say the basket's pile still goes above the limit. On the merged tree,
+with the fill left out, the drain peaks at 5 (18d1a86's message). The
+`--lead-in=700` bench row has no number taken after both changes.

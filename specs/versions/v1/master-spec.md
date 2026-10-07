@@ -1059,7 +1059,9 @@ Still undecided.
    behind the loop's start, travelling the loop's way.
 3. **Where a basket releases its slimes,** after firing and after an opt-out.
    It belongs to the basket object's own design, which is still to be
-   planned. The test level assumes one outlet onto the onward route.
+   planned. The test level assumes one outlet onto the onward route;
+   basket 3, with no gate, releases over its slide's drop instead, where
+   its slimes fall clear (proposed, item 24.3, D164).
 4. **A minimum zoom.** A big framing zone may shrink slimes too far to tap or
    see. It only matters during play, since the idle camera and screensaver
    mode ignore framing zones. No proposal yet; to find with the prototype.
