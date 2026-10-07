@@ -26,10 +26,21 @@ extends Node
 ##              speed, test mode's time scale).
 ## The ceiling (0 to SlimeBodies.MAX_DETAIL) starts at 0, and at 0 again
 ## after reset() (the game root's: a new simulation, a load). A pressed
-## window raises it one step; CALM_WINDOWS (3) calm windows in a row lower
-## it one step, and the count starts again; a window in the band holds it and
-## restarts the count; a dropped window changes nothing. So at most one step
-## a window. Each step emits `stepped` with its reason.
+## window raises it one step; `calm_needed` calm windows in a row lower it
+## one step, and the count starts again; a window in the band holds it and
+## restarts the count; a dropped window changes nothing (nor counts as a
+## window below). So at most one step a window. Each step emits `stepped`
+## with its reason.
+##
+## The back-off (chunk 22c, a refinement of D141 against the ceiling's
+## thrash): `calm_needed` is CALM_WINDOWS (3). A bounce, a pressed window
+## within BOUNCE_WINDOWS (10) windows after a step down (the step down was
+## wrong: the lower ceiling can't be kept), sets it to BACKOFF_WINDOWS (60):
+## the next step down waits about a minute of calm. A step down that holds,
+## BOUNCE_WINDOWS windows after it without a pressed one, sets it back to
+## CALM_WINDOWS, and so does reset() (a load). Without it, a device calm at a
+## ceiling and pressed one step below stepped down and back up every 4
+## windows; with it, twice a minute at most. Never saved, like the ceiling.
 ##
 ## Modes (the game root's --crowd-detail, debug builds only; a release build
 ## is always AUTO): AUTO (this ceiling), ALWAYS (MAX_DETAIL, D140's
@@ -47,8 +58,15 @@ const PRESSED_MISSED := 3
 ## Calm: a busy share below this and at most this many missed beats.
 const CALM_SHARE := 0.60
 const CALM_MISSED := 1
-## Calm windows in a row that lower the ceiling one step.
+## Calm windows in a row that lower the ceiling one step (outside the
+## back-off).
 const CALM_WINDOWS := 3
+## The back-off (see the class doc): a pressed window this many windows or
+## fewer after a step down is a bounce; a step down that lasts this many
+## windows without one holds.
+const BOUNCE_WINDOWS := 10
+## Calm windows in a row that lower the ceiling one step after a bounce.
+const BACKOFF_WINDOWS := 60
 ## A frame that ran this many ticks or more missed a beat.
 const MISSED_TICKS := 2
 ## Its process priority: after the game root and the drawing nodes, just
@@ -70,8 +88,9 @@ const MODES: PackedStringArray = [AUTO, ALWAYS, OFF]
 const FLAG := "--crowd-detail"
 
 ## Emitted at each ceiling step: {"from", "to" (the ceilings), "reason"
-## (PRESSED, or CALM after CALM_WINDOWS calm windows), "busy" (the share),
-## "missed" (the beats) of the window that made it}.
+## (PRESSED, or CALM after `calm_needed` calm windows), "busy" (the share),
+## "missed" (the beats) of the window that made it, "calm_needed" (after the
+## step: what the next step down will wait for)}.
 signal stepped(step: Dictionary)
 
 ## The real clock, microseconds: Time.get_ticks_usec(). Tests put their own.
@@ -83,6 +102,9 @@ var game: Node = null
 var ceiling := 0
 ## Calm windows in a row since the last step or non-calm window.
 var calm_run := 0
+## Calm windows in a row the next step down needs: CALM_WINDOWS, or
+## BACKOFF_WINDOWS after a bounce (see the class doc).
+var calm_needed := CALM_WINDOWS
 ## The last window that ended: {"verdict" ("" before the first), "busy"
 ## (the share), "missed" (the beats)}.
 var last_window := {"verdict": "", "busy": 0.0, "missed": 0}
@@ -98,6 +120,9 @@ var _missed := 0
 var _dropped := false
 ## The clock at this frame's process_frame, or -1 before the first.
 var _process_start := -1
+## Windows judged (not dropped) since the last step down, while it can still
+## bounce, or -1.
+var _since_down := -1
 
 
 ## Takes the game root (its parent), runs its _process after the game's, and
@@ -160,12 +185,15 @@ static func verdict_for(busy: float, missed: int) -> String:
 	return BAND
 
 
-## Back to the start: ceiling 0, no calm run, the window restarted at the
-## next frame (the game root's, for a new simulation or a load).
+## Back to the start: ceiling 0, no calm run, no back-off, the window
+## restarted at the next frame (the game root's, for a new simulation or a
+## load).
 # @spec-link [[req_offscreen_simulation]]
 func reset() -> void:
 	ceiling = 0
 	calm_run = 0
+	calm_needed = CALM_WINDOWS
+	_since_down = -1
 	last_window = {"verdict": "", "busy": 0.0, "missed": 0}
 	_last_frame = -1
 	_start_window(-1)
@@ -213,21 +241,34 @@ func _start_window(now: int) -> void:
 	_dropped = false
 
 
-## Moves the ceiling on `verdict` (see the class doc), emitting `stepped` at
-## a step.
+## Moves the ceiling on `verdict` and runs the back-off (see the class doc),
+## emitting `stepped` at a step.
 func _judge(verdict: String) -> void:
+	if verdict == DROPPED:
+		return
 	var before := ceiling
+	if _since_down >= 0:
+		_since_down += 1
 	match verdict:
 		PRESSED:
 			calm_run = 0
+			if _since_down >= 0:
+				calm_needed = BACKOFF_WINDOWS
+				_since_down = -1
 			ceiling = mini(ceiling + 1, SlimeBodies.MAX_DETAIL)
 		CALM:
 			calm_run += 1
-			if calm_run >= CALM_WINDOWS:
-				calm_run = 0
-				ceiling = maxi(ceiling - 1, 0)
 		BAND:
 			calm_run = 0
+	if _since_down >= BOUNCE_WINDOWS:
+		calm_needed = CALM_WINDOWS
+		_since_down = -1
+	if verdict == CALM and calm_run >= calm_needed:
+		calm_run = 0
+		ceiling = maxi(ceiling - 1, 0)
+		if ceiling != before:
+			_since_down = 0
 	if ceiling != before:
 		stepped.emit({"from": before, "to": ceiling, "reason": verdict,
-				"busy": last_window["busy"], "missed": last_window["missed"]})
+				"busy": last_window["busy"], "missed": last_window["missed"],
+				"calm_needed": calm_needed})

@@ -128,7 +128,8 @@ extends Node
 ## In `auto` (the game root's crowd_detail_mode()), each step of the load
 ## meter's ceiling (LoadMeter.stepped) prints one PERF_CEILING line at once
 ## (ceiling_line()): `t`, `from`, `to`, `reason` (pressed, or calm after 3
-## calm windows), the window's `busy` and `missed`, the `crowd_level`. The
+## calm windows, 60 in the back-off), the window's `busy` and `missed`, the
+## `crowd_level`, and `calm_needed` (the back-off after the step). The
 ## PERF_INFO line names the mode (`crowd_detail`). The tick fields come from the game root's own record of each
 ## frame (frame_ticks, frame_tick_usec: the ticks it ran and the real time
 ## around their step_simulation() calls), see tick_stats(); active and pairs
@@ -559,11 +560,13 @@ static func camera_section(sim: Simulation) -> int:
 
 
 ## The PERF_CEILING line of a load meter `step` (LoadMeter.stepped's) at `t`
-## seconds since the engine started, the crowd's level `crowd_level` then.
+## seconds since the engine started, the crowd's level `crowd_level` then;
+## calm_needed is the meter's back-off after the step.
 # @spec-link [[req_platform_and_performance_targets]]
 static func ceiling_line(t: float, step: Dictionary, crowd_level: int) -> String:
-	return "PERF_CEILING t=%.1f from=%d to=%d reason=%s busy=%.2f missed=%d crowd_level=%d" % [
-			t, step["from"], step["to"], step["reason"], step["busy"], step["missed"], crowd_level]
+	return "PERF_CEILING t=%.1f from=%d to=%d reason=%s busy=%.2f missed=%d crowd_level=%d calm_needed=%d" % [
+			t, step["from"], step["to"], step["reason"], step["busy"], step["missed"], crowd_level,
+			step["calm_needed"]]
 
 
 ## The PERF_INFO line: the window, the device model, the rendering method and

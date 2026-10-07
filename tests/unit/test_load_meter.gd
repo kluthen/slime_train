@@ -4,7 +4,9 @@ extends GutTest
 ## pressed (busy share above 85 %, or 3 missed beats or more), calm (below
 ## 60 % and at most 1 missed beat) or in the band; a pressed window raises
 ## the detail ceiling one step, 3 calm windows in a row lower it one step, the
-## band holds it; at most one step a window. A window holding a frame over
+## band holds it; at most one step a window. The back-off: a pressed window
+## up to 10 windows after a step down makes the next step down wait 60 calm
+## windows, until a step down holds 10 windows or a reset. A window holding a frame over
 ## 250 ms, or a frame at a speed other than 1x, gives no verdict.
 # @test-link [[req_offscreen_simulation]]
 
@@ -48,6 +50,13 @@ func _windows(meter: LoadMeter, share: float, count: int, missed := 0) -> Array:
 		_window(meter, share, missed)
 		ceilings.append(meter.ceiling)
 	return ceilings
+
+
+func _repeat(value: int, count: int) -> Array:
+	var out := []
+	out.resize(count)
+	out.fill(value)
+	return out
 
 
 # --- Verdicts ------------------------------------------------------------------------------------
@@ -121,6 +130,115 @@ func test_a_pressed_window_breaks_a_calm_run() -> void:
 	_windows(meter, 0.1, 2)
 	assert_eq(_windows(meter, 0.95, 1), [3])
 	assert_eq(_windows(meter, 0.1, 3), [3, 3, 2])
+
+
+# --- The back-off -------------------------------------------------------------------------------
+
+func test_a_bounce_makes_the_next_step_down_wait_60_calm_windows() -> void:
+	var meter := _meter()
+	_windows(meter, 0.95, 2)
+	assert_eq(_windows(meter, 0.1, 3), [2, 2, 1], "outside the back-off: 3 calm windows")
+	assert_eq(meter.calm_needed, LoadMeter.CALM_WINDOWS)
+	watch_signals(meter)
+	assert_eq(_windows(meter, 0.95, 1), [2], "pressed right after the step down: a bounce")
+	assert_eq(meter.calm_needed, LoadMeter.BACKOFF_WINDOWS)
+	var step: Dictionary = get_signal_parameters(meter, "stepped")[0]
+	assert_eq([step["from"], step["to"], step["reason"], step["calm_needed"]], [1, 2, LoadMeter.PRESSED, 60])
+	var ceilings := _windows(meter, 0.1, 60)
+	assert_eq(ceilings.slice(0, 59), _repeat(2, 59), "held for 59 calm windows")
+	assert_eq(ceilings[59], 1, "the 60th steps down")
+
+
+func test_a_pressed_window_up_to_10_windows_after_a_step_down_is_a_bounce() -> void:
+	var meter := _meter()
+	_windows(meter, 0.95, 3)
+	_windows(meter, 0.1, 3)
+	assert_eq(meter.ceiling, 2)
+	_windows(meter, 0.7, 9)
+	assert_eq(_windows(meter, 0.95, 1), [3], "the 10th window after the step down")
+	assert_eq(meter.calm_needed, LoadMeter.BACKOFF_WINDOWS, "still a bounce")
+
+
+func test_a_pressed_window_later_is_no_bounce() -> void:
+	var meter := _meter()
+	_windows(meter, 0.95, 3)
+	_windows(meter, 0.1, 3)
+	_windows(meter, 0.7, 10)
+	assert_eq(meter.calm_needed, LoadMeter.CALM_WINDOWS)
+	assert_eq(_windows(meter, 0.95, 1), [3], "the 11th window after the step down")
+	assert_eq(meter.calm_needed, LoadMeter.CALM_WINDOWS, "the step down held: no back-off")
+	assert_eq(_windows(meter, 0.1, 3), [3, 3, 2])
+
+
+func test_a_step_down_that_holds_ends_the_back_off() -> void:
+	var meter := _meter()
+	_windows(meter, 0.95, 3)
+	_windows(meter, 0.1, 3)
+	_windows(meter, 0.95, 1)
+	assert_eq(meter.calm_needed, LoadMeter.BACKOFF_WINDOWS)
+	_windows(meter, 0.1, 60)
+	assert_eq(meter.ceiling, 2, "the back-off's step down")
+	assert_eq(_windows(meter, 0.1, 9), _repeat(2, 9), "still in the back-off")
+	assert_eq(meter.calm_needed, LoadMeter.BACKOFF_WINDOWS)
+	assert_eq(_windows(meter, 0.1, 1), [1], "held for 10 windows: back to 3, and 10 calm windows are enough")
+	assert_eq(meter.calm_needed, LoadMeter.CALM_WINDOWS)
+	assert_eq(_windows(meter, 0.1, 3), [1, 1, 0])
+
+
+func test_a_bounce_in_the_back_off_keeps_it() -> void:
+	var meter := _meter()
+	_windows(meter, 0.95, 3)
+	_windows(meter, 0.1, 3)
+	_windows(meter, 0.95, 1)
+	_windows(meter, 0.1, 60)
+	assert_eq(_windows(meter, 0.95, 1), [3], "it bounces again")
+	assert_eq(meter.calm_needed, LoadMeter.BACKOFF_WINDOWS)
+	assert_eq(_windows(meter, 0.1, 59), _repeat(3, 59))
+
+
+func test_dropped_windows_do_not_count_in_the_bounce_span() -> void:
+	var meter := _meter()
+	_windows(meter, 0.95, 3)
+	_windows(meter, 0.1, 3)
+	for k in 20:
+		assert_eq(_window(meter, 0.1, 0, 2.0), LoadMeter.DROPPED)
+	_windows(meter, 0.95, 1)
+	assert_eq(meter.calm_needed, LoadMeter.BACKOFF_WINDOWS, "still the first judged window after the step down")
+
+
+func test_reset_ends_the_back_off() -> void:
+	var meter := _meter()
+	_windows(meter, 0.95, 3)
+	_windows(meter, 0.1, 3)
+	_windows(meter, 0.95, 1)
+	meter.reset()
+	assert_eq(meter.calm_needed, LoadMeter.CALM_WINDOWS)
+	assert_eq(meter.feed(1000, 1, 1.0), "")
+	_windows(meter, 0.95, 1)
+	assert_eq(_windows(meter, 0.1, 3), [1, 1, 0], "a step down after a load: 3 calm windows")
+	assert_eq(_windows(meter, 0.95, 1), [1], "a bounce again")
+	meter.reset()
+	assert_eq(meter.feed(1000, 1, 1.0), "")
+	assert_eq(_windows(meter, 0.95, 1), [1], "no step down before the reset: no bounce")
+	assert_eq(meter.calm_needed, LoadMeter.CALM_WINDOWS)
+
+
+func test_a_device_calm_at_a_ceiling_and_pressed_below_it_makes_few_steps() -> void:
+	for level in [1, 2, 3]:
+		var meter := _meter()
+		watch_signals(meter)
+		var ceilings := []
+		for k in 120:
+			_window(meter, 0.1 if meter.ceiling >= level else 0.95)
+			ceilings.append(meter.ceiling)
+		var steps: int = get_signal_emit_count(meter, "stepped")
+		assert_eq(ceilings[level - 1], level, "climbs in %d windows" % level)
+		# The climb, then one step down and back up after 3 calm windows (the
+		# bounce), then one after 60: 4 steps after the climb in 120 windows,
+		# where 3 calm windows alone made one down and up every 4 windows.
+		assert_eq(steps - level, 4, "ceiling %d: steps after the climb" % level)
+		assert_eq(ceilings[119], level)
+		assert_eq(meter.calm_needed, LoadMeter.BACKOFF_WINDOWS)
 
 
 # --- Dropped windows -----------------------------------------------------------------------------

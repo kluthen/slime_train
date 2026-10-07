@@ -161,9 +161,9 @@ func test_the_line_holds_the_crowd_detail() -> void:
 
 
 func test_the_ceiling_line() -> void:
-	var step := {"from": 1, "to": 2, "reason": LoadMeter.PRESSED, "busy": 0.88, "missed": 3}
+	var step := {"from": 1, "to": 2, "reason": LoadMeter.PRESSED, "busy": 0.88, "missed": 3, "calm_needed": 60}
 	assert_eq(PerfLog.ceiling_line(12.34, step, 3),
-			"PERF_CEILING t=12.3 from=1 to=2 reason=pressed busy=0.88 missed=3 crowd_level=3")
+			"PERF_CEILING t=12.3 from=1 to=2 reason=pressed busy=0.88 missed=3 crowd_level=3 calm_needed=60")
 
 
 ## The part means: the window's sums over its frames.
