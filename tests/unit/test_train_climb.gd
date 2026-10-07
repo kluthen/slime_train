@@ -211,13 +211,12 @@ func _queue(xs: Array) -> Array:
 	return [bodies, train, ids]
 
 
-## Makes train slime `slime` take off on the next tick, steps that tick, and
-## steers once more (the relay reads the take-offs then).
+## Makes train slime `slime` take off on the next tick and steps that tick
+## (the relay acts at its end, in follow()).
 func _take_off(bodies: SlimeBodies, train: Train, slime: int) -> void:
 	bodies.set_hop_timer(slime, 0.0)
 	_step(bodies, train, 30)
 	assert_true(bodies.train_hopped.has(slime), "it took off")
-	train.steer(bodies, DT)
 
 
 func test_the_slime_right_behind_a_take_off_follows_at_once() -> void:
@@ -239,9 +238,7 @@ func test_the_relay_wave_runs_down_the_queue() -> void:
 	_take_off(bodies, train, ids[2])
 	var tick := 31
 	while not bodies.train_hopped.has(ids[1]) and tick < 60:
-		bodies.tick(DT)
-		train.follow(bodies, tick)
-		train.steer(bodies, DT)
+		_step(bodies, train, tick)
 		tick += 1
 	assert_lt(tick, 60, "the one right behind hopped within RELAY_DELAY")
 	assert_almost_eq(bodies.hop_timer_of(ids[0]), Train.RELAY_DELAY, 1e-6, "then the next one")

@@ -260,8 +260,9 @@ var topology_version := 0
 var hopped := PackedInt32Array()
 ## The ids of the train slimes (STATE_TRAIN) that took an automatic hop
 ## during the last tick, ascending: the train's hop counters read it (the
-## PERF line's hops). A fact about the tick, cleared by every tick, so not
-## state: not in dump() nor in saves. A hop() (the celebration's) isn't in it.
+## PERF line's hops), and its relay, in the same tick (Train.follow). A fact
+## about the tick, cleared by every tick, so not state: not in dump() nor in
+## saves. A hop() (the celebration's) isn't in it.
 # @spec-link [[req_platform_and_performance_targets]]
 var train_hopped := PackedInt32Array()
 

@@ -54,8 +54,12 @@ extends RefCounted
 ## of touching it, standing (supported, not parked, not itself taking off) on
 ## the outgoing route, has its hop timer cut to RELAY_DELAY at most: it
 ## follows into the room just made, and so on down the queue, a wave. Only
-## the one right behind, and not across a gap wider than its reach. The hop
-## timers are already state: the relay adds none.
+## the one right behind, and not across a gap wider than its reach. The relay
+## acts at the end of the take-off's tick (follow(), once progress is
+## re-derived), so nothing about it crosses into the next tick but the cut
+## hop timer, which is state and saved: a run reloaded from a save taken
+## just after a take-off carries on as the run that never stopped. It adds
+## no state.
 ##
 ## The slide. Placeholder (O22): on a return route the slime doesn't hop (it
 ## is held) and, while it touches the ground, it is carried along the route at
@@ -95,8 +99,8 @@ extends RefCounted
 ##
 ## Tick order (Simulation.step): steer() before the bodies tick (aims the
 ## coming hops, holds and carries slimes on the slide), follow() after it and
-## after the split zones (re-derives progress, notices new slimes); the
-## loop-start queue moves the stalled ones last.
+## after the split zones (re-derives progress, notices new slimes, relays the
+## tick's take-offs); the loop-start queue moves the stalled ones last.
 ##
 ## Hop counters (debug, the PERF line's hops and short_hops, D156 point 4).
 ## follow() counts every train hop (an automatic hop of a train slime,
@@ -593,16 +597,12 @@ func inherit(parts: PackedInt32Array) -> void:
 		_records[parts[k]] = _records[parts[0]].duplicate()
 
 
-## Before the bodies tick: relays the last tick's take-offs, aims the hops
-## about to happen, holds the slimes standing on a climb, and holds and
-## carries the slimes on a slide.
+## Before the bodies tick: aims the hops about to happen, holds the slimes
+## standing on a climb, and holds and carries the slimes on a slide.
 # @spec-link [[rule_train_climbs_without_sliding_back]]
-# @spec-link [[rule_train_relay_on_take_off]]
 func steer(bodies: SlimeBodies, dt: float) -> void:
 	if not _aims.is_empty():
 		_aims.clear()
-	if not bodies.train_hopped.is_empty():
-		_relay(bodies)
 	for slime_id in tracked_ids():
 		var s := bodies.index_of(slime_id)
 		# A parked slime moves off screen at its pace (Offscreen).
@@ -641,10 +641,12 @@ func steer(bodies: SlimeBodies, dt: float) -> void:
 
 ## After the bodies tick (and the split zones): follows every train slime,
 ## adopting new ones where the loop passes closest, and drops the others;
-## counts the train hops (see the class doc). The stalled ones are moved by
-## the loop-start queue, after.
+## counts the train hops (see the class doc); then relays the tick's
+## take-offs (_relay). The stalled ones are moved by the loop-start queue,
+## after.
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
 # @spec-link [[req_platform_and_performance_targets]]
+# @spec-link [[rule_train_relay_on_take_off]]
 func follow(bodies: SlimeBodies, tick: int) -> void:
 	for slime_id in tracked_ids():
 		if bodies.state_of(slime_id) != SlimeBodies.TRAIN:
@@ -664,6 +666,8 @@ func follow(bodies: SlimeBodies, tick: int) -> void:
 			_pause_stall_clock(slime_id, tick)
 		advance(slime_id, centre, tick)
 		_count_landing(bodies, slime_id, s, before, tick)
+	if not bodies.train_hopped.is_empty():
+		_relay(bodies)
 
 
 ## Slime `slime_id`'s record, exactly (for saves): {"distance", "laps",
@@ -738,10 +742,12 @@ func _count_landing(bodies: SlimeBodies, slime_id: int, s: int, before: float, t
 		_takeoff.erase(slime_id)
 
 
-## The relay (see the class doc): for each train slime that took off on the
-## last tick (SlimeBodies.train_hopped), cuts the hop timer of the train
-## slime right behind it to RELAY_DELAY, when that one stands on the
-## outgoing route within its reach of touching it.
+## The relay (see the class doc), at the end of follow(): for each train
+## slime that took off on this tick (SlimeBodies.train_hopped), cuts the hop
+## timer of the train slime right behind it to RELAY_DELAY, when that one
+## stands on the outgoing route within its reach of touching it. The cut
+## timer is the bodies' state, saved; the take-offs are not, and are not read
+## past this tick.
 # @spec-link [[req_hopping_behavior]]
 # @spec-link [[rule_train_relay_on_take_off]]
 func _relay(bodies: SlimeBodies) -> void:

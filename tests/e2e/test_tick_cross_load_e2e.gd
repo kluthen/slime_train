@@ -9,6 +9,11 @@ extends GutTest
 ## every centre within the terrain's grid. And a save loaded twice under the
 ## same tick runs to the same hash (each tick is repeatable from a save).
 ## Nothing in a save says which tick wrote it (docs/dev/native.md, "Saves").
+## And a reload carries on as the run that never stopped (docs/dev/README.md,
+## "Saves and fixtures"): on `stress-dense`, saved just after a train slime
+## took off (the train's relay, chunk 24g), with no slime in the air, the
+## reload's state equals the uninterrupted run's at the load, one tick and
+## TICKS ticks later.
 ## Pending when the run asked for the GDScript tick without the extension
 ## (SLIME_TICK=gdscript); failing otherwise.
 # @test-link [[req_persistence_and_saves]]
@@ -20,6 +25,10 @@ const LEAD_IN := 120
 const TICKS := 600
 ## A resting pile in a basket with the train moving past it; shut doors.
 const FIXTURES: PackedStringArray = ["s3-basket-59of60", "gate2-open"]
+## The crowded bowl, where the relay acts on most ticks.
+const RELAY_FIXTURE := "stress-dense"
+## The last tick the relay check looks for its save tick at.
+const RELAY_SEARCH_UNTIL := 300
 const NATIVE := true
 const GDSCRIPT := false
 ## How far outside the terrain's grid a centre may be (a hop above the top).
@@ -117,6 +126,32 @@ func _population(sim: Simulation) -> Dictionary:
 	return out
 
 
+## Whether `sim` has a slime in the air, as MidairLanding finds them (not
+## supported, not parked, neither a sleeper nor in a basket): a load would
+## move it.
+func _any_in_the_air(sim: Simulation) -> bool:
+	var bodies := sim.slimes
+	for slime_id in bodies.ids():
+		var state := bodies.state_of(slime_id)
+		if bodies.is_parked(slime_id) or state == SlimeBodies.SLEEPER or state == SlimeBodies.IN_BASKET:
+			continue
+		if not bodies.body_of(slime_id)["supported"]:
+			return true
+	return false
+
+
+## The entries of `a`'s and `b`'s dumps that differ, by name; the hint is
+## left out (each load shows the hint's world again, Simulation.hint).
+func _dump_differences(a: Simulation, b: Simulation) -> PackedStringArray:
+	var da := a.dump()
+	var db := b.dump()
+	var out := PackedStringArray()
+	for key: String in da:
+		if key != "hint" and da[key] != db.get(key):
+			out.append(key)
+	return out
+
+
 ## No NaN or infinity in the points, and every centre within the terrain's
 ## grid (grown by MARGIN).
 func _assert_sound(sim: Simulation, label: String) -> void:
@@ -184,3 +219,28 @@ func test_a_save_reloaded_on_the_same_tick_runs_to_the_same_hash() -> void:
 			_run(second, TICKS)
 			assert_eq(first.state_hash(), second.state_hash(), label + ": the same hash after %d ticks" % TICKS)
 			_assert_sound(first, label)
+
+
+## RELAY_FIXTURE on the native tick, saved at the first tick from LEAD_IN on
+## that a train slime took off with no slime in the air (SlimeBodies
+## .train_hopped, which is not saved), reloaded: the reload's state equals
+## the run that never stopped at the load, one tick and TICKS ticks later.
+func test_a_reload_after_a_take_off_carries_on_as_the_run_that_never_stopped() -> void:
+	if not _native_available():
+		return
+	var source := _from_fixture(RELAY_FIXTURE, NATIVE)
+	_run(source, LEAD_IN)
+	while source.tick < RELAY_SEARCH_UNTIL and (source.slimes.train_hopped.is_empty() or _any_in_the_air(source)):
+		_run(source, 1)
+	assert_lt(source.tick, RELAY_SEARCH_UNTIL, "a take-off with no slime in the air by tick %d" % RELAY_SEARCH_UNTIL)
+	var label := "%s saved at tick %d" % [RELAY_FIXTURE, source.tick]
+	var reloaded := _load(_save_text(source), NATIVE, label)
+	if reloaded == null:
+		return
+	assert_eq(_dump_differences(reloaded, source), PackedStringArray(), label + ": equal at the load")
+	_run(source, 1)
+	_run(reloaded, 1)
+	assert_eq(_dump_differences(reloaded, source), PackedStringArray(), label + ": equal 1 tick later")
+	_run(source, TICKS - 1)
+	_run(reloaded, TICKS - 1)
+	assert_eq(_dump_differences(reloaded, source), PackedStringArray(), label + ": equal %d ticks later" % TICKS)
