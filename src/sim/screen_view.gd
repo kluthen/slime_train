@@ -159,6 +159,7 @@ func world_width() -> float:
 	return screen_size.x / zoom
 
 
+## The view as plain data, rounded, for the state dump.
 func dump() -> Dictionary:
 	return {"centre": centre.snapped(Vector2(0.01, 0.01)), "zoom": snappedf(zoom, 0.0001),
 			"screen_size": screen_size}

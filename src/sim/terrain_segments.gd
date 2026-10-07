@@ -60,10 +60,12 @@ func _init(polygons: Array = []) -> void:
 	_build_grid()
 
 
+## How many segments the outlines make.
 func segment_count() -> int:
 	return seg_a.size()
 
 
+## Whether there is no segment at all.
 func is_empty() -> bool:
 	return seg_a.is_empty()
 

@@ -24,6 +24,7 @@ const LABEL_SIZE := 14
 const LABEL_COLOR := Color(1, 1, 1, 0.8)
 
 
+## The placeholder colour of `species` (a species letter), white when unknown.
 static func species_color(species: String) -> Color:
 	return SPECIES_COLORS.get(species, Color.WHITE)
 
@@ -37,6 +38,8 @@ static func draw_box(item: CanvasItem, size: Vector2, color: Color, label: Strin
 	draw_label(item, label, rect.position + Vector2(4, -6))
 
 
+## Draws `text` on `item` at `at` (its baseline start) in the label style;
+## nothing when `text` is empty.
 static func draw_label(item: CanvasItem, text: String, at: Vector2) -> void:
 	if text.is_empty():
 		return

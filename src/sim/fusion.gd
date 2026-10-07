@@ -307,7 +307,7 @@ func _nudge(sim: Simulation) -> void:
 	var shown := PackedByteArray()
 	var on_floor := PackedInt32Array()
 	for slime_id in train.tracked_ids():
-		if bodies.state_of(slime_id) != SlimeBodies.TRAIN:
+		if not bodies.has(slime_id) or bodies.state_of(slime_id) != SlimeBodies.TRAIN:
 			continue
 		var distance := train.distance_of(slime_id)
 		var visible := on_screen(sim.view, bodies.centre_of(slime_id))

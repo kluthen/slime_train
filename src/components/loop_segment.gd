@@ -63,5 +63,6 @@ func level_points(level: Level) -> PackedVector2Array:
 	return level.transform_of(self) * curve.tessellate(6, 2.0)
 
 
+## The stable IDs it points at, by property (see Level): its gate.
 func references() -> Dictionary:
 	return {"gate_id": gate_id}

@@ -170,6 +170,9 @@ var terrain_skin := EDGE
 ## Safety clamp on a point's speed, px/s.
 var max_speed := 1200.0
 ## Whether tick() hops slimes on their own timers. Off, only hop() hops.
+## The game leaves it on. Tests turn it off for set-ups that the seeded hops
+## would disturb (a pile settled first, a slime placed by hand); it costs one
+## branch per tick.
 var auto_hops := true
 ## How fast the hop timers run (1: normal). The Simulation sets it every tick
 ## from the session (Session.hop_rate(): slower hops in the wind-down), so it
@@ -184,6 +187,8 @@ var terrain: TerrainSegments = null
 # @spec-link [[req_switch_basket_gate_set]]
 var doors: Array[TerrainSegments] = []
 ## Whether settled pile slimes rest (the resting-pile rule, see the class doc).
+## The game leaves it on. A few physics tests turn it off to watch the solver
+## alone, without the rest rule; it costs one branch per tick.
 var rest_enabled := true
 ## The debug phase timers of tick() (chunk 5N, U0a: src/debug/phase_timers.gd,
 ## PhaseTimers.attach), or null: off, as in every normal run (one null check
@@ -338,10 +343,13 @@ func uses_native() -> bool:
 
 # --- Sizes ------------------------------------------------------------------
 
+## How many ring points a slime of `slime_size` has.
 static func points_for(slime_size: int) -> int:
 	return POINTS_BY_SIZE[slime_size]
 
 
+## The rest ring's radius of a slime of `slime_size`, px: its area grows
+## with the size.
 static func ring_radius_for(slime_size: int) -> float:
 	return RING_RADIUS_SIZE_1 * sqrt(float(slime_size))
 
@@ -438,6 +446,7 @@ func remove(slime_id: int) -> bool:
 	return true
 
 
+## Whether slime `slime_id` exists.
 func has(slime_id: int) -> bool:
 	return index_of(slime_id) >= 0
 
@@ -457,38 +466,53 @@ func ids() -> PackedInt32Array:
 
 # --- Reading ----------------------------------------------------------------
 
+## The slime's species. `slime_id` must exist (asserted in debug builds).
 func species_of(slime_id: int) -> int:
 	var s := index_of(slime_id)
+	assert(s >= 0, "SlimeBodies.species_of: no such slime")
 	return species[s] if s >= 0 else -1
 
 
+## The slime's size. `slime_id` must exist (asserted in debug builds).
 func size_of(slime_id: int) -> int:
 	var s := index_of(slime_id)
+	assert(s >= 0, "SlimeBodies.size_of: no such slime")
 	return size[s] if s >= 0 else 0
 
 
+## The slime's state (TRAIN, FREE...). `slime_id` must exist (asserted in debug builds).
 func state_of(slime_id: int) -> int:
 	var s := index_of(slime_id)
+	assert(s >= 0, "SlimeBodies.state_of: no such slime")
 	return state[s] if s >= 0 else -1
 
 
+## The slime's rest ring radius, px. `slime_id` must exist (asserted in debug builds).
 func radius_of(slime_id: int) -> float:
 	var s := index_of(slime_id)
+	assert(s >= 0, "SlimeBodies.radius_of: no such slime")
 	return ring_radius[s] if s >= 0 else 0.0
 
 
+## The slime's rest ring area, px². `slime_id` must exist (asserted in debug builds).
 func rest_area_of(slime_id: int) -> float:
 	var s := index_of(slime_id)
+	assert(s >= 0, "SlimeBodies.rest_area_of: no such slime")
 	return rest_area[s] if s >= 0 else 0.0
 
 
+## The slime's time to its next hop, seconds. `slime_id` must exist (asserted in debug builds).
 func hop_timer_of(slime_id: int) -> float:
 	var s := index_of(slime_id)
+	assert(s >= 0, "SlimeBodies.hop_timer_of: no such slime")
 	return hop_timer[s] if s >= 0 else 0.0
 
 
+## A copy of the slime's ring points. `slime_id` must exist (asserted in
+## debug builds).
 func points_of(slime_id: int) -> PackedVector2Array:
 	var s := index_of(slime_id)
+	assert(s >= 0, "SlimeBodies.points_of: no such slime")
 	if s < 0:
 		return PackedVector2Array()
 	return pos.slice(first[s], first[s] + npts[s])
@@ -539,6 +563,8 @@ func candidate_pair_count() -> int:
 
 # --- Changing ---------------------------------------------------------------
 
+## Sets the slime's state, waking it when the state changes. An unknown
+## slime or state is refused loudly.
 func set_state(slime_id: int, slime_state: int) -> void:
 	var s := index_of(slime_id)
 	if s < 0 or slime_state < 0 or slime_state >= STATE_NAMES.size():
@@ -806,6 +832,7 @@ func calm_of(slime_id: int) -> int:
 	return calm[s] if s >= 0 else -1
 
 
+## Whether the slime is parked (false for a missing slime).
 func is_parked(slime_id: int) -> bool:
 	var s := index_of(slime_id)
 	return s >= 0 and calm[s] == PARKED

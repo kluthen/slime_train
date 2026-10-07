@@ -29,5 +29,6 @@ func _draw() -> void:
 	PlaceholderArt.draw_label(self, stable_id, Vector2(-30, -96))
 
 
+## The stable IDs it points at, by property (see Level): its switch.
 func references() -> Dictionary:
 	return {"switch_id": switch_id}

@@ -36,6 +36,7 @@ static func from_letter(text: String) -> int:
 	return LETTERS.find(text)
 
 
+## The colour of `species` (an index into LETTERS).
 static func color(species: int) -> Color:
 	return COLORS[species]
 

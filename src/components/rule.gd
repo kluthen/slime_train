@@ -24,6 +24,8 @@ extends Resource
 @export var then_action := ""
 
 
+## A rule: when object `when_id` sends `event`, object `then_id` does
+## `action`.
 static func make(when_id: String, event: String, then_id: String, action: String) -> Rule:
 	var rule := Rule.new()
 	rule.when_object = when_id
