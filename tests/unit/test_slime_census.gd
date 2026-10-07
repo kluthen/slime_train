@@ -303,13 +303,15 @@ func test_the_game_root_hands_the_schedule_every_tick() -> void:
 	assert_eq(game.census.taken, 2, "at ticks 30 and 60")
 
 
+## The debug wiring loads the census by path, in one place; the game root
+## reaches it only after the guard (test_debug_overlay.gd checks main.gd's
+## _debug_wiring()).
 func test_the_game_root_loads_the_census_only_after_the_guard() -> void:
-	var text := FileAccess.get_file_as_string("res://src/main.gd")
+	var text := FileAccess.get_file_as_string("res://src/debug/debug_wiring.gd")
 	assert_eq(text.count("load(CENSUS_SCRIPT)"), 1, "one place loads it")
-	var body := text.get_slice("func use_census(", 1).get_slice("\nfunc ", 0)
-	assert_true(body.find("test_mode_guard.allows()") >= 0
-			and body.find("test_mode_guard.allows()") < body.find("load(CENSUS_SCRIPT)"),
-			"use_census() asks the guard before loading")
+	var body := FileAccess.get_file_as_string("res://src/main.gd").get_slice(
+			"func use_census(", 1).get_slice("\nfunc ", 0)
+	assert_true(body.find("_debug_wiring()") >= 0, "use_census() goes through the guarded wiring")
 
 
 # --- perf.sh ----------------------------------------------------------------------

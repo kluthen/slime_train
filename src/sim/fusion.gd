@@ -198,6 +198,7 @@ func on_dip_floor(distance: float) -> bool:
 ## After the bodies tick and the split zones: counts the contacts, fuses the
 ## pairs that have touched for CONTACT_TICKS (sim.fuse), bumps the ones too
 ## big to fuse, then nudges the train slimes at the bottom of dips.
+# @spec-link [[rule_fusion_contact_time]]
 func step(sim: Simulation) -> void:
 	var bodies := sim.slimes
 	var counts := {}

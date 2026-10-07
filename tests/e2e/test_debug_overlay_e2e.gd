@@ -337,7 +337,7 @@ func test_the_debug_labels_flag_is_on_with_it_and_off_without() -> void:
 	assert_false(game.debug_labels, "off by default")
 	assert_eq(game.use_debug_labels(PackedStringArray(["--seed=1", "--perf-log"])), "")
 	assert_false(game.debug_labels, "off without the flag")
-	assert_eq(game.use_debug_labels(PackedStringArray(["--debug-labels"])), game.DEBUG_LABELS_ON)
+	assert_eq(game.use_debug_labels(PackedStringArray(["--debug-labels"])), load("res://src/debug/debug_wiring.gd").DEBUG_LABELS_ON)
 	assert_true(game.debug_labels)
 
 
@@ -356,7 +356,7 @@ func test_the_flag_starts_with_the_labels_shown_as_if_pressed() -> void:
 func test_the_flag_shows_the_labels_of_an_overlay_already_there() -> void:
 	var game := _game()
 	assert_false(game.debug_overlay.labels.visible)
-	assert_eq(game.use_debug_labels(PackedStringArray(["--debug-labels"])), game.DEBUG_LABELS_ON)
+	assert_eq(game.use_debug_labels(PackedStringArray(["--debug-labels"])), load("res://src/debug/debug_wiring.gd").DEBUG_LABELS_ON)
 	assert_true(game.debug_overlay.labels.visible)
 	assert_true(game.debug_overlay.labels_button.button_pressed)
 

@@ -115,7 +115,6 @@ var rng: Rng
 var level: LevelData = null
 ## The slimes' soft bodies. Their per-slime random streams derive from `rng`.
 ## The game root gives them the level's terrain (TerrainSegments).
-# @spec-link [[req_slime_states]]
 var slimes: SlimeBodies
 ## The train: every train slime's progress along the loop. Null without a
 ## level.
@@ -124,7 +123,6 @@ var train: Train = null
 var split_zones := SplitZones.new()
 ## The phone's tilt: the last reading, its neutral, and the way down it gives
 ## free slimes.
-# @spec-link [[req_tilt_input]]
 var phone_tilt := Tilt.new()
 ## The last tilt reading, degrees (phone_tilt.degrees).
 var tilt_degrees: float:
@@ -146,17 +144,14 @@ var input_log: Array[Dictionary] = []
 var view := ScreenView.new()
 ## The camera: on the loop's rails, moved by the edge buttons, pulled by a
 ## call (Camera). The scene layer makes `view` and its Camera2D show it.
-# @spec-link [[req_camera_rails_and_framing]]
 var camera := Camera.new()
 ## Screensaver mode: the camera starts on the idle camera (Camera.watch()).
 ## False in the core, as in a session. With sessions on (Session.enabled) or
 ## a session running, the session sets it every tick; otherwise tests set it.
 ## A mode, like input: not in dump() nor saves (the camera's dump has what
 ## it did, the session's its phase).
-# @spec-link [[req_idle_camera_and_screensaver_zoom]]
 var screensaver := false
 ## The free slimes and the last call.
-# @spec-link [[req_call_mechanic]]
 var free_slimes: FreeSlimes
 ## The ripples still showing, oldest first: {"at" (level pixels), "tick"}.
 # @spec-link [[req_controls_tap_zones]]
@@ -168,10 +163,8 @@ var taps: Array[Dictionary] = []
 ## awake slimes in range, and along every hop. Slimes without one look right.
 var facing: Dictionary = {}
 ## Which placed base slimes each slime is made of (stable IDs, for saves).
-# @spec-link [[req_persistence_and_saves]]
 var identities := SlimeIdentities.new()
 ## The contact counts: which touching slimes fuse or bump, and when (Fusion).
-# @spec-link [[rule_fusion_contact_time]]
 var fusion := Fusion.new()
 ## The interactive objects' state by stable ID, as plain data (chunk 14).
 # @spec-link [[req_interactive_objects_general]]
@@ -180,32 +173,24 @@ var object_states: Dictionary = {}
 var gate_states: Dictionary = {}
 ## The frontier sets: switches, baskets, gates and the level's one-time
 ## celebration, on object_states and gate_states (FrontierSets; chunk 14).
-# @spec-link [[req_switch_basket_gate_set]]
 var frontier := FrontierSets.new()
 ## The first-play hint: due until the first call; shows 10 s after the world
 ## shows (Hint). The game calls hint.world_shown() when it shows the world.
-# @spec-link [[req_first_play_hint]]
 var hint := Hint.new()
 ## Screensaver mode, the session, wind-down, bedtime and sunrise, on the
 ## clock readings the scene layer feeds it (Session; chunk 17).
-# @spec-link [[req_session_lifecycle]]
 var session := Session.new()
 ## Physics only on or near the screen: parked slimes, their off-screen
 ## pace, left-alone and lost free slimes, the zoomed-out detail (Offscreen;
 ## chunk 15). Its `enabled` is a mode, set by the game.
-# @spec-link [[req_offscreen_simulation]]
 var offscreen := Offscreen.new()
 ## The stuck safety net: pairs of slimes that can't fuse lodged inside each
 ## other, counted every 0.5 s; the smaller one goes to the start of the loop
 ## (StuckSlimes; chunk 23A). Its counts and log are in dump() and saves.
-# @spec-link [[rule_stuck_slimes_moved_to_start]]
 var stuck_slimes := StuckSlimes.new()
 ## The loop-start queue: moves the slimes the safety nets find due to the
 ## loop start, one per turn (LoopStartQueue, D150). Derived from the nets'
 ## state each tick: nothing of its own in dump() nor saves.
-# @spec-link [[rule_stalled_train_slime_moved_to_start]]
-# @spec-link [[rule_stuck_slimes_moved_to_start]]
-# @spec-link [[rule_left_alone_and_lost]]
 var loop_start_queue := LoopStartQueue.new()
 ## The debug phase timers of step() (chunk 5N, U0a: src/debug/phase_timers.gd,
 ## PhaseTimers.attach), or null: off, as in every normal run, and then each
@@ -268,7 +253,6 @@ func push_input(event: Dictionary) -> void:
 ## slime: a base slime of the first slime's species, on the train, at its
 ## marker, and puts every sleeper to sleep at its marker (Sleepers.place).
 ## The hint takes its place and starts counting.
-# @spec-link [[req_slime_states]]
 # @spec-link [[req_loop_and_world]]
 # @spec-link [[req_waking_sleepers]]
 func load_level(data: LevelData) -> void:
@@ -315,7 +299,6 @@ func spawn_train_slime(slime_species: int, slime_size: int, distance: float) -> 
 
 ## Advances the simulation by one tick. With the debug phase timers on
 ## (`phases`), each phase (StepPhase) is timed as it ends.
-# @spec-link [[req_hopping_behavior]]
 # @spec-link [[req_camera_shows_gate_opening]]
 func step() -> void:
 	var ph = phases
