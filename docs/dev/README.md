@@ -7781,3 +7781,191 @@ hops away at once" under "Level rule 23 on the test level".
 ```sh
 tools/test.sh -gselect=test_basket_drain_e2e
 ```
+
+## Item 24.1: section 3's frame rate
+
+Build plan chunk 24, item 24.1 (D128, D138, D163; [DoD 30],
+`req_platform_and_performance_targets`). Measured only, on main 75040ed
+(2026-10-07; dcf8cb4, landing during the runs, only adds ATD comments),
+nothing changed in the game. Since D163 the item **gates on
+the frame rate** (a steady 60 fps on the desktop through section 3, the
+Linux build at test mode's 1152 × 648 window) and **records the ticks**
+against the budget's simulation share, a desktop tick of about 2.4 to
+3.8 ms (a headroom target, not a gate; `stress-moving` excepted, D153).
+Chunk 22 and chunk 5N had already brought section 3 there, so the item
+closes with the measurement alone (no fix, so no "after the fix"
+numbers: the "before" are 5N's bench and the reported drops). The drops
+as reported (2026-09-29) and measured then on the S20 FE (2026-09-30,
+before the tick cap of 2, the culling and the native tick): 15 fps on
+section 3's shelves, 4 fps at its endgame (basket 3 full, the
+celebration playing); see "The reference phone: what is known".
+
+**Verdict: met.** A windowed run through section 3 reads a steady 60 fps
+on the desktop, on both ticks (p50 60.0, p5 60.0 native and 59.9
+GDScript over the 66 section 3 windows, no window under 59.9 after the
+start); the same seed gives
+the same hash, with and without the perf log; the suite is green
+(1604/1604 native, 126/126 the GDScript pass); [DoD 30] still holds on
+the reference phone by session 6 (below). The ticks, recorded: on the
+native tick both `s3-basket-59of60` cases sit inside the 2.4 to 3.8 ms
+band (median 3.15 and 3.28 ms, p95 3.47), `loop-start-pile` too (2.51),
+`stress-dense` above it (4.14, p95 4.37); on the GDScript tick every case
+is above it (5.6 to 6.0 ms; `stress-moving` excepted, 5.38 native and
+9.97 GDScript). The medians are within -0.6 to +3.2 % of
+5N's, the run-to-run spread.
+
+### The bench, headless (`tools/level.sh bench`)
+
+```sh
+SLIME_TICK=<tick> tools/level.sh bench --fixture=s3-basket-59of60 --phases
+SLIME_TICK=<tick> tools/level.sh bench --fixture=s3-basket-59of60 --lead-in=700 --phases
+SLIME_TICK=<tick> tools/level.sh bench --fixture=stress-dense --lead-in=3600 --phases
+SLIME_TICK=<tick> tools/level.sh bench --fixture=stress-moving --phases
+SLIME_TICK=<tick> tools/level.sh bench --fixture=loop-start-pile --phases
+```
+
+5N's method (`docs/perf/2026-10-05-5n-desktop-bench.md`): seed 909, 600
+timed ticks after each case's lead-in (60 by default; 700 times basket 3
+full and releasing; `stress-dense` 3600, as in 5N), three rounds, each
+running every case native then GDScript; a figure is the median of the
+three runs. The same desktop (Ryzen 5 PRO 8640HS, Godot 4.7.2, the debug
+editor binary, governor `powersave`), every run under the Godot lock,
+load average 0.85 to 1.64 (the bench itself is about 1). Each case ended
+in the same state on both ticks and in all three rounds (the same
+bodies, physics, parked and resting counts, the same means of active
+slimes and pairs).
+
+ms per tick; "5N" is the bench of 2026-10-05 (7043678; it recorded the
+mean and the median, not the p95), `loop-start-pile`'s the one at the
+commit adding it (item 24.5, 2026-10-07, see "Fixtures").
+
+| Case | Tick | Median | p95 | Mean | Median, 5N | Mean, 5N | Against 2.4 to 3.8 ms (median) |
+|---|---|---|---|---|---|---|---|
+| `s3-basket-59of60`, lead-in 60 | native | 3.15 | 3.47 | 3.19 | 3.16 | 3.17 | inside |
+| `s3-basket-59of60`, lead-in 60 | GDScript | 5.57 | 7.08 | 5.72 | 5.59 | 5.81 | above, +1.8 ms |
+| `s3-basket-59of60`, lead-in 700 | native | 3.28 | 3.47 | 3.29 | - | - | inside |
+| `s3-basket-59of60`, lead-in 700 | GDScript | 5.93 | 6.65 | 5.97 | - | - | above, +2.1 ms |
+| `stress-dense`, lead-in 3600 | native | 4.14 | 4.37 | 4.17 | 4.06 | 4.09 | above, +0.3 ms |
+| `stress-dense`, lead-in 3600 | GDScript | 5.81 | 6.31 | 5.89 | 5.63 | 5.68 | above, +2.0 ms |
+| `stress-moving` | native | 5.38 | 6.82 | 5.73 | 5.23 | 5.65 | excepted (D153) |
+| `stress-moving` | GDScript | 9.97 | 12.16 | 10.44 | 9.95 | 10.61 | excepted (D153) |
+| `loop-start-pile` | native | 2.51 | 2.83 | 2.58 | 2.49 (24.5) | 2.53 (24.5) | inside |
+| `loop-start-pile` | GDScript | 5.61 | 6.24 | 5.65 | 5.72 (24.5) | 5.74 (24.5) | above, +1.8 ms |
+
+The three runs' medians (native; GDScript): `s3-basket-59of60` 3.128,
+3.189, 3.146; 5.566, 5.643, 5.524. Lead-in 700: 3.315, 3.281, 3.224;
+5.933, 5.951, 5.817. `stress-dense`: 4.141, 4.137, 4.054; 5.807, 6.018,
+5.668. `stress-moving`: 5.560, 5.201, 5.381; 9.903, 9.967, 10.048.
+`loop-start-pile`: 2.511, 2.465, 2.603; 5.717, 5.562, 5.612.
+
+The split (the `PHASES` line, µs per tick, the middle run; solver /
+behaviour): `s3-basket-59of60` native 142 / 3045, GDScript 2654 / 3063;
+lead-in 700 141 / 3147, 2785 / 3179; `stress-dense` 91 / 4071, 1743 /
+4139; `stress-moving` 264 / 5457, 5058 / 5378; `loop-start-pile` 200 /
+2378, 3358 / 2289. As in 5N, the native tick is 95 to 98 % behaviour
+(GDScript), the same on both ticks.
+
+The cases at the end of the timed ticks (both ticks the same):
+
+| Case | Bodies | Physics | Parked | Resting | Active (mean) | Pairs (mean) | Largest cluster (rule 23) |
+|---|---|---|---|---|---|---|---|
+| `s3-basket-59of60`, lead-in 60 | 200 | 63 | 106 | 0 -> 31 | 66.1 | 140.9 | 14 |
+| `s3-basket-59of60`, lead-in 700 | 200 | 86 | 114 | 31 -> 0 | 90.5 | 122.1 | 3 |
+| `stress-dense`, lead-in 3600 | 176 | 59 | 117 | 0 | 58.7 | 60.9 | 1 |
+| `stress-moving` | 200 -> 139 | 135 | 4 | 0 | 165.4 | 313.0 | 44 |
+| `loop-start-pile` | 197 -> 191 | 87 | 101 | 0 | 93.1 | 250.7 | 47 |
+
+Against 5N, `s3-basket-59of60` ends with 63 physics slimes, not 53 (the
+train's climb, chunk 24g, changed the game after 5N; basket 3 fires at
+about tick 675, so items 24.3 and O126 only reach the lead-in 700 case);
+the ticks moved by -0.6 to +3.2 %, about the run-to-run spread (±2 to
+4 %).
+
+### The windowed run (the gate)
+
+```sh
+SLIME_TICK=<tick> tools/perf_slow.sh --full-speed --max-fps=60 --seconds=240 s3-basket-59of60 --crowd-detail=auto
+SLIME_TICK=native tools/perf_slow.sh --full-speed --seconds=120 s3-basket-59of60 --crowd-detail=auto
+```
+
+The normal clock (no pinning, no busy loop), windowed at 1152 × 648, the
+Compatibility renderer, labels off, seed 1, `--crowd-detail=auto` (the
+shipping mode; test mode's default is `always`), the perf log every 2 s.
+`--max-fps=60` stands in for a 60 Hz display (the script turns vsync off),
+as in chunk 22c's "Measured". The fixture plays section 3 on its own (no
+tap, so no called slime): basket 3 at 59 of 60 fills, fires (about tick
+675) and drains (18.4 s), the train runs through the bowl, then the camera
+follows it to section 1 at t = 135 s. The numbers are
+`perf_summary.py` over the `PERF` lines, split by the camera's section.
+Load average 1.1 to 1.4.
+
+| Run | Tick | Section | Lines | fps p50 / p5 / min | Frame p95, median (max) of windows, ms | Ticks a frame (max) | Tick ms | Process ms a frame |
+|---|---|---|---|---|---|---|---|---|
+| capped at 60 | native | 3 | 66 | 60.0 / 60.0 / 58.5 | 18.09 (19.08) | 1.00 (2) | 5.64 | 5.90 |
+| capped at 60 | native | 1 | 58 | 60.0 / 59.9 / 59.9 | 18.16 (18.70) | 1.00 (1) | 5.82 | 6.09 |
+| capped at 60 | GDScript | 3 | 66 | 60.0 / 59.9 / 58.1 | 18.36 (19.10) | 1.00 (2) | 6.95 | 7.17 |
+| capped at 60 | GDScript | 1 | 58 | 60.0 / 59.9 / 59.9 | 18.67 (19.32) | 1.00 (1) | 7.06 | 7.28 |
+| uncapped | native | 3 | 65 | 1049.7 / 890.6 / 797.4 | 4.59 (6.04) | 0.06 (2) | 4.31 | 0.33 |
+
+- **Steady 60 fps through section 3, on both ticks.** The only window
+  under 59.9 fps is the first (t = 2.9 s, 58.5 and 58.1 fps), holding the
+  start's one long frame (85 and 104 ms, the load); after it every window
+  reads 59.9 or 60.0, the worst frame 21.3 ms (native) and 26.2 ms
+  (GDScript), and no window has a frame of 2 ticks (the table's max of 2
+  is the first window's). The frame-time p95 of
+  about 18 ms is the cap's pacing (frames of 16.7 ms on the mean).
+- **The ceiling** (chunk 22c) stayed at 0 throughout, no `PERF_CEILING`
+  step in any of the three runs: the desktop is never pressed.
+- **Headroom:** uncapped, section 3 runs at 890 fps on the p5 (a frame's
+  p95 under 6.1 ms in every window), the busy part of a frame 0.33 ms on
+  the mean (most frames hold no tick).
+  The drawn parts, capped, native: about 1.1 ms a frame (slimes 0.16,
+  eyes 0.14, frontier 0.05, debug overlay 0.12, render CPU 0.49, render
+  GPU 0.32), 76 draw calls.
+- **The tick reads higher windowed than headless** (5.6 ms capped, 4.3
+  uncapped, against the bench's 3.2). Two likely reasons, not separated:
+  the run is in `auto` at ceiling 0, every ring at full detail, where the
+  bench runs the simulation's default (ceiling 3); and capped, the CPU
+  idles most of each frame (governor `powersave`). The bench's numbers are
+  the record.
+- Raw logs: `build/perf/desktop-s3-basket-59of60-full-20261007-*.log`
+  (git-ignored, not kept).
+
+### The same hash
+
+`s3-basket-59of60`, seed 909, test mode **in a window** (not headless),
+`--run-ticks=600` and `2400`, with and without `--perf-log=2`, on both
+ticks:
+
+```sh
+SLIME_TICK=<tick> godot --path . -- --test-mode --level=test --fixture=s3-basket-59of60 --seed=909 --run-ticks=<N> [--perf-log=2]
+```
+
+All 8 runs gave the recorded hashes (`docs/dev/native.md`, "Fixture
+hashes"): `a0223398…` at 600 ticks and `32991bef…` at 2400. The other
+bench fixtures, headless, native, at 600 and 2400 ticks: `stress-dense`,
+`stress-moving` and `loop-start-pile` gave their recorded hashes (6 of 6).
+
+### The phone (chunk 22's repeat, session 6)
+
+Quoted from the build plan (`specs/versions/v1/build-plan.md`, chunk 22,
+"Repeated, session 6"; D163): the real S20 FE, 2026-10-07, main cfe1dab,
+`--crowd-detail=auto`, native tick, `tools/android/perf.sh` runs p8-*, fps
+p50 / p5:
+
+| Fixture | Cold | Warm | Ceiling |
+|---|---|---|---|
+| `s3-basket-59of60` | 59.1 / 58.7 | 59.1 / 58.8 | stepped to 1 at 47 s |
+| `stress-dense` | 59.1 / 58.9 | 59.1 / 58.7 | 0 |
+| `stress-moving` | 23.0 / 21.0 | 59.0 / 43.9 | 3 within 5 s, no thrash |
+| `s3-basket-59of60`, GDScript tick | 21.2 / 16.7 | 23.4 / 22.6 | - |
+
+A tick of about 10 ms there (off screen 4.0, `train_follow` 1.7, fusion
+1.0, the frontier 1.0, the native solver 0.3); battery at most 32.1 °C,
+thermal status 0. DoD 30 met on the reference phone for these three
+fixtures; the floor phone unmeasured (O14). cfe1dab comes after chunk
+24g's relay fix but before item 24.3 and O126's release hop, which
+change the runs where basket 3 releases (rule 23's exclusions don't touch
+the game);
+session 7 measures the phone again on a later main (normal play and
+`loop-start-pile` included).
