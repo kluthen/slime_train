@@ -48,8 +48,9 @@ extends Node
 ##                        of train slimes, counted at take-off), and those
 ##                        that landed in the window less than half their
 ##                        Train.hop_reach() along the loop past their take-off
-##                        (Train.hops_taken, short_hops_taken: the perf log
-##                        takes their new counts frame by frame, train_hops())
+##                        (TrainHopLog.hops_taken, short_hops_taken: the perf
+##                        log takes their new counts frame by frame,
+##                        train_hops())
 ##   bodies               every slime, whatever its state
 ##   active               mean slimes that cost physics, per frame
 ##                        (SlimeBodies.crowd_count(), the same count as
@@ -537,13 +538,13 @@ static func _part_text(parts: PackedFloat64Array) -> String:
 	return text
 
 
-## `sim`'s train hops and short hops so far (Train.hops_taken,
+## `sim`'s train hops and short hops so far (TrainHopLog.hops_taken,
 ## short_hops_taken) as (hops, short hops); zeros without a train (no level).
 # @spec-link [[req_platform_and_performance_targets]]
 static func train_hops(sim: Simulation) -> Vector2i:
 	if sim.train == null:
 		return Vector2i.ZERO
-	return Vector2i(sim.train.hops_taken, sim.train.short_hops_taken)
+	return Vector2i(sim.train.hop_log.hops_taken, sim.train.hop_log.short_hops_taken)
 
 
 ## The section the camera is in: that of the current loop's segment (for the

@@ -231,7 +231,7 @@ func _settled_slime(state: int, hop_in: float) -> Array:
 func _until_a_hop_and(bodies: SlimeBodies, train: Train, slime: int, after: int, steered := true) -> float:
 	var tick := 30
 	var before := train.progress_of(slime)
-	while train.hops_taken == 0 and tick < 150:
+	while train.hop_log.hops_taken == 0 and tick < 150:
 		before = train.progress_of(slime)
 		_hop_step(bodies, train, tick, steered)
 		tick += 1
@@ -246,11 +246,11 @@ func test_a_train_slimes_automatic_hop_counts_one_hop_and_a_full_one_no_short_ho
 	var bodies: SlimeBodies = setup[0]
 	var train: Train = setup[1]
 	var slime: int = setup[2]
-	assert_eq(train.hops_taken, 0)
+	assert_eq(train.hop_log.hops_taken, 0)
 	var before := _until_a_hop_and(bodies, train, slime, 60)
-	assert_eq(train.hops_taken, 1, "one automatic hop")
+	assert_eq(train.hop_log.hops_taken, 1, "one automatic hop")
 	assert_gt(train.progress_of(slime) - before, Train.hop_reach(1) * 0.5, "a full hop")
-	assert_eq(train.short_hops_taken, 0, "a full hop is no short hop")
+	assert_eq(train.hop_log.short_hops_taken, 0, "a full hop is no short hop")
 
 
 # @test-link [[req_platform_and_performance_targets]]
@@ -261,13 +261,13 @@ func test_a_hop_landing_less_than_half_its_reach_ahead_counts_a_short_hop() -> v
 	var train: Train = setup[1]
 	var slime: int = setup[2]
 	var before := _until_a_hop_and(bodies, train, slime, 1, false)
-	assert_eq(train.hops_taken, 1)
-	assert_eq(train.short_hops_taken, 0, "counted at its landing, not at take-off")
+	assert_eq(train.hop_log.hops_taken, 1)
+	assert_eq(train.hop_log.short_hops_taken, 0, "counted at its landing, not at take-off")
 	for tick in range(200, 260):
 		_hop_step(bodies, train, tick, false)
 	assert_lt(train.progress_of(slime) - before, Train.hop_reach(1) * 0.5)
-	assert_eq(train.short_hops_taken, 1, "landed short")
-	assert_eq(train.hops_taken, 1)
+	assert_eq(train.hop_log.short_hops_taken, 1, "landed short")
+	assert_eq(train.hop_log.hops_taken, 1)
 
 
 # @test-link [[req_platform_and_performance_targets]]
@@ -279,8 +279,8 @@ func test_a_celebration_hop_is_no_train_hop() -> void:
 	assert_true(bodies.hop(slime, Vector2.UP, 0.5), "the celebration's hop")
 	for tick in range(30, 90):
 		_hop_step(bodies, train, tick)
-	assert_eq(train.hops_taken, 0)
-	assert_eq(train.short_hops_taken, 0)
+	assert_eq(train.hop_log.hops_taken, 0)
+	assert_eq(train.hop_log.short_hops_taken, 0)
 
 
 # @test-link [[req_platform_and_performance_targets]]
@@ -293,8 +293,8 @@ func test_a_free_slimes_hop_is_no_train_hop() -> void:
 		_hop_step(bodies, train, tick)
 		hopped = hopped or not bodies.hopped.is_empty()
 	assert_true(hopped, "the free slime hopped")
-	assert_eq(train.hops_taken, 0)
-	assert_eq(train.short_hops_taken, 0)
+	assert_eq(train.hop_log.hops_taken, 0)
+	assert_eq(train.hop_log.short_hops_taken, 0)
 
 
 # @test-link [[req_platform_and_performance_targets]]
@@ -304,10 +304,10 @@ func test_a_hop_that_never_lands_as_a_train_slime_is_no_short_hop() -> void:
 	var train: Train = setup[1]
 	var slime: int = setup[2]
 	_until_a_hop_and(bodies, train, slime, 1, false)
-	assert_eq(train.hops_taken, 1)
+	assert_eq(train.hop_log.hops_taken, 1)
 	bodies.set_state(slime, SlimeBodies.FREE)
 	bodies.set_hop_timer(slime, 10.0)
 	for tick in range(200, 260):
 		_hop_step(bodies, train, tick, false)
-	assert_eq(train.hops_taken, 1)
-	assert_eq(train.short_hops_taken, 0, "it landed as a free slime")
+	assert_eq(train.hop_log.hops_taken, 1)
+	assert_eq(train.hop_log.short_hops_taken, 0, "it landed as a free slime")

@@ -32,34 +32,10 @@ extends RefCounted
 ## motion away each tick (SlimeBodies.brake: no sliding or rolling, the squish
 ## is kept). Steeper, it rolls.
 ##
-## Hold on a climb. GRIP alone only halves the motion: on a climb the slope's
-## pull creeps a standing slime back down 5 to 17 px/s between hops, and a
-## queue climbing out of a basin loses most of what it gains. So on the
-## outgoing route, on a stretch rising more than HOLD_FROM (up to
-## GRIP_MAX_SLOPE), an active train slime standing between hops also has its
-## motion down the slope cancelled and is given HOLD_LIFT of the pull gravity
-## puts along the slope in one tick, up the slope
-## (SlimeBodies.hold_on_slope), so the tick's gravity brings it back nearly to
-## rest where it was (alone on a rise it still slides about 1.6 px/s: the two
-## substeps would need 0.75 to cancel it exactly). Its motion up the slope
-## (the queue's push) is GRIP's. The return route's slide is left alone, and
-## so is a slime knocked off the route: held where it steers from a point
-## behind, its hops from there may skim a steep slope and be braked away
-## (a stall rule 2's lap run found); it slides back to where they carry it.
-##
-## The relay. A packed queue moves at its hop timers' pace: a slime only gains
-## ground once the one ahead has gone, and its own timer (1.5 to 3 s) mostly
-## fires while it is still blocked (a micro hop). So when a train slime takes
-## off, the train slime right behind it along the loop, if within its reach
-## of touching it, standing (supported, not parked, not itself taking off) on
-## the outgoing route, has its hop timer cut to RELAY_DELAY at most: it
-## follows into the room just made, and so on down the queue, a wave. Only
-## the one right behind, and not across a gap wider than its reach. The relay
-## acts at the end of the take-off's tick (follow(), once progress is
-## re-derived), so nothing about it crosses into the next tick but the cut
-## hop timer, which is state and saved: a run reloaded from a save taken
-## just after a take-off carries on as the run that never stopped. It adds
-## no state.
+## Hold on a climb, and the relay: TrainClimb (src/sim/train_climb.gd).
+## On a climb of the outgoing route a train slime standing between hops is
+## held (steer()); when a train slime takes off, the one right behind it may
+## follow at once (follow()).
 ##
 ## The slide. Placeholder (O22): on a return route the slime doesn't hop (it
 ## is held) and, while it touches the ground, it is carried along the route at
@@ -102,26 +78,9 @@ extends RefCounted
 ## after the split zones (re-derives progress, notices new slimes, relays the
 ## tick's take-offs); the loop-start queue moves the stalled ones last.
 ##
-## Hop counters (debug, the PERF line's hops and short_hops, D156 point 4).
-## follow() counts every train hop (an automatic hop of a train slime,
-## SlimeBodies.train_hopped; a celebration's hop() and a free slime's are not
-## train hops, and a slime on a slide is held, it doesn't hop) at its take-off
-## in hops_taken, and at its landing (the first follow() after it that finds
-## the slime supported) in short_hops_taken when its progress advanced less
-## than half its hop_reach() past its progress at take-off. A hop that never
-## lands as a train slime (its state changed, moved to the start, parked) is
-## no short hop. They only read the bodies: no draw, no change to the
-## simulation, and neither they nor the take-offs are in dump() or in saves.
-##
-## The hop decision's record (debug, for the slime census,
-## src/debug/slime_census.gd). hop_target() notes the kind of target it
-## gave (last_target_kind: TARGET_AHEAD, TARGET_STEP_FOOT, TARGET_STEP_OVER,
-## TARGET_DROP); steer() notes each hop it aims on the tick; follow() keeps
-## each train slime's last train hop in last_hops (its take-off tick and
-## progress, the kind and target of the aim it took off on, and at its
-## landing the progress it advanced and whether it was short, as the hop
-## counters count it). Like the counters they only read: not state, not in
-## dump() nor saves.
+## Hop bookkeeping (debug: the PERF line's hops and short_hops, the slime
+## census's hop record): hop_log, a TrainHopLog that steer(), hop_target()
+## and follow() feed. Not state: not in dump() nor saves.
 # @spec-link [[req_loop_and_world]]
 # @spec-link [[req_hopping_behavior]]
 # @spec-link [[rule_loop_travelable_with_no_input]]
@@ -163,14 +122,6 @@ const MAX_REACH_FACTOR := 2.5
 const GRIP := 0.5
 ## The steepest stretch of route (rise over run) a standing slime grips: 45°.
 const GRIP_MAX_SLOPE := 1.0
-## Hold on a climb (see the class doc): the rise over run above which a
-## standing train slime is held, and the share of one tick's pull along the
-## slope it is given up the slope.
-const HOLD_FROM := 0.1
-const HOLD_LIFT := 0.5
-## The relay (see the class doc): the most seconds the train slime right
-## behind one that takes off waits before its own hop.
-const RELAY_DELAY := 0.15
 ## Placeholder slide: the speed slimes are carried at on a return route, px/s.
 const SLIDE_SPEED := 360.0
 ## Placeholder slide: share of the gap to SLIDE_SPEED closed per tick.
@@ -193,7 +144,7 @@ const STALLED := "stalled"
 const OUT_OF_BOUNDS := "out_of_bounds"
 ## How many cases `stalled` keeps (the latest).
 const STALL_LOG_SIZE := 64
-## The kinds of hop target (hop_target(), last_target_kind): the route
+## The kinds of hop target (hop_target(), TrainHopLog.last_target_kind): the route
 ## point reach px ahead, a step's foot, over a step, past the top of a drop;
 ## UNAIMED for a train hop that took off on no aim of steer().
 const TARGET_AHEAD := "ahead"
@@ -202,25 +153,9 @@ const TARGET_STEP_OVER := "step_over"
 const TARGET_DROP := "drop"
 const UNAIMED := "unaimed"
 
-## The train hops taken so far, and those of them that landed short (see
-## the class doc), cumulative: the perf log prints the difference per line.
-## Debug counters, not state.
+## The debug hop bookkeeping (see the class doc). Not state.
 # @spec-link [[req_platform_and_performance_targets]]
-var hops_taken := 0
-var short_hops_taken := 0
-## The kind of the last target hop_target() gave (TARGET_*), "" before
-## any. Debug, for the census (see the class doc).
-# @spec-link [[req_platform_and_performance_targets]]
-var last_target_kind := ""
-## Slime id -> its last train hop (debug, for the census; see the class
-## doc): {"tick" (take-off; Simulation.tick of that step), "from" (progress
-## at take-off), "kind" (TARGET_* of the aim it took off on, or UNAIMED),
-## "target" (the aim's target, or null), "landed" (tick; -1 while in the
-## air, or for a hop that never lands as a train hop: parked, moved),
-## "advance" (px of progress from take-off to landing), "short" (bool)}.
-## Dropped with the slime's record.
-# @spec-link [[req_platform_and_performance_targets]]
-var last_hops := {}
+var hop_log := TrainHopLog.new()
 
 ## The loop, and the gates opened so far (they pick the current loop).
 var loop: LoopData
@@ -234,10 +169,7 @@ var bounds := Rect2()
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
 var stalled: Array[Dictionary] = []
 
-## Slime id -> {"distance" (px, 0 to length()), "laps", "on_slide",
-## "mark" (the progress last counted as an advance), "marked_at" (its tick,
-## moved on by the ticks parked since, see the class doc; -1 before the
-## first follow)}.
+## Slime id -> its TrainRecord (progress, laps, on_slide, the stall mark).
 var _records := {}
 ## The current loop flattened into one closed polyline: points, cumulative
 ## distances, and for each edge whether it is on a return route.
@@ -245,15 +177,6 @@ var _pts := PackedVector2Array()
 var _dist := PackedFloat64Array()
 var _slide := PackedByteArray()
 var _len := 0.0
-## Slime id -> its progress at the take-off of its train hop still in the air
-## (the hop counters', see the class doc). Not state: not in dump() nor saves.
-# @spec-link [[req_platform_and_performance_targets]]
-var _takeoff := {}
-## Slime id -> [kind, target] of the hop steer() aimed it this tick (the
-## census's record, see the class doc). Emptied by every steer().
-# @spec-link [[req_platform_and_performance_targets]]
-var _aims := {}
-
 
 func _init(loop_data: LoopData = null, gates: Array = []) -> void:
 	loop = loop_data
@@ -437,18 +360,18 @@ func hop_target(progress: float, reach: float) -> Vector2:
 			break
 		if _is_drop(k) and _dist[k] + wrap > progress:
 			var run := _pts[k] - _pts[k - 1 if k > 0 else _slide.size() - 1]
-			last_target_kind = TARGET_DROP
+			hop_log.last_target_kind = TARGET_DROP
 			return _pts[k] + run.normalized() * DROP_OVER
 		k += 1
 		if k >= _slide.size():
 			k = 0
 			wrap += _len
 	if not found:
-		last_target_kind = TARGET_AHEAD
+		hop_log.last_target_kind = TARGET_AHEAD
 		return position_at(target)
 	var foot := maxf(_dist[k] + wrap, progress)
 	if foot - progress > STEP_NEAR:
-		last_target_kind = TARGET_STEP_FOOT
+		hop_log.last_target_kind = TARGET_STEP_FOOT
 		return position_at(foot - STEP_FOOT)
 	# Over the step: STEP_LANDING px beyond its top.
 	for step in _slide.size():
@@ -458,7 +381,7 @@ func hop_target(progress: float, reach: float) -> Vector2:
 		if k >= _slide.size():
 			k = 0
 			wrap += _len
-	last_target_kind = TARGET_STEP_OVER
+	hop_log.last_target_kind = TARGET_STEP_OVER
 	return position_at(minf(_dist[k] + wrap + STEP_LANDING, progress + reach * MAX_REACH_FACTOR))
 
 
@@ -486,9 +409,8 @@ func highest_between(from: float, to: float) -> float:
 ## afresh (a hop it is in the air for won't count as landed).
 func track(slime_id: int, distance: float) -> void:
 	var d := fposmod(distance, _len) if _len > 0.0 else 0.0
-	_records[slime_id] = {"distance": d, "laps": 0, "on_slide": false,
-			"mark": d, "marked_at": -1}
-	_takeoff.erase(slime_id)
+	_records[slime_id] = TrainRecord.new(d)
+	hop_log.forget_takeoff(slime_id)
 
 
 ## Whether the slime is followed (it has a record).
@@ -505,49 +427,42 @@ func tracked_ids() -> PackedInt32Array:
 
 ## The slime's distance along the loop from its start, 0 to length().
 func distance_of(slime_id: int) -> float:
-	return _records[slime_id]["distance"] if _records.has(slime_id) else 0.0
+	return _records[slime_id].distance if _records.has(slime_id) else 0.0
 
 
 ## The laps the slime has completed, 0 when it isn't followed.
 func laps_of(slime_id: int) -> int:
-	return _records[slime_id]["laps"] if _records.has(slime_id) else 0
+	return _records[slime_id].laps if _records.has(slime_id) else 0
 
 
 ## The tick of the slime's last stall mark (see advance()), -1 when it has
 ## none or isn't followed.
 func marked_at_of(slime_id: int) -> int:
-	return _records[slime_id]["marked_at"] if _records.has(slime_id) else -1
-
-
-## Whether train slime `slime_id` is in the air on a train hop that hasn't
-## landed yet (the hop counters' take-off; debug, for the census).
-# @spec-link [[req_platform_and_performance_targets]]
-func in_air(slime_id: int) -> bool:
-	return _takeoff.has(slime_id)
+	return _records[slime_id].marked_at if _records.has(slime_id) else -1
 
 
 ## The slime's progress, laps included: it never goes back.
 func progress_of(slime_id: int) -> float:
 	if not _records.has(slime_id):
 		return 0.0
-	var record: Dictionary = _records[slime_id]
-	return record["laps"] * _len + record["distance"]
+	var record: TrainRecord = _records[slime_id]
+	return record.laps * _len + record.distance
 
 
 ## Re-derives a slime's progress from its centre at `tick`, and marks it
 ## when it advanced STALL_ADVANCE px since the last mark (the stall count
 ## starts again from there).
 func advance(slime_id: int, centre: Vector2, tick: int) -> void:
-	var record: Dictionary = _records[slime_id]
-	var progress := project(record["distance"], centre)
+	var record: TrainRecord = _records[slime_id]
+	var progress := project(record.distance, centre)
 	if progress >= _len:
 		progress -= _len
-		record["laps"] += 1
-	record["distance"] = progress
+		record.laps += 1
+	record.distance = progress
 	var now := progress_of(slime_id)
-	if record["marked_at"] < 0 or now - record["mark"] >= STALL_ADVANCE:
-		record["mark"] = now
-		record["marked_at"] = tick
+	if record.marked_at < 0 or now - record.mark >= STALL_ADVANCE:
+		record.mark = now
+		record.marked_at = tick
 
 
 ## Why followed slime `slime_id`, its centre at `centre`, is stalled at
@@ -568,7 +483,7 @@ func stall_of(slime_id: int, centre: Vector2, tick: int) -> String:
 ## `tick`.
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
 func stalled_since(slime_id: int, tick: int) -> int:
-	var marked_at: int = _records[slime_id]["marked_at"]
+	var marked_at: int = _records[slime_id].marked_at
 	if marked_at >= 0 and tick - marked_at >= STALL_TICKS:
 		return marked_at + STALL_TICKS
 	return -1
@@ -596,26 +511,25 @@ func inherit(parts: PackedInt32Array) -> void:
 	if parts.is_empty() or not _records.has(parts[0]):
 		return
 	for k in range(1, parts.size()):
-		_records[parts[k]] = _records[parts[0]].duplicate()
+		_records[parts[k]] = _records[parts[0]].copy()
 
 
 ## Before the bodies tick: aims the hops about to happen, holds the slimes
-## standing on a climb, and holds and carries the slimes on a slide.
-# @spec-link [[rule_train_climbs_without_sliding_back]]
+## standing on a climb (TrainClimb.hold), and holds and carries the slimes on
+## a slide.
 func steer(bodies: SlimeBodies, dt: float) -> void:
-	if not _aims.is_empty():
-		_aims.clear()
+	hop_log.clear_aims()
 	for slime_id in tracked_ids():
 		var s := bodies.index_of(slime_id)
 		# A parked slime moves off screen at its pace (Offscreen).
 		if s < 0 or bodies.state[s] != SlimeBodies.TRAIN or bodies.calm[s] == SlimeBodies.PARKED:
 			continue
-		var record: Dictionary = _records[slime_id]
+		var record: TrainRecord = _records[slime_id]
 		var from := bodies.centre_of(slime_id)
-		var progress := steering_distance(record["distance"], from)
+		var progress := steering_distance(record.distance, from)
 		var on_slide := is_slide_at(progress)
-		if on_slide != record["on_slide"]:
-			record["on_slide"] = on_slide
+		if on_slide != record.on_slide:
+			record.on_slide = on_slide
 			bodies.set_hop_held(slime_id, on_slide)
 		if on_slide:
 			if bodies.supported[s] != 0:
@@ -627,10 +541,9 @@ func steer(bodies: SlimeBodies, dt: float) -> void:
 			if absf(slope.y) <= absf(slope.x) * GRIP_MAX_SLOPE:
 				bodies.brake(slime_id, GRIP)
 				# Knocked off the route (it steers from a point behind), it isn't held.
-				var on_route: bool = progress == record["distance"]
-				if on_route and waiting and -slope.y > absf(slope.x) * HOLD_FROM \
-						and bodies.calm[s] == SlimeBodies.ACTIVE:
-					bodies.hold_on_slope(slime_id, slope, -bodies.gravity.dot(slope) * dt * HOLD_LIFT)
+				var on_route := progress == record.distance
+				if on_route and waiting:
+					TrainClimb.hold(bodies, slime_id, s, slope, dt)
 		if waiting:
 			continue
 		var size := bodies.size[s]
@@ -638,24 +551,22 @@ func steer(bodies: SlimeBodies, dt: float) -> void:
 		var high := minf(highest_between(progress, progress + hop_reach(size)), target.y)
 		var apex := hop_apex(size) + maxf(0.0, minf(from.y, target.y) - high)
 		bodies.set_hop_aim(slime_id, aim(from, target, apex, bodies.gravity.y, hop_cap(size)))
-		_aims[slime_id] = [last_target_kind, target]
+		hop_log.aimed(slime_id, target)
 
 
 ## After the bodies tick (and the split zones): follows every train slime,
 ## adopting new ones where the loop passes closest, and drops the others;
 ## counts the train hops (see the class doc); then relays the tick's
-## take-offs (_relay). The stalled ones are moved by the loop-start queue,
-## after.
+## take-offs (TrainClimb.relay). The stalled ones are moved by the
+## loop-start queue, after.
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
 # @spec-link [[req_platform_and_performance_targets]]
-# @spec-link [[rule_train_relay_on_take_off]]
 func follow(bodies: SlimeBodies, tick: int) -> void:
 	for slime_id in tracked_ids():
 		if not bodies.has(slime_id) or bodies.state_of(slime_id) != SlimeBodies.TRAIN:
 			_records.erase(slime_id)
-			_takeoff.erase(slime_id)
-			last_hops.erase(slime_id)
-	hops_taken += bodies.train_hopped.size()
+			hop_log.forget(slime_id)
+	hop_log.count_takeoffs(bodies.train_hopped.size())
 	for slime_id in bodies.ids():
 		var s := bodies.index_of(slime_id)
 		if bodies.state[s] != SlimeBodies.TRAIN:
@@ -667,35 +578,41 @@ func follow(bodies: SlimeBodies, tick: int) -> void:
 		if bodies.calm[s] == SlimeBodies.PARKED:
 			_pause_stall_clock(slime_id, tick)
 		advance(slime_id, centre, tick)
-		_count_landing(bodies, slime_id, s, before, tick)
+		hop_log.count_landing(bodies, self, slime_id, s, before, tick)
 	if not bodies.train_hopped.is_empty():
-		_relay(bodies)
+		TrainClimb.relay(bodies, _records, _len)
 
 
-## Slime `slime_id`'s record, exactly (for saves): {"distance", "laps",
-## "on_slide", "mark", "marked_at"}, or {} when it isn't followed.
+## Slime `slime_id`'s record, exactly (for saves): TrainRecord.to_dict()'s
+## {"distance", "laps", "on_slide", "mark", "marked_at"}, or {} when it isn't
+## followed.
 func record_of(slime_id: int) -> Dictionary:
-	return _records[slime_id].duplicate() if _records.has(slime_id) else {}
+	return _records[slime_id].to_dict() if _records.has(slime_id) else {}
 
 
 ## Follows slime `slime_id` from a saved record (record_of). Missing fields
 ## take track()'s values.
 func restore_record(slime_id: int, record: Dictionary) -> void:
 	track(slime_id, record.get("distance", 0.0))
-	var mine: Dictionary = _records[slime_id]
-	for key in ["laps", "on_slide", "mark", "marked_at"]:
-		if record.has(key):
-			mine[key] = record[key]
+	var mine: TrainRecord = _records[slime_id]
+	if record.has("laps"):
+		mine.laps = record["laps"]
+	if record.has("on_slide"):
+		mine.on_slide = record["on_slide"]
+	if record.has("mark"):
+		mine.mark = record["mark"]
+	if record.has("marked_at"):
+		mine.marked_at = record["marked_at"]
 
 
 ## The train's state as plain data, for Simulation.dump().
 func dump() -> Dictionary:
 	var slimes := []
 	for slime_id in tracked_ids():
-		var record: Dictionary = _records[slime_id]
-		slimes.append({"id": slime_id, "distance": snappedf(record["distance"], 0.01),
-				"laps": record["laps"], "on_slide": record["on_slide"],
-				"mark": snappedf(record["mark"], 0.01), "marked_at": record["marked_at"]})
+		var record: TrainRecord = _records[slime_id]
+		slimes.append({"id": slime_id, "distance": snappedf(record.distance, 0.01),
+				"laps": record.laps, "on_slide": record.on_slide,
+				"mark": snappedf(record.mark, 0.01), "marked_at": record.marked_at})
 	return {"open_gates": open_gates.duplicate(), "slimes": slimes, "stalled": stalled.duplicate(true)}
 
 
@@ -711,82 +628,10 @@ func dump() -> Dictionary:
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
 # @spec-link [[req_offscreen_simulation]]
 func _pause_stall_clock(slime_id: int, tick: int) -> void:
-	var record: Dictionary = _records[slime_id]
-	var marked_at: int = record["marked_at"]
+	var record: TrainRecord = _records[slime_id]
+	var marked_at: int = record.marked_at
 	if marked_at >= 0 and marked_at < tick and tick - 1 - marked_at < STALL_TICKS:
-		record["marked_at"] = marked_at + 1
-
-
-## The hop counters for train slime `slime_id` (index `s`), just advanced
-## from progress `before` at `tick`: a hop it took this tick takes off from
-## `before`; one in the air lands when the slime is supported, short when it
-## advanced less than half its hop_reach(); a parked slime's hop never
-## lands. The census's last_hops follow them (see the class doc).
-# @spec-link [[req_platform_and_performance_targets]]
-func _count_landing(bodies: SlimeBodies, slime_id: int, s: int, before: float, tick: int) -> void:
-	if bodies.calm[s] == SlimeBodies.PARKED:
-		_takeoff.erase(slime_id)
-	elif bodies.train_hopped.has(slime_id):
-		_takeoff[slime_id] = before
-		var aimed: Array = _aims.get(slime_id, [])
-		last_hops[slime_id] = {"tick": tick, "from": before, "kind": aimed[0] if not aimed.is_empty() else UNAIMED,
-				"target": aimed[1] if not aimed.is_empty() else null, "landed": -1, "advance": 0.0, "short": false}
-	elif _takeoff.has(slime_id) and bodies.supported[s] != 0:
-		var advance: float = progress_of(slime_id) - _takeoff[slime_id]
-		var short := advance < hop_reach(bodies.size[s]) * 0.5
-		if short:
-			short_hops_taken += 1
-		var last: Dictionary = last_hops.get(slime_id, {})
-		if not last.is_empty():
-			last["landed"] = tick
-			last["advance"] = advance
-			last["short"] = short
-		_takeoff.erase(slime_id)
-
-
-## The relay (see the class doc), at the end of follow(): for each train
-## slime that took off on this tick (SlimeBodies.train_hopped), cuts the hop
-## timer of the train slime right behind it to RELAY_DELAY, when that one
-## stands on the outgoing route within its reach of touching it. The cut
-## timer is the bodies' state, saved; the take-offs are not, and are not read
-## past this tick.
-# @spec-link [[req_hopping_behavior]]
-# @spec-link [[rule_train_relay_on_take_off]]
-func _relay(bodies: SlimeBodies) -> void:
-	for hopped in bodies.train_hopped:
-		if not _records.has(hopped) or bodies.state_of(hopped) != SlimeBodies.TRAIN:
-			continue
-		var behind := _behind(bodies, hopped)
-		if behind.is_empty():
-			continue
-		var follower: int = behind[0]
-		var b := bodies.index_of(follower)
-		if b < 0 or bodies.train_hopped.has(follower) or bodies.calm[b] == SlimeBodies.PARKED \
-				or bodies.supported[b] == 0 or _records[follower]["on_slide"]:
-			continue
-		var room := bodies.radius_of(hopped) + bodies.radius_of(follower) + 2.0 * SlimeBodies.EDGE
-		if behind[1] < hop_reach(bodies.size[b]) + room and bodies.hop_timer[b] > RELAY_DELAY:
-			bodies.set_hop_timer(follower, RELAY_DELAY)
-
-
-## The train slime right behind followed train slime `slime_id` along the
-## loop: the nearest one further back by distance (then by id, for slimes at
-## the same distance), the front one's round the loop. [its id, the gap
-## along the loop in px], or [] when there is no other train slime.
-func _behind(bodies: SlimeBodies, slime_id: int) -> Array:
-	var at: float = _records[slime_id]["distance"]
-	var best := -1
-	var best_gap := INF
-	for other: int in _records:
-		if other == slime_id or bodies.state_of(other) != SlimeBodies.TRAIN:
-			continue
-		var gap: float = at - _records[other]["distance"]
-		if gap < 0.0 or (gap == 0.0 and other > slime_id):
-			gap += _len
-		if gap < best_gap or (gap == best_gap and other > best):
-			best_gap = gap
-			best = other
-	return [] if best < 0 else [best, best_gap]
+		record.marked_at = marked_at + 1
 
 
 ## Placeholder slide: pulls the slime's speed along the route toward SLIDE_SPEED.
