@@ -58,7 +58,7 @@ static func hold(bodies: SlimeBodies, slime_id: int, s: int, slope: Vector2, dt:
 ## train slime that took off on this tick (SlimeBodies.train_hopped), cuts
 ## the hop timer of the train slime right behind it to RELAY_DELAY, when that
 ## one stands on the outgoing route within its reach of touching it.
-## `records` are Train's (slime id -> record), on a loop `loop_length` px
+## `records` are Train's (slime id -> TrainRecord), on a loop `loop_length` px
 ## long. The cut timer is the bodies' state, saved; the take-offs are not,
 ## and are not read past this tick.
 # @spec-link [[req_hopping_behavior]]
@@ -73,7 +73,7 @@ static func relay(bodies: SlimeBodies, records: Dictionary, loop_length: float) 
 		var follower: int = behind[0]
 		var b := bodies.index_of(follower)
 		if b < 0 or bodies.train_hopped.has(follower) or bodies.calm[b] == SlimeBodies.PARKED \
-				or bodies.supported[b] == 0 or records[follower]["on_slide"]:
+				or bodies.supported[b] == 0 or records[follower].on_slide:
 			continue
 		var room := bodies.radius_of(hopped) + bodies.radius_of(follower) + 2.0 * SlimeBodies.EDGE
 		if behind[1] < Train.hop_reach(bodies.size[b]) + room and bodies.hop_timer[b] > RELAY_DELAY:
@@ -87,13 +87,13 @@ static func relay(bodies: SlimeBodies, records: Dictionary, loop_length: float) 
 ## there is no other train slime.
 # @spec-link [[rule_train_relay_on_take_off]]
 static func _behind(bodies: SlimeBodies, records: Dictionary, loop_length: float, slime_id: int) -> Array:
-	var at: float = records[slime_id]["distance"]
+	var at: float = records[slime_id].distance
 	var best := -1
 	var best_gap := INF
 	for other: int in records:
 		if other == slime_id or bodies.state_of(other) != SlimeBodies.TRAIN:
 			continue
-		var gap: float = at - records[other]["distance"]
+		var gap: float = at - records[other].distance
 		if gap < 0.0 or (gap == 0.0 and other > slime_id):
 			gap += loop_length
 		if gap < best_gap or (gap == best_gap and other > best):

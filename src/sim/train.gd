@@ -169,10 +169,7 @@ var bounds := Rect2()
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
 var stalled: Array[Dictionary] = []
 
-## Slime id -> {"distance" (px, 0 to length()), "laps", "on_slide",
-## "mark" (the progress last counted as an advance), "marked_at" (its tick,
-## moved on by the ticks parked since, see the class doc; -1 before the
-## first follow)}.
+## Slime id -> its TrainRecord (progress, laps, on_slide, the stall mark).
 var _records := {}
 ## The current loop flattened into one closed polyline: points, cumulative
 ## distances, and for each edge whether it is on a return route.
@@ -412,8 +409,7 @@ func highest_between(from: float, to: float) -> float:
 ## afresh (a hop it is in the air for won't count as landed).
 func track(slime_id: int, distance: float) -> void:
 	var d := fposmod(distance, _len) if _len > 0.0 else 0.0
-	_records[slime_id] = {"distance": d, "laps": 0, "on_slide": false,
-			"mark": d, "marked_at": -1}
+	_records[slime_id] = TrainRecord.new(d)
 	hop_log.forget_takeoff(slime_id)
 
 
@@ -431,42 +427,42 @@ func tracked_ids() -> PackedInt32Array:
 
 ## The slime's distance along the loop from its start, 0 to length().
 func distance_of(slime_id: int) -> float:
-	return _records[slime_id]["distance"] if _records.has(slime_id) else 0.0
+	return _records[slime_id].distance if _records.has(slime_id) else 0.0
 
 
 ## The laps the slime has completed, 0 when it isn't followed.
 func laps_of(slime_id: int) -> int:
-	return _records[slime_id]["laps"] if _records.has(slime_id) else 0
+	return _records[slime_id].laps if _records.has(slime_id) else 0
 
 
 ## The tick of the slime's last stall mark (see advance()), -1 when it has
 ## none or isn't followed.
 func marked_at_of(slime_id: int) -> int:
-	return _records[slime_id]["marked_at"] if _records.has(slime_id) else -1
+	return _records[slime_id].marked_at if _records.has(slime_id) else -1
 
 
 ## The slime's progress, laps included: it never goes back.
 func progress_of(slime_id: int) -> float:
 	if not _records.has(slime_id):
 		return 0.0
-	var record: Dictionary = _records[slime_id]
-	return record["laps"] * _len + record["distance"]
+	var record: TrainRecord = _records[slime_id]
+	return record.laps * _len + record.distance
 
 
 ## Re-derives a slime's progress from its centre at `tick`, and marks it
 ## when it advanced STALL_ADVANCE px since the last mark (the stall count
 ## starts again from there).
 func advance(slime_id: int, centre: Vector2, tick: int) -> void:
-	var record: Dictionary = _records[slime_id]
-	var progress := project(record["distance"], centre)
+	var record: TrainRecord = _records[slime_id]
+	var progress := project(record.distance, centre)
 	if progress >= _len:
 		progress -= _len
-		record["laps"] += 1
-	record["distance"] = progress
+		record.laps += 1
+	record.distance = progress
 	var now := progress_of(slime_id)
-	if record["marked_at"] < 0 or now - record["mark"] >= STALL_ADVANCE:
-		record["mark"] = now
-		record["marked_at"] = tick
+	if record.marked_at < 0 or now - record.mark >= STALL_ADVANCE:
+		record.mark = now
+		record.marked_at = tick
 
 
 ## Why followed slime `slime_id`, its centre at `centre`, is stalled at
@@ -487,7 +483,7 @@ func stall_of(slime_id: int, centre: Vector2, tick: int) -> String:
 ## `tick`.
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
 func stalled_since(slime_id: int, tick: int) -> int:
-	var marked_at: int = _records[slime_id]["marked_at"]
+	var marked_at: int = _records[slime_id].marked_at
 	if marked_at >= 0 and tick - marked_at >= STALL_TICKS:
 		return marked_at + STALL_TICKS
 	return -1
@@ -515,7 +511,7 @@ func inherit(parts: PackedInt32Array) -> void:
 	if parts.is_empty() or not _records.has(parts[0]):
 		return
 	for k in range(1, parts.size()):
-		_records[parts[k]] = _records[parts[0]].duplicate()
+		_records[parts[k]] = _records[parts[0]].copy()
 
 
 ## Before the bodies tick: aims the hops about to happen, holds the slimes
@@ -528,12 +524,12 @@ func steer(bodies: SlimeBodies, dt: float) -> void:
 		# A parked slime moves off screen at its pace (Offscreen).
 		if s < 0 or bodies.state[s] != SlimeBodies.TRAIN or bodies.calm[s] == SlimeBodies.PARKED:
 			continue
-		var record: Dictionary = _records[slime_id]
+		var record: TrainRecord = _records[slime_id]
 		var from := bodies.centre_of(slime_id)
-		var progress := steering_distance(record["distance"], from)
+		var progress := steering_distance(record.distance, from)
 		var on_slide := is_slide_at(progress)
-		if on_slide != record["on_slide"]:
-			record["on_slide"] = on_slide
+		if on_slide != record.on_slide:
+			record.on_slide = on_slide
 			bodies.set_hop_held(slime_id, on_slide)
 		if on_slide:
 			if bodies.supported[s] != 0:
@@ -545,7 +541,7 @@ func steer(bodies: SlimeBodies, dt: float) -> void:
 			if absf(slope.y) <= absf(slope.x) * GRIP_MAX_SLOPE:
 				bodies.brake(slime_id, GRIP)
 				# Knocked off the route (it steers from a point behind), it isn't held.
-				var on_route: bool = progress == record["distance"]
+				var on_route := progress == record.distance
 				if on_route and waiting:
 					TrainClimb.hold(bodies, slime_id, s, slope, dt)
 		if waiting:
@@ -587,30 +583,36 @@ func follow(bodies: SlimeBodies, tick: int) -> void:
 		TrainClimb.relay(bodies, _records, _len)
 
 
-## Slime `slime_id`'s record, exactly (for saves): {"distance", "laps",
-## "on_slide", "mark", "marked_at"}, or {} when it isn't followed.
+## Slime `slime_id`'s record, exactly (for saves): TrainRecord.to_dict()'s
+## {"distance", "laps", "on_slide", "mark", "marked_at"}, or {} when it isn't
+## followed.
 func record_of(slime_id: int) -> Dictionary:
-	return _records[slime_id].duplicate() if _records.has(slime_id) else {}
+	return _records[slime_id].to_dict() if _records.has(slime_id) else {}
 
 
 ## Follows slime `slime_id` from a saved record (record_of). Missing fields
 ## take track()'s values.
 func restore_record(slime_id: int, record: Dictionary) -> void:
 	track(slime_id, record.get("distance", 0.0))
-	var mine: Dictionary = _records[slime_id]
-	for key in ["laps", "on_slide", "mark", "marked_at"]:
-		if record.has(key):
-			mine[key] = record[key]
+	var mine: TrainRecord = _records[slime_id]
+	if record.has("laps"):
+		mine.laps = record["laps"]
+	if record.has("on_slide"):
+		mine.on_slide = record["on_slide"]
+	if record.has("mark"):
+		mine.mark = record["mark"]
+	if record.has("marked_at"):
+		mine.marked_at = record["marked_at"]
 
 
 ## The train's state as plain data, for Simulation.dump().
 func dump() -> Dictionary:
 	var slimes := []
 	for slime_id in tracked_ids():
-		var record: Dictionary = _records[slime_id]
-		slimes.append({"id": slime_id, "distance": snappedf(record["distance"], 0.01),
-				"laps": record["laps"], "on_slide": record["on_slide"],
-				"mark": snappedf(record["mark"], 0.01), "marked_at": record["marked_at"]})
+		var record: TrainRecord = _records[slime_id]
+		slimes.append({"id": slime_id, "distance": snappedf(record.distance, 0.01),
+				"laps": record.laps, "on_slide": record.on_slide,
+				"mark": snappedf(record.mark, 0.01), "marked_at": record.marked_at})
 	return {"open_gates": open_gates.duplicate(), "slimes": slimes, "stalled": stalled.duplicate(true)}
 
 
@@ -626,10 +628,10 @@ func dump() -> Dictionary:
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
 # @spec-link [[req_offscreen_simulation]]
 func _pause_stall_clock(slime_id: int, tick: int) -> void:
-	var record: Dictionary = _records[slime_id]
-	var marked_at: int = record["marked_at"]
+	var record: TrainRecord = _records[slime_id]
+	var marked_at: int = record.marked_at
 	if marked_at >= 0 and marked_at < tick and tick - 1 - marked_at < STALL_TICKS:
-		record["marked_at"] = marked_at + 1
+		record.marked_at = marked_at + 1
 
 
 ## Placeholder slide: pulls the slime's speed along the route toward SLIDE_SPEED.
