@@ -92,6 +92,20 @@ extends Node
 ##                        the frame's Performance.RENDER_TOTAL_*_IN_FRAME
 ##                        (%.0f)
 ##
+## Then the crowd detail (D141, chunk 22c), at the line:
+##
+##   ceiling              the detail ceiling handed to the simulation
+##                        (Offscreen.detail_ceiling: the load meter's in
+##                        `auto`, 3 in `always`, 0 in `off`)
+##   crowd_level          the crowd's detail level (Offscreen.crowd_level)
+##   detail               the detail level the active rings take
+##                        (Offscreen.detail_level(): max(zoom's, min(crowd,
+##                        ceiling)); pile slimes stop at level 2)
+##   busy, missed         the load meter's last window (LoadMeter.last_window,
+##                        about 1 s, whatever the mode): its busy share
+##                        (0 to 1, %.2f) and its missed beats (frames that
+##                        ran 2 ticks or more); 0 before its first window
+##
 ## Last, only when the phase timers are on (the game root's --phase-timers,
 ## src/debug/phase_timers.gd, chunk 5N U0a), one compact field:
 ##
@@ -109,12 +123,19 @@ extends Node
 ## support reads 0.
 ##
 ## Every field but the first and `phases` is a number; zeros without a
-## simulation. The tick fields come from the game root's own record of each
+## simulation.
+##
+## In `auto` (the game root's crowd_detail_mode()), each step of the load
+## meter's ceiling (LoadMeter.stepped) prints one PERF_CEILING line at once
+## (ceiling_line()): `t`, `from`, `to`, `reason` (pressed, or calm after 3
+## calm windows, 60 in the back-off), the window's `busy` and `missed`, the
+## `crowd_level`, and `calm_needed` (the back-off after the step). The
+## PERF_INFO line names the mode (`crowd_detail`). The tick fields come from the game root's own record of each
 ## frame (frame_ticks, frame_tick_usec: the ticks it ran and the real time
 ## around their step_simulation() calls), see tick_stats(); active and pairs
 ## are read after each frame's ticks. At start it prints one "PERF_INFO" line: the
 ## window, the model, the renderer, the refresh rate, the cap on ticks per
-## frame at 1x.
+## frame at 1x, the crowd detail mode.
 ##
 ## Its measurement flag --max-ticks-per-frame=N (parse_args()) sets that cap
 ## for the run (the game root's max_ticks_per_frame), to measure what the
@@ -188,7 +209,8 @@ func _init(window_seconds := DEFAULT_SECONDS) -> void:
 
 ## Takes the game root (its parent), runs its _process last, starts timing
 ## the process at the tree's process_frame, has the root viewport measure its
-## render time, and prints the PERF_INFO line.
+## render time, prints each ceiling step of the load meter (in `auto`), and
+## prints the PERF_INFO line once the game root is ready.
 func _ready() -> void:
 	name = "PerfLog"
 	game = get_parent()
@@ -196,7 +218,27 @@ func _ready() -> void:
 	get_tree().process_frame.connect(_on_process_frame)
 	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
 	_part_sums.resize(PART_FIELDS.size())
+	var meter: Variant = game.get("load_meter")
+	if meter != null:
+		meter.stepped.connect(_on_ceiling_step)
+	# Once the game root's _ready is done: test mode (and so the crowd detail
+	# mode) has started by then.
+	_print_info.call_deferred()
+
+
+## Prints the PERF_INFO line.
+func _print_info() -> void:
 	print(info_line())
+
+
+## A step of the load meter's ceiling: its PERF_CEILING line, in `auto` only
+## (in the other modes the meter's ceiling isn't the one handed over).
+# @spec-link [[req_platform_and_performance_targets]]
+func _on_ceiling_step(step: Dictionary) -> void:
+	if game.call("crowd_detail_mode") != LoadMeter.AUTO:
+		return
+	var sim: Simulation = game.get("simulation")
+	print(ceiling_line(Time.get_ticks_msec() / 1000.0, step, sim.offscreen.crowd_level if sim != null else 0))
 
 
 ## The frame's process starts: every _process of the tree comes after this.
@@ -235,10 +277,11 @@ func _process(_delta: float) -> void:
 		_part_sums[i] += parts[i]
 	if _window_s >= seconds:
 		var phases := PhaseTimers.field(PhaseTimers.take(sim)) if sim != null else ""
+		var meter: Variant = game.get("load_meter")
 		print(line(Time.get_ticks_msec() / 1000.0, window_stats(_deltas),
 				tick_stats(_deltas, _frame_ticks, _frame_tick_usec, _frame_active, _frame_pairs),
 				_process_s * 1000.0 / _deltas.size(), _ticks, _hops, _short_hops, sim,
-				part_means(_part_sums, _deltas.size()), phases))
+				part_means(_part_sums, _deltas.size()), phases, meter.last_window if meter != null else {}))
 		_part_sums.fill(0.0)
 		_deltas = PackedFloat64Array()
 		_frame_ticks = PackedInt32Array()
@@ -440,12 +483,15 @@ static func _nearest_rank(sorted: PackedFloat64Array, share: float) -> float:
 ## included), the mean process time `process_ms_mean`, the `ticks` run, the
 ## train `hops` taken and `short_hops` landed in it, `sim`'s slime counts,
 ## largest awake cluster, total slimes, camera section and zoom (zeros
-## without a simulation), the part_means() `parts`, and the phase timers'
-## field value `phases` (PhaseTimers.field(); "": no phases field). The
-## fields are the class doc's, in its order. Read only.
+## without a simulation), the part_means() `parts`, `sim`'s crowd detail
+## and the load meter's window `load_window` (LoadMeter.last_window: "busy",
+## "missed"; empty: zeros), and the phase timers' field value `phases`
+## (PhaseTimers.field(); "": no phases field). The fields are the class
+## doc's, in its order. Read only.
 # @spec-link [[req_platform_and_performance_targets]]
 static func line(t: float, stats: Dictionary, ticking: Dictionary, process_ms_mean: float, ticks: int,
-		hops: int, short_hops: int, sim: Simulation, parts: PackedFloat64Array, phases := "") -> String:
+		hops: int, short_hops: int, sim: Simulation, parts: PackedFloat64Array, phases := "",
+		load_window := {}) -> String:
 	assert(parts.size() == PART_FIELDS.size(), "PerfLog.line: one mean per part field")
 	var counts := {DebugCounts.PHYSICS: 0, DebugCounts.ON_SCREEN: 0, DebugCounts.IN_RANGE: 0,
 			DebugCounts.PARKED: 0, DebugCounts.RESTING: 0}
@@ -472,6 +518,10 @@ static func line(t: float, stats: Dictionary, ticking: Dictionary, process_ms_me
 			counts[DebugCounts.PHYSICS], counts[DebugCounts.ON_SCREEN], counts[DebugCounts.IN_RANGE],
 			counts[DebugCounts.PARKED], counts[DebugCounts.RESTING], largest_cluster, hops, short_hops, bodies,
 			ticking["active_mean"], ticking["pairs_mean"], section, zoom] + _part_text(parts)
+	var detail := [0, 0, 0] if sim == null else [
+			sim.offscreen.detail_ceiling, sim.offscreen.crowd_level, sim.offscreen.detail_level()]
+	text += " ceiling=%d crowd_level=%d detail=%d busy=%.2f missed=%d" % (detail + [
+			float(load_window.get("busy", 0.0)), int(load_window.get("missed", 0))])
 	if phases != "":
 		text += " phases=" + phases
 	return text
@@ -509,15 +559,27 @@ static func camera_section(sim: Simulation) -> int:
 	return int(loop.segment(nearest["segment"])["section"])
 
 
+## The PERF_CEILING line of a load meter `step` (LoadMeter.stepped's) at `t`
+## seconds since the engine started, the crowd's level `crowd_level` then;
+## calm_needed is the meter's back-off after the step.
+# @spec-link [[req_platform_and_performance_targets]]
+static func ceiling_line(t: float, step: Dictionary, crowd_level: int) -> String:
+	return "PERF_CEILING t=%.1f from=%d to=%d reason=%s busy=%.2f missed=%d crowd_level=%d calm_needed=%d" % [
+			t, step["from"], step["to"], step["reason"], step["busy"], step["missed"], crowd_level,
+			step["calm_needed"]]
+
+
 ## The PERF_INFO line: the window, the device model, the rendering method and
-## driver, the screen's refresh rate, the window's size, the vsync mode and
-## the game root's cap on ticks per frame at 1x (spaces in names become
-## underscores, so every value is one word).
+## driver, the screen's refresh rate, the window's size, the vsync mode, the
+## game root's cap on ticks per frame at 1x and its crowd detail mode
+## (spaces in names become underscores, so every value is one word).
+# @spec-link [[req_platform_and_performance_targets]]
 func info_line() -> String:
 	var size := DisplayServer.window_get_size()
+	var mode: String = game.call("crowd_detail_mode")
 	return ("PERF_INFO seconds=%s model=%s renderer=%s driver=%s refresh_hz=%.1f window=%dx%d vsync=%d"
-			+ " max_ticks_per_frame=%d") % [
+			+ " max_ticks_per_frame=%d crowd_detail=%s") % [
 			seconds, OS.get_model_name().replace(" ", "_"),
 			RenderingServer.get_current_rendering_method(), RenderingServer.get_current_rendering_driver_name(),
 			DisplayServer.screen_get_refresh_rate(), size.x, size.y, DisplayServer.window_get_vsync_mode(),
-			int(game.get("max_ticks_per_frame"))]
+			int(game.get("max_ticks_per_frame")), mode]

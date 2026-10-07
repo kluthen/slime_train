@@ -2399,7 +2399,9 @@ A train slime isn't lost but stalled: `train.stalled` (see "Train").
   | 2 | 15 | 12 | 10 | 8 |
   | 3 | 18 | 15 | 12 | 9 |
 
-  The level is the higher of the zoom's and the crowd's. Zoomed out (below
+  The level is the higher of the zoom's and the lower of the crowd's and
+  the detail ceiling, `max(zoom's, min(crowd, Offscreen.detail_ceiling))`
+  (D141; see "Chunk 22c: crowd detail only under load"). Zoomed out (below
   `LOW_ZOOM` 0.8, back from `FULL_ZOOM` 0.85 up) gives at least level 2
   (`LOW_DETAIL`). The crowd is the slimes costing physics this tick, counted
   after the parking (`SlimeBodies.crowd_count()`: calm ACTIVE, not
@@ -2408,8 +2410,10 @@ A train slime isn't lost but stalled: `train.stalled` (see "Train").
   (`CROWD_EASE`: 15, 25, 35), so rings never reshape back and forth.
   Resting and parked rings keep their points (a reshape would wake a
   resting slime) and take the level on the tick they are ACTIVE again. The
-  count comes from the slimes' states only, never from a measured time, so
-  a run stays repeatable.
+  count comes from the slimes' states only, never from a measured time; the
+  ceiling is an input the game root hands over before every tick (3, so
+  the crowd's level as is, everywhere but normal play), so a run stays
+  repeatable.
 
 **Saves and hash.** A body's `"rest"` (calm, rest count, anchor, pile) and
 `"detail"` level (absent: 0; an older save's `"low": true` reads as level
@@ -5202,6 +5206,11 @@ What exists now:
     the game's `--phase-timers` to `slime_args`, so every `PERF` line
     carries `phases=` and the summary splits the tick into solver and
     behaviour (see "Chunk 5N: U0a phase timers").
+  - **`--crowd-detail=auto|always|off`** (chunk 22c, D141, either mode;
+    default `auto`): adds the game's `--crowd-detail=MODE` to `slime_args`
+    in both modes, so a fixture run (test mode, `always` without it)
+    measures `auto`, the shipping behaviour; `always` or `off` to compare
+    (see "Chunk 22c: crowd detail only under load").
   - **Ctrl-C** (in either mode) stops the recording cleanly, summarises
     what was recorded and exits 0. Otherwise: exit 0; 2 on bad arguments
     or no single device; 1 when the build or install fails, no `PERF` line
@@ -5213,8 +5222,8 @@ What exists now:
   - `logcat.txt`: the full logcat stream of the `godot` and `SlimePlatform`
     tags;
   - `perf.log`: a `# ` header (the device, its Android version, the mode,
-    the launch arguments, how the session ended), the `PERF_INFO` line and
-    every `PERF` line;
+    the launch arguments, how the session ended), the `PERF_INFO` line,
+    every `PERF` line and every `PERF_CEILING` line (chunk 22c);
   - `thermal.log`: every 15 s (`THERMAL_EVERY` in the environment changes
     it), the thermal status (`dumpsys thermalservice`, 0 none to 6
     shutdown) and the battery temperature;
@@ -5277,7 +5286,9 @@ What exists now:
   `hud_ms`, `debug_ms`, `main_ms`, `setup_ms`, `render_cpu_ms`,
   `render_gpu_ms`, `field_cpu_ms`, `field_gpu_ms`, `draw_calls`, `objects`,
   `primitives` (what each times: "Chunk 22b: drawing", "How to measure the
-  parts"). The class doc defines each. Frame times come from the real clock (`Time.get_ticks_usec()`), not
+  parts"), then crowd detail's (chunk 22c): `ceiling`, `crowd_level`,
+  `detail`, `busy`, `missed` (see "Chunk 22c: crowd detail only under
+  load"), and `phases` last when the phase timers are on. The class doc defines each. Frame times come from the real clock (`Time.get_ticks_usec()`), not
   the smoothed delta; `process_ms_mean` is the frame's real process span
   (from the tree's `process_frame` to the perf log's own `_process`, which
   runs last), not `Performance.TIME_PROCESS` (Godot 4.7 updates that once a
@@ -6546,6 +6557,126 @@ above; the phone, U8, still to come). The details are in
   95 to 98 % of the tick. The table is under "Bench" in
   `docs/dev/native.md`, the whole report in
   `docs/perf/2026-10-05-5n-desktop-bench.md`.
+
+## Chunk 22c: crowd detail only under load
+
+Build plan chunk 22c, D141 (refines D140; `req_offscreen_simulation`,
+`req_test_level_and_test_mode`, `req_platform_and_performance_targets`).
+D140's crowd detail cut a crowd's ring points on every device; with 22c it
+does so only where the device can't keep up. The detail rule itself is
+under "Off-screen simulation (chunk 15)", Detail levels.
+
+### The load meter
+
+`src/platform/load_meter.gd` (`LoadMeter`, a Node, a child of the game
+root): the scene layer, every build (release too; it is not under
+`src/debug/`). `src/sim/` still reads no clock (CODING_RULE §2): the meter
+reads the real clock through its `clock` Callable (tests inject their own)
+and is fed each frame by `feed(busy_usec, ticks, speed)`: the frame's busy
+time (the tree's `process_frame` to the meter's `_process`, priority
+`(1 << 30) - 1`, just before the perf log's), the ticks the fixed step ran
+and the debug speed. About each second of real time (`WINDOW_USEC`,
+1,000,000 us) it gives one verdict:
+
+- **pressed:** a busy share above `PRESSED_SHARE` (0.85), or
+  `PRESSED_MISSED` (3) missed beats or more (a missed beat: a frame that
+  ran `MISSED_TICKS`, 2, ticks or more);
+- **calm:** a busy share below `CALM_SHARE` (0.60) and at most
+  `CALM_MISSED` (1) missed beat;
+- **band:** neither;
+- **dropped:** no verdict: a frame over `LONG_FRAME_USEC` (250 ms: a pause,
+  a load, back from the background) or at a speed other than 1x.
+
+### The ceiling and the back-off
+
+`Offscreen.detail_ceiling` (0 to `SlimeBodies.MAX_DETAIL`, 3): the
+simulation's default is 3 (the crowd's level as is, D140); it is not state,
+not in the dump nor in a save. The game root hands it over in
+`step_simulation()`, before `simulation.step()`, at a tick boundary like
+the tilt. The meter's ceiling starts at 0 and at 0 again at `reset()` (the
+game root's `_use_simulation()`: a new simulation, a load, a reset). A
+pressed window raises it one step; `calm_needed` calm windows in a row
+lower it one step and the count starts again; a band window holds it and
+restarts the count; a dropped window changes nothing. At most one step a
+window; each emits `stepped`.
+
+**The back-off** (chunk 22c phase 3, a refinement of D141 proposed by the
+orchestrator, for a spec-writer to record; built in a simpler form, see
+below): `calm_needed` is `CALM_WINDOWS` (3). A **bounce**, a pressed window
+`BOUNCE_WINDOWS` (10) judged windows or fewer after a step down, sets it to
+`BACKOFF_WINDOWS` (60): the next step down waits about a minute of calm. A
+step down that **holds**, 10 judged windows after it without a pressed one,
+sets it back to 3 (its calm windows so far count, so the next step down can
+come at once), and so does `reset()`. Dropped windows don't count. Never
+saved, like the ceiling.
+
+Why not the doubling first proposed (3, 6, 12, then a cap of 24, reset to 3
+after 30 calm windows at a level): on a device calm at a ceiling and
+pressed one step below, each bounce costs two steps, and doubling from 3
+bounces after 3, 6, 12, 24, 24... calm windows: 12 steps after the climb in
+120 windows with the cap at 24, still 10 with no cap, so it can't give "a
+few". And with the cap below 30, the reset could only fire at ceiling 0. One
+long hold after a bounce does it with fewer constants: 4 steps after the
+climb in 120 windows (`test_load_meter.gd`, the oscillating feed), against
+one step down and back up every 4 windows before.
+
+### The modes
+
+`--crowd-detail=auto|always|off` (`LoadMeter.parse_args`, debug builds; a
+release build ignores it, saying so, and is always `auto`; a bad value
+quits with exit code 1):
+
+- `auto`: the meter's ceiling, the default in normal play;
+- `always`: 3, D140's behaviour, the simulation's default and test mode's
+  (so seeded runs, the tests and the fixtures repeat exactly; guard test
+  `tests/unit/test_crowd_detail_mode.gd`);
+- `off`: 0, only the zoom's detail.
+
+The meter measures in every mode (the perf log reports it); only `auto`
+hands its ceiling over. A save written in `auto` loads in every mode
+(`test_offscreen_crowd.gd`): `detail` and `crowd_level` keep their meaning.
+
+### The perf log
+
+The `PERF` line gains `ceiling crowd_level detail busy missed` (after the
+parts, before `phases`; `busy` and `missed` are the meter's last window, in
+any mode), `PERF_INFO` gains `crowd_detail=<mode>`, and in `auto` each step
+prints `PERF_CEILING t= from= to= reason= busy= missed= crowd_level=
+calm_needed=` (`calm_needed`: the back-off after the step).
+`tools/android/perf.sh --crowd-detail=MODE` (default `auto`, both modes)
+passes the flag, and `perf.log` keeps the `PERF_CEILING` lines.
+`perf_summary.py` ignores the new fields.
+
+### Measured (desktop, 2026-10-07)
+
+`s3-basket-59of60`, `--crowd-detail=auto`, 120 s (`build/perf/`, git-ignored;
+`tools/perf_slow.sh`, D142). "Climb" is the time from the main thread's
+pin (about 3 s in) to ceiling 3.
+
+| Run | before the back-off | after |
+|---|---|---|
+| normal clock, `--full-speed --max-fps=60` | ceiling 0 throughout, 0 steps | ceiling 0 throughout, 0 steps (busy 0.24-0.38, mean 0.29; missed at most 1; 60 fps) |
+| slowed, `--pin=main`, uncapped | 16 steps; climb ~3 s (t 4-6); held at 3 for 54 s, then steps as the crowd thins, a 0-1-0-1 bounce at t 70-75 | run 1: 3 steps (the climb, t 4.1-6.1), held at 3 for 126 s (the run pressed throughout, 9-30 missed beats a window); run 2: 7 steps, climb t 4.0-6.1, held 76 s, 3-2-1 at t 82-85 (crowd level 0), a bounce at t 87 (back-off 60), 1-2-3 by t 92, held 40 s |
+| slowed, `--pin=main --max-fps=60` | 32 steps: climb ~3 s (t 4-6), then 3 to 0 over ~9 s and back up, again and again | 5 steps: climb t 4.0-7.0, one bounce (3-2 at t 10, back to 3 at t 11, back-off 60), held at 3 for 119 s |
+
+So after the climb: 0 to 4 steps per 2 minutes (proposed target: 5 or
+fewer). The busy share never passes 0.85 on the slowed desktop
+(0.22-0.72), so a pressed verdict there comes from missed beats alone; the phone
+(vsync on) may differ, chunk 22's repeat measures it.
+
+### Tests and hashes
+
+`tests/unit/test_load_meter.gd` (23: the verdicts, the ceiling, the
+back-off, dropped windows, reset, the modes, the flag),
+`tests/unit/test_crowd_detail_mode.gd` (7), `tests/unit/test_offscreen_crowd.gd`
+(+4: the ceiling caps, the zoom under ceiling 0, not state nor saved, a
+save written in `auto` loads in every mode), `tests/unit/test_perf_log.gd`
+(the new fields and `PERF_CEILING`). The fixture hashes (seed 909, 600 and
+2400 ticks, the 18 in `docs/dev/native.md`) are unchanged: tests and
+fixtures run in `always`. Checked all 36 on both ticks after step 2, and
+after the back-off `fresh`, `s3-basket-59of60` and `stress-dense` at 600
+and 2400 on both ticks (12 of 12 the same). The full suite after the
+back-off: 1552/1552 native and 126/126 on the GDScript tick, exit 0.
 
 ## Technical choices
 
