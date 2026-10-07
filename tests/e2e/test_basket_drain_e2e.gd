@@ -17,6 +17,7 @@ extends GutTest
 # @test-link [[rule_frontier_set_inert_after_gate_open]]
 # @test-link [[req_slime_states]]
 # @test-link [[req_session_lifecycle]]
+# @test-link [[req_hopping_behavior]]
 
 const MAIN_SCENE := "res://src/main.tscn"
 const SEED := 14

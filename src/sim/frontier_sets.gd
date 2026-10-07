@@ -481,6 +481,7 @@ func _open_gate(sim: Simulation, id: String) -> void:
 ## is run out, so it hops away as soon as it stands on the outlet's ground
 ## (O126) and clears the outlet for the next one.
 # @spec-link [[req_switch_basket_gate_set]]
+# @spec-link [[req_hopping_behavior]]
 func _release(sim: Simulation, slime_id: int, outlet: Vector2) -> bool:
 	var bodies := sim.slimes
 	var radius := bodies.radius_of(slime_id)
