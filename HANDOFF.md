@@ -214,7 +214,7 @@ faithful. s3-basket-59of60, seed 1 / seed 2, same measure (outputs `out/gy_*`):
 | g,r, geyser | 18.2 / 18.2 | 12.2 / 11.8 | 9.0 / 8.6 | 90 / 85 | 51 / 50 | 65 / 56 | 5.1 / 5.4 | 72/116 ; 69/122 | 1118/549/26/6 ; 1141/495/49/23 |
 
 - The geyser adds a little on top of g,r (x750 +1.1, cluster mean 60 -> 50) but does
-  **not** find more free spots: it still launches only 37 to 38 % of the arrivals
+  **not** find more free spots: it still launches only 36 to 38 % of the arrivals
   (base 36 to 44 %). Its rejects are the spots' geometry (off the route, under
   FirstLedge), which the flow doesn't change; "room" (a spot taken) even rises
   (18 -> 26 / 49). The start still crowds (cluster 85 to 90 against 20; arrivals
