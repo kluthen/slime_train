@@ -175,10 +175,11 @@ static func awake_clusters(c: LevelChecker) -> Dictionary:
 			+ "level's played test (from fresh, filling every basket, each basket's fire-and-drain; its rule 23 "
 			+ "line, ClusterWatch) and tools/level.sh bench --level=%s (largest_cluster, above_limit_s, "
 			+ "longest_above_s on each RESULT line); the largest awake cluster, the slimes inside a basket's box "
-			+ "left out (a basket's own fill doesn't count, the pile outside it does), above %d slimes for more than "
-			+ "%.0f s in a row fails (stress-* fixtures excepted). By eye: keep apart a bowl or dip next to a "
-			+ "basket, an outlet releasing into a crowd, a narrow ledge where the train queues, and a sleeper "
-			+ "shelf's landing spot next to any of these") % [c.data.level_id, ClusterWatch.LIMIT,
+			+ "and the train slimes on the loop's route left out (a basket's own fill and a train queue on the "
+			+ "route don't count, a pile outside the box or off the route does), above %d slimes for more than "
+			+ "%.0f s in a row fails (stress-* fixtures excepted). By eye, off the route: keep apart a bowl or dip "
+			+ "next to a basket, an outlet releasing into a crowd, and a sleeper shelf's landing spot next to any "
+			+ "of these (a narrow ledge where the train queues is rule 24's)") % [c.data.level_id, ClusterWatch.LIMIT,
 			ClusterWatch.HOLD_SECONDS]
 	var note := "the limit is proposed, to calibrate (O107): ClusterWatch.LIMIT %d slimes, HOLD_SECONDS %.0f s" % [
 			ClusterWatch.LIMIT, ClusterWatch.HOLD_SECONDS]

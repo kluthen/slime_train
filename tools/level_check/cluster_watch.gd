@@ -8,8 +8,13 @@ extends RefCounted
 ## of touching Physics slimes, counted in slimes), less the slimes inside a
 ## basket's box (D163, user 2026-10-07: a basket's own fill doesn't count;
 ## the pile outside it still does; basket_boxes()): inside by the centre,
-## and the cluster counted over the other slimes only, so two piles outside
-## a basket don't join through its slimes. It keeps:
+## and less the train slimes on the loop's route (user 2026-10-07: rule 23
+## targets piles off the route; a queue on the route is rule 24's business,
+## the train's flow; on_route_ids()). The cluster is counted over the other
+## slimes only, so two piles don't join through a basket's slimes or a
+## queue. Every other awake slime counts: free, a train slime knocked off
+## the route, stacked on others or due a move to the loop start. A released
+## slime is a train slime: on the route it is left out too. It keeps:
 ##   largest          the largest cluster sampled;
 ##   ticks_above      the ticks sampled above LIMIT, in all;
 ##   longest_above    the longest stretch of them in a row, ticks;
@@ -52,10 +57,40 @@ func watch(sim: Simulation) -> void:
 
 ## The largest awake cluster of `sim` as rule 23 counts it: the debug
 ## overlay's (DebugCounts.largest_cluster) with the slimes whose centre is
-## inside a basket's box left out (basket_boxes()). Read only.
+## inside a basket's box (basket_boxes()) and the train slimes on the route
+## (on_route_ids()) left out. Read only.
 # @spec-link [[rule_no_spot_where_slimes_gather_awake]]
 static func largest_cluster(sim: Simulation) -> int:
-	return DebugCounts.largest_cluster(sim.slimes, basket_boxes(sim.level))
+	return DebugCounts.largest_cluster(sim.slimes, basket_boxes(sim.level), on_route_ids(sim))
+
+
+## The ids of `sim`'s train slimes on the loop's route, ascending (D165's
+## proposed reading): in state train, followed by the train (Train.tracks),
+## not due a move to the loop start (LoopStartQueue.due: stalled, out of
+## bounds or stuck), and with their centre no more than Train.OFF_ROUTE px
+## from the route point at their progress
+## (Train.position_at(Train.distance_of)): the train's own "knocked off the
+## route" distance (Train.steering_distance), so a slime knocked off the
+## route, or stacked on others more than that above it, isn't on it. A train
+## slime the train doesn't follow yet (made since the last tick) isn't known
+## on the route and isn't in. None without a train. Read only.
+# @spec-link [[rule_no_spot_where_slimes_gather_awake]]
+static func on_route_ids(sim: Simulation) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	var train := sim.train
+	if train == null or train.length() <= 0.0:
+		return out
+	var bodies := sim.slimes
+	var due := {}
+	for entry in LoopStartQueue.due(sim):
+		due[entry["id"]] = true
+	for slime_id in train.tracked_ids():
+		if bodies.state_of(slime_id) != SlimeBodies.TRAIN or due.has(slime_id):
+			continue
+		var at := train.position_at(train.distance_of(slime_id))
+		if bodies.centre_of(slime_id).distance_to(at) <= Train.OFF_ROUTE:
+			out.append(slime_id)
+	return out
 
 
 ## The boxes of `level`'s baskets (LevelData.baskets' "box": a slime whose
