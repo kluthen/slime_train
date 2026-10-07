@@ -74,6 +74,11 @@ TECHNICAL = (
     "src/slimes/demo.gd",
     "src/components/placeholder_art.gd",
     "src/draw/shape_instances.gd",
+    # Picks the native or the GDScript tick: both give the same state.
+    "src/sim/tick_choice.gd",
+    # Art only: O96 (what decoration may do) is open and has no atom yet.
+    # It leaves this list when an atom covers O96's answer.
+    "src/components/decoration.gd",
 )
 
 ## Engine callbacks: private by name, but their intent is the engine's.
