@@ -4326,3 +4326,91 @@ chunk 22's repeat); `versions/v1/README.md`; `versions/v2/README.md`;
 (DoD 30's start crowding set aside, proposed). Outside `specs/`: the
 `level-content` skill, the `level-review` skill and `docs/level-design/`
 need no geyser or rule 25 for v1.
+
+## D162 — Chunk 22c as built: the load meter's hold after a bounce; exact repeat outside `auto`; O122 answered (2026-10-07)
+Proposed; the user reviews. Refines D141 (2) and (3); answers O122 (D160
+(4)). Sources: `docs/dev/README.md`, "Chunk 22c: crowd detail only under
+load" (merge 57d38e7) and "Chunk 24g", "Closure" (branch
+`chore/24g-close`, 7595762, not yet on main); `src/platform/load_meter.gd`.
+
+**1. Chunk 22c as built** (57d38e7; suite 1552/1552 native, 126/126 the
+GDScript pass; all 36 fixture hashes unchanged). The load meter, the
+detail ceiling and the modes as D141 wrote them, plus a hold.
+- **The thrash.** On the slowed CPU capped at 60 fps (`tools/perf_slow.sh
+  --pin=main --max-fps=60`, `s3-basket-59of60`, `auto`, 2 min) the
+  ceiling stepped 32 times: up to 3, down to 0 over about 9 s, up again,
+  over and over. The busy share stayed 0.22 to 0.72, never past D141's
+  pressed share (85 %), so missed beats alone decided each window, and
+  D141's "a step is well under the band" didn't apply.
+- **The hold after a bounce** (proposed by the orchestrator, refined in
+  the build). A **bounce** is a pressed window within 10 judged windows
+  after a step down: the lower ceiling couldn't be kept. The next step
+  down then waits for 60 calm windows in a row (about a minute) instead
+  of 3. A step down that lasts 10 judged windows without a pressed one
+  sets the wait back to 3; so does a load (the meter's reset). It isn't
+  saved, like the ceiling.
+- **Why not the doubling first proposed** (3, 6, 12, a cap of 24, back
+  to 3 after 30 calm windows at a level): on a device calm at a ceiling
+  and pressed one step below, each bounce costs two steps, and the
+  doubling still gives about 12 steps after the climb in 2 min (10 with
+  no cap), not "a few"; with its cap below 30, its reset could fire only
+  at ceiling 0. One long hold gives a few with fewer values.
+- **Measured** (desktop, 2 min, `s3-basket-59of60`, `auto`): at the
+  normal clock, ceiling 0 throughout. Slowed and capped at 60 fps: 5
+  steps (was 32). Slowed, uncapped: 3 and 7 steps over two runs (was 16).
+  The climb to the crowd's level takes about 3–4 s. After the climb, 0 to
+  4 steps per 2 min; "a few" read as 5 or fewer (the build's reading).
+  The phone (vsync on) may differ: chunk 22's repeat measures it.
+- **The risk:** after a bounce, crowd detail stays coarser for up to about
+  a minute after the device has recovered.
+- **The build's choices** (proposed):
+  - a dropped window changes nothing (no step, no count, not one of the 10
+    windows after a step down);
+  - a missed beat is a frame that ran 2 ticks or more;
+  - `auto` applies to any game outside test mode with no flag, a game
+    added by a test in normal play included;
+  - the `PERF_CEILING` line (one per step) is printed in `auto` only.
+- Values in `tuning.md` (`BOUNCE_WINDOWS` 10, `BACKOFF_WINDOWS` 60).
+
+**2. Exact repeat in test mode (proposed, for the user).**
+- Seeded runs repeat exactly (same build, same seed, same hash) in
+  `always`, the default of test mode, the fixtures, test-mode scripts,
+  the level bench and the tests, and in `off`.
+- A run passed `--crowd-detail=auto` (`perf.sh`'s phone runs) follows the
+  device's measured load and doesn't repeat. Its hash isn't a fixture
+  hash. A save written in `auto` still loads in every mode.
+- Stated where the master spec (6, Testability), `tech-direction.md`
+  (Testability) and the test level (Repeatability) promised exact repeat.
+
+**3. O122 answered (as measured in 24g's closure).**
+- Fusions per minute on `s3-basket-59of60` fell from about 17 to about
+  7.5 (seeds 1 / 2: 17.0 / 16.2 -> 8.0 / 6.9). Slimes don't meet less
+  (as often or more); their contacts break sooner. A fusion needs 3 s of
+  contact: in the bowl the share of meetings that fuse fell from about
+  50 % to about 20 %. The hold and the relay each cut about as much alone
+  (17 -> 11 and 10.5).
+- Rule 5 and DoD 1 hold: the dip nudge is unchanged and still gathers,
+  fusions still happen in the bowl (13 to 15 per seed; the rule sets no
+  rate), 0 stalled, stuck or lost. On `stress-dense` the rate holds (21
+  -> 22 per minute).
+- **Proposed:** accepted, watched in chunk 22's repeat and the playtest
+  (chunk 24); if fusion feels rare there, it becomes a chunk 24 item.
+  Whether a lower fusion rate on that level is acceptable is the user's
+  call; O122 leaves the register, and the user may reopen it.
+
+**4. The build plan.** 5N done (0f3d027). 24g part A done (a0ffdde); its
+closure measures done (7595762); one fix in progress: the relay must
+survive a save and reload, since `SlimeBodies.train_hopped` isn't state
+(a `stress-dense` save taken just after a take-off parts from the run
+that never stopped one tick after the load). 22c done (57d38e7). Next:
+chunk 22 repeated on the S20 FE (in `auto`), the rest of 24, the health
+review.
+
+**Documents:** `tuning.md` (the ceiling's rows, the hold's row);
+`tech-direction.md` (crowd detail, Testability, the next steps);
+`versions/v1/master-spec.md` (header, 6); `levels/test/README.md`
+(Repeatability); `versions/v1/build-plan.md` (Progress, the table, 5N,
+22c, 24g); `open-questions.md` (O122 out); `README.md`.
+**Flagged:** for documentalist, `req_offscreen_simulation` (the hold
+after a bounce) and `req_test_level_and_test_mode` (exact repeat
+outside `auto`).

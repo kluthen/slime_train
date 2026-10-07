@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v26 (chunks 22l and 22m's fixture built on main, their phone-emulation readings; v25: every wake local, D156 (7); `stress-moving`'s abuse target of 15 fps, not a 30 fps target, D153; earlier, v24: the fps session after 0196c25 reverted, D155: the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE; the local wake, D156, chunk 22l; `stress-moving` an abuse test and `stress-dense`'s target, D153, D154; the save format before the first store release and a save a build can't use set aside, proposed, D149; the save wipe for automated testing only, chunk 19w, D148, approved in direction, D149)
+Status: draft v27 (chunk 22c as built, the hold after a bounce, exact repeat outside `auto`, proposed, D162; 5N and 24g part A done; v26: chunks 22l and 22m's fixture built on main, their phone-emulation readings; v25: every wake local, D156 (7); `stress-moving`'s abuse target of 15 fps, not a 30 fps target, D153; earlier, v24: the fps session after 0196c25 reverted, D155: the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE; the local wake, D156, chunk 22l; `stress-moving` an abuse test and `stress-dense`'s target, D153, D154; the save format before the first store release and a save a build can't use set aside, proposed, D149; the save wipe for automated testing only, chunk 19w, D148, approved in direction, D149)
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -181,6 +181,10 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   (below 60 % and at most 1 such frame), or in the band. It moves a
   **detail ceiling**, 0 to 3: up one step per pressed window, down one
   step after 3 calm windows in a row, held in the band; it starts at 0.
+  *As built (D162, proposed):* after a bounce (a pressed window within
+  10 judged windows after a step down) the next step down waits for 60
+  calm windows (about a minute); slowed and capped at 60 fps, 32 -> 5
+  steps in 2 min.
   An ACTIVE ring takes max(zoom's, min(crowd level, ceiling)), then the
   pile cap. The busy share is the frame's work (the ticks plus the rest of
   `_process`) over the window's real time, so it reads the same at 60 or
@@ -190,6 +194,7 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   ceiling at 3, D140's behaviour) is the simulation's default, so test
   mode, fixtures, scripts, the bench and the tests keep their hashes;
   `off` (the ceiling at 0). No new save key: the ceiling isn't saved.
+  A run in `auto` follows the measured load and doesn't repeat (D162).
 - **The realistic worst case in play is a mostly still pile** (level rule
   16): a full basket plus the train, not 200 moving slimes. The
   `stress-moving` fixture (200 moving slimes) is the **abuse test**, with
@@ -275,6 +280,10 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   GDScript tick stays as a fallback. Then chunk 22c, crowd detail only
   under load (D141). Then chunk 22 repeated on the reference phone with
   the perf log, in `auto`.
+- **Chunks 5N, 24g and 22c on main** (D162): 5N done (0f3d027); 24g part A
+  (the train's climb) done, a0ffdde, a fix in progress (the relay across a
+  save and reload); 22c done (57d38e7), the hold after a bounce added.
+  Next: chunk 22 repeated on the real S20 FE, in `auto`.
 - **The cap on ticks per frame: 2 at 1x** (proposed, D138; was 8): an
   overloaded scene plays in slow motion instead of collapsing into the
   catch-up spiral; the cap scales with the debug speed.
@@ -345,7 +354,10 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   comes from one random generator with a seed, so a test run can be repeated
   exactly.
 - **Repeatable runs:** state hashes are compared between runs of the same
-  build. If the native contingency is ever adopted (D96), a native build
+  build. *(Proposed, D162:)* runs repeat in crowd detail's `always` (test
+  mode's default: fixtures, scripts, the bench, the tests) and `off`; a
+  run passed `--crowd-detail=auto` (`perf.sh`'s phone runs) follows the
+  device's load, doesn't repeat, and its hash isn't a fixture hash. If the native contingency is ever adopted (D96), a native build
   won't match the GDScript version bit for bit, nor Linux match Android, so
   tests compare runs within one build.
 - **Test mode** (Linux build and debug Android builds only, never in the

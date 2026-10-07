@@ -1,6 +1,6 @@
 # Test level
 
-Status: draft v22 (rules checklist: rules 24 and 25's rows, the geyser and the start's review after v1, D161, the user's; no geyser on the test level in v1; v21: rules checklist: rule 24's row, the start's crowding not a v1 blocker, to the test level's review, chunk TL2, D160; rule 25's row, the geyser's placement, its ledge note, O124; v20: rules checklist: rule 24's row, fails today, chunk 24g measures it again with the geyser and the dip nudge's unjam, D159; v19: rules checklist: rule 24's row, unknown until chunk 22h's measurements, a by-eye check, D157; rule 23's row added, restating D143 and O107 (c); v18: `stress-dense` built on main, chunk 22m, 4aac65a; 17 of its slimes wrap at load, O116; v17: fixture `stress-dense`, rebuilt in chunk 22m: 3 per 100 px of loop along the loop line, the bowl's bottom two 300 px stretches at 4, D153, D154; `stress-moving` the abuse test, D153; known issue: a fixture's train distances wrap on load, O116; the fps session after 0196c25 withdrawn, D155)
+Status: draft v23 (Repeatability: exact repeat outside crowd detail's `auto`, proposed, D162; v22: rules checklist: rules 24 and 25's rows, the geyser and the start's review after v1, D161, the user's; no geyser on the test level in v1; v21: rules checklist: rule 24's row, the start's crowding not a v1 blocker, to the test level's review, chunk TL2, D160; rule 25's row, the geyser's placement, its ledge note, O124; v20: rules checklist: rule 24's row, fails today, chunk 24g measures it again with the geyser and the dip nudge's unjam, D159; v19: rules checklist: rule 24's row, unknown until chunk 22h's measurements, a by-eye check, D157; rule 23's row added, restating D143 and O107 (c); v18: `stress-dense` built on main, chunk 22m, 4aac65a; 17 of its slimes wrap at load, O116; v17: fixture `stress-dense`, rebuilt in chunk 22m: 3 per 100 px of loop along the loop line, the bowl's bottom two 300 px stretches at 4, D153, D154; `stress-moving` the abuse test, D153; known issue: a fixture's train distances wrap on load, O116; the fps session after 0196c25 withdrawn, D155)
 
 A compact level that puts nearly every v1 gameplay item in one place (D76).
 It is the testing ground while the game is built, and the level the
@@ -615,7 +615,11 @@ test's stress advance check only passes thanks to that catch-up.
 spot a free slime can reach leads back to the loop (rule 7).
 
 **Repeatability:** all gameplay randomness comes from the seeded generator
-(tech-direction), and each test sets its seed.
+(tech-direction), and each test sets its seed. *(Proposed, D162:)* runs
+repeat in crowd detail's `always` (test mode's default) and `off`; a run
+passed `--crowd-detail=auto` (`perf.sh`'s phone runs on these fixtures)
+follows the device's load and doesn't repeat: its hash isn't a fixture
+hash.
 
 ## Rules checklist (`../../level-design.md`)
 

@@ -42,7 +42,9 @@ fixed by the hold on a climb and the relay (5.2, proposed; chunk 24g,
 the train's climb); the dip nudge is unchanged (D160). The start's
 crowding is not a v1 blocker (the user's, D160; Known gap 9), and
 Definition of done 30 is judged with it set aside (the user's reading,
-D161; wording proposed).
+D161; wording proposed). Test runs repeat exactly except in a run that
+asks for normal play's crowd detail, which follows the device's load
+(6, Testability; proposed, D162).
 
 ## 1. Concept and objective
 
@@ -795,7 +797,11 @@ Every level, the test level included, follows these rules.
 - **Testability:** all gameplay randomness comes from one seeded
   generator so test runs repeat exactly within one build (a desktop and an
   Android build aren't promised to give identical results once the tick
-  runs as native code). A test mode, only in the Linux build
+  runs as native code). *(Proposed, D162:)* that holds in test mode's
+  default crowd detail and with crowd detail off; a run that asks for
+  normal play's crowd detail, which follows the device's load
+  (`--crowd-detail=auto`, the phone's performance runs), doesn't repeat,
+  and its hash isn't a fixture's. A test mode, only in the Linux build
   and debug Android builds, loads fixture saves, speeds up or skips time, and
   injects taps and tilt from a script.
 

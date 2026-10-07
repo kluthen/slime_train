@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v25 (the geyser object and TL2 after v1, the user's, D161: their sections moved under "After v1"; chunk 24g kept as the train's climb (the hold on a climb and the relay, rule 24's run tool without the geyser), proposed, O125; the order after 5N: 24g, 22c, 22 repeated, the rest of 24, the health review; chunk 22's repeat judges DoD 30 with the loop start's crowding set aside, proposed; earlier, v24: chunk 24g restated: the geyser as a level object, the hold on a climb and the relay, the dip nudge unchanged, the start's measures recorded not gated; chunk TL2, the test level's start review, proposed, not a lock gate, its place the user's, O123; D160; earlier, v23: chunk 24g, the geyser and the train's flow off the start, before v1 closes, proposed next after 5N, D159; O91 fixed, 0061ccf; earlier, v22: 22h done, fccbb8e, 96725f1, as-built note under D150; 19w's as-built note under D149; 5N next, D158; earlier, v21: 5N next, after 22h, for headroom, D158; 19w done, fdae364; 22h step A done, fccbb8e; 22m part 2 done, 3b765f3; the real S20 FE of 2026-10-03; earlier, v20: 22l done, 600de6b, 5f6a6b0; 22m's fixture done, 4aac65a, its run tool being built; DoD 30's status on the phone emulation; earlier, v19: 22l: every wake local, D156 (7); `stress-moving`'s abuse target in chunk 22 and 24.1, D153; earlier, v18: the fps session after 0196c25 reverted, D155: chunks 22e, 22f, 22g, 22i, 22j and 22k withdrawn, kept on branch `archive/fps-session-2026-10`; chunk 22d done, 1a539db; new chunks 22l, the local wake, D156, and 22m, the `stress-dense` fixture and the 10,000-tick run tool, D153, D154, both being built with the revert; chunk 19w, the save wipe and the save format before the first store release, D148, D149, and chunk 22h, the loop-start queue, D150, re-entered; the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE, the rest of 24, the health review, D155; approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v26 (5N done, 0f3d027; 24g part A done, a0ffdde, its closure measured, 7595762, the relay across a save and reload being fixed; 22c done, 57d38e7, the hold after a bounce, proposed, D162; O122 answered, its acceptance proposed, D162; next: chunk 22 repeated on the S20 FE; v25: the geyser object and TL2 after v1, the user's, D161: their sections moved under "After v1"; chunk 24g kept as the train's climb (the hold on a climb and the relay, rule 24's run tool without the geyser), proposed, O125; the order after 5N: 24g, 22c, 22 repeated, the rest of 24, the health review; chunk 22's repeat judges DoD 30 with the loop start's crowding set aside, proposed; earlier, v24: chunk 24g restated: the geyser as a level object, the hold on a climb and the relay, the dip nudge unchanged, the start's measures recorded not gated; chunk TL2, the test level's start review, proposed, not a lock gate, its place the user's, O123; D160; earlier, v23: chunk 24g, the geyser and the train's flow off the start, before v1 closes, proposed next after 5N, D159; O91 fixed, 0061ccf; earlier, v22: 22h done, fccbb8e, 96725f1, as-built note under D150; 19w's as-built note under D149; 5N next, D158; earlier, v21: 5N next, after 22h, for headroom, D158; 19w done, fdae364; 22h step A done, fccbb8e; 22m part 2 done, 3b765f3; the real S20 FE of 2026-10-03; earlier, v20: 22l done, 600de6b, 5f6a6b0; 22m's fixture done, 4aac65a, its run tool being built; DoD 30's status on the phone emulation; earlier, v19: 22l: every wake local, D156 (7); `stress-moving`'s abuse target in chunk 22 and 24.1, D153; earlier, v18: the fps session after 0196c25 reverted, D155: chunks 22e, 22f, 22g, 22i, 22j and 22k withdrawn, kept on branch `archive/fps-session-2026-10`; chunk 22d done, 1a539db; new chunks 22l, the local wake, D156, and 22m, the `stress-dense` fixture and the 10,000-tick run tool, D153, D154, both being built with the revert; chunk 19w, the save wipe and the save format before the first store release, D148, D149, and chunk 22h, the loop-start queue, D150, re-entered; the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE, the rest of 24, the health review, D155; approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
@@ -195,7 +195,28 @@ technology, not business behaviour:
   in the first 60 s (55.8, 41.3 and 22.6 fps); a warm section 1 crowd
   of 80 to 100 in `s3-basket-59of60` drops to 18–23 fps after ~151 s,
   and a tick costs ~11 ms even with 20 to 30 physics slimes.
-- **Next, in this order (D158; 24g placed by D159, restated by D161, proposed):** chunk **5N** (the native tick, now, for headroom, not a missed target:
+- **Chunk 5N** done (0f3d027; the S20 FE session,
+  `docs/perf/2026-10-06-5n-s20fe-session.md`).
+- **Chunk 24g** part A done (a0ffdde: the hold on a climb and the
+  relay); its closure measures done (7595762, on `chore/24g-close`): the
+  fusion drop explained (O122 answered, D162), `stress-dense`'s census,
+  the tick cost (+0.4 to +6 % native, mostly the relay's scan). **One fix
+  in progress:** the relay must survive a save and reload, since
+  `SlimeBodies.train_hopped` isn't state (a `stress-dense` save taken
+  just after a take-off parts from the run that never stopped one tick
+  after the load).
+- **Chunk 22c** done (57d38e7; suite 1552/1552 native, 126/126 the
+  GDScript pass, the 36 fixture hashes unchanged; as-built note D162):
+  the load meter, the detail ceiling, the modes, and the hold after a
+  bounce (proposed). Slowed CPU capped at 60 fps: 32 -> 5 ceiling steps
+  in 2 min.
+- **Watch (D162, proposed):** the lower fusion rate on
+  `s3-basket-59of60` (about 17 -> 7.5 per minute) in chunk 22's repeat
+  and the playtest; if fusion feels rare, a chunk 24 item.
+- **Next:** chunk **22 repeated** on the real S20 FE with the perf log,
+  in `auto` (DoD 30 judged with the loop start's crowding set aside),
+  then the rest of chunk **24**, then the closing health review.
+- **The order as planned (D158; 24g placed by D159, restated by D161, proposed):** chunk **5N** (the native tick, now, for headroom, not a missed target:
   the user, "go native"; it ports the local wake), chunk **24g** (the
   train's climb: the hold on a climb and the relay, D160, D161,
   proposed, O125), chunk **22c** (crowd detail only under load,
@@ -240,7 +261,7 @@ technology, not business behaviour:
 | 3 | Test backbone | M | 0 | two identical scripted runs give identical state |
 | 4 | Level scaffolding and Meadow greybox | M | 3 | the loop, terrain and IDs load in a test |
 | 5 | Slime body | L | 1, 4 | unit tests on rings; a visual demo |
-| 5N | Native simulation tick (next, for headroom, D158; D140, D142, D143, D155) | M | 22h | the whole suite on the native tick; saves load under either tick; chunk 22 repeated |
+| 5N | Native simulation tick (done, 0f3d027; for headroom, D158; D140, D142, D143, D155) | M | 22h | the whole suite on the native tick; saves load under either tick; chunk 22 repeated |
 | 6 | Train and split zone | M | 5 | [DoD 1 partial, 7] |
 | 7 | Taps and the call | L | 6 | [DoD 3, 4, 15, 17] |
 | 8 | Save format and fixtures | M | 7 | kill-and-reload tests; the first fixtures load [DoD 28 partial] |
@@ -265,8 +286,8 @@ technology, not business behaviour:
 | 22l | The local wake, with the `hops` and `short_hops` counters (the user's direction, D156; done, 600de6b, 5f6a6b0) | S | 22d | the counters first; unit tests: a release, a fast touch and a move to the loop start wake only the resting slimes touched, never a sleeper, and every other wake is local too (D156 (7)); `s3-basket-59of60`'s drain without a whole-pile wake, its Physics and phone-emulation fps against the same build without it; changed hashes listed |
 | 22m | The `stress-dense` fixture and the 10,000-tick run tool (the user's, details proposed, D153, D154; fixture done, 4aac65a; run tool done, 3b765f3) | S | 22d | the fixture built by `tools/make_fixture.gd`, no format change; 200 train slimes (fewer only if they don't fit before switch 3, reported), 9 per 300 px stretch, the bowl's bottom two at 12, along the loop line; its hash at 600 and 2400 ticks recorded with the others'; its scripted test; the run tool over 10,000 ticks; a first phone-emulation reading |
 | 22e–22k | Withdrawn with the fps session (22e, 22f, 22g, 22i, 22j, 22k; D155); kept on branch `archive/fps-session-2026-10`; their ids aren't reused | — | — | — |
-| 22c | Crowd detail only under load (proposed, D141) | S | 5N | the load meter's unit tests; same hashes in `always`; `auto` measured on the desktop |
-| 24g | The train's climb (proposed, D160, D161; O125): the hold on a climb and the relay (from exp/dip-jam), rule 24's run tool without the geyser | S | 5N (proposed) | unit tests of the hold and the relay; `s3-basket-59of60` held on the start, seeds 1 and 2, recorded against D159's baseline (not a pass or fail on rules 23 and 24); `stress-dense`'s census; the fusion drop explained (O122); [DoD 1], the `bump` fixture; same hash on both ticks; changed hashes listed; the whole suite |
+| 22c | Crowd detail only under load (proposed, D141; done, 57d38e7, D162) | S | 5N | the load meter's unit tests; same hashes in `always`; `auto` measured on the desktop |
+| 24g | The train's climb (proposed, D160, D161; O125; part A done, a0ffdde, the relay across a save and reload in progress, D162): the hold on a climb and the relay (from exp/dip-jam), rule 24's run tool without the geyser | S | 5N (proposed) | unit tests of the hold and the relay; `s3-basket-59of60` held on the start, seeds 1 and 2, recorded against D159's baseline (not a pass or fail on rules 23 and 24); `stress-dense`'s census; the fusion drop explained (O122); [DoD 1], the `bump` fixture; same hash on both ticks; changed hashes listed; the whole suite |
 | — | The geyser object (after v1, D161; once 24g's first part; see "After v1") | M | 24g | not in v1's order |
 | TL2 | The test level's start review (after v1, D161; see "After v1") | S–M | 24g, the geyser object | not in v1's order |
 | 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
@@ -1084,7 +1105,7 @@ the revert (D155, 2026-10-03). Kept verbatim on branch
 - **22k** (planned, never built): a measurement round of 22i's cap off
   and on. Dropped; the stress targets are checked at chunk 22's repeat.
 
-### 22c. Crowd detail only under load (S, proposed, D141)
+### 22c. Crowd detail only under load (S, proposed, D141; done, 57d38e7, D162)
 
 The user's amendment to crowd detail (D140): "if you've got a good
 phone/tablet, why degrade?". A good device keeps full ring points
@@ -1126,8 +1147,12 @@ must not run while another chunk edits the slime body code.
   within about 3 s and makes no more than a few ceiling steps over
   2 minutes (no thrash), recorded in the project documentation; a save
   written in `auto` loads in every mode.
+- **As built (D162):** done when met. On the slowed CPU capped at 60 fps
+  the ceiling first thrashed (32 steps in 2 min); the hold after a bounce
+  (proposed) took it to 5: a pressed window within 10 judged windows
+  after a step down makes the next step down wait for 60 calm windows.
 
-### 24g. The train's climb: the hold on a climb and the relay (S, proposed, D160, D161; O125)
+### 24g. The train's climb: the hold on a climb and the relay (S, proposed, D160, D161; O125; part A done, a0ffdde; closure measured, a fix in progress, D162)
 
 The user (2026-10-05, the `stress-dense` report, in chunk 24's list):
 "movement wise, it fails grossly". D160 (4) found the cause on
@@ -1731,7 +1756,7 @@ behaviour, so no ATD steps; it still goes test first.
   `gate1-open` and `gate2-open` baskets 2 and 3; the fixtures are
   regenerated and the whole suite passes (DoD 1 included).
 
-### 5N. Native simulation tick (next; D158; D140, D142, D143, D155)
+### 5N. Native simulation tick (done, 0f3d027; D158; D140, D142, D143, D155)
 
 Size M. **Chunk 22 was its trigger** (D96): it failed DoD 30 (D138), and
 crowd detail was not enough on its own, which meets the user's
