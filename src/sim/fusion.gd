@@ -112,6 +112,11 @@ const NUDGE_GATHERING := "gathering"
 ## NUDGE_GATHERING). Debug, for the census (see the class doc).
 # @spec-link [[req_platform_and_performance_targets]]
 var nudged := {}
+## The fusions and the bumps done so far, cumulative. Debug counters for the
+## train-flow probe (tools/dipjam_probe.gd): not state, not in dump() nor saves.
+# @spec-link [[req_platform_and_performance_targets]]
+var fused_count := 0
+var bumped_count := 0
 
 ## Pair of runtime ids Vector2i(lower, higher) -> ticks of continuous contact.
 var _contacts := {}
@@ -211,9 +216,11 @@ func step(sim: Simulation) -> void:
 			continue
 		if bodies.can_merge(pair.x, pair.y):
 			if sim.fuse(pair.x, pair.y) >= 0:
+				fused_count += 1
 				changed[pair.x] = true
 				changed[pair.y] = true
 		else:
+			bumped_count += 1
 			_bump(bodies, pair.x, pair.y)
 	if not changed.is_empty():
 		# The fused slime is a fresh ring: its contacts start again.
