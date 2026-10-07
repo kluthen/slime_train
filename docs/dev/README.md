@@ -89,7 +89,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `tools/perf_slow.sh` | A windowed perf-log run of a fixture on the desktop, slowed or at full speed, and its summary (see "Chunk 22b: drawing", "How to measure the parts"; the counts and the largest awake cluster: "Chunk 22d: debug counters and the largest awake cluster") |
 | `tools/thru.gd` | The train's throughput over a long run (10,000 ticks by default) of a test-level fixture, headless: stalls, stuck moves, hops and the bowl's count per 600 ticks (see "How to measure the parts") |
 | `tools/gobble_probe.gd` | Slimes that can't fuse lodged inside each other over a long run of a test-level fixture, headless: each overlap's start (both slimes, what last moved them: an unpark, a split, a jump), how long it lasts, the stuck moves, the fastest slime (see "Solver", deep overlaps) |
-| `tools/dipjam_probe.gd` | The train's flow over a run of a test-level fixture, headless (chunk 24g): hop shares and advances, the dip nudge's holds, progress speeds, the climbs' speeds and slide back, landings on top of a slime, departures past 240 and 750 px against arrivals, the largest cluster at the loop's start (`--hold-view` pins the camera; see the tool's doc) |
+| `tools/dipjam_probe.gd` | The train's flow over a run of a test-level fixture, headless (chunk 24g): hop shares and advances, the dip nudge's holds, progress speeds, the climbs' speeds and slide back, landings on top of a slime, departures past 240 and 750 px against arrivals, the largest cluster at the loop's start, where same-species slimes meet and fuse per zone (`--hold-view` pins the camera; see the tool's doc) |
 | `tools/compare_frames.py` | Compares two sets of movie frames pixel by pixel (see "Chunk 22b: drawing", "The look") |
 | `tools/make_fixture.gd` | Writes a level's fixtures (see "Saves and fixtures") |
 | `tools/check_level.gd`, `tools/level_check/` | The level-rules checker, rules 1 to 22, on any level (see [level-tooling.md](level-tooling.md)) |
@@ -7072,8 +7072,8 @@ the bowl's climb 20.6 -> 47.9 px/s, fusions per minute 21 -> 22, bumps 15
   past 750 px, and the largest cluster near the start stays near 90 (rule
   23's limit is 20). Rule 24's rate check still fails on the test level.
 - **Fusions per minute fall on `s3-basket-59of60`** (about 17 -> 7.5),
-  not on `stress-dense`: not explained yet (the slimes pass each other
-  faster, fewer meet in a dip?).
+  not on `stress-dense`: explained under "Closure" below (the contacts
+  part sooner).
 - **The guard** (no hold off the route): found by rule 2's lap run on a
   fresh 4-section skeleton (`test_new_level_e2e`), where a size 2 was held
   on a 0.87 climb under a sleeper plate and every hop from there skimmed
@@ -7081,3 +7081,205 @@ the bowl's climb 20.6 -> 47.9 px/s, fusions per minute 21 -> 22, bumps 15
   the throwaway variant's (departures past 750 px 7.8 / 7.6 there).
 - **Tests:** `tests/unit/test_train_climb.gd`. Fixture hashes: 11 of 18
   re-recorded (`docs/dev/native.md`, "Fixture hashes").
+
+### Closure: the done-when items part A left out
+
+Measured 2026-10-07 on the desktop at a70f32e (after: main with 24g;
+before: 324d29b, main before 24g), native tick unless stated. The fusion
+census's four variants (none = before, G only, R only, G and R = after)
+ran on a temporary local switch over the two changes in `Train.steer()`,
+never committed: with both off it gives 324d29b's state hash
+(`stress-dense`, seed 1, 3600 ticks: `fa83de6e...`, the same from 324d29b's
+own `train.gd` and `slime_bodies.gd`), with both on main's.
+
+#### The fusion drop (O122)
+
+`tools/dipjam_probe.gd` now also prints where same-species slimes meet and
+fuse (`DJ_FLOOR`, `DJ_FUS`; its class doc has the fields). A pair's zone is
+its lower id's: `start` (the loop's start basin up to the top of its exit
+climb, loop distance under 1150 px), `dip<k>` (within 150 px of Fusion's
+dip floor k along the loop), `route` (any other train slime), `free`. The
+test level's dip floors: dip0 (x 3456), dip1 (x 11808) and dip2, section
+3's bowl (loop distance 15607 to 17700). The start basin is no dip floor
+for Fusion (the route doesn't rise behind the loop's start), so its nudge
+doesn't act there. Part A's runs: `s3-basket-59of60`, 14,000 ticks, the
+camera held on the start from tick 9000, seeds 1 / 2.
+
+| `s3-basket-59of60`, seed 1 / 2 | none (before) | G only | R only | G and R (after) |
+|---|---|---|---|---|
+| fusions per minute, whole run | 17.0 / 16.2 | 11.1 / 10.5 | 9.5 / 11.6 | 8.0 / 6.9 |
+| fusions in the bowl (dip2) | 23 / 27 | 20 / 21 | 18 / 17 | 15 / 13 |
+| fusions at the start basin | 26 / 28 | 14 / 14 | 13 / 24 | 9 / 7 |
+| fusions elsewhere on the route, dip0 | 16 / 8, 1 / 1 | 8 / 5, 1 / 1 | 6 / 3, 0 / 1 | 7 / 6, 0 / 1 |
+| bumps (whole run) | 1 / 9 | 0 / 4 | 0 / 1 | 0 / 0 |
+| same-species meets in the bowl | 44 / 54 | 74 / 42 | 65 / 74 | 78 / 54 |
+| same-species meets at the start basin | 227 / 330 | 250 / 231 | 437 / 594 | 428 / 350 |
+| the bowl: meets that fuse | 52 % / 50 % | 27 % / 50 % | 28 % / 23 % | 19 % / 24 % |
+| the start basin: meets that fuse | 11 % / 8 % | 6 % / 6 % | 3 % / 4 % | 2 % / 2 % |
+| the bowl: contacts lost before 3 s, mean length; share past 1 s | 1.37 / 1.17 s; 0.58 / 0.45 | 0.88 / 0.96 s; 0.32 / 0.53 | 0.66 / 0.77 s; 0.26 / 0.29 | 0.60 / 0.56 s; 0.25 / 0.17 |
+| the start basin: the same | 0.73 / 0.70 s; 0.30 / 0.28 | 0.67 / 0.74 s; 0.26 / 0.31 | 0.51 / 0.54 s; 0.19 / 0.21 | 0.56 / 0.54 s; 0.22 / 0.21 |
+| train slimes in the bowl on screen, mean | 3.1 / 3.2 | 3.1 / 3.0 | 2.6 / 2.6 | 2.4 / 2.2 |
+| train slimes at the start basin on screen, from tick 9000, mean | 70 / 73 | 57 / 57 | 64 / 71 | 63 / 61 |
+| dip nudge: gathering, mean (max) | 1.4 (60) / 1.2 (64) | 1.2 (61) / 1.3 (64) | 1.0 (51) / 1.1 (53) | 1.0 (45) / 1.0 (51) |
+| stalled, stuck, lost | 0 | 0 | 0 | 0 |
+
+Every bowl fusion happens before tick 9000 (the idle camera passes it),
+every start-basin fusion after (the camera held there): a pair only counts
+on screen.
+
+`stress-dense`, seed 1, 3600 ticks (all in the bowl, dip2): fusions per
+minute 21 / 21 / 26 / 22 (none, G, R, G and R), bumps 15 / 15 / 9 / 13,
+meets 77 / 75 / 89 / 72, contacts lost before 3 s 1.19 / 1.16 / 1.16 /
+1.25 s mean, about 50 train slimes in the bowl on screen in every variant.
+
+**The cause.** Not fewer meetings: same-species slimes meet as often or
+more often after 24g (the relay about doubles the meetings at the start
+basin, more slimes go past). Their contacts are broken sooner, and a fusion
+needs 3 s of continuous contact (CONTACT_TICKS): in the bowl the contacts
+lost before 3 s last 0.6 s on average instead of 1.2 to 1.4, and a meeting
+fuses about one time in five instead of one in two; at the start basin
+about one in fifty instead of one in ten. The hypothesis holds: with the
+relay the slime behind hops off as soon as the one ahead goes, so pairs
+part before 3 s; the hold (G) cuts about as much on its own: a queue on a
+climb no longer slides back into a heap where pairs stay pressed together
+(at the start basin's exit climb most). The two add up: 17 -> 11 (G), 17
+-> 10.5 (R), 17 -> 7.5 (both). On `stress-dense` the bowl is packed (about
+50 train slimes in it on screen): partners stay in contact anyway, the
+rate holds (21 -> 22).
+
+**Rule 5 and DoD 1 still hold.** Rule 5 (master spec 5.11, Level
+rules): "A dip in the loop may nudge same-species
+slimes into fusing." The nudge is unchanged and still acts (gathering up
+to 45 to 51 train slimes at once on `s3-basket-59of60`, about 30 on
+`stress-dense`), and fusions still happen in the dip (13 to 15 in the bowl
+per seed, 22 per minute on `stress-dense`): fewer, not none; the rule sets
+no rate. DoD 1: "With no input at all, from a fresh save, the train keeps
+travelling the whole current loop for a full session, and no slime ever
+becomes lost, nor does any train slime stall (5.2): the safety net moving
+a stalled slime doesn't count as a pass." Every run above: 0 stalled, 0
+stuck, 0 lost.
+
+#### The `stress-dense` census after 24g
+
+The slime census (see "Slime census"), headless, `--run-ticks=3600
+--census-every=10 --census-until=60`, six censuses (10 to 60 s), before and
+after, seeds 1 and 909. Over the active (not parked) train slimes, front
+first: a chain is a run of them each touching the one ahead; the short
+share and the median advance are of their landed last hops; gathering is
+the slimes the dip nudge holds gathering. Means of the six censuses, seed
+1 / 909:
+
+| `stress-dense` | before | after |
+|---|---|---|
+| active train slimes | 68 / 68 | 65 / 66 |
+| chains (2 or more) | 4.0 / 3.0 | 4.5 / 4.8 |
+| longest chain | 32 / 46 | 32 / 29 |
+| mean chain length | 23 / 27 | 15 / 13 |
+| slimes in chains | 62 / 61 | 59 / 60 |
+| last hops landed short | 97 % / 95 % | 96 % / 97 % |
+| median advance of the last hop | 3.9 / 4.1 px | 5.1 / 5.0 px |
+| held by gathering | 26 / 26 | 30.5 / 29 |
+
+The probe over the same 3600 ticks (seed 1): short share 0.93 -> 0.93,
+median advance 3.8 -> 4.2 px, gathering 26.0 -> 29.5 mean (max 49 -> 48).
+Before, it matches cb7e6f5's desktop finding (96 % short, median advance
+4 px, the chain fronts held by gathering). After 24g the queue in the bowl
+is still single-file chains making short hops into a held front: the
+chains are shorter (more of them, 13 to 15 slimes on average instead of
+23 to 27), the hops gain a little more (5 px instead of 4), slightly more
+are held gathering. The micro hops behind a gathering front (the user's
+report) remain: 24g fixed the climb, not the dip nudge (D160).
+
+#### The same hash across a save and reload
+
+`tests/e2e/test_tick_cross_load_e2e.gd`, `test_a_save_reloaded_on_the_same_tick_runs_to_the_same_hash`
+covers it on `s3-basket-59of60` (and `gate2-open`), both ticks: a save
+taken after 120 ticks, loaded twice, gives the same hash at the load and
+600 ticks later. Run with `stress-dense` added and a stricter check
+(temporary, not committed): saved at the first tick from 120 on with no
+slime in the air (MidairLanding's rule, so the load moves none), each load
+compared with the run that never stopped, at the load, 1 tick and 600
+ticks later (the state's dump, entry by entry). Results:
+
+- **The loads agree, on both ticks, on all three fixtures,** and native
+  and GDScript reach the same hash 600 ticks after the load (seed 909:
+  `s3-basket-59of60` `86dbdd2b66a4...`, `stress-dense` `62fc2bb0ebc9...`,
+  `gate2-open` `bae1bbfc72de...`). The test passes (2/2).
+- **Against the run that never stopped:** `s3-basket-59of60` and
+  `gate2-open` stay equal at the load, +1 and +600 (only `hint.since`
+  differs: the test calls `hint.world_shown()` again at each load).
+  **`stress-dense` departs one tick after the load** (1 slime of 186 at
+  +1, 78 of 182 at +600), with the relay only: with G only, or with both
+  off, it stays equal (saved at ticks 127 and 128). The cause, from the
+  code: the relay reads `SlimeBodies.train_hopped` (the last tick's train
+  take-offs), which is documented as "not state: not in dump() nor in
+  saves"; a save taken just after a train slime took off reloads with it
+  empty, so the slime behind isn't relayed on the first tick and the run
+  goes another way. Not fixed in the closure (measure-only): the save kept
+  what it saved, but a reload no longer always carried on as the run that
+  never stopped (see "Saves and fixtures": "stays equal to the run that
+  never stopped, tick for tick ... when no slime was saved in mid-air").
+- **Fixed after the closure (branch chore/24g-close):** the relay now acts
+  at the end of the take-off's own tick, at the end of `Train.follow()`
+  (where the train already counts the take-offs), instead of at the start
+  of the next tick's `steer()`. Nothing about it crosses the tick boundary
+  but the cut hop timer, which is state and saved; no new state, no save
+  key. Between the end of `follow()` and the next `steer()` (the stuck
+  slimes, the loop-start queue, the camera, then the input, the session,
+  Offscreen) nothing reads or changes a hop timer. What the relay checks
+  (the follower's state, parking, support, the records' distances) is now
+  read before those steps rather than after, so a slime parked, moved to
+  the loop start or picked up at that boundary may be relayed differently;
+  on the runs measured it never was, and the motion is the same: on
+  `s3-basket-59of60`, `stress-dense` and `stress-moving` the
+  state without the hop timers is unchanged on every tick (to 620, 2400 and
+  2400 ticks). Only a hash taken on a tick when a relay acted changes (it
+  shows the cut timer one tick sooner): 4 of the 36 fixture hashes,
+  re-recorded in `docs/dev/native.md` ("Fixture hashes"). The check is now
+  permanent: `tests/e2e/test_tick_cross_load_e2e.gd`,
+  `test_a_reload_after_a_take_off_carries_on_as_the_run_that_never_stopped`
+  (`stress-dense`, native tick, saved at the first tick from 120 on with a
+  train take-off and no slime in the air, tick 185; the state's dump, the
+  hint left out, equal to the run that never stopped at the load, +1 and
+  +600). Before the fix it failed (the slimes differ at +1; the slimes, the
+  train and fusion at +600); after it, it passes.
+
+#### Tick cost
+
+`tools/bench_level.gd --fixture=stress-dense,stress-moving,s3-basket-59of60
+--phases`, seed 909, the bench's lead-in for a named fixture (60 ticks),
+600 timed ticks, mean ms per tick, the median of 3 runs (runs alternating
+before / after and the two ticks); `train_steer` is the phase timer's
+`Train.steer()`, µs per tick. The desktop was loaded (another agent's
+runs between ours), so the run-to-run spread is about ±10 %.
+
+| Fixture | tick | before ms | after ms | change | `train_steer` µs before -> after |
+|---|---|---|---|---|---|
+| `stress-dense` | native | 4.74 | 4.76 | +0.4 % | 364 -> 414 |
+| `stress-dense` | GDScript | 6.94 | 7.05 | +1.6 % | 357 -> 419 |
+| `stress-moving` | native | 6.10 | 6.45 | +5.8 % | 800 -> 951 |
+| `stress-moving` | GDScript | 10.70 | 11.54 | +7.8 % | 758 -> 899 |
+| `s3-basket-59of60` | native | 3.38 | 3.46 | +2.4 % | 198 -> 260 |
+| `s3-basket-59of60` | GDScript | 5.84 | 6.41 | +9.8 % | 184 -> 267 |
+
+The steer phase rises by 50 to 150 µs on every run, above its own spread
+(±40 µs). Profiled (temporary timers in `Train.steer()`, native, 3 runs,
+µs per tick, same cases):
+
+| Fixture | `_relay` | the hold (`hold_on_slope`) | take-offs per tick | holds per tick | hops aimed per tick, before -> after |
+|---|---|---|---|---|---|
+| `stress-dense` | 43 to 54 | 9 to 11 | 0.50 | 8.6 | 0.60 -> 0.97 |
+| `stress-moving` | 54 to 57 | 14 | 0.66 | 11.5 | 0.92 -> 1.32 |
+| `s3-basket-59of60` | 31 to 37 | 10 to 13 | 0.47 | 10.4 | 0.42 -> 1.09 |
+
+- **`_relay` is most of the rise:** 65 to 110 µs per take-off, nearly all
+  `Train._behind()`'s linear scan over every train record (about 180 to
+  200) for each take-off. About 1 % of the tick; a scan in distance order
+  (an index kept by `follow()`) would cut it, not done here
+  (measure-only).
+- The hold costs about 1 µs per held slime; the extra hops aimed (the
+  train moves faster) a few µs.
+- The whole tick: within the noise on `stress-dense`; up to +6 % native
+  (+8 to 10 % GDScript) on `stress-moving` and `s3-basket-59of60`, of which
+  the steer phase explains about 60 to 150 µs; the rest is the train
+  moving more (more hops, more bodies awake), at the edge of the noise.
