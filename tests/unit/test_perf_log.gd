@@ -451,12 +451,12 @@ func test_release_game_refuses_the_perf_log() -> void:
 	assert_null(game.perf_log)
 
 
-## src/debug/ stays strippable: the game root loads the perf log by path, in
-## one place, after the guard.
+## src/debug/ stays strippable: the debug wiring loads the perf log by path,
+## in one place, and the game root reaches it only after the guard
+## (test_debug_overlay.gd checks main.gd's _debug_wiring()).
 func test_main_loads_the_perf_log_only_after_the_guard() -> void:
-	var text := FileAccess.get_file_as_string("res://src/main.gd")
+	var text := FileAccess.get_file_as_string("res://src/debug/debug_wiring.gd")
 	assert_eq(text.count("load(PERF_LOG_SCRIPT)"), 1, "one place loads it")
-	var body := text.get_slice("func add_perf_log(", 1).get_slice("\nfunc ", 0)
-	assert_true(body.find("test_mode_guard.allows()") >= 0
-			and body.find("test_mode_guard.allows()") < body.find("load(PERF_LOG_SCRIPT)"),
-			"add_perf_log() asks the guard before loading")
+	var body := FileAccess.get_file_as_string("res://src/main.gd").get_slice(
+			"func add_perf_log(", 1).get_slice("\nfunc ", 0)
+	assert_true(body.find("_debug_wiring()") >= 0, "add_perf_log() goes through the guarded wiring")

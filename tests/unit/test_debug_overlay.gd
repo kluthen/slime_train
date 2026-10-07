@@ -631,14 +631,22 @@ func test_code_outside_debug_never_names_it() -> void:
 	assert_eq(offenders, PackedStringArray())
 
 
-func test_main_loads_the_overlay_only_after_the_guard() -> void:
+## src/debug/ stays strippable: the game root loads its debug wiring
+## (src/debug/debug_wiring.gd) by path, in one place, after the guard, and
+## names nothing else in src/debug/.
+func test_main_loads_the_debug_wiring_only_after_the_guard() -> void:
 	var text := FileAccess.get_file_as_string("res://src/main.gd")
-	var loads := text.count("load(DEBUG_OVERLAY_SCRIPT)")
-	assert_eq(loads, 1, "one place loads it")
-	var body := text.get_slice("func add_debug_overlay()", 1).get_slice("\nfunc ", 0)
+	assert_eq(text.count("load(DEBUG_WIRING_SCRIPT)"), 1, "one place loads it")
+	assert_eq(text.count("res://src/debug/"), 1, "the wiring's path is the only src/debug/ path")
+	var body := text.get_slice("func _debug_wiring()", 1).get_slice("\nfunc ", 0)
 	assert_true(body.find("test_mode_guard.allows()") >= 0
-			and body.find("test_mode_guard.allows()") < body.find("load(DEBUG_OVERLAY_SCRIPT)"),
-			"add_debug_overlay() asks the guard before loading")
+			and body.find("test_mode_guard.allows()") < body.find("load(DEBUG_WIRING_SCRIPT)"),
+			"_debug_wiring() asks the guard before loading")
+
+
+func test_the_debug_wiring_loads_the_overlay_in_one_place() -> void:
+	var text := FileAccess.get_file_as_string("res://src/debug/debug_wiring.gd")
+	assert_eq(text.count("load(DEBUG_OVERLAY_SCRIPT)"), 1, "one place loads it")
 
 
 func _gd_files(dir_path: String) -> PackedStringArray:

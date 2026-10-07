@@ -196,7 +196,7 @@ func test_debug_game_times_every_simulation_when_asked() -> void:
 	assert_eq(game.use_phase_timers(PackedStringArray(["--seed=1"])), "")
 	assert_null(game.phase_timers, "not asked for")
 	assert_false(PhaseTimers.attached(game.simulation))
-	assert_eq(game.use_phase_timers(PackedStringArray(["--phase-timers"])), game.PHASE_TIMERS_ON)
+	assert_eq(game.use_phase_timers(PackedStringArray(["--phase-timers"])), load("res://src/debug/debug_wiring.gd").PHASE_TIMERS_ON)
 	assert_true(PhaseTimers.attached(game.simulation), "the running one")
 	assert_eq(game.enable_test_mode({"seed": 1}), PackedStringArray())
 	assert_true(PhaseTimers.attached(game.simulation), "test mode's")
@@ -211,16 +211,16 @@ func test_release_game_ignores_the_flag() -> void:
 	assert_false(PhaseTimers.attached(game.simulation))
 
 
-## src/debug/ stays strippable: the game root loads the timers by path, in
-## one place, after the guard (test_debug_overlay.gd's lint checks that no
-## code outside src/debug/ names PhaseTimers).
+## src/debug/ stays strippable: the debug wiring loads the timers by path,
+## in one place, and the game root reaches it only after the guard
+## (test_debug_overlay.gd checks main.gd's _debug_wiring(), and that no code
+## outside src/debug/ names PhaseTimers).
 func test_main_loads_the_phase_timers_only_after_the_guard() -> void:
-	var text := FileAccess.get_file_as_string("res://src/main.gd")
+	var text := FileAccess.get_file_as_string("res://src/debug/debug_wiring.gd")
 	assert_eq(text.count("load(PHASE_TIMERS_SCRIPT)"), 1, "one place loads it")
-	var body := text.get_slice("func use_phase_timers(", 1).get_slice("\nfunc ", 0)
-	assert_true(body.find("test_mode_guard.allows()") >= 0
-			and body.find("test_mode_guard.allows()") < body.find("load(PHASE_TIMERS_SCRIPT)"),
-			"use_phase_timers() asks the guard before loading")
+	var body := FileAccess.get_file_as_string("res://src/main.gd").get_slice(
+			"func use_phase_timers(", 1).get_slice("\nfunc ", 0)
+	assert_true(body.find("_debug_wiring()") >= 0, "use_phase_timers() goes through the guarded wiring")
 
 
 ## The PERF line carries the phases field last, only when given.

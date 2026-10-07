@@ -49,15 +49,18 @@ extends Node2D
 ## Test mode starts from its fixture or "load" save, and autosaves only when
 ## its run asks.
 ##
-## The save wipe (chunk 19w, D148): in a debug build, --wipe-save deletes
-## every file in the main scene's user://saves/ at launch, before anything
-## reads a save (src/debug/save_wipe.gd, named by path; see wipe_saves()).
-## Likewise --phase-timers times every tick phase by phase for the perf log
-## (src/debug/phase_timers.gd; see use_phase_timers()), and
+## The debug wiring (src/debug/debug_wiring.gd, health review S3), named by
+## path and loaded only after TestModeGuard allows it (_debug_wiring()): the
+## debug overlay, and the debug-only launch flags. The save wipe (chunk 19w,
+## D148): in a debug build, --wipe-save deletes every file in the main
+## scene's user://saves/ at launch, before anything reads a save (see
+## wipe_saves()). Likewise --phase-timers times every tick phase by phase for
+## the perf log (see use_phase_timers()), and
 ## --census-every=S[,--census-until=T] prints a slime census every S seconds
-## of game time (src/debug/slime_census.gd; see use_census()), and
-## --debug-labels starts with the debug overlay's slime labels shown, as if
-## its Labels button had been pressed (see use_debug_labels()).
+## of game time (see use_census()), and --debug-labels starts with the debug
+## overlay's slime labels shown, as if its Labels button had been pressed
+## (see use_debug_labels()). This script keeps each flag's release side: a
+## release build ignores it, saying so, and never loads src/debug/.
 ##
 ## A build exported with the "spike_soft_slimes" feature tag (the "Android
 ## spike: soft slimes" preset) runs spike 1's phone benchmark instead of the
@@ -94,46 +97,33 @@ const MAX_TICKS_PER_FRAME := 2
 ## The export feature tag that swaps the game for spike 1's benchmark.
 const SPIKE_SOFT_SLIMES_FEATURE := "spike_soft_slimes"
 const SPIKE_SOFT_SLIMES_SCENE := "res://spikes/soft-slimes/spike.tscn"
-## The debug overlay (speed, reset, labels, kill, counter). Debug builds only,
-## named by path like test mode (see add_debug_overlay()).
-const DEBUG_OVERLAY_SCRIPT := "res://src/debug/debug_overlay.gd"
-## The perf log (a PERF line every few seconds, for measuring on a phone).
-## Debug builds only, named by path like the overlay (see add_perf_log()).
-const PERF_LOG_SCRIPT := "res://src/debug/perf_log.gd"
-## The user argument that asks for it: --perf-log[=SECONDS].
+## The debug wiring (src/debug/debug_wiring.gd): the debug overlay, and what
+## the debug-only launch flags below turn on. Debug builds only, named by path
+## like test mode, loaded only after TestModeGuard allows it (_debug_wiring()).
+## A release build never loads it: it ignores each flag, saying so (the lines
+## below), and refuses the perf log's.
+const DEBUG_WIRING_SCRIPT := "res://src/debug/debug_wiring.gd"
+## The perf log's user argument, --perf-log[=SECONDS] (see add_perf_log()).
 const PERF_LOG_FLAG := "--perf-log"
 ## The measurement's other user argument, --max-ticks-per-frame=N: the cap
 ## at 1x for this run (max_ticks_per_frame), read with the perf log's.
 const MAX_TICKS_FLAG := "--max-ticks-per-frame"
+const PERF_LOG_FLAGS: PackedStringArray = [PERF_LOG_FLAG, MAX_TICKS_FLAG]
 const PERF_LOG_REFUSED := ("The perf log and its measurement flags are not available in this build"
 		+ " (release builds never run them).")
-## The save wipe (--wipe-save): debug builds only, named by path like the
-## overlay (see wipe_saves()). A release build ignores the flag, saying so.
-const SAVE_WIPE_SCRIPT := "res://src/debug/save_wipe.gd"
+## The save wipe (--wipe-save, see wipe_saves()).
 const SAVE_WIPE_FLAG := "--wipe-save"
 const SAVE_WIPE_IGNORED := "Save wipe: --wipe-save ignored, not a debug build."
-## The phase timers (--phase-timers, chunk 5N U0a): every tick timed phase by
-## phase (src/debug/phase_timers.gd), the perf log's PERF line carrying the
-## window's means. Debug builds only, named by path like the perf log (see
-## use_phase_timers()). A release build ignores the flag, saying so.
-const PHASE_TIMERS_SCRIPT := "res://src/debug/phase_timers.gd"
+## The phase timers (--phase-timers, see use_phase_timers()).
 const PHASE_TIMERS_FLAG := "--phase-timers"
-const PHASE_TIMERS_ON := "Phase timers: on (--phase-timers)."
 const PHASE_TIMERS_IGNORED := "Phase timers: --phase-timers ignored, not a debug build."
-## The slime census's schedule (--census-every=S, --census-until=T): a
-## census of every slime printed every S seconds of game time until T
-## (src/debug/slime_census.gd). Debug builds only, named by path like the
-## perf log (see use_census()). A release build ignores the flags, saying so.
-const CENSUS_SCRIPT := "res://src/debug/slime_census.gd"
+## The slime census's schedule (--census-every=S, --census-until=T, see
+## use_census()).
 const CENSUS_FLAGS: PackedStringArray = ["--census-every", "--census-until"]
 const CENSUS_IGNORED := "Census: --census-every/--census-until ignored, not a debug build."
-## The debug labels at start (--debug-labels, chunk 22's repeat): the debug
-## overlay's slime labels shown from launch, as if its Labels button had been
-## pressed, so an unattended perf run can measure what they cost. Debug builds
-## only (see use_debug_labels()); off without the flag. A release build
-## ignores the flag, saying so.
+## The debug labels at start (--debug-labels, see use_debug_labels()); off
+## without the flag.
 const DEBUG_LABELS_FLAG := "--debug-labels"
-const DEBUG_LABELS_ON := "Debug labels: on at start (--debug-labels)."
 const DEBUG_LABELS_IGNORED := "Debug labels: --debug-labels ignored, not a debug build."
 ## A release build ignores --crowd-detail (it is always `auto`), saying so.
 const CROWD_DETAIL_IGNORED := "Crowd detail: --crowd-detail ignored, not a debug build (auto)."
@@ -818,123 +808,108 @@ func _keep_pre_migration(result: Dictionary) -> void:
 		printerr(migrating, " The file as it was is kept as ", kept["path"], ".")
 
 
-## Adds the debug overlay (src/debug/debug_overlay.gd) on its own layer, if
+## Adds the debug overlay on its own layer (src/debug/debug_wiring.gd), if
 ## this build is a debug build (TestModeGuard) and it has none yet, its
 ## slime labels shown when --debug-labels asked (`debug_labels`). The main
 ## scene does in _ready; tests may.
 func add_debug_overlay() -> void:
-	if debug_overlay != null or not test_mode_guard.allows():
+	if debug_overlay != null:
 		return
-	debug_overlay = load(DEBUG_OVERLAY_SCRIPT).new()
-	add_child(debug_overlay)
-	if debug_labels:
-		debug_overlay.show_labels(true)
+	var wiring := _debug_wiring()
+	if wiring != null:
+		wiring.add_debug_overlay(self)
 
 
 ## Turns the debug labels at start on when `user_args` hold --debug-labels:
 ## in a debug build (TestModeGuard), sets `debug_labels`, and shows the
-## labels of the overlay already there; in a release build the flag is
-## ignored. The labels only draw: the simulation and its hash never change.
-## Returns the line to print: DEBUG_LABELS_ON, DEBUG_LABELS_IGNORED, or ""
-## without the flag. _ready calls it before adding the overlay; tests may.
+## labels of the overlay already there (src/debug/debug_wiring.gd); in a
+## release build the flag is ignored. Returns the line to print: the
+## wiring's DEBUG_LABELS_ON, DEBUG_LABELS_IGNORED, or "" without the flag.
+## _ready calls it before adding the overlay; tests may.
 # @spec-link [[req_platform_and_performance_targets]]
 func use_debug_labels(user_args: PackedStringArray) -> String:
 	if DEBUG_LABELS_FLAG not in user_args:
 		return ""
-	if not test_mode_guard.allows():
-		return DEBUG_LABELS_IGNORED
-	debug_labels = true
-	if debug_overlay != null:
-		debug_overlay.show_labels(true)
-	return DEBUG_LABELS_ON
+	var wiring := _debug_wiring()
+	return wiring.use_debug_labels(self) if wiring != null else DEBUG_LABELS_IGNORED
 
 
-## Adds the perf log (src/debug/perf_log.gd) when `user_args` hold
-## --perf-log[=SECONDS] and this build is a debug build (TestModeGuard), in
-## normal play or test mode alike, and it has none yet; with
-## --max-ticks-per-frame=N (a measurement, with or without the log) sets
-## max_ticks_per_frame to N. Returns the errors: the refusal in a release
+## Adds the perf log when `user_args` hold --perf-log[=SECONDS] and this
+## build is a debug build (TestModeGuard), and it has none yet; with
+## --max-ticks-per-frame=N sets max_ticks_per_frame to N (see
+## src/debug/debug_wiring.gd). Returns the errors: the refusal in a release
 ## build, or a malformed flag (nothing added or set). The main scene calls it
 ## in _ready; tests may.
 func add_perf_log(user_args: PackedStringArray) -> PackedStringArray:
-	var asked := false
-	for arg in user_args:
-		asked = asked or arg.get_slice("=", 0) in [PERF_LOG_FLAG, MAX_TICKS_FLAG]
-	if not asked or perf_log != null:
+	if not _asks(user_args, PERF_LOG_FLAGS) or perf_log != null:
 		return PackedStringArray()
-	if not test_mode_guard.allows():
-		return PackedStringArray([PERF_LOG_REFUSED])
-	var script: GDScript = load(PERF_LOG_SCRIPT)
-	var parsed: Dictionary = script.parse_args(user_args)
-	if not parsed["errors"].is_empty():
-		return parsed["errors"]
-	if parsed["max_ticks"] > 0:
-		max_ticks_per_frame = parsed["max_ticks"]
-	if parsed["requested"]:
-		perf_log = script.new(parsed["seconds"])
-		add_child(perf_log)
-	return PackedStringArray()
+	var wiring := _debug_wiring()
+	return wiring.add_perf_log(self, user_args) if wiring != null else PackedStringArray([PERF_LOG_REFUSED])
 
 
 ## Turns the phase timers on when `user_args` hold --phase-timers (chunk 5N
-## U0a): in a debug build (TestModeGuard), loads src/debug/phase_timers.gd
-## into `phase_timers`, so every simulation from then on is timed (the one
-## running too); in a release build the flag is ignored. Returns the line to
-## print: PHASE_TIMERS_ON, PHASE_TIMERS_IGNORED, or "" without the flag.
+## U0a): in a debug build (TestModeGuard), every simulation from then on is
+## timed (`phase_timers`, src/debug/debug_wiring.gd); in a release build the
+## flag is ignored. Returns the line to print: the wiring's PHASE_TIMERS_ON,
+## PHASE_TIMERS_IGNORED, or "" without the flag.
 # @spec-link [[req_platform_and_performance_targets]]
 func use_phase_timers(user_args: PackedStringArray) -> String:
 	if PHASE_TIMERS_FLAG not in user_args:
 		return ""
-	if not test_mode_guard.allows():
-		return PHASE_TIMERS_IGNORED
-	phase_timers = load(PHASE_TIMERS_SCRIPT)
-	if simulation != null:
-		phase_timers.attach(simulation)
-	return PHASE_TIMERS_ON
+	var wiring := _debug_wiring()
+	return wiring.use_phase_timers(self) if wiring != null else PHASE_TIMERS_IGNORED
 
 
 ## Turns the slime census's schedule on when `user_args` hold
 ## --census-every=S (and maybe --census-until=T): in a debug build
-## (TestModeGuard), loads src/debug/slime_census.gd and keeps its schedule
-## in `census`, which step_simulation() hands every tick; in a release build
-## the flags are ignored. Returns {"line" (to print: what it turned on,
-## CENSUS_IGNORED, or "" without the flags), "errors" (a malformed flag:
-## nothing turned on)}.
+## (TestModeGuard), into `census`, which step_simulation() hands every tick
+## (src/debug/debug_wiring.gd); in a release build the flags are ignored.
+## Returns {"line" (to print: what it turned on, CENSUS_IGNORED, or ""
+## without the flags), "errors" (a malformed flag: nothing turned on)}.
 # @spec-link [[req_platform_and_performance_targets]]
 func use_census(user_args: PackedStringArray) -> Dictionary:
-	var asked := false
-	for arg in user_args:
-		asked = asked or arg.get_slice("=", 0) in CENSUS_FLAGS
-	if not asked:
+	if not _asks(user_args, CENSUS_FLAGS):
 		return {"line": "", "errors": PackedStringArray()}
-	if not test_mode_guard.allows():
+	var wiring := _debug_wiring()
+	if wiring == null:
 		return {"line": CENSUS_IGNORED, "errors": PackedStringArray()}
-	var script: GDScript = load(CENSUS_SCRIPT)
-	var parsed: Dictionary = script.parse_args(user_args)
-	if not parsed["errors"].is_empty():
-		return {"line": "", "errors": parsed["errors"]}
-	census = script.new(parsed["every"], parsed["until"])
-	var until := "until %s s" % parsed["until"] if parsed["until"] > 0.0 else "with no end"
-	return {"line": "Census: every %s s of game time, %s." % [parsed["every"], until],
-			"errors": PackedStringArray()}
+	return wiring.use_census(self, user_args)
 
 
 ## The save wipe `user_args` ask for (--wipe-save, chunk 19w, D148), on
-## `directory`: in a debug build (TestModeGuard), src/debug/save_wipe.gd's
-## run() (every file in the directory deleted, unless the launch also names a
-## save to load: refused); in a release build the flag is ignored, nothing
-## deleted, one line saying so. Without the flag, nothing. Returns {"refusal"
-## ("" or why: a debug launch then quits with exit code 1), "log" (lines for
-## the standard output), "errors" (lines for the error output; the launch
+## `directory`: in a debug build (TestModeGuard), the debug wiring's (every
+## file in the directory deleted, unless the launch also names a save to
+## load: refused); in a release build the flag is ignored, nothing deleted,
+## one line saying so. Without the flag, nothing. Returns {"refusal" ("" or
+## why: a debug launch then quits with exit code 1), "log" (lines for the
+## standard output), "errors" (lines for the error output; the launch
 ## carries on)}. _ready calls it on save_wipe_directory; tests may.
 # @spec-link [[req_test_level_and_test_mode]]
 # @spec-link [[rule_saves_never_wiped]]
 func wipe_saves(user_args: PackedStringArray, directory: String) -> Dictionary:
 	if SAVE_WIPE_FLAG not in user_args:
 		return {"refusal": "", "log": PackedStringArray(), "errors": PackedStringArray()}
-	if not test_mode_guard.allows():
+	var wiring := _debug_wiring()
+	if wiring == null:
 		return {"refusal": "", "log": PackedStringArray([SAVE_WIPE_IGNORED]), "errors": PackedStringArray()}
-	return load(SAVE_WIPE_SCRIPT).run(user_args, directory)
+	return wiring.wipe_saves(user_args, directory)
+
+
+## The debug wiring's script (src/debug/debug_wiring.gd), loaded by path once
+## TestModeGuard allows it; null in a release build, which never loads
+## anything from src/debug/ (the release preset leaves it out).
+func _debug_wiring() -> GDScript:
+	if not test_mode_guard.allows():
+		return null
+	return load(DEBUG_WIRING_SCRIPT)
+
+
+## Whether `user_args` hold one of `flags`, alone or as flag=value.
+static func _asks(user_args: PackedStringArray, flags: PackedStringArray) -> bool:
+	for arg in user_args:
+		if arg.get_slice("=", 0) in flags:
+			return true
+	return false
 
 
 ## Starts the level over as on a first launch: a fresh simulation (a new
