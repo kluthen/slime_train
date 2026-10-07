@@ -61,11 +61,13 @@ extends RefCounted
 ## before crowd detail may instead have "low": true, read as level 2
 ## (SlimeBodies.LOW_DETAIL, the zoomed-out ring). "offscreen" keeps the
 ## Offscreen state (the off-screen proxies and the left-alone timers, the
-## crowd's detail level, Offscreen.dump; "crowd_level" absent: 0).
+## crowd's detail level, Offscreen.dump; "crowd_level" absent: 0; the whole
+## "offscreen" absent: a fresh level's Offscreen state).
 ##
 ## The safety nets (chunk 23A): "train.stalled" is the Train's log of the
 ## stalled train slimes it moved (D121; before chunk 23A the key was "lost",
-## and a train record had a "lost" flag: both are ignored when read);
+## and a train record had a "lost" flag: both are ignored when read, and a
+## "train" without "stalled" has an empty log);
 ## "stuck_slimes" keeps StuckSlimes' counts and log (D100, StuckSlimes.dump).
 ##
 ## The first-play hint (Hint): "hint_done" is the level's done mark (absent:
@@ -87,8 +89,9 @@ extends RefCounted
 ## as a float, so whole numbers are turned back into ints on load.
 ##
 ## Optional parts, for hand-made saves (fixtures): without "sim" the run's
-## seed is used and the tick is 0; without "runtime_id" slimes are numbered
-## 1, 2, ... in list order; without "body" a slime is a rest ring at its
+## seed is used, its generator as that seed starts it, the tick is 0 and the
+## next slime id follows the slimes'; without "runtime_id" (all or none)
+## slimes are numbered 1, 2, ... in list order; without "body" a slime is a rest ring at its
 ## centre with a fresh stream; a train slime without "train" is placed where
 ## the loop is closest; without "transient" the view and the input start
 ## empty.
@@ -436,7 +439,9 @@ static func _slime_problems(slimes: Array) -> PackedStringArray:
 ## `save` itself is left as it is), and its displaced slimes are lost once
 ## the rest is restored. Last, no slime is left in mid-air (MidairLanding:
 ## put on the ground below, or lost), so a slime saved in the air doesn't
-## reload exactly.
+## reload exactly. What problems() guarantees is read directly; a default
+## here is either a key the format calls optional (the file doc) or one of
+## the open gaps docs/dev/README.md lists ("Defaults on load").
 # @spec-link [[req_persistence_and_saves]]
 # @spec-link [[rule_released_level_stable_with_migration]]
 # @spec-link [[rule_saves_never_wiped]]
@@ -529,7 +534,7 @@ static func restore(save: Dictionary, level_data: LevelData, terrain: TerrainSeg
 ## The session, its whole numbers back to ints (Session.restore).
 # @spec-link [[req_session_lifecycle]]
 static func _restore_session(sim: Simulation, session: Dictionary) -> void:
-	var data := {"phase": str(session.get("phase", Session.SCREENSAVER)),
+	var data := {"phase": str(session["phase"]),
 			"elapsed_ms": _whole(session.get("elapsed_ms", 0)),
 			"sunrise_tick": _whole(session.get("sunrise_tick", -1)), "anchor": {}, "clock": {}}
 	for part in ["anchor", "clock"]:
