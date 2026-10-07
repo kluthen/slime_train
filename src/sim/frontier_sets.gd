@@ -32,9 +32,10 @@ extends RefCounted
 ## 3. A basket that isn't holding its slimes (FIRED, or FILLING with its
 ##    switch flipped back: the opt-out) releases them one at a time, lowest
 ##    id first, every RELEASE_SECONDS, at its outlet when there is room: the
-##    slime is moved there, at rest, and rides the train again. A slime that
-##    gets in a basket that is no longer collecting is released too: once
-##    fired, a basket takes no more slimes.
+##    slime is moved there, at rest, and rides the train again, hopping away
+##    as soon as it lands there (O126). A slime that gets in a basket that
+##    is no longer collecting is released too: once fired, a basket takes no
+##    more slimes.
 ## 4. The doors: a switch's trapdoor is open while its basket collects, and
 ##    shuts again once no slime is in its way; a closed gate's box is solid;
 ##    an open gate's lid shuts the old slide entrance once no slime is in its
@@ -476,7 +477,10 @@ func _open_gate(sim: Simulation, id: String) -> void:
 
 ## Moves slime `slime_id` to `outlet` at rest, back on the train. False when
 ## a slime is in the way. It wakes, and so do the resting slimes touching
-## where it was; the rest of the basket's pile rests on (D156).
+## where it was; the rest of the basket's pile rests on (D156). Its hop timer
+## is run out, so it hops away as soon as it stands on the outlet's ground
+## (O126) and clears the outlet for the next one.
+# @spec-link [[req_switch_basket_gate_set]]
 func _release(sim: Simulation, slime_id: int, outlet: Vector2) -> bool:
 	var bodies := sim.slimes
 	var radius := bodies.radius_of(slime_id)
@@ -496,6 +500,7 @@ func _release(sim: Simulation, slime_id: int, outlet: Vector2) -> bool:
 	body["centre"] = body["centre"] + shift
 	body["held"] = false
 	body["supported"] = false
+	body["hop_timer"] = 0.0
 	bodies.set_body(slime_id, body)
 	bodies.set_state(slime_id, SlimeBodies.TRAIN)
 	return true
