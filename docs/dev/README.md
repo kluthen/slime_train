@@ -4800,8 +4800,8 @@ earlier bench in these notes.
     at, `-` for the other cases), `median_ms`, `p95_ms`, `max_ms`,
     `mean_ms`, `physics`, `on_screen`, `in_range`, `parked`, `resting`
     (before -> after), `zoom`, `camera_steady`, `active`, `pairs`, and
-    since chunk 24 (item 24.7) level rule 23's `largest_cluster`,
-    `above_limit_s` and `longest_above_s` over the timed ticks
+    since chunk 24 (item 24.7) level rule 23's `largest_cluster` (the
+    slimes inside a basket's box left out), `above_limit_s` and `longest_above_s` over the timed ticks
     (`ClusterWatch`, `docs/dev/level-tooling.md`; the table's last three
     columns).
     `physics`, `on_screen`, `in_range` and `parked` are the debug overlay's
@@ -7362,11 +7362,25 @@ Build plan chunk 24, item 24.7 (`req_level_design_rules`; level rule 23,
 D143, D144, O107). Rule 23's measure (`ClusterWatch`, see
 `docs/dev/level-tooling.md`, "Level rule 23's measure") taken on the test
 level as it is, on the development desktop, native tick, 2026-10-07
-(branch feat/24-7, from `cfe1dab`). **No verdict**: the test level's
+(branch feat/24-7, from `cfe1dab`), and again once a basket's own fill
+no longer counts (below). **No verdict**: the test level's
 numbers wait for items 24.3 and 24.8 and for section 3 being settled
 (O107), and the loop start's crowding is set aside meanwhile (D161). The
 limit is the one rule 23 proposes (above 20 slimes for more than 5 s in a
 row fails, `ClusterWatch.LIMIT` and `HOLD_SECONDS`), not yet calibrated.
+
+### A basket's own fill left out (2026-10-07)
+
+The user's decision, 2026-10-07: "slimes inside a basket's box don't count
+toward rule 23; the pile outside it still does". Since branch
+feat/rule23-basket, `ClusterWatch` counts the largest awake cluster with
+the slimes whose centre is inside a basket's box left out
+(`ClusterWatch.largest_cluster`, `DebugCounts.largest_cluster`'s
+`left_out` boxes; the box FrontierSets catches by). The debug overlay and
+the PERF line still count every Physics slime. The tables below give each
+number before (branch feat/24-7, from `cfe1dab`, the basket's fill
+counted) and after (branch feat/rule23-basket, from `f09a501`), same runs,
+same ticks.
 
 ### The played test
 
@@ -7375,14 +7389,14 @@ each section's play from its fixture until its basket fires, then that
 basket's fire-and-drain on its own, until it is empty, the camera on the
 basket.
 
-| Run | Ticks | Largest cluster | Above the limit, s | Longest in a row, s |
+| Run | Ticks | Largest cluster, before -> after | Above the limit s, before -> after | Longest in a row s, before -> after |
 |---|---|---|---|---|
-| Section 1's play, `fresh` to s1.basket firing | 3780 (fill) | 6 | 0.0 | 0.0 |
-| s1.basket's fire-and-drain | 559 | 4 | 0.0 | 0.0 |
-| Section 2's play, `gate1-open` to s2.basket firing | 2896 (fill) | 11 | 0.0 | 0.0 |
-| s2.basket's fire-and-drain | 1066 | 11 | 0.0 | 0.0 |
-| Section 3's play, `gate2-open` to s3.basket firing | 10744 (fill) | 59 | 77.8 | 21.9 |
-| s3.basket's fire-and-drain | 6059 | 55 | 42.8 | 11.3 |
+| Section 1's play, `fresh` to s1.basket firing | 3780 (fill) | 6 -> 5 | 0.0 -> 0.0 | 0.0 -> 0.0 |
+| s1.basket's fire-and-drain | 559 | 4 -> 2 | 0.0 -> 0.0 | 0.0 -> 0.0 |
+| Section 2's play, `gate1-open` to s2.basket firing | 2896 (fill) | 11 -> 5 | 0.0 -> 0.0 | 0.0 -> 0.0 |
+| s2.basket's fire-and-drain | 1066 | 11 -> 6 | 0.0 -> 0.0 | 0.0 -> 0.0 |
+| Section 3's play, `gate2-open` to s3.basket firing | 10744 (fill) | 59 -> 23 | 77.8 -> 0.1 | 21.9 -> 0.1 |
+| s3.basket's fire-and-drain | 6059 | 55 -> 4 | 42.8 -> 0.0 | 11.3 -> 0.0 |
 
 (The fill's ticks are from the tap on the switch; the play's watch starts
 at the fixture, the calls included.)
@@ -7394,34 +7408,41 @@ at the fixture, the calls included.)
 ticks, and `--lead-in=700`, its basket full and releasing); 600 timed
 ticks each:
 
-| Case | Lead-in | Largest cluster | Above the limit, s | Longest in a row, s |
+| Case | Lead-in | Largest cluster, before -> after | Above the limit s, before -> after | Longest in a row s, before -> after |
 |---|---|---|---|---|
-| `start` | 600 | 1 | 0.0 | 0.0 |
-| `stress-still` | 420 (rested) | 0 | 0.0 | 0.0 |
-| `stress-moving` | 60 | 133 | 10.0 | 10.0 |
-| `s3-basket-59of60` | 60 | 59 | 9.4 | 5.9 |
-| `s3-basket-59of60` | 700 | 28 | 6.4 | 3.3 |
+| `start` | 600 | 1 -> 1 | 0.0 -> 0.0 | 0.0 -> 0.0 |
+| `stress-still` | 420 (rested) | 0 -> 0 | 0.0 -> 0.0 | 0.0 -> 0.0 |
+| `stress-moving` | 60 | 133 -> 133 | 10.0 -> 10.0 | 10.0 -> 10.0 |
+| `s3-basket-59of60` | 60 | 59 -> 37 | 9.4 -> 7.3 | 5.9 -> 2.6 |
+| `s3-basket-59of60` | 700 | 28 -> 17 | 6.4 -> 0.0 | 3.3 -> 0.0 |
 
 The `stress-*` fixtures are excepted from the rule (D96); `stress-moving`'s
 dense train reads as one long cluster (O107 (a)'s question: a train queue
-on the loop counts, as measured).
+on the loop counts, as measured). It has no basket in play, so it doesn't
+move.
 
 ### What it shows (observations, no verdict)
 
 - Sections 1 and 2 stay far under the limit, in their plays and their
-  drains.
-- Section 3 goes above it in both: its play (59 slimes, 21.9 s in a row)
-  and its basket's drain (55, 11.3 s in a row). Its basket holds 59 to 60
-  slimes, so its own fill, in the box and settling, is one cluster above
-  the limit by itself, wherever the basket stands: as measured, a basket's
-  own fill counts toward rule 23. Whether it should (only the slimes
-  outside a basket's box, or a basket's quota capped under the limit) is a
-  spec question, open (O107), not settled here.
+  drains, before and after.
+- Before, section 3 went above it in both: its play (59 slimes, 21.9 s in
+  a row) and its basket's drain (55, 11.3 s in a row). Its basket holds 59
+  to 60 slimes, so its own fill, in the box and settling, was one cluster
+  above the limit by itself, wherever the basket stands.
+- After, with the fill left out, section 3's play peaks at 23 slimes
+  outside the box for 0.1 s, and its drain at 4: neither stays above the
+  limit near the 5 s hold. The `s3-basket-59of60` bench case (lead-in 60)
+  still has 37 slimes awake together outside the box, above the limit for
+  7.3 s in all but at most 2.6 s in a row: the pile outside the basket,
+  which still counts.
 - The synthetic level (`tests/e2e/test_rule_23_e2e.gd`) keeps both its
   basket's quota (19) and its bowl's queue (18) under the limit, so only
   their gathering, the basket draining into the bowl, goes above it
   (largest 32, 12.1 s in a row: FAIL); a screen apart, never above
-  (largest 20: PASS).
+  (largest 20: PASS). Unchanged after: the queue and the slimes released
+  are outside the basket's box. `tests/unit/test_cluster_watch.gd` holds
+  the basket's side: a full basket of 25 doesn't fail rule 23, a pile of
+  25 outside its box does.
 
 ### How to reproduce
 

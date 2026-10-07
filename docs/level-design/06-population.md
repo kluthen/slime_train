@@ -77,8 +77,11 @@ screen or more away from baskets and outlets.
 The measure: the **largest awake cluster** over the level's own scripted
 runs (its played test from fresh, filling every basket, and each basket's
 fire-and-drain; the `stress-*` fixtures are excepted) stays at or under
-**20 slimes**, or goes above it for at most **5 s in a row**. The limit is
-proposed until it is calibrated. A cluster the player builds with calls is
+**20 slimes**, or goes above it for at most **5 s in a row**. A basket's
+own fill is left out: a slime whose centre is inside a basket's box
+doesn't count, and the cluster is counted over the other slimes only, so
+two piles outside a basket don't join through its slimes; the pile outside
+it still counts. The limit is proposed until it is calibrated. A cluster the player builds with calls is
 accepted. The checker can't play your level, so its rule 23 line is
 MANUAL and says where the result comes from
 ([09](09-check-the-rules.md)):

@@ -6,8 +6,10 @@ extends RefCounted
 ## every SAMPLE_TICKS ticks the largest awake cluster as the debug overlay
 ## and the PERF line count it (DebugCounts.largest_cluster: the biggest group
 ## of touching Physics slimes, counted in slimes), less the slimes inside a
-## basket's box (user, 2026-10-07: a basket's own fill doesn't count; the
-## pile outside it still does; basket_boxes()), and keeps:
+## basket's box (D163, user 2026-10-07: a basket's own fill doesn't count;
+## the pile outside it still does; basket_boxes()): inside by the centre,
+## and the cluster counted over the other slimes only, so two piles outside
+## a basket don't join through its slimes. It keeps:
 ##   largest          the largest cluster sampled;
 ##   ticks_above      the ticks sampled above LIMIT, in all;
 ##   longest_above    the longest stretch of them in a row, ticks;

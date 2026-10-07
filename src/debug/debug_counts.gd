@@ -156,7 +156,8 @@ static func count_slimes(sim: Simulation) -> Dictionary:
 ##
 ## `left_out`: boxes (Rect2) whose slimes don't count: a Physics slime whose
 ## centre is inside one of them joins nothing, as if it weren't a Physics
-## slime. Level rule 23's measure (ClusterWatch) leaves out the baskets'
+## slime: the cluster is counted over the others only, so two groups don't
+## join through it. Level rule 23's measure (ClusterWatch) leaves out the baskets'
 ## boxes this way; the debug overlay and the PERF line leave out none.
 # @spec-link [[req_platform_and_performance_targets]]
 # @spec-link [[rule_no_spot_where_slimes_gather_awake]]

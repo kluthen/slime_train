@@ -151,6 +151,20 @@ func test_a_pile_against_a_full_basket_counts_only_its_own_slimes() -> void:
 	assert_eq(ClusterWatch.largest_cluster(sim), FILL, "rule 23: the pile outside the box alone")
 
 
+func test_two_piles_do_not_join_through_a_basket_s_slimes() -> void:
+	var sim := _basket_sim()
+	# A row of caught slimes across the box, edge to edge, and a pile against
+	# each end of it, outside the box: one chain for the overlay (D163).
+	var row := int(BASKET_BOX.size.x / PILE_STEP)
+	for i in row:
+		sim.slimes.create(i % Species.COUNT, 1, Vector2(BASKET_BOX.position.x + 20 + i * PILE_STEP, -24),
+				SlimeBodies.IN_BASKET)
+	_pile(sim, BASKET_BOX.position.x + 20 - 5 * PILE_STEP, FILL, SlimeBodies.TRAIN)
+	_pile(sim, BASKET_BOX.position.x + 20 + row * PILE_STEP, FILL, SlimeBodies.TRAIN)
+	assert_eq(DebugCounts.largest_cluster(sim.slimes), 2 * FILL + row, "the overlay: one chain through the basket")
+	assert_eq(ClusterWatch.largest_cluster(sim), FILL, "rule 23: each pile alone, the basket's slimes join nothing")
+
+
 func test_without_a_level_rule_23_counts_as_the_overlay() -> void:
 	assert_true(ClusterWatch.basket_boxes(null).is_empty())
 	var sim := Simulation.new(4)
