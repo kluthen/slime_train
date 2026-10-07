@@ -547,8 +547,10 @@ func _build_section_3(b: LevelBuilder) -> void:
 	# from its rim down to its floor.
 	var set_3 := b.frontier_set(frontier, "s3", B.at(15.62, -120), B.at(15.67, -144), TRAPDOOR_3,
 			B.at(16.01, -10), Vector2(0.58 * S, 220), 60)
-	# It releases onto the loop 200 px before slide 3's entrance (with no
+	# It releases over slide 3's drop, at the loop's height, past the
+	# plateau's end (item 24.3, D128): a released slime falls clear of the
+	# outlet at once, off the route the bowl's train takes to the drop, so
+	# the basket keeps its 0.3 s pace however busy the plateau (with no
 	# gate, "onward_route" has no slide entrance to find).
-	B.outlet_at(set_3.basket, B.at(S3_LOOP_END[0][0], S3_LOOP_END[0][1])
-			- Vector2(set_3.basket.outlet_before, 0))
+	B.outlet_at(set_3.basket, B.at(S3_SLIDE[1][0], S3_LOOP_END[0][1]))
 	b.frame(frontier, "s3", "basket", B.at(15.875, -150), Vector2(1.15 * S, 400), 0.8, Vector2(0, 40))
