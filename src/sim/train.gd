@@ -596,6 +596,8 @@ func inherit(parts: PackedInt32Array) -> void:
 ## Before the bodies tick: relays the last tick's take-offs, aims the hops
 ## about to happen, holds the slimes standing on a climb, and holds and
 ## carries the slimes on a slide.
+# @spec-link [[rule_train_climbs_without_sliding_back]]
+# @spec-link [[rule_train_relay_on_take_off]]
 func steer(bodies: SlimeBodies, dt: float) -> void:
 	if not _aims.is_empty():
 		_aims.clear()
@@ -741,6 +743,7 @@ func _count_landing(bodies: SlimeBodies, slime_id: int, s: int, before: float, t
 ## slime right behind it to RELAY_DELAY, when that one stands on the
 ## outgoing route within its reach of touching it.
 # @spec-link [[req_hopping_behavior]]
+# @spec-link [[rule_train_relay_on_take_off]]
 func _relay(bodies: SlimeBodies) -> void:
 	for hopped in bodies.train_hopped:
 		if not _records.has(hopped) or bodies.state_of(hopped) != SlimeBodies.TRAIN:

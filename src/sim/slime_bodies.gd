@@ -620,6 +620,7 @@ func brake(slime_id: int, share: float) -> void:
 ## ends nearly where it started). Its spin, squish and motion up the slope
 ## are left alone. How the Train holds a train slime standing on a climb.
 # @spec-link [[req_hopping_behavior]]
+# @spec-link [[rule_train_climbs_without_sliding_back]]
 func hold_on_slope(slime_id: int, tangent: Vector2, lift: float) -> void:
 	var s := index_of(slime_id)
 	if s < 0:

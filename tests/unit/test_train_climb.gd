@@ -6,6 +6,8 @@ extends GutTest
 ## has its hop timer cut to RELAY_DELAY; only that one, never across a gap).
 
 # @test-link [[req_hopping_behavior]]
+# @test-link [[rule_train_climbs_without_sliding_back]]
+# @test-link [[rule_train_relay_on_take_off]]
 
 const Support := preload("res://tests/unit/slime_test_support.gd")
 const DT := 1.0 / 60.0

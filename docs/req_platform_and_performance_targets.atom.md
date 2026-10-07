@@ -3,7 +3,7 @@ id: req_platform_and_performance_targets
 status: DRAFT
 tags: [platform,performance]
 dependents: []
-version: 1.1
+version: 1.2
 type: REQUIREMENT
 layer: BUSINESS
 priority: 4
@@ -23,7 +23,9 @@ Platform: Godot 4, targeting Android, with a Linux desktop build for development
 ## TECHNICAL INTERFACE
 Parented to req_scope_one_level_four_sections.
 
-Pending the user's sign-off (proposed, not settled; the rule and expectation above are what is settled): the expectation would add the two stress targets on the reference phone, with the camera on section 3's bowl of the test level: the dense moving case holds at least 30 fps, and the abuse case (200 moving slimes, all piled in the bowl) doesn't crash or freeze and keeps at least 15 fps. The dense moving case is 200 size-1 train slimes along the loop line, 3 per 100 px of loop and 4 per 100 px at the bottom of the bowl, filled from the bowl outward, none at or past switch 3. Proposed, how they are measured: a target is met on the mean frame rate over a 62 s run, with the 5th percentile reported alongside; "no freeze" means a 10,000-tick run ends without an error and the train hops in every 600-tick window; until the reference phone is measured, a slowed desktop run that emulates the phone stands in. Measuring tools (debug only, no effect on the simulation or saves): the per-period performance log line with its train-hop and short-hop counts, the level benchmark, the 10,000-tick throughput run, and the stress fixtures' builder; in src/debug/, src/sim/train.gd, src/sim/slime_bodies.gd and tools/.
+Pending the user's sign-off (proposed, not settled; the rule and expectation above are what is settled): the expectation would add the two stress targets on the reference phone, with the camera on section 3's bowl of the test level: the dense moving case holds at least 30 fps, and the abuse case (200 moving slimes, all piled in the bowl) doesn't crash or freeze and keeps at least 15 fps. The dense moving case is 200 size-1 train slimes along the loop line, 3 per 100 px of loop and 4 per 100 px at the bottom of the bowl, filled from the bowl outward, none at or past switch 3. Proposed, how they are measured: a target is met on the mean frame rate over a 62 s run, with the 5th percentile reported alongside; "no freeze" means a 10,000-tick run ends without an error and the train hops in every 600-tick window; until the reference phone is measured, a slowed desktop run that emulates the phone stands in. Measuring tools (debug only, no effect on the simulation or saves): the per-period performance log line with its train-hop and short-hop counts, the level benchmark, the 10,000-tick throughput run, the stress fixtures' builder, and the train-flow probe (tools/dipjam_probe.gd) with its fusion and bump counters; in src/debug/, src/sim/train.gd, src/sim/slime_bodies.gd, src/sim/fusion.gd and tools/.
+
+Also pending (the user's reading, its wording proposed): every frame-rate target above is judged with the loop start's crowding set aside. The windows where slimes coming home crowd the loop's start (in the s3-basket-59of60 fixture, its section 1 window once the train comes home) are measured and recorded, not gated; every other target and number is unchanged. That crowding and its frame rate are reviewed after v1, with the test level's start and the geyser.
 
 ## EXPECTATION
 At least 60 fps on the reference phone in normal play, and at least 30 fps on the floor phone with the level's largest realistic pile on one screen (a full basket plus the train, mostly still), cold and after 5 minutes of play (definition of done item 30).

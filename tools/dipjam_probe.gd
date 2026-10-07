@@ -52,6 +52,7 @@ extends SceneTree
 ##             longest run of them (s)
 ##   STATE     the final tick and state hash
 # @spec-link [[req_platform_and_performance_targets]]
+# @spec-link [[rule_arrivals_clear_faster_than_they_arrive]]
 
 const WINDOW := 600
 ## A progress step bigger than this (px) is no move along the loop (a move

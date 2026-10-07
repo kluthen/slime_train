@@ -3,7 +3,9 @@ id: req_hopping_behavior
 status: DRAFT
 parents:
   - [[req_slime_states]]
-dependents: []
+dependents:
+  - [[rule_train_climbs_without_sliding_back]]
+  - [[rule_train_relay_on_take_off]]
 version: 1.1
 human_name: Hopping behaviour
 tags: [slimes,movement]
