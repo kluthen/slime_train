@@ -246,9 +246,11 @@ var _terrain: TerrainSegments = null
 
 
 ## Starts the game: the stores (the main scene's defaults), the save wipe if
-## asked (--wipe-save, wipe_saves()), the level, the views and the parent
-## layer, a simulation, the perf log and test mode if asked, else normal play
-## from the level's save (_resume_play()).
+## asked (_wipe_at_launch()), the level and the views (_open_level_and_views()),
+## the platform hooks (_add_platform_hooks()), the launch's arguments
+## (_use_launch_args()), a simulation, the perf log and test mode if asked
+## (_start_from_args()), else normal play from the level's save
+## (_resume_play()).
 # @spec-link [[req_test_level_and_test_mode]]
 func _ready() -> void:
 	autosave.enabled = false
@@ -263,21 +265,46 @@ func _ready() -> void:
 		parent_store = parent_store if parent_store != null else ParentStore.new()
 		save_wipe_directory = SaveStore.DEFAULT_DIRECTORY
 	var user_args := launch_args
-	# The save wipe, once per launch, before the level loads and anything
-	# reads a save. A refused wipe (a save to load too) must not carry on as a
-	# fresh start, but in a release build the flag is simply ignored.
-	if save_wipe_directory != "":
-		var wipe := wipe_saves(user_args, save_wipe_directory)
-		for line in wipe["log"]:
-			print(line)
-		for error in wipe["errors"]:
-			printerr(error)
-		if wipe["refusal"] != "":
-			printerr(wipe["refusal"])
-			set_process(false)
-			set_process_unhandled_input(false)
-			get_tree().quit(1)
-			return
+	if not _wipe_at_launch(user_args):
+		return
+	_open_level_and_views(user_args)
+	_add_platform_hooks()
+	if not _use_launch_args(user_args):
+		return
+	_use_simulation(_new_simulation(Rng.random_seed()))
+	if not _start_from_args(user_args):
+		return
+	if test_mode == null:
+		_resume_play()
+		simulation.session.open(simulation)
+
+
+## The save wipe (wipe_saves()) on save_wipe_directory, once per launch,
+## before the level loads and anything reads a save. Returns false when the
+## launch stops there: a refused wipe (a save to load too) must not carry on
+## as a fresh start, so it quits with exit code 1; in a release build the
+## flag is simply ignored.
+func _wipe_at_launch(user_args: PackedStringArray) -> bool:
+	if save_wipe_directory == "":
+		return true
+	var wipe := wipe_saves(user_args, save_wipe_directory)
+	for line in wipe["log"]:
+		print(line)
+	for error in wipe["errors"]:
+		printerr(error)
+	if wipe["refusal"] != "":
+		printerr(wipe["refusal"])
+		_halt()
+		return false
+	return true
+
+
+## Opens the level (a debug build's first level, _first_level_id(); a
+## release build has none yet) and adds the views drawn over it: the slimes,
+## the frontier sets, the tap feedback, the HUD's edge buttons and the
+## session's screen.
+# @spec-link [[req_test_level_and_test_mode]]
+func _open_level_and_views(user_args: PackedStringArray) -> void:
 	if test_mode_guard.allows():
 		var level_errors := _load_level(_first_level_id(user_args))
 		for error in level_errors:
@@ -301,6 +328,11 @@ func _ready() -> void:
 	session_screen = SessionScreen.new()
 	session_screen.name = "SessionScreen"
 	add_child(session_screen)
+
+
+## The platform hooks: the parent layer (with a parent store), the app's
+## quit, screen pinning asked at launch, the safe area and the load meter.
+func _add_platform_hooks() -> void:
 	if parent_store != null:
 		parent_gate = ParentGate.new(parent_store, self)
 		add_child(parent_gate)
@@ -314,17 +346,18 @@ func _ready() -> void:
 	safe_area = SafeArea.new(platform)
 	add_child(safe_area)
 	add_child(load_meter)
-	var crowd_use := use_crowd_detail(user_args)
-	if crowd_use["line"] != "":
-		print(crowd_use["line"])
-	for error in crowd_use["errors"]:
-		printerr("Crowd detail: ", error)
-	# A run asked for in a mode it can't have must not run in another.
-	if not crowd_use["errors"].is_empty():
-		set_process(false)
-		set_process_unhandled_input(false)
-		get_tree().quit(1)
-		return
+
+
+## The launch's arguments read before the first simulation: --crowd-detail,
+## --debug-labels (then the debug overlay, in the main scene), --phase-timers
+## and --census-every/--census-until. Returns false when the launch stops: a
+## malformed --crowd-detail or census flag quits with exit code 1 (a run
+## asked for in a mode it can't have must not run in another, and a capture
+## asked for with a bad flag must not run as if uncaptured).
+func _use_launch_args(user_args: PackedStringArray) -> bool:
+	if not _said(use_crowd_detail(user_args), "Crowd detail: "):
+		_halt()
+		return false
 	var labels_line := use_debug_labels(user_args)
 	if labels_line != "":
 		print(labels_line)
@@ -333,39 +366,54 @@ func _ready() -> void:
 	var timers_line := use_phase_timers(user_args)
 	if timers_line != "":
 		print(timers_line)
-	var census_use := use_census(user_args)
-	if census_use["line"] != "":
-		print(census_use["line"])
-	for error in census_use["errors"]:
-		printerr("Census: ", error)
-	# A capture asked for with a bad flag must not run as if uncaptured.
-	if not census_use["errors"].is_empty():
-		set_process(false)
-		set_process_unhandled_input(false)
-		get_tree().quit(1)
-		return
-	_use_simulation(_new_simulation(Rng.random_seed()))
+	if not _said(use_census(user_args), "Census: "):
+		_halt()
+		return false
+	return true
+
+
+## The launch's arguments read once the simulation runs: the perf log (in the
+## main scene) and test mode. Returns false when the launch stops: in a debug
+## build, a measurement asked for with a bad flag must not run as if
+## unmeasured, and a scripted run that can't start must not carry on as
+## normal play, so each quits with exit code 1; in a release build the flags
+## are simply ignored.
+# @spec-link [[req_test_level_and_test_mode]]
+func _start_from_args(user_args: PackedStringArray) -> bool:
 	if get_tree().current_scene == self:
 		var perf_errors := add_perf_log(user_args)
 		for error in perf_errors:
 			printerr("Perf log: ", error)
-		# A measurement asked for with a bad flag must not run as if unmeasured,
-		# but in a release build the flag is simply ignored.
 		if not perf_errors.is_empty() and test_mode_guard.allows():
 			get_tree().quit(1)
-			return
+			return false
 	if TestModeGuard.requested(user_args):
 		var errors := start_test_mode_from_args(user_args)
 		for error in errors:
 			printerr("Test mode: ", error)
-		# A scripted run that can't start must not carry on as normal play,
-		# but in a release build the flag is simply ignored.
 		if not errors.is_empty() and test_mode_guard.allows():
 			get_tree().quit(1)
-			return
-	if test_mode == null:
-		_resume_play()
-		simulation.session.open(simulation)
+			return false
+	return true
+
+
+## Prints what a launch argument's use says (`use`: {"line", "errors"}): its
+## line, then each error after `prefix` on the error output. Returns whether
+## it had no error.
+static func _said(use: Dictionary, prefix: String) -> bool:
+	if use["line"] != "":
+		print(use["line"])
+	for error in use["errors"]:
+		printerr(prefix, error)
+	return use["errors"].is_empty()
+
+
+## Stops a launch that must not go on: no more frames nor input, and the app
+## quits with exit code 1.
+func _halt() -> void:
+	set_process(false)
+	set_process_unhandled_input(false)
+	get_tree().quit(1)
 
 
 ## Runs the ticks this frame's time is worth at the current speed (FixedStep,
