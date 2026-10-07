@@ -7419,11 +7419,15 @@ ticks each:
 | `s3-basket-59of60` | 700 | 28 -> 17 | 6.4 -> 0.0 | 3.3 -> 0.0 |
 
 **Since item 24.3** (basket 3's outlet over slide 3's drop, see "A fired
-basket empties (item 24.3)" below), section 3's drain numbers are:
-s3.basket's fire-and-drain empty after 1062 ticks (was 6059), largest 57,
-9.9 s above the limit, 9.2 s in a row (was 55, 42.8, 11.3);
-`s3-basket-59of60` with `--lead-in=700`: largest 50, 9.0 s, 7.8 s (was 28,
-6.4, 3.3). The other rows are the same.
+basket empties (item 24.3)" below), section 3's drain is faster: s3.basket's
+fire-and-drain is empty after 1062 ticks (was 6059). Measured on 24.3's
+branch, before the basket exclusion, its numbers were largest 57, 9.9 s
+above the limit, 9.2 s in a row (was 55, 42.8, 11.3), and
+`s3-basket-59of60` with `--lead-in=700` read largest 50, 9.0 s, 7.8 s: the
+basket's own fill, woken by the faster releases. With both merged (main
+18d1a86, the basket's fill left out), the drain reads largest 5, 0.0 s,
+0.0 s, and the `--lead-in=700` bench largest 17, 0.0 s, 0.0 s, the same as
+the table's "after". The other rows are the same.
 
 The `stress-*` fixtures are excepted from the rule (D96); `stress-moving`'s
 dense train reads as one long cluster (O107 (a)'s question: a train queue
