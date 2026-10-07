@@ -38,7 +38,7 @@ func _boot(config := {}) -> Node:
 ## zone while the fixture's bedtime holds the reward (item 23.5); then
 ## sunrise, played as in a session (sessions are off in these runs, so the
 ## test sets the mode: no screensaver idle camera), with two train slimes
-## put by basket 3's outlet, on screen; then it runs, the camera left
+## put on the plateau by basket 3, on screen; then it runs, the camera left
 ## alone, until the celebration begins. Returns the game, or null when it
 ## never began.
 func _celebrating() -> Node:
@@ -58,15 +58,28 @@ func _celebrating() -> Node:
 	assert_eq(still, TICK_RATE, "the camera settles on basket 3")
 	sim.session.sunrise(sim)
 	sim.screensaver = false
-	var outlet: Vector2 = sim.level.baskets[BASKET_3]["outlet"]
+	# On the plateau over basket 3's shut trapdoor, 200 px before slide 3's
+	# drop (where basket 3's outlet was before item 24.3 moved it over the
+	# drop, where a slime falls and can't hop).
+	var plateau := _s3_loop_end(sim) - Vector2(200.0, 0.0)
 	for dx in [-120.0, -60.0]:
-		sim.slimes.create(Species.from_letter("E"), 1, outlet + Vector2(dx, -30.0), SlimeBodies.TRAIN)
+		sim.slimes.create(Species.from_letter("E"), 1, plateau + Vector2(dx, -30.0), SlimeBodies.TRAIN)
 	for i in 10 * TICK_RATE:
 		if sim.frontier.celebration_playing(sim.tick):
 			return game
 		game.test_mode.run_ticks(1)
 	fail_test("the celebration never began")
 	return null
+
+
+## Where section 3's outgoing route ends: the top of slide 3's drop.
+func _s3_loop_end(sim: Simulation) -> Vector2:
+	for segment in sim.level.loop.segments:
+		if segment["id"] == "s3.loop":
+			var points: PackedVector2Array = segment["points"]
+			return points[points.size() - 1]
+	fail_test("the test level has no s3.loop")
+	return Vector2.ZERO
 
 
 func test_the_celebration_leaves_the_camera_and_the_mark_stands_at_the_start_of_the_loop() -> void:

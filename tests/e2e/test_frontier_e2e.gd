@@ -55,8 +55,8 @@ const BOWL_TRAIN := 141
 ## bowl's front slimes climb to switch 3 and one drops in after about 9 s.
 const FULL_3_WITHIN := 30
 ## After the celebration, how long the run goes on before the basket's
-## slimes are counted (seconds): a report only (item 24.3, open: a fired
-## basket keeps its slimes), never asserted.
+## slimes are counted (seconds): a report only; the drain itself (item
+## 24.3) is asserted by test_basket_drain_e2e.gd.
 const AFTER_CELEBRATION := 10
 ## From s1-basket-5of6 the basket fires within this (seconds). Probes: the
 ## first slime drops in about 5 s after the start, the reward plays 2 s.
@@ -282,15 +282,46 @@ func test_the_celebration_plays_once_and_a_reload_does_not_replay_it() -> void:
 	var again: Simulation = reloaded.simulation
 	assert_true(again.frontier.celebration_done, "recorded in the save")
 	# The same world (the first-play hint restarts its count when the reloaded
-	# world shows, by design, so the whole hash isn't compared here).
+	# world shows, by design, so the whole hash isn't compared here). Basket
+	# 3's released slimes fall down slide 3's drop (item 24.3): the mid-air
+	# rule (MidairLanding) puts those in the air down on loading, by design,
+	# so their place, speed and support aren't compared.
 	var was := sim.dump()
 	var now := again.dump()
+	var midair := _midair_ids(was["slimes"])
+	gut.p("in the air when saved: %s" % [midair])
+	was["slimes"] = _without_landing(was["slimes"], midair)
+	now["slimes"] = _without_landing(now["slimes"], midair)
 	for key in ["tick", "objects", "gates", "frontier", "slimes", "train"]:
 		assert_eq(StateHash.of(now[key]), StateHash.of(was[key]), "the same %s" % key)
 	reloaded.test_mode.run_ticks(10 * TICK_RATE)
 	assert_false(again.frontier.celebration_playing(again.tick), "not replayed")
 	assert_eq(again.frontier.celebration_since, since)
 	assert_eq(again.object_states[BASKET_3]["phase"], FrontierSets.FIRED, "the world keeps running")
+
+
+## The ids of the slimes in the air in `slimes` (SlimeBodies.dump()): not
+## supported, awake and out of a basket, the ones MidairLanding puts down on
+## loading (a parked one is left as it is; none is parked here, in view).
+static func _midair_ids(slimes: Array) -> Array:
+	var out := []
+	for entry in slimes:
+		if not entry["supported"] and entry["state"] in ["train", "free"]:
+			out.append(entry["id"])
+	return out
+
+
+## `slimes` (SlimeBodies.dump()) with the centre, velocity and support of
+## the slimes in `ids` left out: what landing on load changes.
+static func _without_landing(slimes: Array, ids: Array) -> Array:
+	var out := []
+	for entry in slimes:
+		var copy: Dictionary = entry.duplicate()
+		if copy["id"] in ids:
+			for key in ["centre", "velocity", "supported"]:
+				copy.erase(key)
+		out.append(copy)
+	return out
 
 
 # --- Section 3's endgame: the last basket fills (chunk 22) --------------------------
