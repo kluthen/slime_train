@@ -1,5 +1,5 @@
 import re, sys, glob, os
-d = '/tmp/claude-1001/-home-bastien-work-slime-train/d543671e-c4c0-4b90-a9fc-42b12cf6a31a/scratchpad/dj2/out'
+d = '/home/bastien/work/slime_train/.claude/worktrees/agent-a994fc5fd516987db/docs/perf/exp-dipjam-p2/out'
 tag = sys.argv[1] if len(sys.argv) > 1 else 'm'
 def kv(path):
     out = {}

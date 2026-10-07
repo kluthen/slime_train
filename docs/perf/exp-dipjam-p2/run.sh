@@ -1,7 +1,7 @@
 #!/bin/bash
 # run.sh <variant> <fixture> <seed> <ticks> <tag> [extra args...]
 v=$1; fx=$2; sd=$3; tk=$4; tag=$5; shift 5
-out=/tmp/claude-1001/-home-bastien-work-slime-train/d543671e-c4c0-4b90-a9fc-42b12cf6a31a/scratchpad/dj2/out
+out=/home/bastien/work/slime_train/.claude/worktrees/agent-a994fc5fd516987db/docs/perf/exp-dipjam-p2/out
 mkdir -p $out
 cd /home/bastien/work/slime_train/.claude/worktrees/agent-a994fc5fd516987db
 name="$out/${tag}_${v:-base}_${fx}_s${sd}.txt"

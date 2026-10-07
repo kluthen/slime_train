@@ -154,9 +154,11 @@ static var jam_v5 := false
 ## than HOLD_FROM (up to GRIP_MAX_SLOPE), after GRIP keeps its place: its
 ## motion down the slope is cancelled, and it is given HOLD_LIFT of the pull
 ## gravity puts along the slope in one tick, up the slope, so the tick's
-## gravity brings it back to rest where it was instead of sliding it down
-## (GRIP only halves the motion: the slope's pull creeps it back 5 to 17 px/s
-## between hops). Its motion up the slope (the queue's push) is GRIP's.
+## gravity brings it back nearly to rest where it was instead of sliding it
+## down (GRIP only halves the motion: the slope's pull creeps it back 5 to
+## 17 px/s between hops). Measured alone it still slides about 1.6 px/s: the
+## two Verlet substeps would need 0.75 to cancel it exactly (not tried).
+## Its motion up the slope (the queue's push) is GRIP's.
 const HOLD_FROM := 0.1
 const HOLD_LIFT := 0.5
 static var jam_g := false
