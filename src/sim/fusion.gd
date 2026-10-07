@@ -132,6 +132,10 @@ var _held := {}
 ## Debug counters (EXPERIMENT, the dip-jam probe): fusions and bumps so far.
 var fused_count := 0
 var bumped_count := 0
+## Debug (EXPERIMENT, exp/pacing's fusion census): each fusion as
+## [tick, the first slime's distance along the loop (-1.0 when the train
+## doesn't follow it), its centre], the latest 4096. Not state.
+var fused_log: Array = []
 
 ## Train slime id -> why the last tick's dip nudge held it (NUDGE_HOLDING or
 ## NUDGE_GATHERING). Debug, for the census (see the class doc).
@@ -246,7 +250,12 @@ func step(sim: Simulation) -> void:
 		if changed.has(pair.x) or changed.has(pair.y):
 			continue
 		if bodies.can_merge(pair.x, pair.y):
+			var where := [sim.tick, sim.train.distance_of(pair.x) if sim.train != null and sim.train.tracks(pair.x)
+					else -1.0, bodies.centre_of(pair.x)]
 			if sim.fuse(pair.x, pair.y) >= 0:
+				fused_log.append(where)
+				if fused_log.size() > 4096:
+					fused_log.pop_front()
 				fused_count += 1
 				changed[pair.x] = true
 				changed[pair.y] = true

@@ -340,6 +340,7 @@ func step() -> void:
 		ph.lap(StepPhase.OFFSCREEN)
 	var gates: Array = train.open_gates if train != null else []
 	if train != null:
+		train.pacing.step(self)
 		train.steer(slimes, TICK_SECONDS)
 	if ph != null:
 		ph.lap(StepPhase.TRAIN_STEER)

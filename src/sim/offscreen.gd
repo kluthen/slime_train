@@ -331,6 +331,8 @@ func _train_proxy(sim: Simulation, slime_id: int, room: Dictionary, centre: Vect
 	var step := speed * Simulation.TICK_SECONDS
 	if room.has(slime_id):
 		step = minf(step, room[slime_id])
+	if train.pacing.enabled:
+		step = minf(step, train.pacing.room_for(slime_id, distance))
 	var ahead := distance + step
 	var on := train.position_at(ahead)
 	# The point on the loop projects onto itself: the progress moves the whole

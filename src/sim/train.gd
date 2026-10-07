@@ -269,6 +269,9 @@ var _records := {}
 ## Offscreen's proxies'), emptied by Geyser.step. Not state: not in dump()
 ## nor saves.
 var lapped := {}
+## EXPERIMENT (exp/pacing, O118): the return route's end paced
+## (ReturnPacing, SLIME_PACING; off when unset). Not state.
+var pacing := ReturnPacing.new()
 ## The current loop flattened into one closed polyline: points, cumulative
 ## distances, and for each edge whether it is on a return route.
 var _pts := PackedVector2Array()
@@ -670,7 +673,10 @@ func steer(bodies: SlimeBodies, dt: float) -> void:
 			bodies.set_hop_held(slime_id, on_slide)
 		if on_slide:
 			if bodies.supported[s] != 0:
-				_carry(bodies, slime_id, progress)
+				if pacing.stops.has(slime_id):
+					_carry_to(bodies, slime_id, progress, pacing.carry_speed(slime_id, record["distance"]))
+				else:
+					_carry(bodies, slime_id, progress)
 			continue
 		if bodies.supported[s] != 0:
 			var slope := direction_at(progress)
@@ -905,7 +911,7 @@ func follow(bodies: SlimeBodies, tick: int) -> void:
 		if not _records.has(slime_id):
 			track(slime_id, _closest_distance(centre))
 		var before := progress_of(slime_id)
-		if bodies.calm[s] == SlimeBodies.PARKED:
+		if bodies.calm[s] == SlimeBodies.PARKED or pacing.stops.has(slime_id):
 			_pause_stall_clock(slime_id, tick)
 		advance(slime_id, centre, tick)
 		_count_landing(bodies, slime_id, s, before, tick)
@@ -991,6 +997,19 @@ func _carry(bodies: SlimeBodies, slime_id: int, distance: float) -> void:
 	if along >= SLIDE_SPEED:
 		return
 	bodies.set_velocity(slime_id, velocity + tangent * (SLIDE_SPEED - along) * SLIDE_GRIP)
+
+
+## EXPERIMENT (exp/pacing): the slide's carry toward `speed` instead of
+## SLIDE_SPEED (ReturnPacing.carry_speed): faster along the route than that,
+## the slime is slowed to it at once; slower, the gap closes by SLIDE_GRIP.
+func _carry_to(bodies: SlimeBodies, slime_id: int, distance: float, speed: float) -> void:
+	var tangent := direction_at(distance)
+	var velocity := bodies.velocity_of(slime_id)
+	var along := velocity.dot(tangent)
+	if along > speed:
+		bodies.set_velocity(slime_id, velocity - tangent * (along - speed))
+	else:
+		bodies.set_velocity(slime_id, velocity + tangent * (speed - along) * SLIDE_GRIP)
 
 
 func _closest_distance(point: Vector2) -> float:

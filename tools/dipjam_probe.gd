@@ -53,6 +53,21 @@ extends SceneTree
 ##             a slime within NEAR px of the loop's start (exp/geyser's
 ##             probe's rule): max, mean, ticks above LIMIT (rule 23's), the
 ##             longest run of them (s)
+##   DJ_PACE   (exp/pacing) ReturnPacing (SLIME_PACING): rule, hold point
+##             (loop distance, x, y), releases; from --late-from on: the
+##             waiting queue per tick (slimes stopped at their stop) max and
+##             mean, its length along the loop max (px) and its tail's
+##             furthest x; waits finished (ticks): count, mean, max, and the
+##             longest still running at the end
+##   DJ_MS     (exp/pacing) wall time per tick from --late-from on, ms: mean
+##             and the 95th percentile (the probe's own work excluded)
+##   DJ_CLU2   (exp/pacing) DJ_CLU without the train slimes on the return
+##             route (the pacing's queue in the tunnel lies within NEAR of
+##             the start): the start's own pile
+##   DJ_FUS    (exp/pacing) fusions, the whole run ("all") and from
+##             --late-from on ("late"), by where the first slime was along
+##             the loop: FUS_BINS (loop distances) counts, "off" not
+##             followed by the train
 ##   STATE     the final tick and state hash
 # @spec-link [[req_platform_and_performance_targets]]
 
@@ -72,6 +87,10 @@ const CROSS_AT := [240.0, 750.0]
 const CLIMBS := [[460.0, 1150.0], [17580.0, 18180.0]]
 const NEAR := 240.0
 const LIMIT := 20
+## exp/pacing: the fusion census's bins, loop distances (the test level's
+## start, terrace, start basin's exit, sections 1-2, section 3, the bowl,
+## beyond).
+const FUS_BINS := [0.0, 240.0, 750.0, 1200.0, 6000.0, 12000.0, 15500.0, 17600.0, 19100.0]
 
 var fixture := "stress-dense"
 var seed_n := 1
@@ -186,14 +205,36 @@ func _run(game: Node) -> void:
 	var clu_over := 0
 	var clu_run := 0
 	var clu_run_max := 0
+	var clu2_max := 0
+	var clu2_sum := 0.0
+	var clu2_over := 0
+	var clu2_run := 0
+	var clu2_run_max := 0
 	var start := train.position_at(0.0)
 	print("DJ_LOOP length=%.0f outgoing=%.0f start=%s" % [train.length(), train.outgoing_length(), start])
+	var pacing := train.pacing
+	var hold_at := pacing.hold_point(train) if train.length() > 0.0 else 0.0
+	var q_max := 0
+	var q_sum := 0
+	var q_px := 0.0
+	var q_tail_x := -INF
+	var waits0 := pacing.waits.size()
+	var ms := PackedFloat32Array()
+	var fus0 := fusion.fused_log.size()
 	for i in ticks:
 		if sim.tick % WINDOW == 0:
 			_window_start(sim, win_start, win_active)
 			front_id = _front(sim)
 			front_from = train.progress_of(front_id) if front_id >= 0 else 0.0
+		var t0 := Time.get_ticks_usec()
 		game.step_simulation()
+		if sim.tick - 1 >= late_from:
+			ms.append((Time.get_ticks_usec() - t0) / 1000.0)
+			q_max = maxi(q_max, pacing.queue_now)
+			q_sum += pacing.queue_now
+			if pacing.queue_now > 0:
+				q_px = maxf(q_px, pacing.queue_px)
+				q_tail_x = maxf(q_tail_x, pacing.queue_tail.x)
 		if hold_view != Vector2.INF and sim.tick >= hold_from:
 			sim.camera.position = hold_view
 		var t := sim.tick - 1
@@ -273,7 +314,22 @@ func _run(game: Node) -> void:
 			if e["tick"] == t:
 				lost += 1
 		if t >= late_from:
+			var on_slide := {}
+			for id in train.tracked_ids():
+				if train.is_slide_at(train.distance_of(id)):
+					on_slide[id] = true
+			var clu2 := _cluster_near(bodies, start, on_slide) if not on_slide.is_empty() else -1
 			var clu := _cluster_near(bodies, start)
+			if clu2 < 0:
+				clu2 = clu
+			clu2_max = maxi(clu2_max, clu2)
+			clu2_sum += clu2
+			if clu2 > LIMIT:
+				clu2_over += 1
+				clu2_run += 1
+				clu2_run_max = maxi(clu2_run_max, clu2_run)
+			else:
+				clu2_run = 0
 			clu_max = maxi(clu_max, clu)
 			clu_sum += clu
 			clu_n += 1
@@ -329,11 +385,60 @@ func _run(game: Node) -> void:
 	print("DJ_OVER %s" % " ".join(counts))
 	print("DJ_CLU max=%d mean=%.2f over=%d run_s=%.1f" % [clu_max, clu_sum / maxi(clu_n, 1), clu_over,
 			clu_run_max / 60.0])
+	print("DJ_CLU2 max=%d mean=%.2f over=%d run_s=%.1f" % [clu2_max, clu2_sum / maxi(clu_n, 1), clu2_over,
+			clu2_run_max / 60.0])
 	# Throwaway (the geyser combined run): Geyser's counters.
 	print("DJ_GEYSER on=%s arrivals=%d launches=%d refused=%d lifted=%d rejects=%s" % [sim.geyser.enabled,
 			sim.geyser.arrivals, sim.geyser.launches, sim.geyser.refused, sim.geyser.lifted,
 			JSON.stringify(sim.geyser.rejects)])
+	var waits := pacing.waits.slice(waits0)
+	var w_sum := 0
+	var w_max := 0
+	for w in waits:
+		w_sum += w
+		w_max = maxi(w_max, w)
+	var running := 0
+	for slime_id: int in pacing.wait_from:
+		running = maxi(running, sim.tick - int(pacing.wait_from[slime_id]))
+	var late_ticks := maxi(ms.size(), 1)
+	print(("DJ_PACE on=%s room=%d pace=%d hold=%.0f at=%s releases=%d q_max=%d q_mean=%.1f q_px=%.0f"
+			+ " tail_x=%.0f waits=%d w_mean=%.0f w_max=%d w_running=%d") % [pacing.enabled, pacing.room_limit,
+			pacing.pace_ticks, hold_at, train.position_at(hold_at), pacing.releases, q_max,
+			float(q_sum) / late_ticks, q_px, q_tail_x if q_tail_x > -INF else 0.0, waits.size(),
+			float(w_sum) / maxi(waits.size(), 1), w_max, running])
+	ms.sort()
+	var ms_sum := 0.0
+	for m in ms:
+		ms_sum += m
+	print("DJ_MS mean=%.2f p95=%.2f n=%d" % [ms_sum / maxi(ms.size(), 1),
+			ms[int(ms.size() * 0.95)] if not ms.is_empty() else 0.0, ms.size()])
+	print("DJ_FUS all %s" % _fus_bins(fusion, fus0, -1))
+	print("DJ_FUS late %s" % _fus_bins(fusion, fus0, late_from))
 	print("STATE tick=%d hash=%s" % [sim.tick, sim.state_hash()])
+
+
+## exp/pacing: the fusions logged from index `from` on, at or after tick
+## `after`, counted by FUS_BINS (see the class doc).
+func _fus_bins(fusion: Fusion, from: int, after: int) -> String:
+	var bins := PackedInt32Array()
+	bins.resize(FUS_BINS.size() + 1)
+	for k in range(from, fusion.fused_log.size()):
+		var e: Array = fusion.fused_log[k]
+		if e[0] < after:
+			continue
+		var d: float = e[1]
+		if d < 0.0:
+			bins[FUS_BINS.size()] += 1
+			continue
+		var b := 0
+		while b + 1 < FUS_BINS.size() and d >= FUS_BINS[b + 1]:
+			b += 1
+		bins[b] += 1
+	var parts := []
+	for b in FUS_BINS.size():
+		parts.append("%d:%d" % [FUS_BINS[b], bins[b]])
+	parts.append("off:%d" % bins[FUS_BINS.size()])
+	return " ".join(parts)
 
 
 ## The active train slimes' progress at a window's start.
@@ -403,8 +508,14 @@ func _on_top(bodies: SlimeBodies, slime_id: int) -> bool:
 
 ## Phase 2: the largest awake cluster (DebugCounts' rule) with a member
 ## within NEAR px of `start` (exp/geyser's probe's).
-func _cluster_near(bodies: SlimeBodies, start: Vector2) -> int:
+func _cluster_near(bodies: SlimeBodies, start: Vector2, skip := {}) -> int:
 	var physics := DebugCounts.physics_slime_ids(bodies)
+	if not skip.is_empty():
+		var kept := PackedInt32Array()
+		for slime_id in physics:
+			if not skip.has(slime_id):
+				kept.append(slime_id)
+		physics = kept
 	var pairs: Array = DebugCounts.touching_by_distance(bodies, physics) if bodies.candidate_pair_count() == 0 \
 			else bodies.touching_pairs()
 	var index := {}
