@@ -226,7 +226,7 @@ func test_the_slime_right_behind_a_take_off_follows_at_once() -> void:
 	var train: Train = setup[1]
 	var ids: Array = setup[2]
 	_take_off(bodies, train, ids[2])
-	assert_almost_eq(bodies.hop_timer_of(ids[1]), Train.RELAY_DELAY, 1e-6, "right behind: relayed")
+	assert_almost_eq(bodies.hop_timer_of(ids[1]), TrainClimb.RELAY_DELAY, 1e-6, "right behind: relayed")
 	assert_gt(bodies.hop_timer_of(ids[0]), 9.0, "only the one right behind")
 
 
@@ -241,7 +241,7 @@ func test_the_relay_wave_runs_down_the_queue() -> void:
 		_step(bodies, train, tick)
 		tick += 1
 	assert_lt(tick, 60, "the one right behind hopped within RELAY_DELAY")
-	assert_almost_eq(bodies.hop_timer_of(ids[0]), Train.RELAY_DELAY, 1e-6, "then the next one")
+	assert_almost_eq(bodies.hop_timer_of(ids[0]), TrainClimb.RELAY_DELAY, 1e-6, "then the next one")
 
 
 func test_no_relay_across_a_gap() -> void:
