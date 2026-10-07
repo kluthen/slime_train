@@ -1,0 +1,8 @@
+{
+	"description": "The phone's test save of 2026-09-30 (the S20 FE session) as the migration of the time made it, kept on purpose as a stress case: built from the buggy migration's output, before item 24.4 kept displaced sleepers asleep. 197 slimes: 103 awake train slimes (the first slime and the sleepers that migration woke and lost to the loop start, a few fused since; their sizes sum to 106), 91 of them piled at the loop start (x 190 to 720), and 94 sleepers asleep; no gate open, no session. The camera on the pile, which never rests (awake, out of a basket) nor parks (near the view). For the frame rate of a big awake pile (item 24.5, D138's tick cap).",
+	"save": true,
+	"camera": [
+		400.0,
+		440.0
+	]
+}

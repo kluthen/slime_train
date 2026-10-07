@@ -54,6 +54,8 @@ extends SceneTree
 ## slimes saved in mid-air; old-version is a save of the test level's
 ## version 1 (its FIXTURES entry's "version": the save's header names it,
 ## below the level's), with a sleeper where version 1 had it.
+## Item 24.5: loop-start-pile is the phone's migrated save of 2026-09-30, the
+## awake pile at the loop start the migration before item 24.4 made.
 ##
 ## Chunk 22: s3-basket-59of60 is section 3's endgame, not at bedtime: basket
 ## 3 one short of its quota (laid out as stress-still's, _into_basket_3) and
@@ -265,6 +267,8 @@ const FIXTURES := {
 			"build": "_midair"},
 	"old-version": {"description": PersistenceFixtures.OLD_VERSION_DESCRIPTION, "camera": null,
 			"build": "_old_version", "version": PersistenceFixtures.OLD_VERSION},
+	"loop-start-pile": {"description": PersistenceFixtures.LOOP_START_PILE_DESCRIPTION,
+			"camera": PersistenceFixtures.LOOP_START_PILE_CAMERA, "build": "_loop_start_pile"},
 }
 
 var _level_id := LevelCatalog.DEFAULT_ID
@@ -937,6 +941,12 @@ func _midair() -> Simulation:
 func _old_version() -> Simulation:
 	var sim := _fresh_level()
 	return sim if PersistenceFixtures.old_version(sim, _level.data, _terrain) else null
+
+
+## loop-start-pile: the phone's migrated save, as it was written
+## (PersistenceFixtures.loop_start_pile).
+func _loop_start_pile() -> Simulation:
+	return PersistenceFixtures.loop_start_pile(_level.data, _terrain)
 
 
 ## wind-down: a session started on the fresh level, 14:50 in.
