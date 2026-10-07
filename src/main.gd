@@ -83,7 +83,7 @@ extends Node2D
 
 const TEST_MODE_SCRIPT := "res://src/test_mode/test_mode.gd"
 const TEST_MODE_REFUSED := "Test mode is not available in this build (release builds never run it)."
-## The most ticks one frame runs at normal speed (proposed, chunk 22): 2
+## The most ticks one frame runs at normal speed (D138, settled in D163): 2
 ## ticks, a 33 ms frame (30 fps) still plays at full speed. Beyond that the
 ## game plays in slow motion rather than catching up: a tick costing more
 ## than a frame's time no longer multiplies the next frame (it was 8, and on

@@ -99,7 +99,7 @@ const DIP_FLOOR_RISE := 30.0
 const DIP_GATHER := 300.0
 ## The longest a slime on a dip's floor waits for a partner with other
 ## slimes between them, s, counted from when its progress last advanced
-## (proposed for specs/tuning.md, chunk 16f).
+## (D119, approved in D120; chunk 16f).
 const DIP_WAIT_SECONDS := 5.0
 const DIP_WAIT_TICKS := 300
 ## The hop timer a held slime is kept at, s: it hops soon after it is let go.

@@ -18,7 +18,7 @@ extends RefCounted
 ## camera may sit there, the view's centre is held in (view_centre()).
 ##
 ## Edge buttons (tap zone 2, TapDispatcher; right forward, left backward, D90),
-## O70's proposed behaviour: a press moves the camera at least STEP along the
+## O70's behaviour (D102): a press moves the camera at least STEP along the
 ## rail; while the finger stays down the goal stays one STEP ahead, so the
 ## camera moves at a steady PACE; after the finger lifts it eases to a stop
 ## on the goal (EASE). They never call.
@@ -109,10 +109,10 @@ const SHOW := "show"
 ## place that needs it.
 const RAIL_OFFSET := Vector2(0, -120)
 ## The fixed step one press moves at least, px along the loop: a third of a
-## screen (specs/tuning.md, "Edge-button press": proposed, to try).
+## screen (specs/tuning.md, "Edge-button press": to try, D102).
 const STEP := LevelData.SCREEN / 3.0
 ## The steady pace while the button is held, px per second along the loop:
-## three quarters of a screen a second (proposed, to try).
+## three quarters of a screen a second (to try).
 const PACE := LevelData.SCREEN * 0.75
 ## How fast the camera closes on its goal once it is within reach, per
 ## second: it moves EASE times the distance left each second, never faster
@@ -133,7 +133,7 @@ const DRAG_SECONDS := FreeSlimes.CALL_SECONDS
 ## The level's left edge, level px (specs/levels/test/README.md: x = 0).
 const LEVEL_LEFT := 0.0
 ## How long an edge button must be held to leave a framing zone, s (O70's
-## proposed default: about 1 s; a zone's exit_hold overrides it).
+## default, D102: about 1 s; a zone's exit_hold overrides it).
 const EXIT_HOLD := 1.0
 ## How fast the framing (zoom and shift) closes on a zone's, per second: it
 ## changes by FRAME_EASE times the difference left each second, so it eases
