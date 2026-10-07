@@ -2543,7 +2543,9 @@ parked train slimes' single file, these notes).
 - frontier set 3: signpost `s3.signpost` (15.62), switch `s3.switch`
   (15.67), basket `s3.basket` (centre 16.01, 0.58 screens by 220 px, pit
   floor y 100, quota 60, no rule: the celebration is its target; outlet a
-  point 200 px before slide 3's entrance), trapdoor 15.72 to 16.3; no gate;
+  point over slide 3's drop, at 16.475 and the loop's height, since item
+  24.3: see "A fired basket empties (item 24.3)"), trapdoor 15.72 to 16.3;
+  no gate;
 - framing zones `s3.frame.bowl` (centre 14.375, 1.85 screens wide, zoom
   0.5) and `s3.frame.basket` (centre 15.875, 1.15 screens, zoom 0.8);
 - three exploration branches with their routes back into the bowl:
@@ -7402,6 +7404,13 @@ ticks each:
 | `s3-basket-59of60` | 60 | 59 | 9.4 | 5.9 |
 | `s3-basket-59of60` | 700 | 28 | 6.4 | 3.3 |
 
+**Since item 24.3** (basket 3's outlet over slide 3's drop, see "A fired
+basket empties (item 24.3)" below), section 3's drain numbers are:
+s3.basket's fire-and-drain empty after 1062 ticks (was 6059), largest 57,
+9.9 s above the limit, 9.2 s in a row (was 55, 42.8, 11.3);
+`s3-basket-59of60` with `--lead-in=700`: largest 50, 9.0 s, 7.8 s (was 28,
+6.4, 3.3). The other rows are the same.
+
 The `stress-*` fixtures are excepted from the rule (D96); `stress-moving`'s
 dense train reads as one long cluster (O107 (a)'s question: a train queue
 on the loop counts, as measured).
@@ -7431,4 +7440,86 @@ tools/level.sh bench
 tools/level.sh bench --fixture=s3-basket-59of60
 tools/level.sh bench --fixture=s3-basket-59of60 --lead-in=700
 tools/test.sh -gselect=test_rule_23_e2e
+```
+
+## A fired basket empties (item 24.3)
+
+Build plan chunk 24, item 24.3 (D128; master spec 5.2 "in a basket" and
+5.4; `req_switch_basket_gate_set`, `rule_frontier_set_inert_after_gate_open`).
+Reported: a fired basket keeps its slimes. Development desktop, native
+tick, seed 14, 2026-10-07 (branch feat/24-3, from `5509f71`).
+
+**The test.** `tests/e2e/test_basket_drain_e2e.gd`: from
+`s3-basket-59of60` (camera on basket 3's framing zone) basket 3 fills,
+fires (the celebration) and is empty within its quota x
+`RELEASE_SECONDS` + 10 s, 28 s; from `s2-basket-offscreen` (camera on
+basket 2) within 14.5 s; every slime it held on the tick before it fired is
+released as a train slime with its size and species, and none is caught
+again. From basket 3 releasing, bedtime (`Session.jump` to `BEDTIME_MS`)
+lets nothing out for 10 s, sunrise moves nothing, then the releases resume.
+Before the fix basket 3 failed: 7 of its 61 slimes out 28 s after firing.
+
+**The cause: the outlet, not the trapdoor.** Basket 3's outlet was a point
+on the plateau (x 18692.8, y -144), over switch 3's trapdoor. The
+trapdoor lead doesn't hold: a full basket stops collecting, so the trapdoor
+shut at tick 570, before the basket fired at tick 675, and no released
+slime fell back in (0 caught again in the whole drain). What held the
+slimes is the outlet's clearance (`OUTLET_CLEARANCE`: a release waits
+until no slime is within the two radii plus 8 px of the outlet):
+- a released slime is put at the outlet at rest and stays there until its
+  own hop timer runs out (1.5 to 3 s, seeded), so the basket released one
+  slime every 2 to 3 s: slime 1 sat at (18694, -141) from tick 675 to past
+  825, slime 2 from 855 to 915, slime 3 from 975 to 1095;
+- from about 8 s after the fire (tick 1155), the bowl's train (141 train
+  slimes) crossing the shut trapdoor to the drop passed over the outlet
+  and kept it busy: 6 released in the first 14 s, then one every 3 to
+  10 s.
+
+55 slimes were still in the basket 22 s after firing, 22 after 138 s.
+Basket 2 (outlet on section 2's onward route, over its trapdoor too)
+releases one slime per hop interval the same way, but holds only 6
+slimes: empty 13.1 s after firing (788 ticks), within its 14.5 s. Neither
+basket's slimes ever fell back in.
+
+**The fix: the test level only.** Basket 3's `outlet_point` is now
+(535.68, -134), at x 18979.2, y -144: over slide 3's drop, in the middle of
+its shaft (x 18893 to 19066, S3_SLIDE's second point), at the loop's
+height, past the plateau's end. A released slime falls clear of the outlet
+at once and the bowl's train only crosses that point falling, so the
+basket keeps its 0.3 s pace: empty 1104 ticks (18.4 s) after firing, 0
+caught again; 60 s later all 200 slimes are train slimes and none is
+stalled. On the way down the slide about 4 are in the shaft and 11 to 16
+along its bottom (x 18300 to 19066) at once, riding on. Basket 2 and the
+release code are unchanged. The generator
+(`tools/greybox_test_level.gd`) places the outlet the same way, but the
+scene was edited by hand since (its unique IDs and `level_version`), so the
+scene's one line was changed by hand, not regenerated.
+
+*Not built (an option if a busier outlet comes up):* a released slime
+hopping at once (its hop timer set to 0 on release) brought basket 2 to
+3.65 s but basket 3, with the outlet on the plateau, only to 136 s: the
+train crossing the outlet is the limit there, which only the outlet's place
+solves.
+
+**Tests that assumed the old outlet.** `test_frontier_level.gd`'s
+outlet test now covers baskets 1 and 2 (on the onward route) and a new one
+checks basket 3's over slide 3's drop. `test_celebration_e2e.gd` put its
+two train slimes by basket 3's outlet to see them hop in the burst; they
+now go on the plateau where it was (200 px before the drop): over the drop
+they fall and can't hop. `test_frontier_e2e.gd`'s reload after the
+celebration compared every slime; basket 3's released slimes are now in
+the air down the drop when it saves (4 of them), and the mid-air rule
+(`MidairLanding`) puts them down on loading by design, so their centre,
+velocity and support are left out of that comparison; everything else is
+compared as before.
+
+**Hashes.** Only `s3-basket-59of60` at 2400 ticks changed
+(`docs/dev/native.md`, "Fixture hashes").
+
+**Level rule 23.** Section 3's drain is shorter and spends less time above
+the limit, but the basket's own pile still goes above it (see "Since item
+24.3" under "Level rule 23 on the test level"); no verdict (O107).
+
+```sh
+tools/test.sh -gselect=test_basket_drain_e2e
 ```
