@@ -72,8 +72,9 @@ split zone, sleeper. Run every command from the project root.
      (expect `6/6 passed.`, about 15 s: one test plays section 1 to its
      basket full with scripted calls, then through the basket's
      fire-and-drain, and checks level rule 23 over it (its `rule 23` line:
-     the largest awake cluster, a basket's own fill left out, never above
-     20 slimes for more than 5 s in a row), one checks no fixture is older than the level);
+     the largest awake cluster, a basket's own fill and a train queue on
+     the loop left out, never above 20 slimes for more than 5 s in a
+     row), one checks no fixture is older than the level);
    - the checker: `tools/level.sh check --level=<id>`
      (exit 0 no FAIL, 1 a FAIL, 2 can't run; on the fresh skeleton expect
      `21 PASS, 0 FAIL, 2 MANUAL, 0 N/A, 0 warnings`: rule 19 MANUAL with no

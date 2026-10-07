@@ -102,17 +102,21 @@ no fixture). Rule 16's item: `tools/level.sh bench --level=<id>` (the
 level as new and each fixture with a save; `--fixture=<name>` for one),
 then watch the pile in play. Rule 23's item (MANUAL: the checker can't
 play the level): its result is the level's played test, whose rule 23
-line gives the largest awake cluster (a basket's own fill left out: the
-slimes whose centre is inside a basket's box don't count, nor join two
-piles outside it; the pile outside still counts), the seconds above 20
-slimes and the
-longest in a row, and fails over 5 s in a row
+line gives the largest awake cluster (a basket's own fill and a train
+queue on the loop left out: the slimes whose centre is inside a basket's
+box and the train slimes within 36 px of the route, not due a move to the
+loop start, don't count, nor join two piles; free slimes, train slimes
+off the route or due a move, and the pile outside a basket still count;
+released slimes are train slimes, so a drain counts only where it piles
+up off the route), the seconds above 20 slimes and the longest in a row,
+and fails over 5 s in a row
 (`tools/test.sh -gdisable_colors -gselect=test_level_<id>`); the bench's
 `RESULT` lines end with the same numbers per case (`largest_cluster`,
 `above_limit_s`, `longest_above_s`), no verdict. Quote the numbers, and
-look by eye for its shapes: a bowl or dip next to a basket, an outlet
-releasing into a crowd, a narrow ledge where the train queues, a sleeper
-shelf's landing spot next to any of these.
+look by eye for its shapes, off the route: a bowl or dip next to a
+basket, an outlet releasing into a crowd, a sleeper shelf's landing spot
+next to any of these (a narrow ledge where the train queues is rule 24's,
+the train's flow, proposed, D165).
 
 ## Numbers worth a look
 From the level report: anything close to a limit.
