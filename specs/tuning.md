@@ -31,6 +31,8 @@ value to try. When a value is tuned, update it here and log the result in
 | Call radius | about half the screen width | D46 |
 | Call cap (a slime that can't reach the point gives up) | about 8 s | D73 |
 | Train slime hop interval | ~1.5–3 s, random per slime | D74 |
+| The relay (chunk 24g, proposed) | when a train slime takes off, the standing train slime right behind it (within its reach of touching it, on the outgoing route) has its hop timer cut to 0.15 s at most (exp/dip-jam's `RELAY_DELAY`) | D160 |
+| The hold on a climb (chunk 24g, proposed) | a grounded train slime between hops on the outgoing route, on a rise over 0.1 (up to `Train.GRIP_MAX_SLOPE`), has its motion down the slope cancelled after the grip, plus 0.5 of a tick's pull along the slope given up it (exp/dip-jam's `HOLD_FROM`, `HOLD_LIFT`); measured alone on a rise: 1.6 px/s of slide left (12.9 without) | D160 |
 | Hop rate when answering a call | a bit faster than on the train | D74 |
 | Size effect on hops | bigger: a little less often, further and higher | D24, D74 |
 | Wind-down hop slowdown | slower in the last minute | D28, D74 |
@@ -88,7 +90,7 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | On screen for fusion (`VIEW_MARGIN`) | a slime's centre at least 24 px inside the view's edge (a base slime's radius, so its whole body shows) | D70 |
 | Dip floor (where the loop nudges slimes together) | a rise of at least 100 px on both sides, and the floor within 30 px of the bottom | D20 |
 | Gathering window on a dip floor | 300 px behind | D20 |
-| Waiting for a partner on a dip floor (`Fusion.DIP_WAIT_SECONDS`; chunk 16f) | a train slime on a dip floor waits without limit only for a partner directly behind it (no other train slime between them); for a partner further back, at most 5 s. *To change in chunk 24g (proposed, D159 (5)):* the 5 s counted as its own time on the floor (today from the stall mark, which a push from behind restarts), and let go when the slimes pressing it from behind aren't partners | D20, D119, D159 |
+| Waiting for a partner on a dip floor (`Fusion.DIP_WAIT_SECONDS`; chunk 16f) | a train slime on a dip floor waits without limit only for a partner directly behind it (no other train slime between them); for a partner further back, at most 5 s. *D159 (5)'s change withdrawn (D160):* unchanged; letting go when the slime behind is another species (V1s) is the user's call (O121) | D20, D119, D159, D160 |
 | Hop timer while gathering or holding | held at 0.25 s | D74 |
 
 ### Frontier sets, gates and completion (chunk 14)
@@ -196,19 +198,22 @@ random spot. The rest **proposed**.
 | Landing draws per turn | 8, from `loop_start:spot:<tick>`; the first free one (no ring overlapping, parked ones included) is used (proposed) | D150 |
 | No free spot | nobody moves; the head tries again on the next tick that is a multiple of 30 (0.5 s) (proposed) | D150 |
 
-### The geyser (D159, chunk 24g)
+### The geyser (D159, D160, chunk 24g)
 
 The user's: the geyser in v1, the experiment's "high and wide" form
-(exp/geyser's variant C). The numbers are the branch's, **tuned in the
-build**; the limits are proposed.
+(exp/geyser's variant C), a level object (D160). The numbers are the
+branch's, **tuned in the build**, and are **each placement's defaults**
+(a placement may set its own); the limits are proposed and apply to
+every placement. The span and the departure line are the test level's
+placement.
 
 | Value | Start at | Source |
 |---|---|---|
 | Lift before the launch | straight up until the ring is 6 px clear of the slimes piled over it, at most 240 px, the ring clear of terrain | D159 |
 | Apex | about 260 px above the higher of the launch point and the landing, ±25 %, seeded | D159 |
-| Landing draws | 10 per arrival, from `geyser:<tick>:<id>`, uniform on 150 to 700 px along the loop; the emptiest free one whose flight clears the terrain (slimes in flight counted where they land) | D159 |
-| Landing limits | the loop's own route only, a free spot (never on the waiting queue), never onto a ledge rule 22 (b) guards, never at or past a gate; a fused slime only inside a split zone (proposed) | D159 |
-| Off screen | a parked arrival is placed on a free drawn spot; none free, it stays in the parked single file | D159 |
+| Landing draws | 10 per arrival, from `geyser:<tick>:<id>`, uniform on the placement's span (the test level's: 150 to 700 px along the loop); the emptiest free one whose flight clears the terrain (slimes in flight counted where they land) | D159 |
+| Landing limits | the loop's own route only, a free spot (never on the waiting queue), never onto or under a ledge rule 22 (b) guards, never at or past a gate (every placement); a fused slime only inside a split zone (a placement's switch, on at the loop's start) (proposed) | D159, D160 |
+| Off screen | a parked slime reaching the catch is placed on a free drawn spot; none free, it stays in the parked single file | D159, D160 |
 | Rule 24's departure line | 750 px along the loop on the test level (past the farthest landing); the rate window 600 ticks (O119) | D159 |
 
 ### Session, wind-down, bedtime and sunrise (chunk 17)

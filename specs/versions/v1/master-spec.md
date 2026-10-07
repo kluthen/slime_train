@@ -34,8 +34,12 @@ was withdrawn; only the points above came back from it (D155). Two
 fixes the user made mandatory before v1 closes (D159): the cause of
 slimes of different species ending up inside each other is fixed, the
 stuck net kept as a backstop (5.2, Known gap 6 closed); and the
-**geyser** at the loop's start, with the dip nudge kept from jamming
-the train (5.2, its details proposed; chunk 24g).
+**geyser**, a level object the test level places at its loop's start
+(5.4, the user's, D160; its details proposed; chunk 24g). The train's jam
+off the start is the climb, fixed by the hold on a climb and the relay
+(5.2, proposed); the dip nudge is unchanged (D160). The start's crowding
+itself is not a v1 blocker (the user's, D160): it goes to a review of
+the test level's design.
 
 ## 1. Concept and objective
 
@@ -112,7 +116,7 @@ would add to P1.G1 and P1.G2) comes in a later version.
   fusion up to size 3, the split zone at the start of the loop, left alone and
   lost.
 - Objects: the frontier-gate set (switch, basket, gate), the split zone at
-  the start of the loop, and plain signposts at forks.
+  the start of the loop, the geyser (D160), and plain signposts at forks.
 - Controls: tap-to-call, tilt for free slimes, edge buttons moving the camera,
   a tap on the parent zone (the top of the screen) for parent access.
 - Camera: rails along the loop, the call dragging the camera, the idle camera,
@@ -163,6 +167,7 @@ One term per concept, used everywhere in the code and documents.
 | switch | redirects the flow at a fork in the loop; operated by tapping |
 | basket | collects slimes until their weight fills it, then fires its target |
 | split zone | a place that splits slimes back into base slimes |
+| geyser | a level object that launches the slimes reaching it high and spreads their landings along the loop |
 | signpost | a sign at a fork showing which way the loop goes |
 | species | a kind of slime; only the same species fuse |
 | size | the number of base slimes a slime is made of |
@@ -273,15 +278,11 @@ One term per concept, used everywhere in the code and documents.
   moved; a slime that recovers before its turn isn't moved (D150, the
   user's; the order, the stretch and what a waiting slime does are
   proposed; the numbers are in `tuning.md`).
-- **The geyser** (D159, the user's; its details proposed; chunk 24g): a
-  train slime coming home by a return route, on reaching the loop's
-  start, is lifted above the slimes piled there and launched high, so it
-  comes down on the emptiest of a few free spots along the loop's first
-  stretch rather than on the pile. It lands only on the loop's own
-  route, never on the waiting queue, onto a ledge level rule 22 guards,
-  or at or past a gate; a fused slime lands only inside a split zone.
-  Off screen the arrival is put on a free spot directly. A move to the
-  loop start is never launched. Seeded, like every draw.
+- **The geyser** (D159, D160; the object is the user's, its details
+  proposed; chunk 24g): the test level's geyser (5.4) sits where its
+  return routes end, so a train slime coming home is launched to land
+  spread along the loop's first stretch rather than on the pile at the
+  loop's start. A move to the loop start is never launched.
 
 **Waking**
 
@@ -309,6 +310,12 @@ Slimes move only by hopping.
 Bigger slimes hop a little less often, but further and higher. In the last
 minute of a session every slime hops more slowly.
 
+A train slime standing between hops on a rise of the outgoing route keeps
+its place instead of sliding back (the **hold on a climb**), and when a
+train slime takes off, the one standing right behind it hops almost at
+once (the **relay**), so a queue moves as a wave (proposed, D160; the
+numbers in `tuning.md`).
+
 **Size, weight and species**
 
 - **Size** is the number of base slimes a slime is made of. It is also its
@@ -327,10 +334,7 @@ minute of a session every slime hops more slowly.
   of the two.
 - Fusion mostly happens through the call (slimes clumped at the call point),
   but can happen on its own, and a dip in the loop can nudge slimes into
-  fusing. The nudge never jams the train: a slime waiting on a dip floor
-  for a partner further back counts its own time there, and is let go
-  when the slimes pressing it from behind aren't partners (proposed,
-  D159).
+  fusing.
 - Only split zones split slimes. A split zone splits a slime back into base
   slimes instantly. In v1 the only split zone is at the start of the loop.
 
@@ -414,6 +418,19 @@ where a basket's centre is nearer, since a basket never answers a tap
   removed or turned into a landscape feature.
 - **Split zone.** At the start of the loop; splits every slime that enters it
   into base slimes.
+- **Geyser** (D160; the object is the user's, its details proposed). A
+  level object placed wherever a level needs one: a train slime
+  travelling into its catch is lifted above any slimes piled over it
+  and launched high, to come down on the emptiest of a few seeded free
+  spots along its landing span of the loop. It lands only on the loop's
+  own route, never on the waiting queue, onto or under a ledge level
+  rule 22 guards, or at or past a gate; with no such spot, the slime
+  carries on as if there were no geyser. Each placement sets its catch,
+  its span, its flight's height and draws, and whether fused slimes
+  land only inside a split zone. Off screen a slime reaching it is put
+  on a free spot directly. It isn't tapped and saves nothing. The test
+  level places one where its return routes end (span 150 to 700 px,
+  fused slimes only into the split zone).
 - **Signpost.** Stands at every fork of the loop and shows which
   way the loop goes. Not interactive.
 - **No filters in v1.** The only fork in the loop is the frontier switch, so

@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v23 (chunk 24g, the geyser and the train's flow off the start, before v1 closes, proposed next after 5N, D159; O91 fixed, 0061ccf; earlier, v22: 22h done, fccbb8e, 96725f1, as-built note under D150; 19w's as-built note under D149; 5N next, D158; earlier, v21: 5N next, after 22h, for headroom, D158; 19w done, fdae364; 22h step A done, fccbb8e; 22m part 2 done, 3b765f3; the real S20 FE of 2026-10-03; earlier, v20: 22l done, 600de6b, 5f6a6b0; 22m's fixture done, 4aac65a, its run tool being built; DoD 30's status on the phone emulation; earlier, v19: 22l: every wake local, D156 (7); `stress-moving`'s abuse target in chunk 22 and 24.1, D153; earlier, v18: the fps session after 0196c25 reverted, D155: chunks 22e, 22f, 22g, 22i, 22j and 22k withdrawn, kept on branch `archive/fps-session-2026-10`; chunk 22d done, 1a539db; new chunks 22l, the local wake, D156, and 22m, the `stress-dense` fixture and the 10,000-tick run tool, D153, D154, both being built with the revert; chunk 19w, the save wipe and the save format before the first store release, D148, D149, and chunk 22h, the loop-start queue, D150, re-entered; the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE, the rest of 24, the health review, D155; approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v24 (chunk 24g restated: the geyser as a level object, the hold on a climb and the relay, the dip nudge unchanged, the start's measures recorded not gated; chunk TL2, the test level's start review, proposed, not a lock gate, its place the user's, O123; D160; earlier, v23: chunk 24g, the geyser and the train's flow off the start, before v1 closes, proposed next after 5N, D159; O91 fixed, 0061ccf; earlier, v22: 22h done, fccbb8e, 96725f1, as-built note under D150; 19w's as-built note under D149; 5N next, D158; earlier, v21: 5N next, after 22h, for headroom, D158; 19w done, fdae364; 22h step A done, fccbb8e; 22m part 2 done, 3b765f3; the real S20 FE of 2026-10-03; earlier, v20: 22l done, 600de6b, 5f6a6b0; 22m's fixture done, 4aac65a, its run tool being built; DoD 30's status on the phone emulation; earlier, v19: 22l: every wake local, D156 (7); `stress-moving`'s abuse target in chunk 22 and 24.1, D153; earlier, v18: the fps session after 0196c25 reverted, D155: chunks 22e, 22f, 22g, 22i, 22j and 22k withdrawn, kept on branch `archive/fps-session-2026-10`; chunk 22d done, 1a539db; new chunks 22l, the local wake, D156, and 22m, the `stress-dense` fixture and the 10,000-tick run tool, D153, D154, both being built with the revert; chunk 19w, the save wipe and the save format before the first store release, D148, D149, and chunk 22h, the loop-start queue, D150, re-entered; the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE, the rest of 24, the health review, D155; approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
@@ -197,7 +197,9 @@ technology, not business behaviour:
   and a tick costs ~11 ms even with 20 to 30 physics slimes.
 - **Next, in this order (D158; 24g placed by D159, proposed):** chunk **5N** (the native tick, now, for headroom, not a missed target:
   the user, "go native"; it ports the local wake), chunk **24g** (the
-  geyser and the train's flow off the start, D159), chunk **22c** (crowd
+  geyser object and the train's flow off the start, D159, D160), chunk
+  **TL2** (the test level's start review, D160, proposed here; not a
+  lock gate, its place the user's, O123), chunk **22c** (crowd
   detail only under load, proposed, D141), chunk **22 repeated** on the
   real S20 FE with the perf log, the rest of chunk **24**, then the
   closing health review.
@@ -205,9 +207,13 @@ technology, not business behaviour:
   version lock"; D159): **O91 fixed** (3a27d86, merged 0061ccf; hashes
   re-recorded d48c519): slimes of different species no longer end up
   inside each other; the stuck net stays as a backstop. **The geyser**:
-  tried on exp/geyser (throwaway); its "high and wide" form kept, with
-  the dip nudge's jam fixed and rule 24's run check: chunk **24g**,
-  proposed next after 5N.
+  tried on exp/geyser (throwaway); its "high and wide" form kept, as a
+  level object a level places (the user, 2026-10-07, D160), with the
+  climb fix (the hold on a climb and the relay, from exp/dip-jam) and
+  rule 24's run check: chunk **24g**, proposed next after 5N. **The
+  start's crowding is not a blocker** (the user, D160: "that doesn't
+  prevent validating this version"): it goes to the test level's review
+  (TL2).
 - **Chunk L01** (the first real level) is **v2**, not this plan (D134):
   v1 is the test level only. The release preset stays as built, with the
   test level left out; v1 (full MVP) is never published (D135).
@@ -256,7 +262,8 @@ technology, not business behaviour:
 | 22m | The `stress-dense` fixture and the 10,000-tick run tool (the user's, details proposed, D153, D154; fixture done, 4aac65a; run tool done, 3b765f3) | S | 22d | the fixture built by `tools/make_fixture.gd`, no format change; 200 train slimes (fewer only if they don't fit before switch 3, reported), 9 per 300 px stretch, the bowl's bottom two at 12, along the loop line; its hash at 600 and 2400 ticks recorded with the others'; its scripted test; the run tool over 10,000 ticks; a first phone-emulation reading |
 | 22e–22k | Withdrawn with the fps session (22e, 22f, 22g, 22i, 22j, 22k; D155); kept on branch `archive/fps-session-2026-10`; their ids aren't reused | — | — | — |
 | 22c | Crowd detail only under load (proposed, D141) | S | 5N | the load meter's unit tests; same hashes in `always`; `auto` measured on the desktop |
-| 24g | The geyser and the train's flow off the start (the user's, details proposed, D159): the geyser from exp/geyser, the dip nudge unjammed, rule 24's run check | M | 5N (proposed) | unit tests of the landings, the limits and the dip wait; `s3-basket-59of60` held on the start, seeds 1 and 2, against D159's baseline; `stress-dense`'s census; rule 24's check on the test level recorded; [DoD 1], the `bump` fixture; same hash on both ticks; changed hashes listed |
+| 24g | The geyser object and the train's flow off the start (the user's, details proposed, D159, D160): the geyser as a level object (from exp/geyser), the hold on a climb and the relay (from exp/dip-jam), rule 25's checks, rule 24's run tool | M | 5N (proposed) | unit tests of the geyser's placement data, limits and landings and of the hold and the relay; `s3-basket-59of60` held on the start, seeds 1 and 2, recorded against D159's baseline (not a pass or fail on rules 23 and 24); `stress-dense`'s census; [DoD 1], the `bump` fixture; same hash on both ticks; changed hashes listed; the whole suite |
+| TL2 | The test level's start review (D160, proposed; not a lock gate; its place the user's, O123) | S–M | 24g | the factors crowding the start measured with 24g's run tool; level edits chosen with the user; O119 and O124 settled; rule 24's check recorded |
 | 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
 | 24 | Playtest issues, round 2 (open list; proposed) | S per issue (24.1 may be M) | 22 repeated (after 22b, 22d, 19w, 22h, 22l, 22m and 5N, D140, D143, D155) | each issue's own done-when |
 | LD | Level-design toolkit (technical) | L | 16 | the checker agrees with the level-rule tests on the test level; a scaffolded level loads, passes its generated tests and appears in test mode |
@@ -270,7 +277,7 @@ and 11 are independent of each other. Chunk 17 can start as soon as 8 is done, i
 parallel with the camera and objects work. Chunk 23 runs first among the
 remaining chunks, before 18 (D123), and chunk LD runs in parallel with it.
 TL1 ran after both, before 18 (D127; done, D129). After chunk 22, the
-order is 22b, 22d, 19w, 22l, 22m, 22h (all done), then 5N, 24g (D159, proposed), 22c, 22 repeated on the real S20 FE, then the rest of chunk 24, the
+order is 22b, 22d, 19w, 22l, 22m, 22h (all done), then 5N, 24g (D159, D160, proposed), TL2 (D160, proposed, not a lock gate, O123), 22c, 22 repeated on the real S20 FE, then the rest of chunk 24, the
 last chunk before the closing health review (D128, D140, D141, D143,
 D155, D158; O97 closed by D140). The fps session after 0196c25 (22e to
 22k) was withdrawn (D155).
@@ -1108,88 +1115,144 @@ must not run while another chunk edits the slime body code.
   2 minutes (no thrash), recorded in the project documentation; a save
   written in `auto` loads in every mode.
 
-### 24g. The geyser and the train's flow off the start (M, the user's, details proposed, D159)
+### 24g. The geyser object and the train's flow off the start (M, the user's, details proposed, D159, D160)
 
 The user (2026-10-06): one of two "mandatory fixes prior version lock"
 (the other, O91, is done: 0061ccf): "we must add the geyser thing when
 reached to prevent clustering at start point (it's happening right
-now)"; then, on the experiment's recommendation, "I'll follow your
-recommendation, we must take care of this in the level design rules as
-well (preventing scenario were cluster forms at loop start)". **Runs
-before v1 closes; proposed: next after 5N, before 22c and chunk 22's
-repeat**, which then measures the game with it. Its id is a chunk's, not
-one of chunk 24's numbered items. It changes the train's arrivals, the
-dip nudge and a level rule, so it **keeps both ATD steps**. It must not
-run while another chunk edits the Train, `Fusion`, `LoopStart` or
-`Offscreen`. Every rule and number below is D159's, proposed where it
-goes beyond the user's words.
+now)". Then (2026-10-07, D160): "Ensure the geyser option stays (but not
+specifically as the end of the route feature, but as a standalone
+"object/effect" that happen to be located there. (so that the object can
+be reused elswhere)", and the start's crowding "doesn't prevent
+validating this version". **Runs before v1 closes; proposed: next after
+5N, before TL2, 22c and chunk 22's repeat**, which then measure the game
+with it. Its id is a chunk's, not one of chunk 24's numbered items. It
+adds a level object and changes the train's hops, so it **keeps both
+ATD steps**. It must not run while another chunk edits the Train,
+`LoopStart`, `Offscreen` or the level components. Every rule and number
+below is D159's and D160's, proposed where it goes beyond the user's
+words.
 
-- **Atoms (preflight start):** `rule_dip_may_nudge_fusion`,
-  `req_hopping_behavior`, `req_offscreen_simulation`,
-  `rule_stuck_slimes_moved_to_start` (its "until the cause is fixed"),
-  `req_level_design_rules` (rule 24), `req_persistence_and_saves` (to
-  confirm no save key changes); a new atom for the geyser.
-- **1. The geyser, from exp/geyser (variant C, "high and wide").** Taken
-  from the branch (`src/sim/geyser.gd`, `tests/unit/test_geyser.gd`,
-  `SlimeBodies.launch`), C only: the solo, carry and rate variants and
-  their flags are dropped. As D159 (3): an arrival by a return route at
-  the loop's start is lifted above the pile and launched to the
-  emptiest of 10 seeded free spots on 150 to 700 px; parked arrivals are
-  placed directly. **Fixed against the branch:** the trigger is an
-  arrival by a return route, not any wrap of the loop (a move to the
-  loop start or a slime put back near the start is never launched);
-  a spot counts only if free on the loop's own route (never on the
-  waiting queue); never onto a ledge rule 22 (b) guards; never at or
-  past a gate (as on the branch); a fused slime only inside a split
-  zone (as on the branch). It is on by default; a debug flag
-  (`--no-geyser`) turns it off for runs and tests.
-- **2. The dip nudge unjammed** (D159 (5)): a gathering slime's wait
-  counts its own time on the dip floor, not the stall mark a push
-  restarts; it is let go when the slimes pressing it from behind aren't
-  partners. The exact rule is the build's, chosen by measure on
-  `stress-dense` and `s3-basket-59of60`; if the `bump` fixture's 3 + 1
-  bump can't hold with it, stop and report (the user's call, D119's
-  alternative).
-- **3. Rule 24's run check:** the experiment's `tools/geyser_probe.gd`
-  kept as a level run tool (renamed if it reads better): per 600 ticks,
-  arrivals at the loop's start, departures past 240 and 750 px, the
-  largest awake cluster with a slime within 240 px, the mean within
-  240 px, the pocket's mean, ticks to clear 240 px, landings off the
-  loop and on guarded ledges; the camera held with `--hold-view`. The
-  level review and `tools/level.sh` point at it (the scene checker
-  still can't see rates).
-- **Baseline (D159 (2)):** `s3-basket-59of60`, the camera held on the
-  start from tick 9000, 14,000 ticks, seeds 1 and 2: off, arrivals
-  16.1 / 14.8 per 600 ticks, largest cluster 123 / 128, within 240 px
-  24.8 / 25.5, departures past 240 px 5.9 / 6.4 and past 750 px 2.0 /
-  2.4, pocket 30.0 / 29.1, clear 888 / 1341 ticks; C on the branch:
-  107 / 120, 13.4 / 15.5, 11.8 / 8.6, 3.2 / 3.0, 11.4 / 13.5, 38 / 41,
-  landed off the loop 81 / 68. `stress-dense`'s census (0f3d027): 19 to
-  32 slimes held by gathering, 56 to 68 of 60 to 68 last hops short.
+- **Atoms (preflight start):** `rule_geyser_spreads_arrivals_at_loop_start`
+  (DRAFT; D160 makes it an object a level places),
+  `req_interactive_objects_general`, `req_hopping_behavior`,
+  `req_offscreen_simulation`, `req_level_design_rules` (rules 24 and 25),
+  `rule_arrivals_clear_faster_than_they_arrive`,
+  `rule_dip_may_nudge_fusion` (unchanged: its pending no-jam change is
+  withdrawn), `req_persistence_and_saves` (to confirm no save key
+  changes).
+- **1. The geyser, a level object** (D160 (1), `interactive-objects.md`).
+  Variant C from exp/geyser (`src/sim/geyser.gd`,
+  `tests/unit/test_geyser.gd`, `SlimeBodies.launch`; 8b116e4), C only,
+  generalised: a component (`src/components/`, like `SplitZone`) read
+  into `LevelData`, each placement with its catch box, landing span
+  (from, to, px along the loop, ahead of the catch), apex and jitter,
+  draws, lift cap (defaults D159's, `tuning.md`) and the switch "fused
+  slimes only into a split zone". The trigger is a train slime
+  travelling into the catch (not any wrap of the loop, as on the
+  branch); a slime put inside it (a move to the loop start, a load) is
+  never launched. The limits apply to every placement: the loop's own
+  route and a free spot (never on the waiting queue), never onto or
+  under a guarded ledge, never at or past a gate, the flight clear of
+  the terrain; no usable spot, the plain arrival. Off screen, placed
+  directly or left in the single file. No save key. The test level
+  places one over its return routes' end (span 150 to 700 px, the
+  switch on): on the test level it does what D159's geyser did. A debug
+  flag (`--no-geyser`) turns every geyser off for runs and tests.
+- **2. The climb fix: the hold on a climb (G) and the relay (R)** (D160
+  (4); from exp/dip-jam 1af507a, tokens `g` and `r`, as production code,
+  no environment token): a grounded train slime between hops on the
+  outgoing route, on a rise over 0.1, keeps its place; when a train
+  slime takes off, the standing one right behind it has its hop timer
+  cut to 0.15 s. The return routes' carry is untouched. No new state.
+  Hopping over the queue (`h`), `v4` and `v5` are dropped. **The dip
+  nudge is unchanged**: V1s only if the user takes it (O121; then the A,
+  B, A touching test, rule 5's and D119's wording change with it).
+- **3. Rule 25's checks** in the level-rules checker (`tools/check_level.gd`,
+  `tools/level_check/`): fail a span off the loop, behind or over its
+  catch, or holding a gate; warn when the fused switch is on with no
+  split zone over the span; note (not warn) the share of the span under
+  a guarded ledge (O124: TL1's guard test keeps the test level at 0
+  warnings). Tests on a small level per check, and the test level's
+  result.
+- **4. Rule 24's run tool:** the experiment's probes (`tools/geyser_probe.gd`,
+  `tools/dipjam_probe.gd`) kept as one level run tool for the review
+  (renamed if it reads better): per 600 ticks, arrivals at the loop's
+  start, departures past 240 and 750 px, the largest awake cluster with
+  a slime within 240 px, the mean within 240 px, the pocket's mean,
+  ticks to clear 240 px, landings off the loop and on guarded ledges,
+  the geyser's launches and refusals by reason, fusions per minute; the
+  camera held with `--hold-view`. `tools/level.sh` and the level review
+  point at it.
+- **Baseline (D159 (2), D160 (4)):** `s3-basket-59of60`, the camera held
+  on the start from tick 9000, 14,000 ticks, seeds 1 / 2, per 600 ticks
+  from 9000, main before 24g: arrivals 17.6 / 18.0, departures past
+  750 px 2.5 / 3.1, largest cluster within 240 px 118 / 117, fusions per
+  minute 17.0 / 16.2. On exp/dip-jam with G, R and the geyser: 9.0 /
+  8.6 past 750 px, cluster 90 / 85, fusions 5.1 / 5.4. `stress-dense`,
+  seed 1, 3600 ticks: speed 16.3 px/s, slow share 0.83 (with G and R:
+  23.5).
 - **Done when:**
-  - unit tests: an arrival is launched and lands on a free loop spot in
-    the stretch; never on the queue, a guarded ledge, past a gate; a
-    fused slime only in a split zone; a move to the loop start never
-    launched; a parked arrival placed, or left in the single file when
-    nothing is free; the same seed gives the same landing; the dip
-    wait not restarted by a push, and let go under a non-partner's
-    push;
-  - the baseline runs again, both seeds, with both changes: landings
-    off the loop no more than off's (18 / 25), none on `FirstLedge`;
-    within 240 px and the clear time at least as good as C's;
-    departures past 750 px above the baseline's, every number recorded
-    in the project documentation against the baseline;
-  - `stress-dense`'s census again: the slimes held by gathering and the
-    short-hop share both down, recorded;
-  - rule 24's check run on the test level and its result recorded, pass
-    or fail; on a fail, stop and report: O118 (pacing the return route's
-    end) is the user's call, not this chunk's;
-  - [DoD 1], the `bump` fixture's both bumps, no stall; the same hash on
-    both ticks and across a save and reload; tick cost not above the
+  - unit tests of the geyser: a placement's data read from the scene
+    (catch, span, apex, draws, lift, switch); a slime travelling into
+    the catch is launched and lands on a free loop spot in the span;
+    never on the queue, on or under a guarded ledge, at or past a gate;
+    with the switch on, a fused slime only in a split zone; a slime put
+    inside the catch never launched; a parked slime placed, or left in
+    the single file when nothing is free; the same seed gives the same
+    landing; two placements on one small level each use their own
+    span;
+  - unit tests of G and R: a held slime on a rise doesn't slide back
+    between hops (and does on the return route's carry as before); a
+    take-off cuts the timer of the slime right behind to 0.15 s, and
+    not of one out of reach or off the outgoing route;
+  - rule 25's checker tests pass; the test level shows 0 FAIL and 0
+    warnings, its ledge note listed;
+  - the baseline runs again, both seeds: every number **recorded** in
+    the project documentation against the baseline, not a pass or
+    fail on rules 23 and 24 (the start's crowding goes to TL2);
+    launched slimes never land off the loop or on `FirstLedge`;
+    `stress-dense`'s census again, recorded;
+  - the fusion drop explained (O122): a fusion census at the dips with
+    and without the relay, recorded; if rule 5 (fusion in dips) or
+    [DoD 1] no longer holds, stop and report;
+  - [DoD 1], the `bump` fixture's both bumps, no stall; `test_train`,
+    `test_fusion` and `test_slime_hops` pass; the same hash on both
+    ticks and across a save and reload; tick cost not above the
     baseline's; the changed fixture hashes listed and re-recorded; the
     whole suite passes.
 - **Seen, not changed:** the idle camera may follow a launched slime away
   from the start; the build reports it as a by-eye item.
+
+### TL2. The test level's start review (S–M, D160, proposed; not a lock gate)
+
+The user (2026-10-07, D160): "don't stress over the crowding of the
+loop's start too much. we need to review the test level design better
+to reduce the factors affecting this", and "that doesn't prevent
+validating this version". **Where it goes is the user's (O123);
+proposed:** after 24g, in v1's remaining list, **not a gate on v1's
+lock** (v1 may lock with it undone; it then carries into v2's level
+work). Content work on `levels/test/level.tscn` (through its
+generator) and the geyser's placement, no new behaviour; if a fix
+needs one (pacing the return route's end, O118, parked), it is the
+user's call and its own chunk.
+
+- **The factors, each measured with 24g's run tool** (the camera held on
+  the start): the arrival rate against the train's take-up (rule 24's
+  check; its window and threshold, O119); the first stretch's room
+  (length, width, where the queue sits); its slopes (the start basin's
+  exit climb rises 0.72 to 0.75 over x 660 to 1,200); the terrace and
+  the pocket behind the loop's start; how many slimes come home at once
+  (each section's return route, basket 3's drain); the geyser's
+  placement and span (O124, `FirstLedge`).
+- **Then:** level edits proposed to the user, one factor at a time, each
+  measured; rules 22 to 25 and TL1's done-when still hold; the coverage
+  matrix and the population (200) unchanged unless the user says so.
+- **Done when:** the factors and the chosen edits are recorded; O119
+  and O124 settled; rule 24's check on the test level recorded, pass or
+  fail (a fail stays a known gap of the test level, not a v1 blocker);
+  fixtures regenerated, the changed hashes listed, the whole suite
+  passes.
 
 ### 23. Small issues (open list)
 

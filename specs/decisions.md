@@ -4115,3 +4115,142 @@ Known gap 6); `versions/v1/build-plan.md` (chunk 24g, the order);
 (the net now a backstop), rule 24's atom under `req_level_design_rules`,
 and an atom for the geyser; outside `specs/`, the `level-review` skill
 and `docs/level-design/` still list rules only up to 22.
+
+## D160 — The geyser, a level object; the start's crowding to a test-level review, not a v1 blocker; the train's jam is the climb (2026-10-07)
+Restates D159 (3), (5), (6) and (7); parks O118; O119 stays open for the review; opens O120 to O124.
+
+The user's words (2026-10-07): "don't stress over the crowding of the
+loop's start too much. we need to review the test level design better
+to reduce the factors affecting this. Ensure the geyser option stays
+(but not specifically as the end of the route feature, but as a
+standalone "object/effect" that happen to be located there. (so that
+the object can be reused elswhere)." Then: "but that doesn't prevent
+validating this version." **Decided by the user:** the geyser stays, as
+a standalone level object reusable on any level, which the test level
+happens to place at its return routes' end; the crowding of the loop's
+start is not a v1 blocker and goes to a review of the test level's
+design. **Everything else below is proposed**; V1s (§4) is the user's
+call, asked 2026-10-07 (O121).
+
+**1. The geyser, a level object (restates D159 (3)).**
+- **A component a level places** (D6: reusable, configured in the
+  editor, no per-level script), like a split zone or a framing zone. Each
+  placement sets: its **catch** (a box: a train slime travelling the
+  loop's way whose centre enters it is launched); its **landing span**
+  (from and to, in px along the loop, ahead of the catch); its **apex**
+  and jitter, its **draws** per arrival and its **lift** cap (defaults:
+  D159's numbers, `tuning.md`); and one switch, **fused slimes land only
+  inside a split zone** (on for a placement at the loop's start, so
+  fused arrivals still split there; off elsewhere). Details: O120.
+- **Always applied, whatever the placement** (D159's limits): a spot on
+  the loop's own route, free (never on the waiting queue); never onto or
+  under a ledge rule 22 (b) guards; never at or past a gate; the flight
+  clears the terrain. No usable spot: the plain arrival (no lift, no
+  launch). Off screen, a parked slime reaching the catch is placed on a
+  free spot of the span directly, or stays in the parked single file.
+- **Never launched:** a slime put inside the catch rather than
+  travelling into it (a move to the loop start, D150, already lands on a
+  free spot; a load).
+- **No tap** (a tap on it is a call, D109); **no state of its own,
+  nothing saved** (a slime in flight is ordinary physics); its own
+  derived stream `geyser:<tick>:<id>` (a slime is in one catch at a
+  time); the same hash on both ticks. Drawn as placeholder art, like a
+  split zone; its look is v3's graphics.
+- **The test level places one:** its catch over the return routes' end
+  (the pocket behind the loop's start, D116), its span 150 to 700 px,
+  fused slimes only into the split zone. That placement is D159's
+  geyser: "an arrival by a return route" is what this catch sees.
+- v1's objects gain the geyser (it is no longer "part of the loop's
+  start", nor a v2 option, D159 (3)).
+
+**2. Placing a geyser: level rule 25 (proposed).** A geyser lands slimes
+where they can carry on: its span lies on the loop, wholly ahead of its
+catch, with no gate in it, and as little of it as possible under a
+ledge rule 22 (b) guards; at the loop's start, its catch takes the
+arrivals before they reach the pile (rule 24). *Check (proposed,
+`tools/check_level.gd`, chunk 24g):* fails a span off the loop, behind or
+over its catch, or holding a gate; warns when the fused switch is on
+with no split zone over any of the span; and reports the share of the
+span under a guarded ledge (below). *By eye:* the flights clear the
+terrain.
+**Inconsistency, not resolved:** the test level's span (150 to 700 px)
+crosses `FirstLedge` (about 245 to 390 px; in the experiment about 460
+of each run's ~1,500 refused draws were that ledge), so it would get the
+warning, and TL1's guard test wants no checker warning on the test level
+(`test_the_rules_checker_gives_the_test_level_no_warning`). Proposed for
+24g: the ledge share is a note in the checker's report, not a warning,
+until the review settles it; shorten or split the span, or accept it:
+O124, for the review (§3).
+
+**3. The start's crowding: not a v1 blocker (the user's); a review of
+the test level's design.** Rule 24 stays as written (D159 (4)); the test
+level failing its check no longer blocks v1's validation or lock, and
+D159 (6)'s "next, pace the return route's end" is withdrawn as v1's next
+step. The review weighs the factors that crowd the start: the arrival
+rate against the train's take-up (rule 24's check, by 24g's run tool);
+the first stretch's room (length, width); its slopes (the start basin's
+exit climb, rising 0.72 to 0.75 over x 660 to 1,200, where the queue
+goes single file); the terrace and the pocket; the geyser's placement
+and span (O124). Its fixes are level edits first. **Where it goes is the
+user's (O123);** proposed: chunk **TL2** in v1's remaining list after
+24g, not a lock gate (v1 may lock with it undone; it then carries into
+v2's level work). **O118 parked** (not needed for v1; pacing stays an
+option the review may pick). **O119 stays open**, settled in the review.
+
+**4. The train's jam is the climb, not the dip nudge (corrects D159
+(5)).** Measured on exp/dip-jam (1af507a, its `HANDOFF.md`; throwaway,
+D155's rule): taking the nudge out of the jam (V1s: let go when the
+slime behind is another species) cuts the gathering holds 92 % with the
+flow unchanged (micro hops still 93 %; s3's departures past 750 px
+unchanged). What jams the train is the climb: on a rise it goes single
+file at about 10 px/s, each slime sliding back 5 to 17 px/s between
+hops, every hop aimed 150 px on and landing on the slime ahead.
+- **The fix (proposed, the measures' recommendation): G and R.** **G,
+  the hold on a climb:** a grounded train slime between hops on the
+  outgoing route, on a rise over 0.1, keeps its place (no slide back:
+  alone on a rise 12.9 -> 1.6 px/s); the return routes' carry is
+  untouched. **R, the relay:** when a train slime takes off, the
+  standing train slime right behind it (within its reach of touching
+  it, on the outgoing route) has its hop timer cut to 0.15 s, so a wave
+  runs down the queue. No new state. `s3-basket-59of60` held on the
+  start, per 600 ticks from tick 9000, seeds 1 / 2: departures past
+  750 px 2.5 / 3.1 -> 7.8 / 7.6; largest cluster within 240 px 118 /
+  117 -> 98 / 95 (rule 23's limit 20); with the geyser too, 9.0 / 8.6
+  and 90 / 85. `stress-dense` speed 16.3 -> 23.5 px/s. `test_train`,
+  `test_fusion` and `test_slime_hops` pass; equal hashes on both ticks.
+- **The dip nudge unchanged.** D159 (5)'s two changes are withdrawn: the
+  wait counted on its own time (V2) left the flow unchanged and needs a
+  saved key; the let-go (V1s) fully unjams `stress-dense` with G and R
+  (speed 35 px/s, slow share 0.83 -> 0.02) but changes the A, B, A
+  touching fusion test by design: **left out by default, the user's
+  call (O121).** Hopping over the queue (H) was nearly inert: dropped.
+- **To watch:** fusions per minute on `s3-basket-59of60` fall 17 -> 7.7
+  with G and R (5.1 with the geyser), while `stress-dense` keeps 20 to
+  32; not explained yet (O122). The relay doubles the landings.
+
+**5. Chunk 24g restated** (build plan): the geyser object (from
+exp/geyser, generalised to a placement), G and R (from exp/dip-jam),
+rule 25's checks, and rule 24's run check kept as a level run tool for
+the review. The start's measures are recorded against D159's baseline,
+not a pass or fail on rules 23 and 24. v1's blockers: the gobble
+(done, 0061ccf) and the geyser object (24g).
+
+**Documents:** `concept.md` Terminology (geyser restated; hold on a
+climb, relay); `interactive-objects.md` (the geyser, v1's objects);
+`level-design.md` (rule 24's text, rule 25); `slimes.md` (the geyser,
+the climb, the dip nudge); `tuning.md` (the geyser's per-placement
+defaults, G and R, the dip wait row); `open-questions.md` (O118 parked,
+O119 kept, O120 to O124 in); `versions/v1/master-spec.md` (header, 3,
+5.2, 5.4); `versions/v1/build-plan.md` (24g, TL2, the order);
+`versions/v1/README.md`; `versions/v2/README.md`; `levels/test/README.md`
+(rule 24's row, rule 25's row); `README.md`. **Flagged:** for
+documentalist, `rule_geyser_spreads_arrivals_at_loop_start` (DRAFT, not
+built) now describes an object a level places, not the loop's start
+(its rename is documentalist's); `rule_dip_may_nudge_fusion` 1.1's
+pending no-jam change is withdrawn (unchanged unless O121);
+`req_hopping_behavior` gains G and R; `rule_arrivals_clear_faster_than_they_arrive`
+(the test level's fail no longer a v1 blocker); rule 25 under
+`req_level_design_rules`; `req_interactive_objects_general` (v1's
+objects gain the geyser). Outside `specs/`: the `level-content` skill (a
+new object kind) and the `level-review` skill and `docs/level-design/`
+(rules up to 25).

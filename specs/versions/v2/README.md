@@ -1,6 +1,6 @@
 # v2 — Content, level design and music
 
-Status: themes only (D134); no spec yet; two cluster aids proposed (D143); the geyser, once a parked idea, moved into v1 (D159)
+Status: themes only (D134); no spec yet; two cluster aids proposed (D143); the geyser, once a parked idea, moved into v1 as a level object (D159, D160)
 
 Themes, set by the user (D134):
 
@@ -60,8 +60,7 @@ gather awake):
   when v2 is scoped: slimes or weight, which stretch it counts, off
   screen (D70), which branch the camera follows.
 
-*Moved to v1 (D159):* the geyser (once O117, an idea parked here,
-D157) is built in v1, chunk 24g, as part of the loop's start. A geyser
-a level places or tunes as an object stays a possible v2 reusable
-mechanic, not proposed. Pacing the return route's end, if v1's start
-still crowds, is O118.
+*Moved to v1 (D159, D160):* the geyser (once O117, an idea parked here,
+D157) is built in v1, chunk 24g, as a level object any level may place
+(the user, D160), already a reusable mechanic; v2's levels use it as
+they need. Pacing the return route's end is O118, parked (D160).

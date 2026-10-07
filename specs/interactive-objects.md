@@ -1,10 +1,10 @@
 # Interactive objects
 
-Status: draft v13 (population fork, v2, proposed, D143)
+Status: draft v14 (the geyser, a v1 level object, D160, the user's, details proposed; v13: population fork, v2, proposed, D143)
 
 **Versions (D50, D54):** v1 has only the frontier-gate set (switch, basket,
-gate) and the split zone at the start of the loop. Every other object comes in
-v2.
+gate), the split zone at the start of the loop and the geyser (D160). Every
+other object comes in v2.
 
 Every interactive object is a reusable, programmed component configured
 through its properties in the Godot editor (D6). Its state is part of the
@@ -89,6 +89,33 @@ A walkway that bends under load. Activation: presence.
 ### Split zone (D38, D75)
 A place that instantly splits slimes back into base slimes.
 The start of the loop carries one (D23, D54). Not specified in detail yet.
+
+### Geyser (v1, D159, D160; the object is the user's, its details proposed, O120; chunk 24g)
+Launches the slimes reaching it high and spreads their landings along the
+loop, so a flow of arrivals doesn't pile up on one spot (level rules 24,
+25). A standalone object a level places wherever it needs one; the test
+level places one where its return routes end, at the loop's start.
+Activation: presence: a train slime travelling the loop's way whose centre
+enters its **catch** (a box) is launched; a slime put inside it (a move to
+the loop start, a load) isn't. It isn't tapped (a tap on it is a call).
+- **What it does:** lifts the slime straight up above any slimes piled over
+  it, then launches it high, to come down on the emptiest of a few seeded
+  spots drawn along its **landing span**. A spot is used only if it is on
+  the loop's own route and free (never on the waiting queue), not on or
+  under a ledge rule 22 (b) guards, not at or past a gate, and its flight
+  clears the terrain. With none, the slime carries on as if there were no
+  geyser.
+- **Properties:** the catch's box; the landing span (from and to, px along
+  the loop, ahead of the catch); the apex and its jitter; the draws per
+  arrival; the lift's cap (defaults in `tuning.md`); and "fused slimes
+  only into a split zone" (on at the loop's start, so fused arrivals still
+  split there).
+- **Off screen (D70):** a parked slime reaching the catch is placed directly
+  on a free spot of the span; with none, it stays in the parked single
+  file.
+- **State:** none; nothing saved (a slime in flight is ordinary physics).
+  Its draws come from their own seeded stream.
+- **Look:** placeholder art in v1, like the split zone; its look is v3's.
 
 ### Signpost (D47)
 Stands at every fork in the loop and shows which way the loop goes. Not

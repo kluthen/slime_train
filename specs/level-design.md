@@ -1,6 +1,6 @@
 # Level design requirements
 
-Status: draft v15 (rule 24 strengthened: at the loop's start arrivals never outpace what the train takes off it, a rate check over the scripted runs, what to do when it fails, D159, the user's ask, wording and check proposed; v14: rule 24, arrivals clear faster than they come, D157, the user's, wording and check proposed; v13: rule 23, clusters, D143, approved in direction, D144; its limit proposed, O107)
+Status: draft v16 (rule 25, placing a geyser, a level object, D160, the user's object, the rule and its check proposed; rule 24: a geyser gives room, pacing parked (O118), D160; v15: rule 24 strengthened: at the loop's start arrivals never outpace what the train takes off it, a rate check over the scripted runs, what to do when it fails, D159, the user's ask, wording and check proposed; v14: rule 24, arrivals clear faster than they come, D157, the user's, wording and check proposed; v13: rule 23, clusters, D143, approved in direction, D144; its limit proposed, O107)
 
 Rules every level must follow, whoever builds it. These rules make up the
 checklist for every level's design (see `levels/`). Levels are
@@ -147,8 +147,8 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     The way onward counts by its pace, not only its room: at the loop's
     start slimes leave by joining the train at its hop pace, so a return
     route that brings them faster than the train carries them off fills
-    the start however wide it is. The geyser (D159) spreads the arrivals
-    over the first stretch; it gives them room, not pace. Moves to the
+    the start however wide it is. A geyser (D160, rule 25) spreads the
+    arrivals over the first stretch; it gives them room, not pace. Moves to the
     loop start (lost, stuck, stalled) are paced by the loop-start queue
     and land on free spots (D150); this rule is about the level's own
     arrivals.
@@ -156,8 +156,9 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     fixtures excepted), from the first arrival on: **the arrival rate at
     the loop's start is at most the departure rate off its first
     stretch**: the mean arrivals per 600 ticks stay at or below the mean
-    departures per 600 ticks past the end of the first stretch (past the
-    geyser's farthest landing; 750 px on the test level); and **the
+    departures per 600 ticks past the end of the first stretch (past a
+    geyser's farthest landing, where one is placed; 750 px on the test
+    level); and **the
     largest awake cluster** with a slime within 240 px of the loop's start
     stays within rule 23's limit (O107); and over a 10,000-tick
     `tools/thru.gd` run no slime is stuck again within 10 s of landing
@@ -168,4 +169,33 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     lists this rule as a run check and a by-eye item.
     *When it fails:* give the first stretch more room (longer, or wider so
     waiting slimes sit apart), make the train faster off it (a gentler
-    first slope), or pace the return route's end (O118, not yet built).
+    first slope), place a geyser (rule 25) to spread the arrivals over
+    the room there is, or pace the return route's end (O118, parked, not
+    built).
+
+## Objects that move slimes
+
+25. *(D160: the geyser as a level object is the user's; this rule and
+    its check are proposed.)* **A geyser lands slimes where they can
+    carry on.** A geyser (`interactive-objects.md`) launches the train
+    slimes entering its catch and lands them along a span of the loop.
+    Place it so that: its **span lies on the loop, wholly ahead of its
+    catch** (a landed slime is never caught again on the same pass);
+    **no gate lies in the span** (a geyser never skips a gate); **as
+    little of the span as possible runs under a ledge rule 22 (b)
+    guards** (the geyser never lands there, so that part only wastes
+    draws); with "fused slimes only into a split zone" on (a placement
+    at the loop's start), **a split zone covers part of the span**, or
+    fused arrivals are never launched. At the loop's start, put its
+    catch where the return routes' arrivals enter, before they reach
+    the pile (rule 24). A geyser gives arrivals room, not pace: it
+    doesn't replace rule 24's rate.
+    *Check (proposed, `tools/check_level.gd`, chunk 24g):* **fails** a
+    span off the loop, behind or over its catch, or holding a gate;
+    **warns** when the fused switch is on with no split zone over any of
+    the span; **notes** the share of the span under a guarded ledge (a
+    note, not a warning, until O124 is settled: the test level's own span
+    crosses `FirstLedge`, and the checker gives the test level no
+    warning, TL1).
+    *By eye, in test mode:* the flights clear the terrain, and launched
+    slimes come down on the loop, not on the queue.
