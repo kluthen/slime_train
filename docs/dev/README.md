@@ -7479,11 +7479,35 @@ D143, D144, O107). Rule 23's measure (`ClusterWatch`, see
 `docs/dev/level-tooling.md`, "Level rule 23's measure") taken on the test
 level as it is, on the development desktop, native tick, 2026-10-07
 (branch feat/24-7, from `cfe1dab`), and again once a basket's own fill
-no longer counts (below). **No verdict**: the test level's
-numbers wait for items 24.3 and 24.8 and for section 3 being settled
-(O107), and the loop start's crowding is set aside meanwhile (D161). The
-limit is the one rule 23 proposes (above 20 slimes for more than 5 s in a
-row fails, `ClusterWatch.LIMIT` and `HOLD_SECONDS`), not yet calibrated.
+no longer counts (below). The limit is settled (D167, O107 closed):
+above 20 slimes for more than 5 s in a row fails (`ClusterWatch.LIMIT`
+and `HOLD_SECONDS`), a basket's own fill and the train queues on the loop
+left out. Since branch feat/rule23-gate the played test fails on it (see
+"The played test gates on rule 23 (D167)" below).
+
+### The played test gates on rule 23 (D167)
+
+Since branch feat/rule23-gate (from `1ff881e`),
+`tests/e2e/test_test_level_playable_e2e.gd` asserts every rule 23 line it
+records: each section's play (from its fixture until its basket fires)
+and each basket's fire-and-drain fail when `ClusterWatch.passes()` is
+false, that is above `LIMIT` (20) slimes for more than `HOLD_SECONDS`
+(5 s) in a row. The lines are still printed. Every section passes
+(development desktop, native tick, 2026-10-07):
+
+| Run | Largest cluster | Above the limit s | Longest in a row s | Rule 23 |
+|---|---|---|---|---|
+| Section 1's play, `fresh` to s1.basket firing | 5 | 0.0 | 0.0 | PASS |
+| s1.basket's fire-and-drain (225 ticks) | 1 | 0.0 | 0.0 | PASS |
+| Section 2's play, `gate1-open` to s2.basket firing | 4 | 0.0 | 0.0 | PASS |
+| s2.basket's fire-and-drain (518 ticks) | 1 | 0.0 | 0.0 | PASS |
+| Section 3's play, `gate2-open` to s3.basket firing | 23 | 0.1 | 0.1 | PASS |
+| s3.basket's fire-and-drain (1062 ticks) | 1 | 0.0 | 0.0 | PASS |
+
+A new level's own test (`tools/new_level/test_level.gd.template`) already
+failed on rule 23 over section 1's play, its fire-and-drain included
+(`assert_true(_clusters.passes(), ...)`); unchanged. The tables below are
+the history of the measure before the gate.
 
 ### A basket's own fill left out (2026-10-07)
 
@@ -7630,7 +7654,7 @@ of 30 on the route passes, a pile of 25 free or knocked-off slimes beside
 it fails, a pile against the queue counts only its own slimes, two piles
 don't join through it, a queue due a move counts.
 
-### What it shows (observations, no verdict)
+### What it showed (observations, before the gate)
 
 - Sections 1 and 2 stay far under the limit, in their plays and their
   drains, before and after.
@@ -7661,7 +7685,7 @@ don't join through it, a queue due a move counts.
 ### How to reproduce
 
 ```sh
-tools/test.sh -gselect=test_test_level_playable_e2e   # the rule 23 lines, about 90 s
+tools/test.sh -gselect=test_test_level_playable_e2e   # the rule 23 lines and asserts, about 90 s
 tools/level.sh bench
 tools/level.sh bench --fixture=s3-basket-59of60
 tools/level.sh bench --fixture=s3-basket-59of60 --lead-in=700

@@ -23,10 +23,11 @@ extends GutTest
 ## its fire-and-drain on its own (until the basket is empty, at most
 ## DRAIN_TICKS), with the camera on the basket. The largest awake cluster,
 ## the seconds above the limit and the longest of them in a row are printed
-## for each, measured as-is: the test doesn't fail on them until items 24.3
-## and 24.8 have landed and the user has settled section 3 (O107); the loop
-## start's crowding is set aside meanwhile (D161). They are recorded in
-## docs/dev/README.md ("Level rule 23 on the test level"). The drain itself
+## for each, and each must keep the rule (ClusterWatch.passes(): never above
+## LIMIT slimes for more than HOLD_SECONDS in a row; D167, the limit settled
+## at 20 slimes for 5 s, a basket's own fill and the train queues on the
+## loop left out). They are recorded in docs/dev/README.md ("Level rule 23
+## on the test level"). The drain itself
 ## is held to D128's bound (O127): each basket empty within its quota x
 ## RELEASE_SECONDS plus DRAIN_SLACK (basket 1 11.8 s, basket 2 14.5 s,
 ## basket 3 28 s).
@@ -153,6 +154,8 @@ func _play(section: int) -> void:
 	gut.p("rule 23, section %d's play from %s to %s firing: %s" % [section, FIXTURES[section], basket, play.report()])
 	gut.p("rule 23, %s's fire-and-drain (%s): %s" % [basket, "empty after %d ticks" % drained if drained >= 0
 			else "not empty after %d ticks" % DRAIN_TICKS, _clusters.report()])
+	assert_true(play.passes(), "rule 23 over section %d's play: %s" % [section, play.report()])
+	assert_true(_clusters.passes(), "rule 23 over %s's fire-and-drain: %s" % [basket, _clusters.report()])
 	_clusters = null
 	var quota := int(sim.level.baskets[basket]["quota"])
 	var limit := quota * FrontierSets.RELEASE_SECONDS + DRAIN_SLACK
