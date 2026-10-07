@@ -16,7 +16,7 @@ extends SceneTree
 ##              tick); x19, x22 (train slimes crossing loop distances X1, X2
 ##              forward); stall (train moves refused, Train.STALLED); oob
 ##              (the other refused moves); stuck (slimes the stuck rule
-##              moved); hops (train hops taken, Train.hops_taken); sim_train
+##              moved); hops (train hops taken, TrainHopLog.hops_taken); sim_train
 ##              (train slimes not parked), all_train (every train slime);
 ##              bowl_n (train slimes in section 3's bowl, BOWL_LO to
 ##              BOWL_HI); back_mean (the mean loop distance of the bowl's
@@ -106,7 +106,7 @@ func _run(game: Node) -> void:
 		prev[id] = train.distance_of(id)
 	var w := {"x1": 0, "x2": 0, "stall": 0, "oob": 0, "stuck": 0}
 	var tot := {"x1": 0, "x2": 0, "stall": 0, "oob": 0, "stuck": 0}
-	var hops0: int = train.hops_taken
+	var hops0: int = train.hop_log.hops_taken
 	var first_stall := -1
 	var back0 := _back_half(train, train.tracked_ids(), bodies)
 	for i in ticks:
@@ -135,13 +135,13 @@ func _run(game: Node) -> void:
 			if e["tick"] == t and e["moved"]:
 				w["stuck"] += 1
 		if sim.tick % WINDOW == 0 or i == ticks - 1:
-			back0 = _print_window(sim, w, train.hops_taken - hops0, now, back0)
-			hops0 = train.hops_taken
+			back0 = _print_window(sim, w, train.hop_log.hops_taken - hops0, now, back0)
+			hops0 = train.hop_log.hops_taken
 			for k in w:
 				tot[k] += w[k]
 				w[k] = 0
 	print("THRU_TOT tick=%d x19=%d x22=%d stall=%d oob=%d stuck=%d hops=%d first_stall=%d" % [
-			sim.tick, tot["x1"], tot["x2"], tot["stall"], tot["oob"], tot["stuck"], train.hops_taken,
+			sim.tick, tot["x1"], tot["x2"], tot["stall"], tot["oob"], tot["stuck"], train.hop_log.hops_taken,
 			first_stall])
 	_print_hist(train, bodies)
 	print("STATE tick=%d hash=%s" % [sim.tick, sim.state_hash()])

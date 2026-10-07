@@ -214,8 +214,8 @@ func _run(game: Node) -> void:
 	print("DJ fixture=%s seed=%d tick=%s tick0=%d slimes=%d hold=%s from %d" % [fixture, seed_n,
 			"native" if bodies.uses_native() else "gdscript", sim.tick, bodies.slime_count, hold_view, hold_from])
 	var f := Flow.new()
-	f.hops0 = train.hops_taken
-	f.short0 = train.short_hops_taken
+	f.hops0 = train.hop_log.hops_taken
+	f.short0 = train.hop_log.short_hops_taken
 	f.fused0 = fusion.fused_count
 	f.bumped0 = fusion.bumped_count
 	var start := train.position_at(0.0)
@@ -288,7 +288,7 @@ func _count_train(sim: Simulation, f: Flow, t: int) -> void:
 		f.prog[id] = p
 		f.dist[id] = d
 		f.laps[id] = train.laps_of(id)
-		if active and bodies.supported[s] != 0 and not train.in_air(id) and bodies.hop_timer[s] > 0.05:
+		if active and bodies.supported[s] != 0 and not train.hop_log.in_air(id) and bodies.hop_timer[s] > 0.05:
 			_count_slope(sim, f, id, d, touched)
 		if s >= 0:
 			f.cen[id] = bodies.centre_of(id)
@@ -346,8 +346,8 @@ static func _count_slope(sim: Simulation, f: Flow, id: int, d: float, touched: D
 ## The hops that landed since the last tick: their advances, and the
 ## landings on top of another slime.
 func _count_landings(sim: Simulation, f: Flow) -> void:
-	for id: int in sim.train.last_hops:
-		var last: Dictionary = sim.train.last_hops[id]
+	for id: int in sim.train.hop_log.last_hops:
+		var last: Dictionary = sim.train.hop_log.last_hops[id]
 		if last["landed"] < 0 or f.landed_seen.get(id, -2) == last["landed"]:
 			continue
 		f.landed_seen[id] = last["landed"]
@@ -416,10 +416,10 @@ func _print_totals(sim: Simulation, f: Flow) -> void:
 	var fusion: Fusion = sim.fusion
 	f.advances.sort()
 	var minutes := ticks / 3600.0
-	var hops := train.hops_taken - f.hops0
+	var hops := train.hop_log.hops_taken - f.hops0
 	print(("DJ_TOT hops=%d short=%.2f adv_med=%.1f gather_mean=%.1f gather_max=%d hold_mean=%.1f speed=%.1f"
 			+ " front=%.1f slow=%.2f fus_min=%.2f bumps=%d creep=%.2f creep_v=%.1f stall=%d stuck=%d") % [
-			hops, float(train.short_hops_taken - f.short0) / maxi(hops, 1),
+			hops, float(train.hop_log.short_hops_taken - f.short0) / maxi(hops, 1),
 			f.advances[f.advances.size() / 2] if not f.advances.is_empty() else 0.0,
 			float(f.gather_sum) / ticks, f.gather_max, float(f.hold_sum) / ticks,
 			f.speed_sum / maxi(f.speed_n, 1) * 60.0,

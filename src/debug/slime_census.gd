@@ -63,7 +63,7 @@ extends RefCounted
 ## hopped now: Train.TARGET_*), next_target, next_apex, next_v (the take-off
 ## velocity aimed), capped (the take-off speed cap cuts it: the hop lands
 ## short); in_air (a train hop not landed yet), and its last train hop
-## (Train.last_hops): last_hop (take-off tick), last_kind, last_from,
+## (TrainHopLog.last_hops): last_hop (take-off tick), last_kind, last_from,
 ## last_target, landed (tick; -1 in the air, or never landed as a train
 ## hop: parked or moved first), last_advance (px of progress
 ## from take-off to landing), last_short (less than half its reach).
@@ -512,13 +512,13 @@ static func _train_tokens(tokens: PackedStringArray, sim: Simulation, slime_id: 
 		var high := minf(train.highest_between(from, from + reach), target.y)
 		var apex := Train.hop_apex(size) + maxf(0.0, minf(centre.y, target.y) - high)
 		var cap := Train.hop_cap(size)
-		_put(tokens, "next_kind", train.last_target_kind)
+		_put(tokens, "next_kind", train.hop_log.last_target_kind)
 		_put(tokens, "next_target", _vec(target))
 		_put(tokens, "next_apex", "%.1f" % apex)
 		_put(tokens, "next_v", _vec(Train.aim(centre, target, apex, bodies.gravity.y, cap)))
 		_put(tokens, "capped", _bit(aim_capped(centre, target, apex, bodies.gravity.y, cap)))
-	_put(tokens, "in_air", _bit(train.in_air(slime_id)))
-	var last: Dictionary = train.last_hops.get(slime_id, {})
+	_put(tokens, "in_air", _bit(train.hop_log.in_air(slime_id)))
+	var last: Dictionary = train.hop_log.last_hops.get(slime_id, {})
 	if not last.is_empty():
 		_put(tokens, "last_hop", str(last["tick"]))
 		_put(tokens, "last_kind", last["kind"])

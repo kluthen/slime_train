@@ -143,8 +143,8 @@ func test_the_hold_and_the_hop_decision_match_the_decision_records() -> void:
 			if why != "":
 				nudged_seen = true
 				assert_true(fields["hold"].contains("dip_" + why), "the hold names the nudge")
-			assert_eq(fields["in_air"], "1" if sim.train.in_air(slime_id) else "0")
-			var last: Dictionary = sim.train.last_hops.get(slime_id, {})
+			assert_eq(fields["in_air"], "1" if sim.train.hop_log.in_air(slime_id) else "0")
+			var last: Dictionary = sim.train.hop_log.last_hops.get(slime_id, {})
 			if not last.is_empty():
 				hops_seen = true
 				assert_eq(fields["last_hop"], str(last["tick"]))

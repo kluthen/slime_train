@@ -227,8 +227,8 @@ func test_the_line_holds_the_largest_cluster_and_reads_only() -> void:
 
 
 ## The line's hops and short_hops are the window's: the perf log takes the
-## train's new hops (Train.hops_taken, short_hops_taken) frame by frame, so
-## those counted before its first frame aren't the window's.
+## train's new hops (TrainHopLog.hops_taken, short_hops_taken) frame by
+## frame, so those counted before its first frame aren't the window's.
 # @test-link [[req_platform_and_performance_targets]]
 func test_the_window_counts_the_trains_new_hops() -> void:
 	var game := _game_with_guard(true)
@@ -236,17 +236,17 @@ func test_the_window_counts_the_trains_new_hops() -> void:
 	assert_eq(game.add_perf_log(PackedStringArray(["--perf-log=100"])), PackedStringArray())
 	var train: Train = game.simulation.train
 	assert_not_null(train, "test mode's level has a train")
-	train.hops_taken += 7
-	train.short_hops_taken += 2
+	train.hop_log.hops_taken += 7
+	train.hop_log.short_hops_taken += 2
 	var perf_log: PerfLog = game.perf_log
 	perf_log._on_process_frame()
 	perf_log._process(0.0)
 	assert_eq([perf_log._hops, perf_log._short_hops], [0, 0], "counted before the log's first frame")
-	train.hops_taken += 5
-	train.short_hops_taken += 1
+	train.hop_log.hops_taken += 5
+	train.hop_log.short_hops_taken += 1
 	perf_log._on_process_frame()
 	perf_log._process(0.0)
-	train.hops_taken += 2
+	train.hop_log.hops_taken += 2
 	perf_log._on_process_frame()
 	perf_log._process(0.0)
 	assert_eq([perf_log._hops, perf_log._short_hops], [7, 1])
