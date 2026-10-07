@@ -4763,3 +4763,149 @@ slimes on the route left out, proposed), and the lean's mention under
 D144's atom note. Outside `specs/`: `docs/level-design/` (06-population,
 09-check-the-rules) and the `level-review` skill's rule 23 line, once
 `ClusterWatch` leaves the train out.
+
+## D166 — Chunk 24 as built: item 24.1 met, item 24.2's quota pies (placeholder look), rule 23's train-queue exclusion, the release hop; the order to session 7 and the health review (2026-10-07)
+Facts as built, with one proposed acceptance (O127) and one question for
+the interface design (O128). Sources: the merge messages of f1861e1
+(item 24.2), c0924d9 (rule 23's train queue) and 75040ed (the release
+hop), and 0d0935c (item 24.1's record); `docs/dev/README.md`, "Quota
+pies (item 24.2)", "A train queue on the loop left out", "A released
+slime hops away at once (O126)" and "Item 24.1: section 3's frame rate";
+the ATD sync dcf8cb4.
+
+**1. Item 24.1 met** (0d0935c; measured only, on main 75040ed; nothing
+in the game changed; suite 1604/1604 native, 126/126 the GDScript pass).
+- **The gate (D163): a steady 60 fps through section 3 on the desktop.**
+  A windowed run of `s3-basket-59of60` at test mode's 1152 × 648, crowd
+  detail in `auto`, capped at 60: native p50 / p5 60.0 / 60.0, GDScript
+  p5 59.9, over section 3's windows; the detail ceiling stayed at 0. The
+  same seed gives the same hash, with and without the perf log.
+- **The ticks, recorded against the 2.4 to 3.8 ms headroom target** (not
+  gated; the bench, seed 909, 600 timed ticks, the median of three runs),
+  native median / p95 ms: `s3-basket-59of60` 3.15 / 3.47 (lead-in 60)
+  and 3.28 / 3.47 (lead-in 700), inside; `loop-start-pile` 2.51 / 2.83,
+  inside; `stress-dense` 4.14 / 4.37, above (+0.3 ms); `stress-moving`
+  5.38 / 6.82, excepted (D153). The GDScript tick reads 5.6 to 6.0 ms on
+  every case but `stress-moving` (9.97), above the band. Within -0.6 to
+  +3.2 % of 5N's numbers, the run-to-run spread.
+- **The phone:** session 6 (D163) gives `s3-basket-59of60` 59.1 / 58.7
+  fps cold (p50 / p5), so [DoD 30] holds. Session 6's build (cfe1dab)
+  predates item 24.3 and the release hop; session 7 measures again after
+  them.
+
+**2. Item 24.2 done, placeholder look** (f1861e1; suite 1595/1595
+native, 126/126; drawing only, no hash changed; `QuotaDisplay`).
+- **Built as D128 proposed:** a quota of 10 or less keeps one outline per
+  unit (basket 1's 6); above 10, one quota pie per 10 of weight, the last
+  holding the rest (basket 2: 10 and 5; basket 3: six of 10), a slice per
+  unit, filled in order, the first pie first, each in the caught slime's
+  species colour (a size 3 fills three, across pies if needed); a full
+  pie stays full. Each pie is 80 level px across: **6.7 mm** on the
+  reference phone at `s3.frame.basket`'s zoom 0.8, over the proposed
+  6 mm; basket 3's six pies take 560 px of its 668, basket 2's two 176 of
+  403.
+- **The states (ux D4 Q10), outlines and pies alike:** the reward swells
+  every outline or pie, the fill keeping the slimes' colours (the build
+  before turned it a flat yellow); releasing, a unit empties with each
+  slime let go, from the end of the row; inert, nothing is drawn; at
+  bedtime the fill stays.
+- **Where it differs from ux D4 (O128):** the opt-out's 0.5 s drain is
+  not built: the fill empties one release at a time. The colours shift
+  along by one slime as slimes leave (the lowest id goes first, so the
+  units left take the colours of the slimes still in); the count stays
+  exact.
+- **The look stays the interface design's** (ux D4 Q10): the colours,
+  rim, dividers, empty-slice tint and sizes are placeholders. The sizes
+  are constants: a level whose basket is narrower than its row isn't
+  caught by the level checker.
+- Desktop: primitives a frame 19,000 -> 8,424, the frontier's drawing
+  0.04 ms a frame.
+- **[DoD 9] reworded** (wording only): the basket's quota display, its
+  outlines or, above a quota of 10, its quota pies (proposed, D128),
+  fills by weight. The pies stay proposed with D128.
+
+**3. Rule 23's train-queue exclusion as built** (c0924d9; D165 (2), the
+user's; suite 1589/1589, 126/126; the debug overlay, the PERF line and
+`src/sim/` unchanged, no hash). D165's proposed reading is what was
+built.
+- **Left out, before clustering** (`ClusterWatch.on_route_ids`): a train
+  slime the train follows, not due a move to the loop's start (stalled,
+  out of bounds, stuck), with its centre within `Train.OFF_ROUTE`
+  (36 px) of its route point, the train's own "knocked off the route"
+  test. So a train slime counts when knocked off the route, stacked more
+  than 36 px above it, high in a hop, due a move, or not yet followed;
+  free slimes always count. Released slimes are train slimes: on the
+  route they are left out, piled beside it they count.
+- **The played test:** every section passes; the plays peak at 5, 4 and
+  23 (section 3, 0.1 s in a row), every basket's drain at 1. O107 (c)
+  measured with the train left out: section 3 needs no edit under the
+  proposed limit.
+- **The bench**, largest cluster before -> after: `stress-moving` 133 ->
+  44 (excepted, still above, its slimes stacked off the route);
+  `s3-basket-59of60` 37 -> 14 (lead-in 60; now 0.0 s above), 17 -> 3
+  (lead-in 700); `stress-dense` 48 -> 2.
+- **The synthetic test** (`test_rule_23_e2e`) now uses a pile off the
+  route: its bowl rebuilt off the route fails (26, 40.4 s in a row) and
+  apart passes (18). With its old bowl on the route it read 24 for 1.2 s,
+  a pass: it had failed only because of the train queue.
+- **A pile forming on the route at an outlet** (released slimes queuing
+  where they land) is now rule 24's, the arrival spot; a pile beside the
+  route still counts for rule 23. Rule 24's own cluster check at the
+  loop's start counts train slimes (proposed, D165, O107 (d)); its text
+  now says so.
+- The tutorial pages (06, 09) and the `level-review` and `new-level`
+  skills say so (4a05c3b).
+
+**4. The release hop as built** (75040ed; D165 (3), the user's; suite
+1584/1584, 126/126).
+- `FrontierSets._release` puts the slime at the outlet at rest and
+  unsupported, as before, and sets its `hop_timer` to 0: it hops the
+  first tick it stands on something, the tick after it lands (at basket
+  2's default outlet it lands on the 2nd tick and hops on the 3rd; over a
+  drop, on landing below). Unchanged: one slime at a time every 0.3 s
+  when the outlet is clear, lowest id first, nothing released at
+  bedtime; no new state, no save format change.
+- **The drains** (`test_basket_drain_e2e`, seed 14, each basket's
+  fixture; bound quota × 0.3 s + 10 s): basket 1 5.43 -> 0.60 s
+  (11.8 s), basket 2 13.13 -> 3.65 s (14.5 s), basket 3 18.40 s,
+  unchanged (28 s; its outlet over the drop). None falls back in.
+- **Hashes:** 3 of 38 re-recorded (`s1-basket-5of6` at 600 and 2400
+  ticks, `s3-basket-59of60` at 2400).
+- **The base-slime done-when (O126's suggested test, not added).** The
+  played test from fresh fills basket 2 with base slimes (15 of weight):
+  it now empties in 8.6 s (bound 14.5 s; it took 17.8 s before, over the
+  bound, so O126's worry was real); basket 1 in 225 ticks (3.75 s, bound
+  11.8 s). **It covers the done-when as a measurement**, for both
+  baskets at the default outlet, **not as a guard:** the played test
+  records the drain (watched up to 120 s) and doesn't assert D128's
+  bound, so a regression would show only in its log. *Proposed (the
+  orchestrator's acceptance):* accepted as measured; O127.
+- Rule 23's drains with the hop (before the train exclusion): 4, 10 and
+  5 slimes, far under the limit.
+
+**5. Progress.**
+- **Chunk 24 done**, except item 24.5's and item 24.6's phone numbers
+  (session 7). 24.8 is withdrawn (D165).
+- **Chunk 22's repeat waits on the phone's session 7:** the labels off
+  against on (24.6), normal play, `loop-start-pile` (24.5), the second
+  native basket run, chunk 20's checks by hand; on a build with 24.3
+  and the release hop.
+- **Then the health review:** its read-only phase is running now; its
+  clean-ups come after the phone run.
+- **ATD (dcf8cb4):** `rule_train_climbs_without_sliding_back` 1.1 and
+  `rule_train_relay_on_take_off` 1.2 are at REVIEW on the user's
+  decision (D165 (4)); STABLE needs the user's explicit confirmation.
+  Rule 23's atom (1.2), `req_switch_basket_gate_set` (1.3) and
+  `req_hopping_behavior` (1.2) are DRAFT.
+
+**Documents:** `level-design.md` (rules 23 and 24);
+`interactive-objects.md` (basket); `slimes.md` (the release hop);
+`tuning.md` (the quota pies, the emptying bound, the frame rate, rule
+23's rows); `tech-direction.md`; `concept.md` (quota pie);
+`levels/test/README.md` (basket 2's outlet, rules 23 and 24's rows);
+`versions/v1/build-plan.md` (header, Progress, 22, 24.1, 24.2, 24.3,
+24.7); `versions/v1/master-spec.md` (header, 5.4, DoD 9, 7);
+`versions/v1/README.md`; `open-questions.md` (O107, O127, O128);
+`README.md`.
+**Flagged:** for ux-writer, O128 (the pies' look, the opt-out's drain,
+the colours' order).

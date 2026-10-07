@@ -1,6 +1,6 @@
 # Interactive objects
 
-Status: draft v16 (a released slime hops away at once, D165, the user's; v15: the geyser after v1, D161, the user's; v14: the geyser, a level object, D160, the user's, details proposed; v13: population fork, v2, proposed, D143)
+Status: draft v17 (quota pies built, a placeholder look, the release hop as built, D166; v16: a released slime hops away at once, D165, the user's; v15: the geyser after v1, D161, the user's; v14: the geyser, a level object, D160, the user's, details proposed; v13: population fork, v2, proposed, D143)
 
 **Versions (D50, D54):** v1 has only the frontier-gate set (switch, basket,
 gate) and the split zone at the start of the loop. Every other object comes
@@ -52,7 +52,12 @@ one pie per 10 of weight, the last holding the rest, a slice per unit of
 weight; readable at the basket's framing zoom (`tuning.md`). A fired
 basket always empties: no released slime falls back into it. *(D165, the
 user's:)* a released slime hops away at once, so it doesn't hold the
-outlet.
+outlet. *As built (D166):* the pies (item 24.2) in a placeholder look
+until the interface design draws them (ux D4 Q10); the opt-out empties
+the fill one release at a time (ux D4's 0.5 s drain isn't built) and the
+units' colours shift along as slimes leave (O128). The release hop: the
+released slime's hop timer is set to 0, so it hops the tick after it
+lands; basket 1 empties in 0.60 s, basket 2 in 3.65 s (O127).
 - **Off screen (D70):** it can still reach its quota. Filling it earns a
   **reward animation**, then it fires. (D91: the reward and the firing
   wait until the basket is in view)

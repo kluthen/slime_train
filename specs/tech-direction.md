@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v29 (the lean withdrawn and rule 23 not counting a train queue on the loop, D165, the user's; v28: the tick cap settled, the phone frame budget a headroom target, a displaced sleeper stays asleep, hashes within one platform (the phone's `atan2f`), chunk 22's repeat on the S20 FE, session 6, D163; v27: chunk 22c as built, the hold after a bounce, exact repeat outside `auto`, proposed, D162; 5N and 24g part A done; v26: chunks 22l and 22m's fixture built on main, their phone-emulation readings; v25: every wake local, D156 (7); `stress-moving`'s abuse target of 15 fps, not a 30 fps target, D153; earlier, v24: the fps session after 0196c25 reverted, D155: the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE; the local wake, D156, chunk 22l; `stress-moving` an abuse test and `stress-dense`'s target, D153, D154; the save format before the first store release and a save a build can't use set aside, proposed, D149; the save wipe for automated testing only, chunk 19w, D148, approved in direction, D149)
+Status: draft v30 (item 24.1 met: a steady 60 fps through section 3 on the desktop; rule 23's train-queue exclusion built; D166; v29: the lean withdrawn and rule 23 not counting a train queue on the loop, D165, the user's; v28: the tick cap settled, the phone frame budget a headroom target, a displaced sleeper stays asleep, hashes within one platform (the phone's `atan2f`), chunk 22's repeat on the S20 FE, session 6, D163; v27: chunk 22c as built, the hold after a bounce, exact repeat outside `auto`, proposed, D162; 5N and 24g part A done; v26: chunks 22l and 22m's fixture built on main, their phone-emulation readings; v25: every wake local, D156 (7); `stress-moving`'s abuse target of 15 fps, not a 30 fps target, D153; earlier, v24: the fps session after 0196c25 reverted, D155: the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE; the local wake, D156, chunk 22l; `stress-moving` an abuse test and `stress-dense`'s target, D153, D154; the save format before the first store release and a save a build can't use set aside, proposed, D149; the save wipe for automated testing only, chunk 19w, D148, approved in direction, D149)
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -212,7 +212,10 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   80 -> 51 on `s3-basket-59of60`). *Proposed (D143):* level
   rule 23 keeps levels free of spots where many slimes gather awake
   (item 24.7; D165, the user's: a train queue on the loop doesn't
-  count, it is rule 24's). The train's lean (item 24.8) is withdrawn
+  count, it is rule 24's; built, c0924d9, D166: `ClusterWatch` leaves
+  out a followed train slime not due a move whose centre is within
+  `Train.OFF_ROUTE` of its route point; overlay, PERF line and
+  simulation unchanged). The train's lean (item 24.8) is withdrawn
   from v1 (D165; a replacement was withdrawn before it, D155). A
   cluster the player builds stays possible, covered by crowd detail and
   the tick cap.
@@ -294,8 +297,17 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   the frontier 1.0, the native solver 0.3); thermal status 0. DoD 30 is
   met on the reference phone for those three fixtures; the floor phone
   is unmeasured (O14). Still to run (session 7): the labels' cost, normal
-  play, `loop-start-pile`, a second native basket run; the repeat stays
-  open until then.
+  play, `loop-start-pile`, a second native basket run, chunk 20's checks
+  by hand, on a build with item 24.3 and the release hop; the repeat
+  stays open until then.
+- **Item 24.1 met on the desktop** (0d0935c, D166; measured only): a
+  steady 60 fps through section 3 (native p50 / p5 60.0 / 60.0, GDScript
+  p5 59.9, the detail ceiling at 0). The ticks, recorded against the
+  2.4 to 3.8 ms headroom target, native median / p95 ms:
+  `s3-basket-59of60` 3.15 / 3.47 (lead-in 60), 3.28 / 3.47 (lead-in
+  700), `loop-start-pile` 2.51 / 2.83, `stress-dense` 4.14 / 4.37,
+  `stress-moving` 5.38 / 6.82 (excepted); the GDScript tick 5.6 to
+  6.0 ms. The native tick is 95 to 98 % behaviour (GDScript).
 - **The cap on ticks per frame: 2 at 1x** (D138; settled, D163, the
   user's; was 8): an
   overloaded scene plays in slow motion instead of collapsing into the

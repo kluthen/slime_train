@@ -52,7 +52,11 @@ user's, D163). An overloaded scene plays in slow motion at worst, at most
 2 ticks a frame (6, the user's, D163); the phone's frame budget is a
 headroom target, recorded, not a Definition of done item (6, D163). The
 reference phone meets Definition of done 30 on the three fixtures
-measured so far (7, D163).
+measured so far (7, D163). Chunk 24 as built (D166): section 3 holds a
+steady 60 fps on the desktop (7); a quota above 10 shows as quota pies
+in a placeholder look (5.4; Definition of done 9 reworded to cover
+them, wording only); a slime a basket releases hops away at once
+(5.2).
 
 ## 1. Concept and objective
 
@@ -405,7 +409,11 @@ where a basket's centre is nearer, since a basket never answers a tap
   instead of outlines: one pie per 10 of weight, the last holding the
   rest, each filling a slice per unit of weight, all of them within the
   basket's width and each at least 6 mm across on the screen at the
-  basket's framing zoom. A fired basket always empties: none of the
+  basket's framing zoom. Built so, in a placeholder look until the
+  interface design draws them (D166): each pie 6.7 mm across at basket
+  3's framing zoom; the reward swells the outlines or pies in the
+  slimes' colours, releasing empties a unit per slime let go, and an
+  inert basket shows none. A fired basket always empties: none of the
   slimes it releases falls back into it, and it is empty within its quota
   × 0.3 s plus 10 s of firing.
 - **Opting out.** Flipping the switch back before the basket is full stops the
@@ -849,8 +857,11 @@ tests, and the technical choices made while building are in the project's
   section 3 endgame (basket 3 at 59 of 60) and the dense case at 59 fps
   cold and warm, the abuse case at 23 fps cold and 59 warm, with no
   throttling. Still to measure on it: normal play, a big awake pile at the
-  loop's start, and the debug labels' cost. The floor phone still has to
-  be bought.
+  loop's start, and the debug labels' cost, on a build with the fired
+  basket's emptying and the release hop. On the desktop, section 3 holds
+  a steady 60 fps, and its ticks are recorded against the phone frame
+  budget's simulation share (D166). The floor phone still has to be
+  bought.
 - Test environments:
 
 | Environment | Used for | Not used for |
@@ -926,8 +937,9 @@ never ships: O101.
 
 **Objects**
 
-9. Flipping the frontier switch sends the flow into the basket; its outlines
-   fill by weight; when full it plays the reward animation, opens the gate
+9. Flipping the frontier switch sends the flow into the basket; its quota
+   display (its outlines, or above a quota of 10 its quota pies,
+   proposed) fills by weight; when full it plays the reward animation, opens the gate
    and releases its slimes; the loop then extends into the new section and
    the old return route is no longer used.
 10. A basket filled while off screen plays its reward and opens the gate

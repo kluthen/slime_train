@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v27 (the lean withdrawn from v1; a released slime hops at once, O126; the hold on a climb and the relay settled in v1, O125; D165, the user's; v26: the geyser after v1, D161, the user's; the hold on a climb and the relay stay in v1, chunk 24g, the train's climb, proposed; v25: the geyser a level object, the user's, D160; the train's jam is the climb: the hold on a climb and the relay, proposed; the dip nudge unchanged, D159 (5) withdrawn, V1s the user's call, O121; earlier, v24: the cause of stuck slimes found and fixed, the net kept as a backstop, D159 (1); the geyser at the loop's start and the dip nudge's jam, D159, proposed; earlier, v23: every wake local: a fusion, a split, a slime taken out of the level, a call, a trapdoor, gate or lid opening or shutting, and a tilt change too, D156 (7); earlier, v22: moves to the loop start one at a time, 0.5 to 2 s apart, to a random free spot, and no stall clock while parked, chunk 22h, D150, the user's, details proposed; the local wake, chunk 22l, D156; the fps session after 0196c25 withdrawn, D155: the lean stays as approved in direction, unbuilt; the train leans away from clusters, D143, approved in direction, D144; its numbers proposed, O107)
+Status: draft v28 (the release hop as built, D166; v27: the lean withdrawn from v1; a released slime hops at once, O126; the hold on a climb and the relay settled in v1, O125; D165, the user's; v26: the geyser after v1, D161, the user's; the hold on a climb and the relay stay in v1, chunk 24g, the train's climb, proposed; v25: the geyser a level object, the user's, D160; the train's jam is the climb: the hold on a climb and the relay, proposed; the dip nudge unchanged, D159 (5) withdrawn, V1s the user's call, O121; earlier, v24: the cause of stuck slimes found and fixed, the net kept as a backstop, D159 (1); the geyser at the loop's start and the dip nudge's jam, D159, proposed; earlier, v23: every wake local: a fusion, a split, a slime taken out of the level, a call, a trapdoor, gate or lid opening or shutting, and a tilt change too, D156 (7); earlier, v22: moves to the loop start one at a time, 0.5 to 2 s apart, to a random free spot, and no stall clock while parked, chunk 22h, D150, the user's, details proposed; the local wake, chunk 22l, D156; the fps session after 0196c25 withdrawn, D155: the lean stays as approved in direction, unbuilt; the train leans away from clusters, D143, approved in direction, D144; its numbers proposed, O107)
 
 ## States
 
@@ -124,7 +124,9 @@ Slimes move only by hopping.
 - During bedtime's wind-down, every slime hops more slowly.
 - *(D165, the user's; O126)* **A slime a basket releases hops away at
   once** instead of resting on the outlet until its own hop timer runs
-  out (how, a hop timer set to 0 on release, is the build's).
+  out (how, a hop timer set to 0 on release, is the build's). *Built
+  so (75040ed, D166):* it hops the first tick it stands on something,
+  the tick after it lands (over a drop, on landing below).
 - *(Withdrawn from v1, D165, the user's; was D143's item 24.8, the
   lean.)* A train slime no longer waits before hopping when slimes it
   can't fuse with crowd its landing spot: built as an experiment, it

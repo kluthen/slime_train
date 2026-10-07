@@ -98,7 +98,8 @@ Items are settled. The decision IDs point to
   phone with the level's largest realistic pile on one screen, a full basket
   plus the train, mostly still (D82, amended by D96). Met on the reference
   phone for the three fixtures measured after the native tick (D163); the
-  floor phone is unmeasured (O14). At most 2 ticks a frame (slow motion
+  floor phone is unmeasured (O14). On the desktop, section 3 holds a
+  steady 60 fps (item 24.1, D166). At most 2 ticks a frame (slow motion
   rather than a collapse); the phone frame budget is a headroom target,
   not a gate (D163).
 - A paid app, about $3–5 (D31): for the first store release, probably v4, not v1 (D135, D137).
@@ -115,6 +116,6 @@ Items are settled. The decision IDs point to
 
 ## Open for v1
 
-O14, O65, O101 and O121 (O125 and O126 closed by D165, the user's; O122 answered by D162, its acceptance proposed; O118, O119, O120 and O124 after v1, D161; O123 answered by D161; O91 fixed, D159; O22 and O62 now serve the first real level, v2) (see `../../open-questions.md`). The UX
+O14, O65, O101, O121, O127 and O128 (D166; O125 and O126 closed by D165, the user's; O122 answered by D162, its acceptance proposed; O118, O119, O120 and O124 after v1, D161; O123 answered by D161; O91 fixed, D159; O22 and O62 now serve the first real level, v2) (see `../../open-questions.md`). The UX
 review's interaction details (O67–O77) are settled (D102), and so are the
 build's points O79–O87 (D103–D107).
