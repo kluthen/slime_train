@@ -113,7 +113,8 @@ const NUDGE_GATHERING := "gathering"
 # @spec-link [[req_platform_and_performance_targets]]
 var nudged := {}
 ## The fusions and the bumps done so far, cumulative. Debug counters for the
-## train-flow probe (tools/dipjam_probe.gd): not state, not in dump() nor saves.
+## train-flow probe (tools/train_flow_probe.gd): not state, not in dump()
+## nor saves.
 # @spec-link [[req_platform_and_performance_targets]]
 var fused_count := 0
 var bumped_count := 0
