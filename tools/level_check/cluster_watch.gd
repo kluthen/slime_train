@@ -5,7 +5,9 @@ extends RefCounted
 ## stays above the limit. Fed a simulation every tick (watch()), it samples
 ## every SAMPLE_TICKS ticks the largest awake cluster as the debug overlay
 ## and the PERF line count it (DebugCounts.largest_cluster: the biggest group
-## of touching Physics slimes, counted in slimes), and keeps:
+## of touching Physics slimes, counted in slimes), less the slimes inside a
+## basket's box (user, 2026-10-07: a basket's own fill doesn't count; the
+## pile outside it still does; basket_boxes()), and keeps:
 ##   largest          the largest cluster sampled;
 ##   ticks_above      the ticks sampled above LIMIT, in all;
 ##   longest_above    the longest stretch of them in a row, ticks;
@@ -43,7 +45,30 @@ var _run := 0
 # @spec-link [[req_level_design_rules]]
 func watch(sim: Simulation) -> void:
 	if sim.tick % SAMPLE_TICKS == 0:
-		sample(DebugCounts.largest_cluster(sim.slimes))
+		sample(largest_cluster(sim))
+
+
+## The largest awake cluster of `sim` as rule 23 counts it: the debug
+## overlay's (DebugCounts.largest_cluster) with the slimes whose centre is
+## inside a basket's box left out (basket_boxes()). Read only.
+# @spec-link [[rule_no_spot_where_slimes_gather_awake]]
+static func largest_cluster(sim: Simulation) -> int:
+	return DebugCounts.largest_cluster(sim.slimes, basket_boxes(sim.level))
+
+
+## The boxes of `level`'s baskets (LevelData.baskets' "box": a slime whose
+## centre is inside is in the basket, the one FrontierSets catches by),
+## ordered by stable ID; none for no level.
+# @spec-link [[rule_no_spot_where_slimes_gather_awake]]
+static func basket_boxes(level: LevelData) -> Array[Rect2]:
+	var boxes: Array[Rect2] = []
+	if level == null:
+		return boxes
+	var ids := level.baskets.keys()
+	ids.sort()
+	for id in ids:
+		boxes.append(level.baskets[id]["box"] as Rect2)
+	return boxes
 
 
 ## Takes one sample: `cluster`, the largest awake cluster now, in slimes. It

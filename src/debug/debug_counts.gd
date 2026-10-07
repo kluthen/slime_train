@@ -153,9 +153,17 @@ static func count_slimes(sim: Simulation) -> Dictionary:
 ## distance rule then finds none. A pair with an end that isn't a Physics
 ## slime now (resting, parked, a sleeper, or gone since the tick) joins
 ## nothing. A lone Physics slime is a group of 1; none: 0. Read only.
+##
+## `left_out`: boxes (Rect2) whose slimes don't count: a Physics slime whose
+## centre is inside one of them joins nothing, as if it weren't a Physics
+## slime. Level rule 23's measure (ClusterWatch) leaves out the baskets'
+## boxes this way; the debug overlay and the PERF line leave out none.
 # @spec-link [[req_platform_and_performance_targets]]
-static func largest_cluster(bodies: SlimeBodies) -> int:
+# @spec-link [[rule_no_spot_where_slimes_gather_awake]]
+static func largest_cluster(bodies: SlimeBodies, left_out: Array[Rect2] = []) -> int:
 	var physics := physics_slime_ids(bodies)
+	if not left_out.is_empty():
+		physics = _outside(bodies, physics, left_out)
 	if bodies.candidate_pair_count() == 0:
 		return largest_cluster_in(touching_by_distance(bodies, physics), physics)
 	return largest_cluster_in(bodies.touching_pairs(), physics)
@@ -169,6 +177,23 @@ static func physics_slime_ids(bodies: SlimeBodies) -> PackedInt32Array:
 	for s in bodies.slime_count:
 		if bodies.calm[s] == SlimeBodies.ACTIVE and bodies.state[s] != SlimeBodies.STATE_SLEEPER:
 			out.append(bodies.id[s])
+	return out
+
+
+## The ids of `ids` (ids of `bodies`) whose centre is inside none of the
+## `boxes`, in order. Read only.
+# @spec-link [[rule_no_spot_where_slimes_gather_awake]]
+static func _outside(bodies: SlimeBodies, ids: PackedInt32Array, boxes: Array[Rect2]) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	for slime_id in ids:
+		var centre := bodies.centre_of(slime_id)
+		var inside := false
+		for box in boxes:
+			if box.has_point(centre):
+				inside = true
+				break
+		if not inside:
+			out.append(slime_id)
 	return out
 
 
