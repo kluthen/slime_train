@@ -16,8 +16,8 @@ extends GutTest
 ##   play on, landing between hops (never in the air longer than a hop), the
 ##   train carries them, none lost, the population whole.
 ## - `old-version` (a version-1 save, migrated at load, chunk 19): the moved
-##   sleeper, put on the train at the loop start, travels the loop; the
-##   population stays as loaded and nothing more is lost.
+##   sleeper, put back asleep at its spot (item 24.4), sleeps on there; the
+##   population stays as loaded and nothing is lost.
 ## - `s1-optout` (switch 1 flipped, basket 1 at 3 of 6): a tap on the switch
 ##   flips it back and the basket lets its slime go.
 ## - `stress-still` (60 in basket 3, a bedtime pile of 140 in the bowl): the
@@ -61,10 +61,8 @@ const MIDAIR_SLIMES := 4
 const MIDAIR_TICKS := 300
 const LONGEST_HOP := 90
 const MIDAIR_ADVANCE := 75.0
-## old-version: how long it runs (ticks), and how far along the loop the
-## migrated slime advances at the least (px: several hops; measured 573).
+## old-version: how long it runs (ticks).
 const OLD_VERSION_TICKS := 600
-const MIGRATED_ADVANCE := 300.0
 ## s1-optout: frontier set 1 and the camera on its basket (the fixture's
 ## sidecar point); how long the camera stays there before the tap, and how
 ## long after it the basket has let its slime go (ticks).
@@ -281,33 +279,45 @@ func test_midair_slimes_land_and_play_on_the_same_twice() -> void:
 
 # --- old-version -------------------------------------------------------------------
 
-## The slime old-version's migration put on the train: the one in the lost
-## log (its reason LOST), alone; -1 when not exactly one.
-func _migrated(sim: Simulation, label: String) -> int:
-	var lost := sim.offscreen.lost.filter(func(entry): return entry["reason"] == Offscreen.LOST)
-	assert_eq(lost.size(), 1, label + ": the migration lost one slime")
-	return lost[0]["id"] if lost.size() == 1 else -1
+## The slime holding the sleeper old-version's save keeps elsewhere than
+## the level (found from the files), and that sleeper's spot in the level;
+## {"slime": -1} when not exactly one.
+func _migrated(game: Node, label: String) -> Dictionary:
+	var sim: Simulation = game.simulation
+	var data: LevelData = game.level.data
+	var moved := []
+	for entry in TestMode.load_fixture("old-version")["save"]["slimes"]:
+		if entry["state"] == "sleeper" and SaveMigration.sleeper_moved(entry, data.sleepers[entry["id"]]):
+			moved.append(entry["id"])
+	assert_eq(moved.size(), 1, label + ": old-version moves one sleeper")
+	if moved.size() != 1:
+		return {"slime": -1}
+	for slime_id in sim.slimes.ids():
+		if moved[0] in sim.identities.members_of(slime_id):
+			return {"slime": slime_id, "spot": data.sleepers[moved[0]]["position"]}
+	return {"slime": -1}
 
 
 ## Runs old-version OLD_VERSION_TICKS and checks it; returns the game.
 func _run_old_version(label: String) -> Node:
 	var game := _boot("old-version")
 	var sim: Simulation = game.simulation
-	var slime := _migrated(sim, label)
+	var migrated := _migrated(game, label)
+	var slime: int = migrated["slime"]
+	assert_ne(slime, -1, label + ": the moved sleeper is still in the game")
 	if slime == -1:
 		return game
-	assert_eq(sim.slimes.state_of(slime), SlimeBodies.TRAIN, label + ": on the train")
+	assert_eq(sim.slimes.state_of(slime), SlimeBodies.SLEEPER, label + ": put back asleep")
+	assert_eq(sim.slimes.centre_of(slime), migrated["spot"], label + ": at its spot")
+	var lost := sim.offscreen.lost.filter(func(entry): return entry["reason"] == Offscreen.LOST)
+	assert_eq(lost, [], label + ": the migration lost nothing")
 	var count := sim.slimes.slime_count
 	var weight := _weight(sim)
 	assert_eq(count, POPULATION, label + ": every slime after the migration")
-	var members := sim.identities.members_of(slime)
-	var start := sim.train.progress_of(slime)
 	var nets := _nets(sim)
 	game.test_mode.run_ticks(OLD_VERSION_TICKS)
-	assert_eq(sim.identities.members_of(slime), members, label + ": still the same slime")
-	var advanced := sim.train.progress_of(slime) - start
-	gut.p("%s: the migrated slime advanced %.0f px" % [label, advanced])
-	assert_gt(advanced, MIGRATED_ADVANCE, label + ": it travels the loop")
+	assert_eq(sim.slimes.state_of(slime), SlimeBodies.SLEEPER, label + ": it sleeps on")
+	assert_eq(sim.slimes.centre_of(slime), migrated["spot"], label + ": where it was put")
 	assert_eq(sim.slimes.slime_count, count, label + ": no slime wiped")
 	assert_eq(_weight(sim), weight, label + ": every base slime kept")
 	assert_eq(_nets(sim), nets, label + ": nothing newly lost, stalled or stuck")

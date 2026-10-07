@@ -2,12 +2,16 @@ extends GutTest
 ## Save migration by level version (src/sim/save_migration.gd, called by
 ## SaveData.restore; chunk 19, decision C, proposed): a save of an older
 ## version of the level loads into the level as it is now, keyed by stable
-## IDs. A sleeper whose stable ID is gone, or whose spot moved, and an awake
+## IDs. A sleeper whose stable ID is gone, whose spot moved or whose species
+## changed is displaced but stays a sleeper (item 24.4, D139, proposed):
+## asleep at its stable ID's spot when the level still has it, else at the
+## nearest empty sleeper spot; only one with no spot left is lost. An awake
 ## slime whose centre is no longer in open space (inside the terrain, or
-## outside the level) are displaced: they stay in the save and are lost the
+## outside the level) is displaced: it stays in the save and is lost the
 ## usual way on load (to the loop start, in the lost log), so no slime is
 ## ever dropped and the population stays whole. A sleeper the level gained
-## is added, asleep at its spot. Object and gate states of stable IDs gone
+## (and no displaced sleeper took) is added, asleep at its spot. The phone's
+## version-1 save (item 24.4's evidence) keeps every sleeper asleep. Object and gate states of stable IDs gone
 ## are dropped; new objects and gates take their initial state on load. The
 ## header takes the level's version. A save of a newer version is refused.
 ##
@@ -17,11 +21,18 @@ extends GutTest
 
 # @test-link [[rule_released_level_stable_with_migration]]
 # @test-link [[rule_saves_never_wiped]]
+# @test-link [[req_persistence_and_saves]]
 
 const SEED := 11
 const POPULATION := 200
 ## Ticks played before saving: the first slime has settled on the loop.
 const PLAYED := 120
+## The phone's save of the test level's version 1 (item 24.4's evidence,
+## the S20 FE session of 2026-09-30: 199 sleepers and the first slime, many
+## sleepers saved where version 1 had them), and how long its migrated game
+## is played twice for the same-seed check (ticks).
+const PHONE_SAVE := "res://docs/perf/2026-09-30-s20fe/saves/before-migration.test.json.v1"
+const PHONE_TICKS := 120
 
 var _level: Level = null
 var _terrain: TerrainSegments = null
@@ -172,21 +183,36 @@ func test_a_save_of_the_same_level_unchanged_but_its_version_reloads_as_it_was()
 
 # --- Sleepers ---------------------------------------------------------------------
 
-func test_a_moved_sleeper_is_lost_to_the_loop_start_and_kept() -> void:
+## Asserts the slime holding stable ID `id` in `sim` sleeps at the level
+## `data`'s spot for `id`, of species `letter`, size 1, and is not lost.
+func _assert_asleep_at_spot(sim: Simulation, data: LevelData, id: String, letter: String, label: String) -> void:
+	var slime := _holder(sim, id)
+	assert_ne(slime, -1, label + ": still in the game, under its stable ID")
+	if slime == -1:
+		return
+	assert_eq(sim.slimes.state_of(slime), SlimeBodies.SLEEPER, label + ": still a sleeper")
+	assert_eq(sim.slimes.centre_of(slime), data.sleepers[id]["position"], label + ": at the spot")
+	assert_eq(sim.slimes.species_of(slime), Species.from_letter(letter), label + ": its species")
+	assert_eq(sim.slimes.size_of(slime), 1, label + ": size 1")
+	assert_false(sim.train.tracks(slime), label + ": not on the train")
+	assert_false(slime in _lost_ids(sim), label + ": not lost")
+
+
+func test_a_moved_sleeper_sleeps_on_at_its_new_spot_and_is_kept() -> void:
 	var newer := _newer()
 	var moved: String = _two_sleepers()[0]
 	var still: String = _two_sleepers()[1]
 	newer.sleepers[moved]["position"] += Vector2(50, 0)
+	var migrated := SaveMigration.migrate(_old_save(), newer, _terrain)
+	assert_eq(migrated["displaced"], PackedInt32Array(), "a sleeper is never lost while it has its spot")
 	var sim := Simulation.from_save(_old_save(), newer, _terrain, 1)
 	assert_not_null(sim)
 	if sim == null:
 		return
 	assert_eq(sim.slimes.slime_count, POPULATION, "no slime dropped, none added")
 	assert_eq(_weight(sim), POPULATION, "every basket's quota stays reachable")
-	var slime := _holder(sim, moved)
-	assert_ne(slime, -1, "still in the game, under its stable ID")
-	if slime != -1:
-		_assert_lost(sim, slime, moved)
+	_assert_asleep_at_spot(sim, newer, moved, _entry(_save, moved)["species"], moved)
+	assert_eq(_lost_ids(sim), [], "nothing lost")
 	var sleeper := _holder(sim, still)
 	assert_eq(sim.slimes.state_of(sleeper), SlimeBodies.SLEEPER, "the others sleep on")
 	assert_eq(sim.slimes.centre_of(sleeper), SaveData.vector_from(_entry(_save, still)["centre"]),
@@ -194,9 +220,32 @@ func test_a_moved_sleeper_is_lost_to_the_loop_start_and_kept() -> void:
 	var again := sim.to_save()
 	assert_eq(again["slimes"].size(), POPULATION, "the next save keeps it")
 	assert_eq(again["level"]["version"], newer.level_version)
+	assert_eq(SaveMigration.displacements(again, newer, _terrain), PackedInt32Array(),
+			"the next save needs no migration")
 
 
-func test_a_sleeper_whose_stable_id_is_gone_is_lost() -> void:
+func test_a_sleeper_whose_stable_id_is_gone_takes_the_nearest_empty_spot() -> void:
+	var newer := _newer()
+	var gone: String = _two_sleepers()[0]
+	var species: String = _entry(_save, gone)["species"]
+	var at: Vector2 = newer.sleepers[gone]["position"]
+	newer.sleepers.erase(gone)
+	newer.add_sleeper("zz.sleeper.far", "A", at + Vector2(0, -400))
+	newer.add_sleeper("zz.sleeper.near", "A", at + Vector2(0, -200))
+	var migrated := SaveMigration.migrate(_old_save(), newer, _terrain)
+	assert_eq(migrated["displaced"], PackedInt32Array(), "nothing lost")
+	assert_true(_entry(migrated["save"], gone).is_empty(), "its old stable ID is gone with the level's")
+	var sim := Simulation.from_save(_old_save(), newer, _terrain, 1)
+	assert_not_null(sim)
+	if sim == null:
+		return
+	assert_eq(sim.slimes.slime_count, POPULATION + 1, "the level's population: the far spot added")
+	_assert_asleep_at_spot(sim, newer, "zz.sleeper.near", species, "the gone sleeper")
+	_assert_asleep_at_spot(sim, newer, "zz.sleeper.far", "A", "the spot left free")
+	assert_eq(_lost_ids(sim), [])
+
+
+func test_a_sleeper_whose_stable_id_is_gone_with_no_empty_spot_is_lost() -> void:
 	var newer := _newer()
 	var gone: String = _two_sleepers()[0]
 	newer.sleepers.erase(gone)
@@ -214,7 +263,7 @@ func test_a_sleeper_whose_stable_id_is_gone_is_lost() -> void:
 		_assert_lost(sim, slime, gone)
 
 
-func test_a_sleeper_of_another_species_now_is_lost() -> void:
+func test_a_sleeper_of_another_species_now_sleeps_on_with_its_own() -> void:
 	var newer := _newer()
 	var changed: String = _two_sleepers()[0]
 	var letter: String = newer.sleepers[changed]["species"]
@@ -222,7 +271,8 @@ func test_a_sleeper_of_another_species_now_is_lost() -> void:
 	var sim := Simulation.from_save(_old_save(), newer, _terrain, 1)
 	assert_not_null(sim)
 	if sim != null:
-		_assert_lost(sim, _holder(sim, changed), changed)
+		_assert_asleep_at_spot(sim, newer, changed, letter, changed)
+		assert_eq(_lost_ids(sim), [])
 
 
 func test_a_sleeper_the_level_gained_is_added_asleep_at_its_spot() -> void:
@@ -246,6 +296,65 @@ func test_a_sleeper_the_level_gained_is_added_asleep_at_its_spot() -> void:
 	assert_eq(sim.slimes.size_of(slime), 1)
 	assert_eq(sim.slimes.centre_of(slime), spot, "asleep at its spot")
 	assert_eq(sim.identities.members_of(slime), PackedStringArray(["zz.sleeper.new"]))
+
+
+# --- The phone's version-1 save (item 24.4) ---------------------------------------
+
+## The phone's save, read as the save store reads a file.
+func _phone_save() -> Dictionary:
+	var json := JSON.new()
+	assert_eq(json.parse(FileAccess.get_file_as_string(PHONE_SAVE)), OK, "the phone's save reads")
+	return json.data if json.data is Dictionary else {}
+
+
+func test_the_phone_version_1_save_keeps_every_sleeper_asleep() -> void:
+	var save := _phone_save()
+	var data: LevelData = _level.data
+	assert_eq(int(save["level"]["version"]), 1)
+	assert_eq(SaveData.problems(save, data), PackedStringArray())
+	assert_true(SaveMigration.is_older(save, data))
+	var sleepers := []
+	var awake := 0
+	var moved := 0
+	for entry in save["slimes"]:
+		if entry["state"] != "sleeper":
+			awake += 1
+			continue
+		sleepers.append(entry["id"])
+		if SaveMigration.sleeper_moved(entry, data.sleepers[entry["id"]]):
+			moved += 1
+	gut.p("the phone's save: %d sleepers (%d moved since), %d awake" % [sleepers.size(), moved, awake])
+	assert_gt(moved, 50, "many of its sleepers sleep where version 2 has no spot")
+	var sim := Simulation.from_save(save, data, _terrain, 1)
+	assert_not_null(sim)
+	if sim == null:
+		return
+	assert_eq(sim.slimes.slime_count, save["slimes"].size(), "no slime dropped, none added")
+	var still_asleep := 0
+	for id in sleepers:
+		var slime := _holder(sim, id)
+		if slime != -1 and sim.slimes.state_of(slime) == SlimeBodies.SLEEPER \
+				and sim.slimes.centre_of(slime).distance_to(data.sleepers[id]["position"]) <= SaveMigration.MOVED:
+			still_asleep += 1
+	assert_eq(still_asleep, sleepers.size(), "every sleeper asleep at its spot (the moved ones put back on it)")
+	var train := 0
+	for slime_id in sim.slimes.ids():
+		if sim.slimes.state_of(slime_id) != SlimeBodies.SLEEPER:
+			train += 1
+	assert_eq(train, awake, "no awake slime made of a sleeper")
+	assert_eq(_lost_ids(sim), [], "nothing lost")
+
+
+func test_the_phone_version_1_save_plays_on_the_same_twice() -> void:
+	var hashes := []
+	for run in 2:
+		var sim := Simulation.from_save(_phone_save(), _level.data, _terrain, 1)
+		assert_not_null(sim)
+		if sim == null:
+			return
+		sim.run(PHONE_TICKS)
+		hashes.append(sim.state_hash())
+	assert_eq(hashes[0], hashes[1], "same seed, same state")
 
 
 # --- Awake slimes -----------------------------------------------------------------
