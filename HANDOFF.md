@@ -103,7 +103,96 @@ touching-row test. No stalls in any run.
    test and D119/rule 5's wording; a v2 would need `_held` in dump() and saves).
 3. Drop v5.
 
-## Phase 2 (2026-10-06): CUT OFF by an API error (529) mid-run, state saved by the orchestrator
-- Brief: ~/.claude/projects/-home-bastien-work-slime-train/handoff-2026-10-01/briefs-2026-10-06/brief-dipjam-p2.md (variants G hold on a climb, H hop past the queue, combos + V1s, then combined with geyser C from exp/geyser 8b116e4).
-- The code for the phase 2 variants (src/sim/train.gd, src/sim/slime_bodies.gd, tools/dipjam_probe.gd) is committed as a WIP commit: NOT reviewed, tests were running when the agent stopped (its last words: "Determinism and native == GDScript confirmed. Tests now running.").
-- Its raw measurement outputs are copied to docs/perf/exp-dipjam-p2/ (matrix.log, det.log, loop.txt, out/<batch>_<variant>_<fixture>_s<seed>.txt). No summary table was written yet: a fresh executor must read these, re-run what's missing, finish the tests per variant and the geyser-combined run, then write the phase 2 section here.
+## Phase 2 (2026-10-06/07): the climb
+
+Phase 2a was cut off by an API error (529) after its runs; phase 2b (a fresh
+executor) reviewed its code, finished the tests and wrote this. Raw outputs, scripts
+and the table generator: docs/perf/exp-dipjam-p2/ (`out/m_*` the matrix,
+`tests/summary.txt`, `python3 docs/perf/exp-dipjam-p2/table.py m`).
+
+### Variants (SLIME_DIPJAM tokens, src/sim/train.gd, src/sim/slime_bodies.gd)
+
+- `g` hold on a climb: a grounded train slime between hops on the outgoing route, on
+  a rise over 0.1 (up to GRIP_MAX_SLOPE), active, has its motion down the slope
+  cancelled after GRIP, plus HOLD_LIFT 0.5 of a tick's pull along the slope up it
+  (`SlimeBodies.hold_on_slope`). The return route (`_carry`) untouched. Reviewed: does
+  what it says; alone on a rise it still slides 1.6 px/s (vs 12.9): exact cancelling
+  under the two Verlet substeps would take 0.75 (not tried).
+- `h` hop over the queue on a climb: route rising over 0.2 across the reach, the
+  usual target a plain ahead target, a non-partner train slime within reach: aims at
+  the first free gap past it (OVER_ROOM 4 px from each side, within MAX_REACH_FACTOR
+  of the reach), apex raised (6 tries, 12 samples) until the flight clears every
+  slime it passes; else the usual hop. Reviewed: does what it says, but it seldom
+  fires (DJ_OVER, s3 seed 1: taken 81 of ~2,250 climb hops; cap 719, no_gap 700,
+  partner 477, clear 148): a packed queue has no gap within reach, and the reach a
+  gap needs exceeds hop_cap().
+- `r` the relay (phase 2a's extra): when a train slime takes off, the standing train
+  slime right behind it (within its reach of touching it, on the outgoing route) has
+  its hop timer cut to 0.15 s: it follows into the room just made, a wave down the
+  queue.
+- Combos: g,h; g,h,v1s; g,r; g,r,v1s; g,h,r.
+
+### s3-basket-59of60 (seed 1 / seed 2, 14,000 ticks, camera held on the start from 9000)
+
+Per 600 ticks from 9000: arr (arrivals), x240 / x750 (forward crossings). clu: the
+largest awake cluster with a slime within 240 px of the start (rule 23's limit is
+20), max and mean; >20 run: its longest run above 20, s (the late part is 83 s).
+Climb speeds: the start basin's exit (loop 460-1150) ; the bowl's exit (17580-18180).
+Slide: grounded train slimes between hops on a rise, px/s down the route (negative
+is up), in brackets those touching no slime. stuck/stall/oob/lost were 0 in every run.
+
+| variant | arr | x240 | x750 | clu max | clu mean | >20 run s | short | adv med | climb start ; bowl px/s | slide (alone) | fus/min | stack/landings |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| base | 17.6 / 18.0 | 7.2 / 7.2 | 2.5 / 3.1 | 118 / 117 | 80 / 81 | 79 / 80 | 0.87 / 0.87 | 1.7 / 1.5 | 26 / 31 ; 17 / 14 | 2.0 / 2.3 (12.9 / 13.3) | 17.0 / 16.2 | 2148/3571, 2215/3678 |
+| g | 17.5 / 17.5 | 7.6 / 8.1 | 3.2 / 3.2 | 112 / 111 | 75 / 73 | 77 / 75 | 0.85 / 0.85 | 2.3 / 2.3 | 35 / 34 ; 17 / 20 | -4.8 / -5.2 (1.6 / 1.5) | 13.6 / 13.6 | 2055/3559, 1913/3457 |
+| h | 15.2 / 17.2 | 7.0 / 7.5 | 2.2 / 2.8 | 121 / 116 | 80 / 73 | 83 / 76 | 0.88 / 0.86 | 1.4 / 1.7 | 27 / 30 ; 15 / 15 | 1.5 / 2.1 (12.7 / 12.6) | 12.3 / 13.9 | 2185/3602, 1999/3449 |
+| g,h | 16.9 / 16.8 | 7.1 / 7.0 | 3.2 / 3.1 | 110 / 111 | 64 / 65 | 70 / 71 | 0.84 / 0.82 | 2.5 / 2.5 | 33 / 33 ; 19 / 24 | -4.5 / -4.6 (1.6 / 1.5) | 11.8 / 11.8 | 1749/3339, 1743/3275 |
+| g,h,v1s | 16.4 / 16.5 | 7.1 / 7.2 | 3.5 / 3.1 | 108 / 113 | 62 / 66 | 71 / 73 | 0.83 / 0.83 | 2.7 / 2.5 | 38 / 35 ; 19 / 24 | -4.4 / -4.7 (1.7 / 1.6) | 12.3 / 9.8 | 1737/3394, 1806/3402 |
+| r | 18.1 / 17.5 | 10.6 / 10.0 | 6.5 / 5.4 | 99 / 99 | 64 / 74 | 72 / 79 | 0.85 / 0.88 | 2.8 / 2.3 | 38 / 33 ; 31 / 29 | 4.4 / 3.2 (11.2 / 11.4) | 9.5 / 11.6 | 3667/6870, 4176/7432 |
+| **g,r** | 18.1 / 18.2 | 11.4 / 11.9 | **7.8 / 7.6** | 98 / 95 | 60 / 61 | 74 / 76 | 0.86 / 0.85 | 4.3 / 3.9 | 36 / 38 ; 33 / 31 | -5.5 / -5.6 (-0.2 / -0.2) | 7.7 / 7.2 | 3536/6939, 3688/7024 |
+| g,r,v1s | 18.5 / 18.2 | 11.6 / 11.2 | 7.8 / 7.0 | 95 / 99 | 63 / 65 | 74 / 75 | 0.85 / 0.86 | 3.9 / 3.8 | 46 / 35 ; 34 / 32 | -5.9 / -5.7 (0.1 / -0.1) | 9.5 / 8.5 | 3716/7145, 3726/7198 |
+| g,h,r | 18.1 / 17.8 | 12.2 / 10.4 | 7.8 / 8.1 | 102 / 89 | 70 / 57 | 78 / 73 | 0.87 / 0.83 | 3.3 / 4.8 | 38 / 49 ; 35 / 37 | -5.7 / -5.2 (-0.2 / 1.1) | 8.7 / 8.7 | 4224/7752, 3226/6683 |
+
+### stress-dense (seed 1, 3600 ticks)
+
+| variant | speed px/s | slow | short | adv med | fus/min | bumps | gathering | bowl climb px/s | slide (alone) | stack/landings | over taken |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| base | 16.3 | 0.83 | 0.93 | 3.8 | 21 | 15 | 26.0 | 20.6 | 4.1 (10.7) | 59/1140 | 0 |
+| g | 19.3 | 0.78 | 0.90 | 4.2 | 22 | 16 | 26.1 | 24.5 | -2.7 (1.7) | 55/1088 | 0 |
+| h | 16.1 | 0.83 | 0.93 | 3.8 | 22 | 18 | 26.2 | 19.5 | 3.7 (10.2) | 64/1138 | 19 |
+| g,h | 19.2 | 0.77 | 0.91 | 4.2 | 22 | 14 | 26.2 | 24.3 | -2.7 (1.7) | 55/1084 | 4 |
+| g,h,v1s | 22.2 | 0.58 | 0.93 | 4.3 | 21 | 17 | 2.2 | 26.0 | -2.8 (1.5) | 82/1540 | 10 |
+| r | 23.6 | 0.64 | 0.92 | 4.2 | 26 | 9 | 30.0 | 41.2 | 2.9 (9.1) | 201/1410 | 0 |
+| g,r | 23.5 | 0.73 | 0.93 | 4.0 | 20 | 10 | 30.3 | 40.4 | -4.1 (1.3) | 65/1350 | 0 |
+| g,r,v1s | 35.3 | 0.02 | 0.93 | 7.7 | 32 | 20 | 5.7 | 35.7 | -5.1 (0.3) | 247/2333 | 0 |
+| g,h,r | 23.3 | 0.74 | 0.94 | 3.9 | 20 | 15 | 30.2 | 41.1 | -4.3 (1.5) | 62/1340 | 9 |
+
+Determinism: g,r,v1s stress-dense 3600 run twice native and once GDScript, and g,h
+1200 native and GDScript: equal hashes (0db68385..., ea266084...).
+
+Tests (tools/test.sh -gselect=test_train 41, test_fusion 38, test_slime_hops 12, per
+variant, tests/summary.txt): all pass for base, g, h, g,h, r, g,r, g,h,r; g,h,v1s and
+g,r,v1s fail 1 in test_fusion (the A, B, A touching row: the front A no longer waits,
+V1s's known, by-design break from phase 1).
+
+### Reading
+
+- G alone does what it is for (the slide alone 12.9 -> 1.6 px/s, the start's climb
+  26 -> 35 px/s) but barely moves the flow (x750 2.8 -> 3.2): a held slime still
+  waits for its timer.
+- H is nearly inert: the gap it needs is seldom there or within hop_cap(); alone it
+  is slightly worse than base.
+- The relay is what moves the queue: r alone x750 2.8 -> 6.0, g,r 7.7 (2.7x base),
+  the bowl's climb 2x, stress-dense speed 16 -> 24. G adds to it (no slide between
+  the wave's hops) and cuts r's stacking on stress-dense (201 -> 65 of ~1,400).
+- With V1s on top, stress-dense un-jams fully (g,r,v1s: slow share 0.83 -> 0.02,
+  speed 35 px/s, fus/min 21 -> 32), s3 unchanged.
+- **Recommended: g,r** (all three tests pass, no new state, two small hooks), with
+  v1s on top if the user takes V1s (then its test and D119/rule 5's wording change).
+- **The start still crowds**: arrivals ~18 per 600 ticks against ~7.7 leaving past
+  750 px (2.3x); the largest cluster within 240 px stays 89 to 121 slimes in every
+  variant (rule 23's limit 20), above 20 for ~75 of the late 83 s.
+- Risks: fusions per minute on s3 fall with the flow (17 -> 7.7 with g,r; stress-dense
+  holds 20-32); not explained yet (slimes past each other faster, fewer meet in a
+  dip?). r's relay makes a wave: more hops (landings x2) and more stacking on s3
+  (stack share about 0.5 of landings, as base's 0.6).

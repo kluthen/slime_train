@@ -1,0 +1,45 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+---  GUT  ---
+[1m[INFO]:  [0musing [/home/bastien/.local/share/godot/app_userdata/Slime Train] for temporary output.
+Godot version:  4.7.2
+GUT version:  9.7.1
+[4m
+
+res://tests/unit/test_slime_hops.gd
+[0m* test_hop_interval_range_per_size
+* test_first_timers_are_in_range_for_every_size
+TICK native (SLIME_TICK=native)
+* test_a_train_slime_hops_every_one_and_a_half_to_three_seconds
+* test_the_timing_differs_per_slime
+* test_the_cadence_repeats_with_the_seed
+* test_a_slime_stream_does_not_depend_on_other_slimes
+* test_sleepers_bedtime_asleep_and_held_slimes_do_not_hop
+* test_a_slime_in_the_air_waits_to_land_before_hopping
+* test_bigger_slimes_hop_higher_and_further
+    size 1: rise 114.3 px, run 224.4 px
+    size 3: rise 175.8 px, run 336.0 px
+* test_hop_impulse_scales_with_size_and_strength
+* test_hop_refused_for_a_missing_slime
+* test_heading_sets_the_hop_direction
+[1m12/12 passed.
+[0m
+
+
+
+[33m==============================================
+[0m[33m= Run Summary
+[0m[33m==============================================
+[0m
+Totals
+------
+Scripts               1
+Tests                12
+Passing Tests        12
+Asserts             124
+Time              1.734s
+
+
+Ran Scripts matching "test_slime_hops"
+[32m---- All tests passed! ----
+[0m

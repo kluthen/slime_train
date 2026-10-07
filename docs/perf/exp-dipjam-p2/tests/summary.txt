@@ -1,0 +1,29 @@
+base test_train exit=0 Tests                41 Passing Tests        41 
+base test_fusion exit=0 Tests                38 Passing Tests        38 
+base test_slime_hops exit=0 Tests                12 Passing Tests        12 
+g test_train exit=0 Tests                41 Passing Tests        41 
+g test_fusion exit=0 Tests                38 Passing Tests        38 
+g test_slime_hops exit=0 Tests                12 Passing Tests        12 
+h test_train exit=0 Tests                41 Passing Tests        41 
+h test_fusion exit=0 Tests                38 Passing Tests        38 
+h test_slime_hops exit=0 Tests                12 Passing Tests        12 
+g,h test_train exit=0 Tests                41 Passing Tests        41 
+g,h test_fusion exit=0 Tests                38 Passing Tests        38 
+g,h test_slime_hops exit=0 Tests                12 Passing Tests        12 
+g,h,v1s test_train exit=0 Tests                41 Passing Tests        41 
+g,h,v1s test_fusion exit=1 Tests                38 Passing Tests        37 Failing Tests         1 
+g,h,v1s test_slime_hops exit=0 Tests                12 Passing Tests        12 
+r test_train exit=0 Tests                41 Passing Tests        41 
+r test_fusion exit=0 Tests                38 Passing Tests        38 
+r test_slime_hops exit=0 Tests                12 Passing Tests        12 
+g,r test_train exit=0 Tests                41 Passing Tests        41 
+g,r test_fusion exit=0 Tests                38 Passing Tests        38 
+g,r test_slime_hops exit=0 Tests                12 Passing Tests        12 
+g,r,v1s test_train exit=0 Tests                41 Passing Tests        41 
+g,r,v1s test_fusion exit=1 Tests                38 Passing Tests        37 Failing Tests         1 
+g,r,v1s test_slime_hops exit=0 Tests                12 Passing Tests        12 
+g,h,r test_train exit=0 Tests                41 Passing Tests        41 
+g,h,r test_fusion exit=0 Tests                38 Passing Tests        38 
+g,h,r test_slime_hops exit=0 Tests                12 Passing Tests        12 
+
+[exited with code 0]

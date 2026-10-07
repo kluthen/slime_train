@@ -71,5 +71,26 @@ Slime Train booted (Godot 4.7.2-stable (official)).
 res://tests/e2e/test_train_session_e2e.gd
 [0m* test_the_train_loops_a_full_session_with_no_input
 Slime Train booted (Godot 4.7.2-stable (official)).
-    session: 54000 ticks in 43.8 s real time, 5 laps (progress 91238 px, loop 17638 px), wanted 4
+    session: 54000 ticks in 43.7 s real time, 5 laps (progress 91238 px, loop 17638 px), wanted 4
 Slime Train booted (Godot 4.7.2-stable (official)).
+[1m1/1 passed.
+[0m
+
+
+
+[33m==============================================
+[0m[33m= Run Summary
+[0m[33m==============================================
+[0m
+Totals
+------
+Scripts               4
+Tests                41
+Passing Tests        41
+Asserts            3794
+Time              97.18s
+
+
+Ran Scripts matching "test_train"
+[32m---- All tests passed! ----
+[0m
