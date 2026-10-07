@@ -554,6 +554,13 @@ GDScript gave the same hashes for both at 600 and 2400 ticks; `fresh`,
 `bump` and `stress-dense` were checked unchanged (native at 600 and 2400,
 GDScript at 600).
 
+**Item 24.3 (2026-10-07):** basket 3's outlet moved over slide 3's drop
+(see "A fired basket empties (item 24.3)" in `docs/dev/README.md`), so
+only a run where basket 3 releases changes: `s3-basket-59of60` at 2400
+ticks (it fires at about tick 675; its 600-tick hash is the same). The
+other 37 hashes are the same. Native and GDScript gave the same hashes for
+all 19 at 600 and 2400 ticks.
+
 **On the phone (unit U8, 2026-10-06):** the S20 FE (arm64, bionic) gave
 the 600-tick hashes then recorded (before chunk 24g) for `stress-dense`
 and `stress-moving`, on both ticks, two runs each. That wasn't expected:
@@ -576,7 +583,7 @@ are still compared within one build and platform.
 | `s1-optout` | `0a01989974e37d78a4b12a08e100a376b330a5297192d3c41baaffd4c8f0ca78` | `4e359fbaa0852076731a22db89186acbfccafde5c565a3db4b0812617a53d1ca` |
 | `s2-basket-offscreen` | `df9505ea337f43f30352b7e45a1ecd305344e83062009c5e1e767e83c31e3247` | `fcdb40131c591c9a351e9cc5d90730c87b62da47e65ad5b0e5fc859b1889bcd3` |
 | `s2-cave-return` | `ca1245d013105513dcd94f95aeb7109f780987ef9444e5fdfd849929cb0116ea` | `7a48dc0899882e86ab70cf5659195c30454ac793dd1b50d7b51cf4bca1394984` |
-| `s3-basket-59of60` | `a02233987e184234274869061b60a9744d72dbe9b4db5f7cfeb3ad5dee1de1cf` | `13fbe3f5592e52bf2c10a00cfac41ab91dcf11b7a13879ad4a9b3d8c4fe7132a` |
+| `s3-basket-59of60` | `a02233987e184234274869061b60a9744d72dbe9b4db5f7cfeb3ad5dee1de1cf` | `ed8c21c4893ee428410287c15464e5a059c6609c4df59a471d7b846f4e9dce69` |
 | `stress-dense` | `c389dd44328edbd31c433dca49a3656a7afdcc6929b141f09de523f11a189228` | `6fd6f0385d09962b19fff68be0178112f59138e65a8f646fe05b2b325ba6aa54` |
 | `stress-moving` | `cee540fc61f6a8d76eba240801fafa610d7a65205b2aec896a2df869495c7dd8` | `09a460c88db349712a63aab85d3ccbf290ddfb13c7b17f609ab9bc6d27408381` |
 | `stress-still` | `4c50a541d5a60dda72d85cfd5941782b28975e8352d1529ed12eedfdb8aa2f27` | `9efbbc6b1f014895180f7e007b574fd3a03309e29dec2798b913cf0260da49e7` |

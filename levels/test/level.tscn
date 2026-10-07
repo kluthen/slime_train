@@ -2004,7 +2004,7 @@ stable_id = "s3.basket"
 size = Vector2(668.16, 220)
 quota = 60
 outlet = "point"
-outlet_point = Vector2(249.28125, -134)
+outlet_point = Vector2(535.68, -134)
 
 [node name="Frame" type="Area2D" parent="Section3/FrontierSet" unique_id=1929097259 instance=ExtResource("18_6fems")]
 position = Vector2(18288, -150)

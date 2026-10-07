@@ -95,6 +95,12 @@ Four editor-only files are left out there; the script lists them.
   `s1-basket-5of6` a full basket in view at bedtime plays no reward and
   opens no gate until sunrise; a save taken at bedtime reloads the same;
   the run is repeatable.
+- `test_basket_drain_e2e.gd` (chunk 24, item 24.3) checks that a fired
+  basket lets its slimes go: from `s3-basket-59of60` basket 3 fires (the
+  celebration) and is empty within 28 s, from `s2-basket-offscreen` basket
+  2 within 14.5 s (quota x 0.3 s + 10 s), every released slime a train
+  slime with its size and species, none back in the basket; bedtime pauses
+  basket 3's releases until sunrise, then they resume.
 - `test_celebration_e2e.gd` (chunk 23D, item 23.11) checks the
   celebration from `stress-still` (woken early): the camera stays put
   through the burst, a tap during it calls, the awake slimes on screen

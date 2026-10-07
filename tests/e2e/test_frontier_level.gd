@@ -3,8 +3,8 @@ extends GutTest
 ## set 3 from chunk 16: a switch and a basket, no rule and no gate, the
 ## level's last) against the level rules: a signpost at each fork, for its switch [rule 6];
 ## each switch's trapdoor on the loop over its basket, so the flow drops in
-## by gravity and taps alone [rule 10: no tilt]; each basket's outlet on the
-## onward route; each gate on the next section's route, its lid over its
+## by gravity and taps alone [rule 10: no tilt]; baskets 1 and 2's outlets on
+## the onward route, basket 3's over slide 3's drop (item 24.3); each gate on the next section's route, its lid over its
 ## slide's entrance; each section has its own return route [rule 13];
 ## opening the gates leaves every exploration branch reachable from the loop
 ## [rule 14]. The rules' checks are the level-rules checker's (LevelChecker,
@@ -91,6 +91,8 @@ func test_the_trapdoor_lies_on_the_loop_over_its_basket() -> void:
 
 func test_the_outlet_is_on_the_onward_route() -> void:
 	for id in data.baskets:
+		if id == "s3.basket":
+			continue
 		var outlet: Vector2 = data.baskets[id]["outlet"]
 		var section := _section_of(id)
 		var near := data.loop.closest(outlet, _gates_before(section))
@@ -98,6 +100,32 @@ func test_the_outlet_is_on_the_onward_route() -> void:
 		assert_eq(near["segment"], "s%d.loop" % section, "on the outgoing route, before the slide entrance")
 		assert_lt(data.loop.closest(outlet, _every_gate())["gap"], ON_LOOP, "and still once the gate is open")
 		assert_false((data.baskets[id]["box"] as Rect2).has_point(outlet), "outside the basket")
+
+
+## Basket 3 (no gate) releases over slide 3's drop (item 24.3, D128): past
+## the end of section 3's outgoing route, at its height, straight over the
+## slide's fall, so a released slime falls clear of the outlet at once,
+## outside the basket.
+func test_basket_3s_outlet_is_over_slide_3s_drop() -> void:
+	var outlet: Vector2 = data.baskets["s3.basket"]["outlet"]
+	var outgoing: PackedVector2Array = PackedVector2Array()
+	var slide: PackedVector2Array = PackedVector2Array()
+	for segment in data.loop.segments:
+		if segment["id"] == "s3.loop":
+			outgoing = segment["points"]
+		elif segment["id"] == "s3.slide":
+			slide = segment["points"]
+	assert_gt(outgoing.size(), 0, "section 3's outgoing route")
+	assert_gt(slide.size(), 2, "slide 3")
+	if outgoing.is_empty() or slide.size() < 3:
+		return
+	var top := outgoing[outgoing.size() - 1]
+	assert_gt(outlet.x, top.x, "past the outgoing route's end")
+	assert_almost_eq(outlet.y, top.y, 0.5, "at its height")
+	assert_almost_eq(outlet.x, slide[1].x, 0.5, "over the slide's fall")
+	assert_almost_eq(slide[2].x, slide[1].x, 0.5, "which falls straight down")
+	assert_lt(outlet.y, slide[1].y, "above it")
+	assert_false((data.baskets["s3.basket"]["box"] as Rect2).has_point(outlet), "outside the basket")
 
 
 func test_each_gate_stands_on_the_next_sections_route_and_its_lid_over_its_slide() -> void:
