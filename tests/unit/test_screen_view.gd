@@ -39,9 +39,16 @@ func test_world_to_screen_is_the_inverse() -> void:
 		assert_almost_eq(back.y, at.y, 0.001)
 
 
-func test_a_bad_zoom_is_ignored() -> void:
-	var view := ScreenView.new(Vector2.ZERO, 0.0)
-	assert_eq(view.zoom, 1.0)
+# A zoom of 0 or less can only be a caller bug: set_to refuses it loudly and
+# leaves the view as it was.
+func test_a_zoom_of_0_or_less_is_refused_loudly() -> void:
+	for bad in [0.0, -0.5]:
+		var view := ScreenView.new(Vector2(10, 20), 0.7, Vector2(1280, 720))
+		view.set_to(Vector2(500, 600), bad, Vector2(800, 600))
+		assert_push_error("zoom must be above 0")
+		assert_eq(view.zoom, 0.7, "zoom %s: the old zoom is kept" % bad)
+		assert_eq(view.centre, Vector2(10, 20), "zoom %s: the old centre is kept" % bad)
+		assert_eq(view.screen_size, Vector2(1280, 720), "zoom %s: the old size is kept" % bad)
 
 
 func test_test_mode_sets_the_screen_size() -> void:

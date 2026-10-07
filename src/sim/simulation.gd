@@ -21,7 +21,7 @@ extends RefCounted
 ## an object or open ground. Every accepted tap leaves a ripple where it
 ## touched, turns the awake slimes within the call radius toward it, and is
 ## recorded in `taps`; open ground and a sleeper also call (FreeSlimes.answer_call).
-## The first touch wins (D66, O67's proposed default): a touch that starts
+## The first touch wins (D66, O67's default, D102): a touch that starts
 ## while any finger is down is ignored entirely (no ripple, no call) until it
 ## lifts, even if the finger that was first lifts before it. `fingers_down`
 ## still records every finger. One exception, a resting thumb (D110, to

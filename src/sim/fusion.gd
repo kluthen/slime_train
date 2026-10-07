@@ -99,7 +99,7 @@ const DIP_FLOOR_RISE := 30.0
 const DIP_GATHER := 300.0
 ## The longest a slime on a dip's floor waits for a partner with other
 ## slimes between them, s, counted from when its progress last advanced
-## (proposed for specs/tuning.md, chunk 16f).
+## (D119, approved in D120; chunk 16f).
 const DIP_WAIT_SECONDS := 5.0
 const DIP_WAIT_TICKS := 300
 ## The hop timer a held slime is kept at, s: it hops soon after it is let go.
@@ -113,7 +113,8 @@ const NUDGE_GATHERING := "gathering"
 # @spec-link [[req_platform_and_performance_targets]]
 var nudged := {}
 ## The fusions and the bumps done so far, cumulative. Debug counters for the
-## train-flow probe (tools/dipjam_probe.gd): not state, not in dump() nor saves.
+## train-flow probe (tools/train_flow_probe.gd): not state, not in dump()
+## nor saves.
 # @spec-link [[req_platform_and_performance_targets]]
 var fused_count := 0
 var bumped_count := 0
@@ -307,7 +308,7 @@ func _nudge(sim: Simulation) -> void:
 	var shown := PackedByteArray()
 	var on_floor := PackedInt32Array()
 	for slime_id in train.tracked_ids():
-		if bodies.state_of(slime_id) != SlimeBodies.TRAIN:
+		if not bodies.has(slime_id) or bodies.state_of(slime_id) != SlimeBodies.TRAIN:
 			continue
 		var distance := train.distance_of(slime_id)
 		var visible := on_screen(sim.view, bodies.centre_of(slime_id))

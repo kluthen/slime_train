@@ -89,7 +89,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `tools/perf_slow.sh` | A windowed perf-log run of a fixture on the desktop, slowed or at full speed, and its summary (see "Chunk 22b: drawing", "How to measure the parts"; the counts and the largest awake cluster: "Chunk 22d: debug counters and the largest awake cluster") |
 | `tools/thru.gd` | The train's throughput over a long run (10,000 ticks by default) of a test-level fixture, headless: stalls, stuck moves, hops and the bowl's count per 600 ticks (see "How to measure the parts") |
 | `tools/gobble_probe.gd` | Slimes that can't fuse lodged inside each other over a long run of a test-level fixture, headless: each overlap's start (both slimes, what last moved them: an unpark, a split, a jump), how long it lasts, the stuck moves, the fastest slime (see "Solver", deep overlaps) |
-| `tools/dipjam_probe.gd` | The train's flow over a run of a test-level fixture, headless (chunk 24g): hop shares and advances, the dip nudge's holds, progress speeds, the climbs' speeds and slide back, landings on top of a slime, departures past 240 and 750 px against arrivals, the largest cluster at the loop's start, where same-species slimes meet and fuse per zone (`--hold-view` pins the camera; see the tool's doc) |
+| `tools/train_flow_probe.gd` | The train's flow over a run of a test-level fixture, headless (chunk 24g; `tools/dipjam_probe.gd` until the health review's Q11): hop shares and advances, the dip nudge's holds, progress speeds, the climbs' speeds and slide back, landings on top of a slime, departures past 240 and 750 px against arrivals, the largest cluster at the loop's start, where same-species slimes meet and fuse per zone (`--hold-view` pins the camera; see the tool's doc) |
 | `tools/compare_frames.py` | Compares two sets of movie frames pixel by pixel (see "Chunk 22b: drawing", "The look") |
 | `tools/make_fixture.gd` | Writes a level's fixtures (see "Saves and fixtures") |
 | `tools/check_level.gd`, `tools/level_check/` | The level-rules checker, rules 1 to 22, on any level (see [level-tooling.md](level-tooling.md)) |
@@ -972,7 +972,7 @@ cut to `RELAY_DELAY` (0.15 s) at most: it follows into the room just made,
 a wave down the queue. Only the one right behind, never across a gap wider
 than its reach. Both are GDScript (`Train.steer`), so the native and the
 GDScript tick run them alike; neither adds state (the hop timers are
-already saved). Measured with `tools/dipjam_probe.gd` (see "Chunk 24g").
+already saved). Measured with `tools/train_flow_probe.gd` (see "Chunk 24g").
 
 **The slide (placeholder, O22).** On a return route a slime doesn't hop
 (it is held) and, while it touches the ground, its velocity along the
@@ -7118,8 +7118,8 @@ see "Train", Hold on a climb and The relay), first tried as variants g and
 r on a throwaway branch, then built as the plain behaviour, plus one guard
 the full suite called for: no hold for a slime knocked off the route.
 
-**The probe.** `tools/dipjam_probe.gd` (its class doc lists every output
-line): `godot --headless --no-header --path . -s res://tools/dipjam_probe.gd
+**The probe.** `tools/train_flow_probe.gd` (its class doc lists every output
+line): `godot --headless --no-header --path . -s res://tools/train_flow_probe.gd
 -- --fixture=s3-basket-59of60 --seed=1 --ticks=14000 --late-from=9000
 --hold-view=720,361 --hold-from=9000`. For `s3-basket-59of60` the camera
 must be held on the loop's start (`--hold-view`): the idle camera chases
@@ -7173,7 +7173,7 @@ own `train.gd` and `slime_bodies.gd`), with both on main's.
 
 #### The fusion drop (O122)
 
-`tools/dipjam_probe.gd` now also prints where same-species slimes meet and
+`tools/train_flow_probe.gd` now also prints where same-species slimes meet and
 fuse (`DJ_FLOOR`, `DJ_FUS`; its class doc has the fields). A pair's zone is
 its lower id's: `start` (the loop's start basin up to the top of its exit
 climb, loop distance under 1150 px), `dip<k>` (within 150 px of Fusion's

@@ -248,6 +248,22 @@ func test_after_the_call_it_glides_back_to_the_nearest_rail_point() -> void:
 	assert_almost_eq(float(ticks), ceilf((point.distance_to(target)) / (Camera.DRAG_PACE * DT)), 1.0)
 
 
+# A zoom of 0 or less can only be a caller bug: place() refuses it loudly and
+# leaves the camera as it was.
+func test_place_refuses_a_zoom_of_0_or_less_loudly() -> void:
+	var loop := _loop()
+	var camera := _camera(loop, Vector2(1000, 0))
+	var before := camera.position
+	var mode := camera.mode
+	var zoom := camera.zoom
+	for bad in [0.0, -0.5]:
+		camera.place(Vector2(1500, -400), bad)
+		assert_push_error("zoom must be above 0")
+		assert_eq(camera.position, before, "zoom %s: the camera stays put" % bad)
+		assert_eq(camera.zoom, zoom, "zoom %s: the old zoom is kept" % bad)
+		assert_eq(camera.mode, mode, "zoom %s: the mode is kept" % bad)
+
+
 func test_a_new_call_replaces_the_point_and_restarts_the_drag() -> void:
 	var loop := _loop()
 	var camera := _camera(loop, Vector2(1000, 0))

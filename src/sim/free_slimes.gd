@@ -253,7 +253,7 @@ func inherit(parts: PackedInt32Array, tick: int) -> void:
 ## by a test or a later chunk) head back.
 func follow(bodies: SlimeBodies, tick: int, level: LevelData, open_gates: Array) -> void:
 	for slime_id in tracked_ids():
-		if bodies.state_of(slime_id) != SlimeBodies.FREE:
+		if not bodies.has(slime_id) or bodies.state_of(slime_id) != SlimeBodies.FREE:
 			_records.erase(slime_id)
 	for slime_id in bodies.ids():
 		var s := bodies.index_of(slime_id)

@@ -65,6 +65,7 @@ func tap_target() -> Dictionary:
 	return {"kind": TapDispatcher.KIND_SWITCH, "size": size}
 
 
+## The stable IDs it points at, by property (see Level): its basket.
 func references() -> Dictionary:
 	return {"basket_id": basket_id}
 

@@ -1,6 +1,6 @@
 class_name Hint
 extends RefCounted
-## The first-play hint (D65; O71's proposed default, D95): on a fresh save of
+## The first-play hint (D65; O71's default, D95, D102): on a fresh save of
 ## the level, when no call has happened 10 s after the world shows, a
 ## wordless pulsing mark shows next to the first sleeper. The simulation holds
 ## whether it shows and where; the scene draws it (TapFeedback).

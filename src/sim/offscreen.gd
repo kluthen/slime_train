@@ -149,7 +149,10 @@ const LOST_LOG_SIZE := 16
 const QUEUE_TOLERANCE := 0.001
 const LOST := "lost"
 
-## Physics only near the screen (the game's mode). Not saved.
+## Physics only near the screen (the game's mode). Not saved. A mode of the
+## game, not a test branch: the game turns it on (src/main.gd) and so do the
+## bench tools, while bare simulations (the core's unit tests) simulate every
+## slime.
 var enabled := false
 ## Whether the rings use the zoomed-out point counts.
 var zoomed_out := false
@@ -381,7 +384,7 @@ func _train_room(sim: Simulation) -> Dictionary:
 	var order := PackedInt64Array()
 	var any_parked := false
 	for slime_id in train.tracked_ids():
-		if bodies.state_of(slime_id) == SlimeBodies.TRAIN:
+		if bodies.has(slime_id) and bodies.state_of(slime_id) == SlimeBodies.TRAIN:
 			order.append((int(train.distance_of(slime_id) * ORDER_SCALE) << 32) | slime_id)
 			any_parked = any_parked or bodies.is_parked(slime_id)
 	if not any_parked or order.size() < 2:

@@ -1,12 +1,12 @@
 extends SceneTree
-## The train-flow probe (chunk 24g; first built for the dip-nudge jam, hence
-## its name): how fast the train moves, climbs and takes slimes off the
-## loop's start, measured headless on a test-level fixture stepped with the
+## The train-flow probe (chunk 24g; first built for the dip-nudge jam): how
+## fast the train moves, climbs and takes slimes off the loop's start,
+## measured headless on a test-level fixture stepped with the
 ## game's own step (game.step_simulation, as --run-ticks does). Read only:
 ## the final STATE hash is a plain run's. The tick comes from SLIME_TICK.
 ## Not a test.
 ##
-## Run:   godot --headless --no-header --path . -s res://tools/dipjam_probe.gd --
+## Run:   godot --headless --no-header --path . -s res://tools/train_flow_probe.gd --
 ##            [--fixture=stress-dense] [--seed=1] [--ticks=3600] [--late-from=0]
 ##            [--hold-view=X,Y --hold-from=T]
 ##
@@ -105,70 +105,15 @@ var _floors: Array[Vector2] = []
 var _floors_key := "-"
 
 
-func _initialize() -> void:
-	var problem := _parse()
-	if problem != "":
-		printerr("dipjam_probe: ", problem)
-		quit(2)
-		return
-	var game: Node = load("res://src/main.tscn").instantiate()
-	root.add_child(game)
-	await process_frame
-	var parsed: Dictionary = load("res://src/test_mode/test_mode.gd").config_from_args(PackedStringArray(
-			["--test-mode", "--level=test", "--fixture=" + fixture, "--seed=%d" % seed_n]))
-	if not parsed["errors"].is_empty():
-		printerr("dipjam_probe: ", parsed["errors"])
-		quit(2)
-		return
-	var errs: PackedStringArray = game.enable_test_mode(parsed["config"])
-	if not errs.is_empty():
-		printerr("dipjam_probe: ", errs)
-		quit(2)
-		return
-	_run(game)
-	quit(0)
-
-
-## Reads the user arguments; returns the problem, or "" when valid.
-func _parse() -> String:
-	for arg in OS.get_cmdline_user_args():
-		var p := arg.trim_prefix("--").split("=", true, 1)
-		if p.size() != 2:
-			return "expected --name=value, got '%s'" % arg
-		match p[0]:
-			"fixture":
-				fixture = p[1]
-			"seed":
-				seed_n = int(p[1])
-			"ticks":
-				ticks = int(p[1])
-			"late-from":
-				late_from = int(p[1])
-			"hold-view":
-				var xy := p[1].split(",")
-				hold_view = Vector2(float(xy[0]), float(xy[1]))
-			"hold-from":
-				hold_from = int(p[1])
-			_:
-				return "unknown argument '%s'" % arg
-	return ""
-
-
-## Steps `game` for `ticks` ticks and prints the measures (see the class doc).
-func _run(game: Node) -> void:
-	var sim: Simulation = game.simulation
-	var train: Train = sim.train
-	var bodies: SlimeBodies = sim.slimes
-	var fusion: Fusion = sim.fusion
-	print("DJ fixture=%s seed=%d tick=%s tick0=%d slimes=%d hold=%s from %d" % [fixture, seed_n,
-			"native" if bodies.uses_native() else "gdscript", sim.tick, bodies.slime_count, hold_view, hold_from])
-	var hops0 := train.hops_taken
-	var short0 := train.short_hops_taken
-	var fused0 := fusion.fused_count
-	var bumped0 := fusion.bumped_count
-	var prog := {}
-	var dist := {}
-	var laps := {}
+## The run's counters, filled tick by tick (see the class doc's lines).
+class Flow:
+	var hops0 := 0
+	var short0 := 0
+	var fused0 := 0
+	var bumped0 := 0
+	var prog := {}  # id -> progress after the last tick
+	var dist := {}  # id -> loop distance after the last tick
+	var laps := {}  # id -> laps after the last tick
 	var landed_seen := {}
 	var advances := PackedFloat32Array()
 	var gather_sum := 0
@@ -209,149 +154,287 @@ func _run(game: Node) -> void:
 	var clu_run := 0
 	var clu_run_max := 0
 	var fus := {}  # "part|zone" -> PackedInt64Array FUS_* counters
+
+
+func _initialize() -> void:
+	var problem := _parse()
+	if problem != "":
+		printerr("train_flow_probe: ", problem)
+		quit(2)
+		return
+	var game: Node = load("res://src/main.tscn").instantiate()
+	root.add_child(game)
+	await process_frame
+	var parsed: Dictionary = load("res://src/test_mode/test_mode.gd").config_from_args(PackedStringArray(
+			["--test-mode", "--level=test", "--fixture=" + fixture, "--seed=%d" % seed_n]))
+	if not parsed["errors"].is_empty():
+		printerr("train_flow_probe: ", parsed["errors"])
+		quit(2)
+		return
+	var errs: PackedStringArray = game.enable_test_mode(parsed["config"])
+	if not errs.is_empty():
+		printerr("train_flow_probe: ", errs)
+		quit(2)
+		return
+	_run(game)
+	quit(0)
+
+
+## Reads the user arguments; returns the problem, or "" when valid.
+func _parse() -> String:
+	for arg in OS.get_cmdline_user_args():
+		var p := arg.trim_prefix("--").split("=", true, 1)
+		if p.size() != 2:
+			return "expected --name=value, got '%s'" % arg
+		match p[0]:
+			"fixture":
+				fixture = p[1]
+			"seed":
+				seed_n = int(p[1])
+			"ticks":
+				ticks = int(p[1])
+			"late-from":
+				late_from = int(p[1])
+			"hold-view":
+				var xy := p[1].split(",")
+				hold_view = Vector2(float(xy[0]), float(xy[1]))
+			"hold-from":
+				hold_from = int(p[1])
+			_:
+				return "unknown argument '%s'" % arg
+	return ""
+
+
+## Steps `game` for `ticks` ticks and prints the measures (see the class doc).
+func _run(game: Node) -> void:
+	var sim: Simulation = game.simulation
+	var train: Train = sim.train
+	var bodies: SlimeBodies = sim.slimes
+	var fusion: Fusion = sim.fusion
+	print("DJ fixture=%s seed=%d tick=%s tick0=%d slimes=%d hold=%s from %d" % [fixture, seed_n,
+			"native" if bodies.uses_native() else "gdscript", sim.tick, bodies.slime_count, hold_view, hold_from])
+	var f := Flow.new()
+	f.hops0 = train.hops_taken
+	f.short0 = train.short_hops_taken
+	f.fused0 = fusion.fused_count
+	f.bumped0 = fusion.bumped_count
 	var start := train.position_at(0.0)
 	print("DJ_LOOP length=%.0f outgoing=%.0f start=%s" % [train.length(), train.outgoing_length(), start])
 	for i in ticks:
 		if sim.tick % WINDOW == 0:
-			_window_start(sim, win_start, win_active)
-			front_id = _front(sim)
-			front_from = train.progress_of(front_id) if front_id >= 0 else 0.0
+			_open_window(sim, f)
 		var due_soon := {}  # pair -> zone, the pairs that reach CONTACT_TICKS this tick if still touching
 		var contacts_before := _contacts(fusion)
 		for pair: Vector2i in contacts_before:
 			if contacts_before[pair] == Fusion.CONTACT_TICKS - 1:
 				due_soon[pair] = _zone(sim, pair.x)
 		game.step_simulation()
-		_count_fusion(sim, fus, "late" if sim.tick - 1 >= late_from else "early", due_soon, contacts_before)
+		_count_fusion(sim, f.fus, "late" if sim.tick - 1 >= late_from else "early", due_soon, contacts_before)
 		if hold_view != Vector2.INF and sim.tick >= hold_from:
 			sim.camera.position = hold_view
 		var t := sim.tick - 1
-		var gathering := 0
-		for why: String in fusion.nudged.values():
-			if why == Fusion.NUDGE_GATHERING:
-				gathering += 1
-		gather_sum += gathering
-		gather_max = maxi(gather_max, gathering)
-		hold_sum += fusion.nudged.size() - gathering
-		var touched := {}
-		for pair: Vector2i in bodies.touching_pairs():
-			touched[pair.x] = true
-			touched[pair.y] = true
-		for id in train.tracked_ids():
-			var s := bodies.index_of(id)
-			var active := s >= 0 and bodies.state[s] == SlimeBodies.TRAIN and bodies.calm[s] != SlimeBodies.PARKED
-			var p := train.progress_of(id)
-			var d := train.distance_of(id)
-			if prog.has(id) and active:
-				var step: float = p - prog[id]
-				if step >= 0.0 and step < MAX_STEP:
-					speed_sum += step
-					speed_n += 1
-					for c in CLIMBS.size():
-						if d >= CLIMBS[c][0] and d < CLIMBS[c][1]:
-							climb_sum[c] += step
-							climb_n[c] += 1
-			if not active and win_active.has(id):
-				win_active.erase(id)
-			if t >= late_from:
-				if laps.has(id) and train.laps_of(id) > laps[id]:
-					late_arr += 1
-				if dist.has(id):
-					var was: float = dist[id]
-					if d >= was and d - was < MAX_STEP:
-						for c in CROSS_AT.size():
-							if was < CROSS_AT[c] and d >= CROSS_AT[c]:
-								late_cross[c] += 1
-			prog[id] = p
-			dist[id] = d
-			laps[id] = train.laps_of(id)
-			if active and bodies.supported[s] != 0 and not train.in_air(id) and bodies.hop_timer[s] > 0.05:
-				var along := train.direction_at(d)
-				if absf(along.y) > absf(along.x) * CREEP_FROM and absf(along.y) <= absf(along.x) * Train.GRIP_MAX_SLOPE:
-					slope_ticks += 1
-					var back := -bodies.velocity_of(id).dot(along)
-					if cen.has(id) and along.y < 0.0:
-						var move: float = -(bodies.centre_of(id) - cen[id]).dot(along) * 60.0
-						slide_sum += move
-						slide_n += 1
-						if not touched.has(id):
-							alone_sum += move
-							alone_n += 1
-					if back > CREEP_SPEED:
-						creep_ticks += 1
-						creep_v += back
-			if s >= 0:
-				cen[id] = bodies.centre_of(id)
-		for id: int in train.last_hops:
-			var last: Dictionary = train.last_hops[id]
-			if last["landed"] >= 0 and landed_seen.get(id, -2) != last["landed"]:
-				landed_seen[id] = last["landed"]
-				advances.append(last["advance"])
-				landings += 1
-				if _on_top(bodies, id):
-					stacks += 1
-		for e in train.stalled:
-			if e["tick"] == t:
-				if e["reason"] == Train.OUT_OF_BOUNDS:
-					oob += 1
-				else:
-					stall += 1
-		for e in sim.offscreen.lost:
-			if e["tick"] == t:
-				lost += 1
+		var gathering := _count_nudges(fusion, f)
+		_count_train(sim, f, t)
+		_count_landings(sim, f)
+		_count_logs(sim, f, t)
 		if t >= late_from:
-			var clu := _cluster_near(bodies, start)
-			clu_max = maxi(clu_max, clu)
-			clu_sum += clu
-			clu_n += 1
-			if clu > LIMIT:
-				clu_over += 1
-				clu_run += 1
-				clu_run_max = maxi(clu_run_max, clu_run)
-			else:
-				clu_run = 0
-		for e in sim.stuck_slimes.stuck:
-			if e["tick"] == t and e["moved"]:
-				stuck += 1
+			_count_cluster(bodies, f, start)
 		if sim.tick % WINDOW == 0:
-			var counts := _window_end(sim, win_start, win_active)
-			slow += counts.x
-			slow_n += counts.y
-			if front_id >= 0 and train.tracks(front_id):
-				var gain := train.progress_of(front_id) - front_from
-				if gain >= 0.0:
-					front_rates.append(gain / (WINDOW / 60.0))
-			if t >= late_from:
-				late_windows += 1
-			var active_n := 0
-			for id in train.tracked_ids():
-				var s := bodies.index_of(id)
-				if s >= 0 and bodies.calm[s] != SlimeBodies.PARKED:
-					active_n += 1
-			print("DJ_CEN tick=%d gathering=%d holding=%d active_train=%d" % [sim.tick, gathering,
-					fusion.nudged.size() - gathering, active_n])
-	advances.sort()
+			_close_window(sim, f, t, gathering)
+	_print_totals(sim, f)
+	_print_fusion(sim, f.fus, ticks, late_from)
+	print("STATE tick=%d hash=%s" % [sim.tick, sim.state_hash()])
+
+
+## A window starts: its slimes' progress and the front slime's.
+func _open_window(sim: Simulation, f: Flow) -> void:
+	_window_start(sim, f.win_start, f.win_active)
+	f.front_id = _front(sim)
+	f.front_from = sim.train.progress_of(f.front_id) if f.front_id >= 0 else 0.0
+
+
+## Counts this tick's dip-nudge gatherings and holds; returns the gatherings.
+static func _count_nudges(fusion: Fusion, f: Flow) -> int:
+	var gathering := 0
+	for why: String in fusion.nudged.values():
+		if why == Fusion.NUDGE_GATHERING:
+			gathering += 1
+	f.gather_sum += gathering
+	f.gather_max = maxi(f.gather_max, gathering)
+	f.hold_sum += fusion.nudged.size() - gathering
+	return gathering
+
+
+## Counts every tracked train slime's step of tick `t`: speeds and climbs,
+## late arrivals and crossings, the creep and slide on slopes.
+func _count_train(sim: Simulation, f: Flow, t: int) -> void:
+	var train: Train = sim.train
+	var bodies: SlimeBodies = sim.slimes
+	var touched := {}
+	for pair: Vector2i in bodies.touching_pairs():
+		touched[pair.x] = true
+		touched[pair.y] = true
+	for id in train.tracked_ids():
+		var s := bodies.index_of(id)
+		var active := s >= 0 and bodies.state[s] == SlimeBodies.TRAIN and bodies.calm[s] != SlimeBodies.PARKED
+		var p := train.progress_of(id)
+		var d := train.distance_of(id)
+		if f.prog.has(id) and active:
+			_count_step(f, p - f.prog[id], d)
+		if not active and f.win_active.has(id):
+			f.win_active.erase(id)
+		if t >= late_from:
+			_count_late(train, f, id, d)
+		f.prog[id] = p
+		f.dist[id] = d
+		f.laps[id] = train.laps_of(id)
+		if active and bodies.supported[s] != 0 and not train.in_air(id) and bodies.hop_timer[s] > 0.05:
+			_count_slope(sim, f, id, d, touched)
+		if s >= 0:
+			f.cen[id] = bodies.centre_of(id)
+
+
+## One active slime's progress `step` at loop distance `d`: its speed, and
+## its climb's when it is on one.
+static func _count_step(f: Flow, step: float, d: float) -> void:
+	if step < 0.0 or step >= MAX_STEP:
+		return
+	f.speed_sum += step
+	f.speed_n += 1
+	for c in CLIMBS.size():
+		if d >= CLIMBS[c][0] and d < CLIMBS[c][1]:
+			f.climb_sum[c] += step
+			f.climb_n[c] += 1
+
+
+## A slime's late arrival at the loop's start, and its crossings of CROSS_AT,
+## from its last tick's records to loop distance `d`.
+static func _count_late(train: Train, f: Flow, id: int, d: float) -> void:
+	if f.laps.has(id) and train.laps_of(id) > f.laps[id]:
+		f.late_arr += 1
+	if not f.dist.has(id):
+		return
+	var was: float = f.dist[id]
+	if d < was or d - was >= MAX_STEP:
+		return
+	for c in CROSS_AT.size():
+		if was < CROSS_AT[c] and d >= CROSS_AT[c]:
+			f.late_cross[c] += 1
+
+
+## A grounded train slime at loop distance `d`: on a creep slope, its slide
+## (alone when it touches nobody) and its creep back.
+static func _count_slope(sim: Simulation, f: Flow, id: int, d: float, touched: Dictionary) -> void:
+	var bodies: SlimeBodies = sim.slimes
+	var along := sim.train.direction_at(d)
+	if absf(along.y) <= absf(along.x) * CREEP_FROM or absf(along.y) > absf(along.x) * Train.GRIP_MAX_SLOPE:
+		return
+	f.slope_ticks += 1
+	var back := -bodies.velocity_of(id).dot(along)
+	if f.cen.has(id) and along.y < 0.0:
+		var move: float = -(bodies.centre_of(id) - f.cen[id]).dot(along) * 60.0
+		f.slide_sum += move
+		f.slide_n += 1
+		if not touched.has(id):
+			f.alone_sum += move
+			f.alone_n += 1
+	if back > CREEP_SPEED:
+		f.creep_ticks += 1
+		f.creep_v += back
+
+
+## The hops that landed since the last tick: their advances, and the
+## landings on top of another slime.
+func _count_landings(sim: Simulation, f: Flow) -> void:
+	for id: int in sim.train.last_hops:
+		var last: Dictionary = sim.train.last_hops[id]
+		if last["landed"] < 0 or f.landed_seen.get(id, -2) == last["landed"]:
+			continue
+		f.landed_seen[id] = last["landed"]
+		f.advances.append(last["advance"])
+		f.landings += 1
+		if _on_top(sim.slimes, id):
+			f.stacks += 1
+
+
+## Tick `t`'s entries in the stalled, lost and stuck logs.
+static func _count_logs(sim: Simulation, f: Flow, t: int) -> void:
+	for e in sim.train.stalled:
+		if e["tick"] != t:
+			continue
+		if e["reason"] == Train.OUT_OF_BOUNDS:
+			f.oob += 1
+		else:
+			f.stall += 1
+	for e in sim.offscreen.lost:
+		if e["tick"] == t:
+			f.lost += 1
+	for e in sim.stuck_slimes.stuck:
+		if e["tick"] == t and e["moved"]:
+			f.stuck += 1
+
+
+## The cluster at the loop's start this tick: its size and its run above LIMIT.
+func _count_cluster(bodies: SlimeBodies, f: Flow, start: Vector2) -> void:
+	var clu := _cluster_near(bodies, start)
+	f.clu_max = maxi(f.clu_max, clu)
+	f.clu_sum += clu
+	f.clu_n += 1
+	if clu > LIMIT:
+		f.clu_over += 1
+		f.clu_run += 1
+		f.clu_run_max = maxi(f.clu_run_max, f.clu_run)
+	else:
+		f.clu_run = 0
+
+
+## A window ends at tick `t`: its slow slimes, the front's rate, and the
+## DJ_CEN line.
+func _close_window(sim: Simulation, f: Flow, t: int, gathering: int) -> void:
+	var train: Train = sim.train
+	var counts := _window_end(sim, f.win_start, f.win_active)
+	f.slow += counts.x
+	f.slow_n += counts.y
+	if f.front_id >= 0 and train.tracks(f.front_id):
+		var gain := train.progress_of(f.front_id) - f.front_from
+		if gain >= 0.0:
+			f.front_rates.append(gain / (WINDOW / 60.0))
+	if t >= late_from:
+		f.late_windows += 1
+	var active_n := 0
+	for id in train.tracked_ids():
+		var s := sim.slimes.index_of(id)
+		if s >= 0 and sim.slimes.calm[s] != SlimeBodies.PARKED:
+			active_n += 1
+	print("DJ_CEN tick=%d gathering=%d holding=%d active_train=%d" % [sim.tick, gathering,
+			sim.fusion.nudged.size() - gathering, active_n])
+
+
+## The run's DJ_TOT, DJ_LATE, DJ_CLIMB and DJ_CLU lines.
+func _print_totals(sim: Simulation, f: Flow) -> void:
+	var train: Train = sim.train
+	var fusion: Fusion = sim.fusion
+	f.advances.sort()
 	var minutes := ticks / 3600.0
-	var hops := train.hops_taken - hops0
+	var hops := train.hops_taken - f.hops0
 	print(("DJ_TOT hops=%d short=%.2f adv_med=%.1f gather_mean=%.1f gather_max=%d hold_mean=%.1f speed=%.1f"
 			+ " front=%.1f slow=%.2f fus_min=%.2f bumps=%d creep=%.2f creep_v=%.1f stall=%d stuck=%d") % [
-			hops, float(train.short_hops_taken - short0) / maxi(hops, 1),
-			advances[advances.size() / 2] if not advances.is_empty() else 0.0,
-			float(gather_sum) / ticks, gather_max, float(hold_sum) / ticks, speed_sum / maxi(speed_n, 1) * 60.0,
-			_mean(front_rates), float(slow) / maxi(slow_n, 1), (fusion.fused_count - fused0) / minutes,
-			fusion.bumped_count - bumped0, float(creep_ticks) / maxi(slope_ticks, 1),
-			creep_v / maxi(creep_ticks, 1), stall, stuck])
-	var per := maxf(late_windows, 1.0)
-	print("DJ_LATE from=%d windows=%d arr=%.1f x240=%.1f x750=%.1f" % [late_from, late_windows, late_arr / per,
-			late_cross[0] / per, late_cross[1] / per])
+			hops, float(train.short_hops_taken - f.short0) / maxi(hops, 1),
+			f.advances[f.advances.size() / 2] if not f.advances.is_empty() else 0.0,
+			float(f.gather_sum) / ticks, f.gather_max, float(f.hold_sum) / ticks,
+			f.speed_sum / maxi(f.speed_n, 1) * 60.0,
+			_mean(f.front_rates), float(f.slow) / maxi(f.slow_n, 1), (fusion.fused_count - f.fused0) / minutes,
+			fusion.bumped_count - f.bumped0, float(f.creep_ticks) / maxi(f.slope_ticks, 1),
+			f.creep_v / maxi(f.creep_ticks, 1), f.stall, f.stuck])
+	var per := maxf(f.late_windows, 1.0)
+	print("DJ_LATE from=%d windows=%d arr=%.1f x240=%.1f x750=%.1f" % [late_from, f.late_windows,
+			f.late_arr / per, f.late_cross[0] / per, f.late_cross[1] / per])
 	print(("DJ_CLIMB start=%.1f bowl=%.1f slide=%.1f alone=%.1f alone_n=%d stack=%d landings=%d"
-			+ " stall=%d oob=%d lost=%d") % [climb_sum[0] / maxi(climb_n[0], 1) * 60.0,
-			climb_sum[1] / maxi(climb_n[1], 1) * 60.0, slide_sum / maxi(slide_n, 1),
-			alone_sum / maxi(alone_n, 1), alone_n, stacks, landings, stall, oob, lost])
-	print("DJ_CLU max=%d mean=%.2f over=%d run_s=%.1f" % [clu_max, clu_sum / maxi(clu_n, 1), clu_over,
-			clu_run_max / 60.0])
-	_print_fusion(sim, fus, ticks, late_from)
-	print("STATE tick=%d hash=%s" % [sim.tick, sim.state_hash()])
+			+ " stall=%d oob=%d lost=%d") % [f.climb_sum[0] / maxi(f.climb_n[0], 1) * 60.0,
+			f.climb_sum[1] / maxi(f.climb_n[1], 1) * 60.0, f.slide_sum / maxi(f.slide_n, 1),
+			f.alone_sum / maxi(f.alone_n, 1), f.alone_n, f.stacks, f.landings, f.stall, f.oob, f.lost])
+	print("DJ_CLU max=%d mean=%.2f over=%d run_s=%.1f" % [f.clu_max, f.clu_sum / maxi(f.clu_n, 1), f.clu_over,
+			f.clu_run_max / 60.0])
 
 
 

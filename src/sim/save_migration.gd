@@ -14,7 +14,7 @@ extends RefCounted
 ##   terrain (TerrainSegments.is_solid), outside the level (Train.bounds_for:
 ##   the box outside which a train slime is out of bounds), or, in a basket,
 ##   in no basket of the level.
-## A displaced sleeper stays a sleeper (item 24.4, D139, proposed): it is
+## A displaced sleeper stays a sleeper (item 24.4, settled in D163): it is
 ## put asleep at a spot of the level (sleeper_homes()), with no body (a rest
 ## ring at its centre, the ring Sleepers.place makes in a fresh game), its
 ## species, size and runtime id kept. Its home is its own stable ID's spot

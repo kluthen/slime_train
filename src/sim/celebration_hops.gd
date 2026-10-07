@@ -21,7 +21,7 @@ extends RefCounted
 const HOPS := 2
 ## A celebration hop's strength (1 is a full hop): about 50 px high, half a
 ## second in the air, so the two hops fit well inside the 4 s burst.
-## Proposed (the spec gives no value).
+## D124, approved in D125 (specs/tuning.md).
 const HOP_STRENGTH := 0.6
 
 ## Slime id -> the hops it still has to do.

@@ -165,7 +165,7 @@ func _print_window(sim: Simulation, w: Dictionary, hops: int, now: Dictionary, b
 	var bowl_n := 0
 	for id in ids:
 		var d := train.distance_of(id)
-		if bodies.state_of(id) == SlimeBodies.TRAIN and d >= BOWL_LO and d <= BOWL_HI:
+		if bodies.has(id) and bodies.state_of(id) == SlimeBodies.TRAIN and d >= BOWL_LO and d <= BOWL_HI:
 			bowl_n += 1
 	var back := _back_half(train, ids, bodies)
 	var mean := 0.0
@@ -193,7 +193,7 @@ func _print_window(sim: Simulation, w: Dictionary, hops: int, now: Dictionary, b
 func _back_half(train: Train, ids: PackedInt32Array, bodies: SlimeBodies) -> Array:
 	var ds := []
 	for id in ids:
-		if bodies.state_of(id) != SlimeBodies.TRAIN:
+		if not bodies.has(id) or bodies.state_of(id) != SlimeBodies.TRAIN:
 			continue
 		var d := train.distance_of(id)
 		if d >= BOWL_LO and d <= BOWL_HI:
@@ -208,7 +208,7 @@ func _print_hist(train: Train, bodies: SlimeBodies) -> void:
 	var hist := {}
 	var parked := {}
 	for id in train.tracked_ids():
-		if bodies.state_of(id) != SlimeBodies.TRAIN:
+		if not bodies.has(id) or bodies.state_of(id) != SlimeBodies.TRAIN:
 			continue
 		var bin := int(train.distance_of(id) / 2000.0) * 2
 		hist[bin] = hist.get(bin, 0) + 1

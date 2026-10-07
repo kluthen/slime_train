@@ -242,13 +242,8 @@ static func touching_by_distance(bodies: SlimeBodies, physics_ids: PackedInt32Ar
 		for dy in range(-1, 2):
 			for dx in range(-1, 2):
 				var near: Variant = grid.get(cell + Vector2i(dx, dy))
-				if near == null:
-					continue
-				for j: int in near:
-					if c.distance_to(centres[j]) < radii[i] + radii[j] + TOUCH_GAP:
-						var a := physics_ids[i]
-						var b := physics_ids[j]
-						pairs.append(Vector2i(mini(a, b), maxi(a, b)))
+				if near != null:
+					_append_touching(pairs, i, near, centres, radii, physics_ids)
 		# An Array, not a PackedInt32Array: a packed array read from the
 		# Dictionary is a copy, and appending to it would be lost.
 		if grid.has(cell):
@@ -256,6 +251,18 @@ static func touching_by_distance(bodies: SlimeBodies, physics_ids: PackedInt32Ar
 		else:
 			grid[cell] = [i]
 	return pairs
+
+
+## touching_by_distance()'s inner step: appends to `pairs` the pair of slime
+## `i` with each slime of `near` (indices into `centres`, `radii` and
+## `physics_ids`) that it touches by distance.
+static func _append_touching(pairs: Array, i: int, near: Array, centres: PackedVector2Array,
+		radii: PackedFloat32Array, physics_ids: PackedInt32Array) -> void:
+	for j: int in near:
+		if centres[i].distance_to(centres[j]) < radii[i] + radii[j] + TOUCH_GAP:
+			var a := physics_ids[i]
+			var b := physics_ids[j]
+			pairs.append(Vector2i(mini(a, b), maxi(a, b)))
 
 
 ## The size of the biggest connected group of `physics_ids` linked by

@@ -34,7 +34,7 @@ static func way_back_ticks(sim: Simulation, stable_id: String, deadline: int) ->
 			"point": sim.slimes.centre_of(me), "route": ""})
 	for tick in deadline:
 		sim.step()
-		if sim.slimes.state_of(me) == SlimeBodies.TRAIN:
+		if sim.slimes.has(me) and sim.slimes.state_of(me) == SlimeBodies.TRAIN:
 			return tick + 1
 	return -1
 

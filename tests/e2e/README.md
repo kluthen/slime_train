@@ -157,8 +157,9 @@ Four editor-only files are left out there; the script lists them.
   until gate 1 opens, section 2 from `gate1-open` until gate 2 opens,
   section 3 from `gate2-open` until basket 3 fires and the celebration
   plays (calls on the sleepers the progress estimate counts on, a tap on
-  each switch); and the level-rules checker gives the level no warning.
-  About 1.5 minutes.
+  each switch); each fired basket then empties within D128's bound
+  (quota x 0.3 s + 10 s: 11.8 s, 14.5 s and 28 s; O127); and the
+  level-rules checker gives the level no warning. About 1.5 minutes.
 - `test_new_level_e2e.gd` (chunk LD1) scaffolds throwaway levels with
   `tools/new_level.gd` (1, 2 and 4 sections), checks they load, pass the
   checker and their generated test, appear in test mode, and that the

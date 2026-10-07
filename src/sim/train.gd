@@ -491,6 +491,7 @@ func track(slime_id: int, distance: float) -> void:
 	_takeoff.erase(slime_id)
 
 
+## Whether the slime is followed (it has a record).
 func tracks(slime_id: int) -> bool:
 	return _records.has(slime_id)
 
@@ -507,6 +508,7 @@ func distance_of(slime_id: int) -> float:
 	return _records[slime_id]["distance"] if _records.has(slime_id) else 0.0
 
 
+## The laps the slime has completed, 0 when it isn't followed.
 func laps_of(slime_id: int) -> int:
 	return _records[slime_id]["laps"] if _records.has(slime_id) else 0
 
@@ -649,7 +651,7 @@ func steer(bodies: SlimeBodies, dt: float) -> void:
 # @spec-link [[rule_train_relay_on_take_off]]
 func follow(bodies: SlimeBodies, tick: int) -> void:
 	for slime_id in tracked_ids():
-		if bodies.state_of(slime_id) != SlimeBodies.TRAIN:
+		if not bodies.has(slime_id) or bodies.state_of(slime_id) != SlimeBodies.TRAIN:
 			_records.erase(slime_id)
 			_takeoff.erase(slime_id)
 			last_hops.erase(slime_id)

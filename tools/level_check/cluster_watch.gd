@@ -85,7 +85,7 @@ static func on_route_ids(sim: Simulation) -> PackedInt32Array:
 	for entry in LoopStartQueue.due(sim):
 		due[entry["id"]] = true
 	for slime_id in train.tracked_ids():
-		if bodies.state_of(slime_id) != SlimeBodies.TRAIN or due.has(slime_id):
+		if not bodies.has(slime_id) or bodies.state_of(slime_id) != SlimeBodies.TRAIN or due.has(slime_id):
 			continue
 		var at := train.position_at(train.distance_of(slime_id))
 		if bodies.centre_of(slime_id).distance_to(at) <= Train.OFF_ROUTE:

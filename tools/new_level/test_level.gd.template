@@ -107,7 +107,7 @@ func test_section_1_plays_to_its_basket_full() -> void:
 		for id in asleep.duplicate():
 			# A sleeper touching a woken one wakes with it (LevelProgress.chain):
 			# no call of its own when no hop reaches it.
-			if sim.slimes.state_of(_slime(sim, id)) != SlimeBodies.SLEEPER:
+			if not _asleep(sim, _slime(sim, id)):
 				asleep.erase(id)
 			elif LevelProgress.smallest_size(checker, 1, checker.data.sleepers[id]["position"]) > 0 \
 					and _wake(game, checker, id):
@@ -175,7 +175,7 @@ func _wake(game: Node, checker: LevelChecker, stable_id: String) -> bool:
 	var screen := sim.view.world_to_screen(at)
 	sim.push_input(Simulation.touch_down(0, screen))
 	sim.push_input(Simulation.touch_up(0, screen))
-	return _run_until(game, func(): return sim.slimes.state_of(sleeper) != SlimeBodies.SLEEPER, CALL_TICKS,
+	return _run_until(game, func(): return not _asleep(sim, sleeper), CALL_TICKS,
 			from) >= 0
 
 
@@ -221,6 +221,12 @@ static func _slime(sim: Simulation, stable_id: String) -> int:
 		if stable_id in sim.identities.members_of(slime_id):
 			return slime_id
 	return -1
+
+
+## Whether `slime_id` is still a slime and asleep (a woken sleeper may have
+## fused since, its id gone).
+static func _asleep(sim: Simulation, slime_id: int) -> bool:
+	return sim.slimes.has(slime_id) and sim.slimes.state_of(slime_id) == SlimeBodies.SLEEPER
 
 
 ## The level's scene, added to the test (it builds and bakes its terrain).
