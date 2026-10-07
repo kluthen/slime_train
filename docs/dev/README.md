@@ -912,7 +912,13 @@ Each tick, `Simulation.step()` runs the input, `train.steer()` (grip, carry
 and hop aim, before the bodies move), `slimes.tick()`, the split zones
 (`SplitZones.apply`, whose parts `train.inherit()` their parent's
 progress), then `train.follow()` (progress, laps, stalled slimes).
-`train.dump()` is in the state dump.
+`train.dump()` is in the state dump. Its parts: `TrainRecord`
+(`src/sim/train_record.gd`, one train slime's record: `distance`, `laps`,
+`on_slide`, `mark`, `marked_at`; `record_of()` gives it to the saves as
+that Dictionary), `TrainClimb` (`src/sim/train_climb.gd`, the hold on a
+climb and the relay, below) and `TrainHopLog` (`src/sim/train_hop_log.gd`,
+`train.hop_log`: the debug hop counters and the census's hop record, not
+state).
 
 ![The first slime hopping along the loop from the start basin](img/train-first-slime.png)
 
@@ -955,7 +961,8 @@ a queue climbing out of a basin lost most of what it gained. On the
 outgoing route, where the route rises more than `HOLD_FROM` (0.1, up to
 45°), an active train slime standing between hops also has its motion down
 the slope cancelled and gets `HOLD_LIFT` (half) of a tick's pull along the
-slope up it (`SlimeBodies.hold_on_slope`): alone on a rise it slides about
+slope up it (`TrainClimb.hold`, from `Train.steer()`;
+`SlimeBodies.hold_on_slope`): alone on a rise it slides about
 1.6 px/s instead of 12.9. The return route's slide is untouched, and so
 is a slime knocked off the route (it steers from a point behind): held
 there, its hops could skim a steep climb and be braked away (rule 2's lap
@@ -965,12 +972,12 @@ climb), so it slides back to where its hops carry it.
 **The relay (chunk 24g).** A packed queue moved at its hop timers' pace (a
 slime gains ground only once the one ahead has gone; its own 1.5 to 3 s
 timer mostly fired while still blocked, a micro hop). Now when a train
-slime takes off (`SlimeBodies.train_hopped`, read by the next
-`steer()`), the train slime right behind it along the loop, standing on
+slime takes off (`SlimeBodies.train_hopped`, read at the end of that
+tick's `follow()`: `TrainClimb.relay`), the train slime right behind it along the loop, standing on
 the outgoing route within its `hop_reach` of touching it, has its hop timer
 cut to `RELAY_DELAY` (0.15 s) at most: it follows into the room just made,
 a wave down the queue. Only the one right behind, never across a gap wider
-than its reach. Both are GDScript (`Train.steer`), so the native and the
+than its reach. Both are GDScript (`TrainClimb`), so the native and the
 GDScript tick run them alike; neither adds state (the hop timers are
 already saved). Measured with `tools/train_flow_probe.gd` (see "Chunk 24g").
 
@@ -3531,8 +3538,9 @@ lists every key):
 - `CENSUS end tick= lines= ms=`.
 
 The decision records it reads are kept by the decision code, debug only
-and outside the state (not in `dump()` nor saves): `Train.last_target_kind`
-(the kind `hop_target()` gave), `Train.last_hops` (each train slime's last
+and outside the state (not in `dump()` nor saves): `train.hop_log`'s
+`last_target_kind` (the kind `hop_target()` gave) and `last_hops` (each
+train slime's last
 hop, from the hop counters' take-off and landing), `Fusion.nudged` (the
 slimes the last tick's dip nudge held, holding or gathering). Tests:
 `tests/unit/test_slime_census.gd`, and the button in
@@ -5379,8 +5387,8 @@ What exists now:
   celebration's, a free slime's, nor on a slide, where a slime is held)
   and `short_hops` those that landed in the window less than half their
   `Train.hop_reach(size)` along the loop past their take-off progress (a
-  hop that never lands as a train slime is no short hop): `Train`'s
-  cumulative `hops_taken` and `short_hops_taken`, the perf log printing the
+  hop that never lands as a train slime is no short hop): `train.hop_log`'s
+  (`TrainHopLog`) cumulative `hops_taken` and `short_hops_taken`, the perf log printing the
   difference per window (chunk 22l, D156 point 4; "Reading hops and
   short_hops"); `bodies` is every slime. `active` is the mean per frame of
   the slimes that cost physics (`SlimeBodies.crowd_count()`,
@@ -6010,8 +6018,8 @@ from the same build. What changed:
   touches; the rest of the pile rests on (below). It replaces D96's
   whole-pile wake.
 
-Code: `src/sim/train.gd` (`hops_taken`, `short_hops_taken`, counted in
-`follow()`), `src/sim/slime_bodies.gd` (`train_hopped`, filled by the
+Code: `src/sim/train_hop_log.gd` (`hops_taken`, `short_hops_taken`, fed by
+`Train.follow()`), `src/sim/slime_bodies.gd` (`train_hopped`, filled by the
 automatic hops), `src/debug/perf_log.gd` (`train_hops()`, the window's
 deltas), `tools/android/perf_summary.py`. Tests:
 `tests/unit/test_train_progress.gd` ("Hop counters"),
@@ -6080,7 +6088,7 @@ only, its basket's resting pile being disturbed within the hashed ticks
   line `train hops      per line: hops M  short_hops N   short share S %
   (short of hops)`, the means per line and the share summed over the
   lines; "n/a (no hop)" without a hop.
-- Debug only: the counters (`Train.hops_taken`, `short_hops_taken`,
+- Debug only: the counters (`TrainHopLog.hops_taken`, `short_hops_taken`,
   `SlimeBodies.train_hopped` and the take-offs) are in neither the dumps
   nor the saves.
 
@@ -7114,7 +7122,9 @@ rule 24's, `rule_arrivals_clear_faster_than_they_arrive`).
 The train jammed on climbs, not at the dips: a standing slime slid back
 down between hops, and a packed queue moved only at its hop timers' pace.
 Two changes to `Train.steer()` (GDScript, both ticks alike, no new state;
-see "Train", Hold on a climb and The relay), first tried as variants g and
+see "Train", Hold on a climb and The relay; since the health review's S2
+both live in `TrainClimb`, `src/sim/train_climb.gd`, and the relay runs at
+the end of `Train.follow()`, see "Closure" below), first tried as variants g and
 r on a throwaway branch, then built as the plain behaviour, plus one guard
 the full suite called for: no hold for a slime knocked off the route.
 
@@ -7355,7 +7365,11 @@ The steer phase rises by 50 to 150 µs on every run, above its own spread
   `Train._behind()`'s linear scan over every train record (about 180 to
   200) for each take-off. About 1 % of the tick; a scan in distance order
   (an index kept by `follow()`) would cut it, not done here
-  (measure-only).
+  (measure-only). The health review measured it again after the relay
+  moved to `follow()` (Q9, 2026-10-07, `stress-dense`, native, temporary
+  timers around the relay, 600 timed ticks): 44 µs per tick, 0.95 % of the
+  4.63 ms tick (302 take-offs, about 87 µs each), under the 2 % that would
+  call for an index, so `TrainClimb._behind` still scans.
 - The hold costs about 1 µs per held slime; the extra hops aimed (the
   train moves faster) a few µs.
 - The whole tick: within the noise on `stress-dense`; up to +6 % native
