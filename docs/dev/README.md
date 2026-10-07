@@ -3584,12 +3584,27 @@ deep copy; keyed by stable IDs): a sleeper whose stable ID the level no
 longer has as a sleeper, whose spot moved (over 1 px, `SaveMigration.MOVED`)
 or whose species changed, and an awake slime whose centre is no longer in
 open space (inside the terrain, `TerrainSegments.is_solid`; outside
-`Train.bounds_for`; in a basket, in no basket of the level) are displaced:
-they stay in the save and, once the rest is restored and before the mid-air
-rule, are lost the usual way (`Offscreen.lose`: to the loop start, in the
-lost log), so each is lost once and the population stays whole. A level
-sleeper no slime holds is added asleep at its spot (a body-less entry, the
-next runtime id). Object and gate states of stable IDs gone are dropped (and
+`Train.bounds_for`; in a basket, in no basket of the level) are displaced.
+**A displaced sleeper stays a sleeper** (item 24.4, D139, proposed;
+`SaveMigration.sleeper_homes`): it is put asleep at its stable ID's spot
+when the level still has that sleeper (moved, or of another species now:
+the save's species is kept), else at the surviving empty sleeper spot (a
+level sleeper no slime of the save holds) nearest its saved centre, whose
+stable ID it takes; each such spot takes one, in save order, ties to the
+first stable ID. It is written body-less (a rest ring at the spot on load),
+its species, size and runtime id kept. Only a sleeper left with no spot
+(the level has fewer empty spots than such sleepers) is lost, as an awake
+one is. The awake displaced slimes, and those homeless sleepers, stay in
+the save and, once the rest is restored and before the mid-air rule, are
+lost the usual way (`Offscreen.lose`: to the loop start, in the lost log),
+so each is lost once and the population stays whole. Before item 24.4
+every displaced sleeper was lost too: the phone's version-1 save of
+2026-09-30 woke about 100 sleepers into an awake pile at the loop start
+(the `loop-start-pile` fixture keeps that output; the save itself,
+`docs/perf/2026-09-30-s20fe/saves/before-migration.test.json.v1`, is
+`test_save_migration.gd`'s, now migrated with every sleeper asleep). A
+level sleeper no slime holds (and no displaced sleeper took) is added
+asleep at its spot (a body-less entry, the next runtime id). Object and gate states of stable IDs gone are dropped (and
 gone gates leave `train.open_gates`); new ones are left out and take their
 initial state on load (`FrontierSets.start`). The header takes the level's
 version. Before the first write, the game keeps the file the save was read
@@ -3873,7 +3888,8 @@ save `<name>.json` in the hand-made form above.
 | `stress-dense` | Gates 1 and 2 open, all 200 base slimes as size-1 train slimes (each its sleeper's species), not at bedtime (no session), switch 3 and basket 3 untouched: laid along the loop line, not stacked, 9 per 300 px stretch of loop (a slime's stretch: its loop distance / 300, rounded down) and 12 in stretches 55 and 56, the two at the bottom of section 3's bowl; 70 in the bowl, 105 in section 3, 95 back through gate 2 in section 2, none past switch 3; the camera on the bowl. The dense moving case, target at least 30 fps (chunk 22m; D153 as amended by D154; see "Chunk 22m: stress-dense") |
 | `s3-basket-59of60` | Gates 1 and 2 open as after baskets 1 and 2 fired, all 200 base slimes woken, not at bedtime (no session): switch 3 flipped (its trapdoor open), basket 3 at 59 of 60 (59 size-1 slimes in it, section 3's last 59 sleepers, laid out as `stress-still`'s) and the other 141 as size-1 train slimes through section 3's bowl (as `stress-moving`'s); the camera on basket 3's framing zone (18288, -150; zoom 0.8). Played on, the basket fills (about 9 s), fires in view and the celebration plays (chunk 22, D128 24.1) |
 | `midair` | The fresh level with four size-1 train slimes saved in mid-air over section 1's ground (`s1.sleeper.01` to `.04`): 4 px above the ground at x 1525, 150 px above it at x 1825, 30 px above it at x 2125, and one 80 px above that one; the camera on them. A fixture keeps only centres, so loaded (test mode or normal play) each is put straight down on what is below it, at rest, none lost (D12, DoD 28; chunk 19) |
-| `old-version` | A save of the test level's **version 1** (its header says so): the fresh level, but the sleeper nearest x 1525 on section 1's ground (`s1.sleeper.03`, on its ledge at (1428, -188) in version 2) sleeps there, at (1525, 0). Loaded, it is migrated: that slime is displaced and lost (to the loop start, in the lost log), all 200 kept; in normal play the file is kept as `test.json.v1` and the next save is at version 2 (D72; chunk 19). Older than the level on purpose: the stale-fixture check exempts it by name |
+| `old-version` | A save of the test level's **version 1** (its header says so): the fresh level, but the sleeper nearest x 1525 on section 1's ground (`s1.sleeper.03`, on its ledge at (1428, -188) in version 2) sleeps there, at (1525, 0). Loaded, it is migrated: that sleeper is displaced and put back asleep at its spot on the ledge (item 24.4; before it, it was lost to the loop start), nothing lost, all 200 kept; in normal play the file is kept as `test.json.v1` and the next save is at version 2 (D72; chunk 19). Older than the level on purpose: the stale-fixture check exempts it by name |
+| `loop-start-pile` | The phone's test save of 2026-09-30 (the S20 FE session), `docs/perf/2026-09-30-s20fe/saves/after-migration.test.json`, in the fixture form: the output of the migration before item 24.4, **a stress case kept on purpose**. 197 slimes: 103 awake train slimes (the first slime and the sleepers that migration woke and lost, a few fused since; sizes summing to 106), 91 of them piled at the loop start (x 190 to 720), and 94 sleepers; no gate open, no session; the camera on the pile (400, 440). Awake out of a basket the pile never rests, and near the view it never parks: the frame rate of a big awake pile (item 24.5, D138's tick cap; on the phone, `tools/android/perf.sh --fixture=loop-start-pile`). See "Item 24.5: loop-start-pile" |
 
 To make or remake them: `godot --headless -s res://tools/make_fixture.gd`
 (all) or `... -- bump` (one). `gate1-open`, `gate2-open`, `stress-still`
@@ -3885,7 +3901,27 @@ tests), their builders in `tools/make_fixture/persistence_fixtures.gd`.
 `s3-basket-59of60` came with chunk 22, for the section 3 endgame; its
 builder shares `_into_basket_3` with `stress-still`'s (moved unchanged;
 `stress-still` was not regenerated). `stress-dense` came with chunk 22m,
-its placement in `tools/make_fixture/stress_fixtures.gd`.
+its placement in `tools/make_fixture/stress_fixtures.gd`. `loop-start-pile`
+came with item 24.5: its builder (`PersistenceFixtures.loop_start_pile`)
+loads the phone's migrated save as it is (version 2: no migration) and the
+tool writes it in the fixture form, so it is remade from that file, never
+from the migration as it is now.
+
+**Item 24.5: loop-start-pile.** The phone's awake pile (3 fps on the S20 FE
+on 2026-09-30, before D138's tick cap; see "The reference phone: what is known") as a fixture, so a phone session can play it
+(`tools/android/perf.sh --fixture=loop-start-pile`, labels off). It is a
+stress case built from the migration's output before item 24.4, on purpose:
+since 24.4 that save migrates with every sleeper asleep, so this pile only
+exists in the fixture. Its hashes are in [native.md](native.md) ("Fixture
+hashes"). Desktop, 2026-10-07, at the commit adding it: headless bench
+(`tools/level.sh bench --fixture=loop-start-pile`, 600 timed ticks after a
+60-tick lead-in), 2.53 ms a tick on the native tick and 5.74 ms on the
+GDScript tick (mean; median 2.49 / 5.72), 87 physics slimes, 84 on screen,
+101 parked, 197 bodies fusing to 191; windowed on the native tick
+(`tools/perf_slow.sh`, 30 s), full speed 1160 fps at 3.12 ms a tick,
+slowed (`--pin=main`, 2 hogs) 164 fps (p5 129) at 3.28 ms a tick, at most
+2 ticks a frame (the cap), never more. The phone's number is chunk 24.5's
+own, from the perf log.
 **The test level is at version 2 since chunk 19** (`level_version = 2` on
 its root; nothing else changed): so that `old-version` is a genuine save
 of an older version, migrated as a player's would be. Every other fixture
@@ -4623,7 +4659,8 @@ twice on one seed and compares `Simulation.state_hash()`.
 | `gate2-open` | `test_level_dod1_e2e.gd` (session, bowl, every size laps); `test_test_level_playable_e2e.gd` section 3; `test_offscreen_slopes_e2e.gd`; `test_camera_dead_zone_e2e.gd` | a session loses nothing, another seed's session isn't held in the bowl by its dip's nudge, a size 1, 2 and 3 each lap the whole loop; basket 3 fires and the celebration plays; a size 3 off screen goes down section 3's ramp, never lost | yes: `test_level_dod1_e2e.gd` (in this process and in a child process) |
 | `lost` | `test_offscreen_e2e.gd` `test_with_no_route_near_a_free_slime_is_left_alone_then_lost_to_the_loop_start` | left alone at 10 s, lost a minute later, back at the start of the loop | yes: `test_offscreen_e2e.gd` `test_the_lost_run_is_the_same_in_a_child_process` |
 | `midair` | `test_persistence_e2e.gd` (placement at load); `test_fixture_scenarios_e2e.gd` `test_midair_slimes_land_and_play_on_the_same_twice` | the 4 slimes saved in the air land within the run and keep hopping along the loop, the population whole (300 ticks) | yes: the same test |
-| `old-version` | `test_persistence_e2e.gd` (migration at load, the `.v1` copy kept); `test_fixture_scenarios_e2e.gd` `test_old_version_migrated_plays_on_the_same_twice` | the moved sleeper, put on the train, travels the loop; count and mass kept, nothing newly lost (600 ticks) | yes: the same test |
+| `old-version` | `test_persistence_e2e.gd` (migration at load, the `.v1` copy kept); `test_fixture_scenarios_e2e.gd` `test_old_version_migrated_plays_on_the_same_twice` | the moved sleeper, put back asleep at its spot, sleeps on there; count and mass kept, nothing lost (600 ticks; item 24.4) | yes: the same test |
+| `loop-start-pile` | `test_fixtures_e2e.gd` `test_loop_start_pile_has_the_phones_awake_pile_at_the_loop_start` | the counts as its description records, the camera on the pile | no (its hashes are in [native.md](native.md), "Fixture hashes") |
 | `s1-basket-5of6` | `test_frontier_e2e.gd` `test_the_basket_fills_fires_opens_the_gate_and_releases`; `test_camera_gate_show_e2e.gd`; `test_frontier_bedtime_e2e.gd` | basket 1 fills, fires, gate 1 opens, the basket releases; the camera shows the gate; a full basket at bedtime waits for sunrise | yes: `test_frontier_e2e.gd` `test_the_fixture_run_is_the_same_in_a_child_process`, `test_camera_gate_show_e2e.gd` `test_a_run_with_a_gate_shown_is_repeatable` |
 | `s1-optout` | `test_frontier_e2e.gd` `test_flipping_the_switch_back_releases_and_empties_the_basket`; `test_fixture_scenarios_e2e.gd` `test_s1_optout_flipping_back_releases_the_same_twice` | a tap on the switch flips it back, the basket empties, gate 1 stays shut | yes: `test_fixture_scenarios_e2e.gd` (the second test) |
 | `s2-basket-offscreen` | `test_offscreen_e2e.gd` `test_a_basket_fills_off_screen_and_fires_once_it_comes_into_view`; `test_frontier_e2e.gd` `test_basket_2_firing_is_not_the_celebration_any_more` | basket 2 fills off screen and fires once in view; its firing is not the celebration | yes: `test_offscreen_e2e.gd` `test_the_basket_run_is_the_same_in_a_child_process` |
@@ -5190,7 +5227,8 @@ didn't show.
 The battery went from 33.6 to 35.8 °C, thermal status 0 then 1 (light)
 from about 15:49. The debug labels alone took section 1 from 47 to 13 fps
 with 5 slimes simulated: measure with labels off. The migrated save's awake
-pile is a migration bug, for chunk 24.
+pile is a migration bug, for chunk 24: fixed by item 24.4 (see "Migration by
+level version"), the pile kept as the `loop-start-pile` fixture (item 24.5).
 
 What this says, plainly:
 

@@ -7,8 +7,8 @@ extends GutTest
 ##   in normal play, every awake slime is on what is below it (D12), none
 ##   lost, the population whole.
 ## - `old-version` (a fixture saved by the test level's version 1, one sleeper
-##   elsewhere than version 2 has it): the moved sleeper is lost the usual way
-##   (to the loop start, in the lost log), no slime is dropped, the file as it
+##   elsewhere than version 2 has it): the moved sleeper is put back asleep at
+##   its spot (item 24.4), nothing lost, no slime is dropped, the file as it
 ##   was is kept as test.json.v1, and the next save is at version 2 (D72).
 ## - A kill during a write, simulated deterministically: the files are laid
 ##   out as a kill at each point of SaveStore's write sequence would leave
@@ -202,8 +202,8 @@ func _moved_sleeper(level: Level) -> String:
 	return moved[0] if moved.size() == 1 else ""
 
 
-## Checks a game just loaded from old-version: the moved sleeper back on the
-## train at the loop start and in the lost log, every slime counted.
+## Checks a game just loaded from old-version: the moved sleeper asleep at
+## its spot in the level (item 24.4), nothing lost, every slime counted.
 func _check_migrated(game: Node, label: String) -> void:
 	var sim: Simulation = game.simulation
 	var moved := _moved_sleeper(game.level)
@@ -211,11 +211,12 @@ func _check_migrated(game: Node, label: String) -> void:
 	assert_ne(slime, -1, "%s: %s still in the game" % [label, moved])
 	if slime == -1:
 		return
-	assert_eq(sim.slimes.state_of(slime), SlimeBodies.TRAIN, label + ": on the train")
-	assert_true(sim.train.tracks(slime), label + ": the train tracks it")
-	assert_lte(sim.train.distance_of(slime), LoopStart.STRETCH, label + ": at the loop start")
+	assert_eq(sim.slimes.state_of(slime), SlimeBodies.SLEEPER, label + ": still a sleeper")
+	assert_eq(sim.slimes.centre_of(slime), game.level.data.sleepers[moved]["position"],
+			label + ": at its spot in version 2")
+	assert_false(sim.train.tracks(slime), label + ": not on the train")
 	var lost := sim.offscreen.lost.filter(func(entry): return entry["reason"] == Offscreen.LOST)
-	assert_eq(lost.map(func(entry): return entry["id"]), [slime], label + ": in the lost log, alone")
+	assert_eq(lost, [], label + ": nothing lost")
 	assert_eq(sim.slimes.slime_count, POPULATION, label + ": no slime dropped, none added")
 	assert_eq(_weight(sim), POPULATION, label + ": every base slime counted")
 	_assert_none_in_the_air(sim, label)

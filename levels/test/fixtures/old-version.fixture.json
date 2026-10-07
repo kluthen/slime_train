@@ -1,4 +1,4 @@
 {
-	"description": "The fresh level saved by the test level's version 1: the sleeper nearest x 1525 on section 1's ground sleeps there, while version 2 has it on its ledge. Loaded, the save is migrated: that slime is displaced and lost (to the loop start, in the lost log), every slime kept, and the next save is at version 2 (D72). For persistence (chunk 19).",
+	"description": "The fresh level saved by the test level's version 1: the sleeper nearest x 1525 on section 1's ground sleeps there, while version 2 has it on its ledge. Loaded, the save is migrated: that sleeper is displaced and put back asleep at its spot on the ledge (item 24.4), nothing lost, every slime kept, and the next save is at version 2 (D72). For persistence (chunk 19).",
 	"save": true
 }

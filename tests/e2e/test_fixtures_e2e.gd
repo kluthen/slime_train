@@ -10,7 +10,9 @@ extends GutTest
 ## as train slimes in the bowl (chunk 16); `stress-dense` has all 200 as
 ## train slimes on the loop line, at most 9 per 300 px stretch of loop but
 ## 12 in the two at the bottom of the bowl, none past switch 3 (chunk 22m,
-## D153 as amended by D154). Every fixture in the directory
+## D153 as amended by D154); `loop-start-pile` is the phone's migrated save
+## of 2026-09-30, about 100 awake slimes piled at the loop start (item
+## 24.5). Every fixture in the directory
 ## loads, and none is older than the level (chunk LD3: its save holds every
 ## slime of the level, its sleepers where the level has them), but
 ## old-version, older on purpose. midair and old-version (chunk 19) are
@@ -57,6 +59,16 @@ const DENSE_BOWL_FROM := 13.5 * S
 const DENSE_BOWL_TO := 15.33 * S
 const SWITCH_3 := "s3.switch"
 const DENSE_RELOAD_TICKS := 200
+## loop-start-pile (item 24.5): the phone's migrated save, its slimes, its
+## awake ones (their sizes summed), its sleepers, and how many awake ones
+## are piled at the loop start (x below PILE_RIGHT, px), as its description
+## records.
+const PILE_SLIMES := 197
+const PILE_AWAKE := 103
+const PILE_AWAKE_WEIGHT := 106
+const PILE_SLEEPERS := 94
+const PILE_AT_START := 91
+const PILE_RIGHT := 720.0
 ## The fixtures older than the level on purpose, exempt from
 ## test_no_fixture_is_older_than_the_level: old-version is a save of the
 ## test level's version 1 with a sleeper where version 1 had it, to test the
@@ -311,6 +323,29 @@ func test_stress_dense_runs_the_same_across_a_save_and_reload() -> void:
 ## Chunk LD3: a fixture saved before the level changed still loads, without
 ## what the level gained since; LevelFixtures.stale() says so. Exempt:
 ## OLDER_ON_PURPOSE, older by design.
+# @test-link [[req_test_level_and_test_mode]]
+# @test-link [[req_persistence_and_saves]]
+func test_loop_start_pile_has_the_phones_awake_pile_at_the_loop_start() -> void:
+	var game := _boot({"fixture": "loop-start-pile"})
+	var sim: Simulation = game.simulation
+	assert_eq(sim.slimes.slime_count, PILE_SLIMES)
+	assert_eq(_count(sim, SlimeBodies.SLEEPER), PILE_SLEEPERS)
+	assert_eq(_count(sim, SlimeBodies.TRAIN), PILE_AWAKE, "every other slime on the train")
+	assert_eq(sim.train.open_gates, [], "no gate open")
+	var weight := 0
+	var at_start := 0
+	for slime_id in sim.slimes.ids():
+		if sim.slimes.state_of(slime_id) != SlimeBodies.TRAIN:
+			continue
+		weight += sim.slimes.size_of(slime_id)
+		if sim.slimes.centre_of(slime_id).x < PILE_RIGHT:
+			at_start += 1
+	assert_eq(weight, PILE_AWAKE_WEIGHT)
+	assert_eq(at_start, PILE_AT_START, "piled at the loop start, as the description records")
+	game.sync_view()
+	assert_lt(game.simulation.view.centre.x, PILE_RIGHT + S, "the camera on the pile")
+
+
 func test_no_fixture_is_older_than_the_level() -> void:
 	var level: Level = load(LevelCatalog.scene_path(LevelCatalog.DEFAULT_ID)).instantiate()
 	add_child_autofree(level)
@@ -336,7 +371,8 @@ func test_every_fixture_loads() -> void:
 			names.append(file.trim_suffix(TestMode.SIDECAR_EXTENSION))
 	assert_true("fresh" in names)
 	assert_true("bump" in names)
-	for name in ["gate1-open", "gate2-open", "stress-still", "stress-moving", "stress-dense", "midair", "old-version"]:
+	for name in ["gate1-open", "gate2-open", "stress-still", "stress-moving", "stress-dense", "midair", "old-version",
+			"loop-start-pile"]:
 		assert_true(name in names, name)
 	for name in names:
 		var game: Node = load(MAIN_SCENE).instantiate()

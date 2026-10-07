@@ -14,13 +14,22 @@ extends RefCounted
 ##   terrain (TerrainSegments.is_solid), outside the level (Train.bounds_for:
 ##   the box outside which a train slime is out of bounds), or, in a basket,
 ##   in no basket of the level.
-## A displaced slime stays in the save as it was: SaveData.restore loses it
-## the usual way (Offscreen.lose: to the loop start, back on the train, in
-## the lost log), so no slime is ever dropped and the population, and with
-## it every basket's quota, stays whole. A sleeper of the level that no
-## slime of the save holds (a sleeper added since) is added asleep at its
-## spot, as a hand-made save's slime (no body: a rest ring at its centre, the
-## ring Sleepers.place makes in a fresh game), after the others. The states
+## A displaced sleeper stays a sleeper (item 24.4, D139, proposed): it is
+## put asleep at a spot of the level (sleeper_homes()), with no body (a rest
+## ring at its centre, the ring Sleepers.place makes in a fresh game), its
+## species, size and runtime id kept. Its home is its own stable ID's spot
+## when the level still has that sleeper (moved, or of another species now:
+## the save's species is kept); otherwise the nearest surviving empty
+## sleeper spot (a sleeper of the level no slime of the save holds), whose
+## stable ID it then takes. Only a sleeper left with no spot (the level has
+## fewer free spots than such sleepers) is lost, as an awake one is.
+## An awake displaced slime, and such a homeless sleeper, stays in the save
+## as it was: SaveData.restore loses it the usual way (Offscreen.lose: to
+## the loop start, back on the train, in the lost log), so no slime is ever
+## dropped and the population, and with it every basket's quota, stays
+## whole. A sleeper of the level that no slime of the save holds (a sleeper
+## added since, and no displaced sleeper took its spot) is added asleep at
+## its spot, as a hand-made save's slime, after the others. The states
 ## of objects and gates whose stable ID is gone are dropped, and gone gates
 ## leave the train's open gates; new objects and gates are left out, so the
 ## load gives them their initial state (FrontierSets.start, as in a fresh
@@ -31,6 +40,7 @@ extends RefCounted
 ## whether a fixture's save is older than the level).
 # @spec-link [[rule_released_level_stable_with_migration]]
 # @spec-link [[rule_saves_never_wiped]]
+# @spec-link [[req_persistence_and_saves]]
 
 ## A sleeper this far from its place in the level has moved, px (saves
 ## round a hand-made save's centres to hundredths).
@@ -47,33 +57,71 @@ static func is_older(save: Dictionary, data: LevelData) -> bool:
 ## `save` (one SaveData.problems accepts for `data`) migrated to the level
 ## `data` on its `terrain` (see the class doc): {"save" (a deep copy, the
 ## input untouched), "displaced" (PackedInt32Array: the runtime ids of the
-## displaced slimes, in save order, for SaveData.restore to lose)}.
+## displaced slimes to lose, in save order, for SaveData.restore)}.
 # @spec-link [[rule_released_level_stable_with_migration]]
 # @spec-link [[rule_saves_never_wiped]]
+# @spec-link [[req_persistence_and_saves]]
 static func migrate(save: Dictionary, data: LevelData, terrain: TerrainSegments) -> Dictionary:
 	var out: Dictionary = save.duplicate(true)
 	var displaced := displacements(save, data, terrain)
+	_resettle_sleepers(out, data, sleeper_homes(save, data))
 	_add_sleepers(out, data)
 	_drop_gone_states(out, data)
 	out["level"] = data.header()
 	return {"save": out, "displaced": displaced}
 
 
-## The runtime ids of the slimes of `save` displaced in level `data` on its
-## `terrain` (see the class doc), in save order. Slimes without a
-## runtime_id are numbered 1, 2, ... in list order, as SaveData.restore does.
+## The runtime ids of the slimes of `save` to lose in level `data` on its
+## `terrain` (see the class doc): the awake slimes displaced, and the
+## displaced sleepers sleeper_homes() finds no spot for, in save order.
+## Slimes without a runtime_id are numbered 1, 2, ... in list order, as
+## SaveData.restore does.
 # @spec-link [[rule_released_level_stable_with_migration]]
+# @spec-link [[req_persistence_and_saves]]
 static func displacements(save: Dictionary, data: LevelData, terrain: TerrainSegments) -> PackedInt32Array:
 	var out := PackedInt32Array()
 	var bounds := Train.bounds_for(terrain, data.loop)
+	var homes := sleeper_homes(save, data)
 	var slimes: Array = save["slimes"]
 	for k in slimes.size():
 		var slime: Dictionary = slimes[k]
 		var runtime := int(slime["runtime_id"]) if slime.has("runtime_id") else k + 1
-		var moved := (_sleeper_displaced(slime, data) if slime["state"] == "sleeper"
+		var moved := (_sleeper_displaced(slime, data) and not homes.has(k) if slime["state"] == "sleeper"
 				else not _in_open_space(slime, data, terrain, bounds))
 		if moved:
 			out.append(runtime)
+	return out
+
+
+## Where each displaced sleeper of `save` sleeps in level `data` (see the
+## class doc): its index in the save's slimes -> the stable ID of the
+## level's sleeper whose spot it takes. Its own stable ID when the level
+## still has that sleeper; else, in save order, the empty sleeper spot
+## (unheld()) nearest its saved centre not yet taken (ties: the first stable
+## ID). A sleeper with no spot left has no entry.
+# @spec-link [[rule_released_level_stable_with_migration]]
+# @spec-link [[req_persistence_and_saves]]
+static func sleeper_homes(save: Dictionary, data: LevelData) -> Dictionary:
+	var out := {}
+	var free := unheld(save, data).filter(func(id): return data.sleepers.has(id))
+	var slimes: Array = save["slimes"]
+	for k in slimes.size():
+		var slime: Dictionary = slimes[k]
+		if slime["state"] != "sleeper" or not _sleeper_displaced(slime, data):
+			continue
+		var id: Variant = slime.get("id")
+		if id != null and data.sleepers.has(id):
+			out[k] = id
+			continue
+		var centre := SaveData.vector_from(slime["centre"])
+		var nearest := ""
+		for spot in free:
+			if nearest.is_empty() or (centre.distance_to(data.sleepers[spot]["position"])
+					< centre.distance_to(data.sleepers[nearest]["position"])):
+				nearest = spot
+		if not nearest.is_empty():
+			out[k] = nearest
+			free.erase(nearest)
 	return out
 
 
@@ -148,6 +196,23 @@ static func _in_open_space(slime: Dictionary, data: LevelData, terrain: TerrainS
 		if (data.baskets[id]["box"] as Rect2).has_point(centre):
 			return true
 	return false
+
+
+## Puts each displaced sleeper of `save` asleep at its home in level `data`
+## (`homes`, sleeper_homes() of the save before the migration): that
+## sleeper's stable ID and spot, no body (a rest ring at its centre on
+## load), at rest; its species, size and runtime id kept.
+# @spec-link [[rule_released_level_stable_with_migration]]
+static func _resettle_sleepers(save: Dictionary, data: LevelData, homes: Dictionary) -> void:
+	var slimes: Array = save["slimes"]
+	for k in homes:
+		var slime: Dictionary = slimes[k]
+		var home: String = homes[k]
+		slime["id"] = home
+		slime["members"] = [home]
+		slime["centre"] = SaveData.vector(data.sleepers[home]["position"])
+		slime["velocity"] = SaveData.vector(Vector2.ZERO)
+		slime.erase("body")
 
 
 ## Appends to `save` a sleeper for each of the level's sleepers no slime of

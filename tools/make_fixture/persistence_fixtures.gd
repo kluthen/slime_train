@@ -9,6 +9,10 @@ extends RefCounted
 ##                OLD_SPOT sleeps on the ground there: version 2 has it
 ##                elsewhere, so it is displaced and lost when the save loads
 ##                (D72).
+##   loop-start-pile  the phone's migrated save of 2026-09-30 as it was
+##                written (item 24.5's stress case): about 100 awake slimes
+##                piled at the loop start, made of sleepers the migration
+##                before item 24.4 woke and lost.
 ## The stable IDs are looked up in the level's data, never typed in.
 # @spec-link [[req_test_level_and_test_mode]]
 
@@ -26,9 +30,21 @@ const MIDAIR_DESCRIPTION := ("The fresh level with four size-1 train slimes save
 const MIDAIR_CAMERA := [1825.0, -150.0]
 const OLD_VERSION_DESCRIPTION := ("The fresh level saved by the test level's version 1: the sleeper "
 		+ "nearest x 1525 on section 1's ground sleeps there, while version 2 has it on its ledge. "
-		+ "Loaded, the save is migrated: that slime is displaced and lost (to the loop start, in the "
-		+ "lost log), every slime kept, and the next save is at version 2 (D72). For persistence "
-		+ "(chunk 19).")
+		+ "Loaded, the save is migrated: that sleeper is displaced and put back asleep at its spot "
+		+ "on the ledge (item 24.4), nothing lost, every slime kept, and the next save is at "
+		+ "version 2 (D72). For persistence (chunk 19).")
+const LOOP_START_PILE_DESCRIPTION := ("The phone's test save of 2026-09-30 (the S20 FE session) as "
+		+ "the migration of the time made it, kept on purpose as a stress case: built from the buggy "
+		+ "migration's output, before item 24.4 kept displaced sleepers asleep. 197 slimes: 103 "
+		+ "awake train slimes (the first slime and the sleepers that migration woke and lost to the "
+		+ "loop start, a few fused since; their sizes sum to 106), 91 of them piled at the loop start "
+		+ "(x 190 to 720), and 94 sleepers asleep; no gate open, no session. The camera on the pile, which never rests "
+		+ "(awake, out of a basket) nor parks (near the view). For the frame rate of a big awake "
+		+ "pile (item 24.5, D138's tick cap).")
+## Where loop-start-pile's camera starts (a level point: on the pile), and
+## the save it is made of (the phone's, written after the migration).
+const LOOP_START_PILE_CAMERA := [400.0, 440.0]
+const LOOP_START_PILE_SAVE := "res://docs/perf/2026-09-30-s20fe/saves/after-migration.test.json"
 ## midair's slimes, each on the ground's first surface below x (level px:
 ## section 1's open ground between its ledges, with nothing above) and this
 ## many px above its resting height: just above, well above, a little above.
@@ -93,6 +109,23 @@ static func old_version(sim: Simulation, data: LevelData, terrain: TerrainSegmen
 			sim.slimes.translate(slime_id, at - sim.slimes.centre_of(slime_id))
 	print("make_fixture: old-version moves %s" % nearest)
 	return true
+
+
+## loop-start-pile: the simulation of the phone's migrated save
+## (LOOP_START_PILE_SAVE, at the level's version: loaded as it is, no
+## migration), or null (and an error) when it can't be read or loaded.
+# @spec-link [[req_test_level_and_test_mode]]
+# @spec-link [[req_persistence_and_saves]]
+static func loop_start_pile(data: LevelData, terrain: TerrainSegments) -> Simulation:
+	var json := JSON.new()
+	if json.parse(FileAccess.get_file_as_string(LOOP_START_PILE_SAVE)) != OK or not json.data is Dictionary:
+		push_error("make_fixture: can't read %s for loop-start-pile" % LOOP_START_PILE_SAVE)
+		return null
+	var problems := SaveData.problems(json.data, data)
+	if not problems.is_empty():
+		push_error("make_fixture: %s doesn't load: %s" % [LOOP_START_PILE_SAVE, "; ".join(problems)])
+		return null
+	return Simulation.from_save(json.data, data, terrain, 1)
 
 
 ## Replaces sleeper `stable_id`'s body with a size-1 train slime of its
