@@ -436,6 +436,8 @@ func _unhandled_input(event: InputEvent) -> void:
 ## tick (in normal play, the tilt sensor's reading instead). When bedtime begins the game saves (if it autosaves). Then the
 ## parent layer's timers count the step (in normal play and test mode alike).
 # @spec-link [[req_session_lifecycle]]
+# @spec-link [[req_offscreen_simulation]]
+# @spec-link [[rule_crowd_detail_only_under_load]]
 func step_simulation() -> void:
 	sync_view()
 	if test_mode != null:

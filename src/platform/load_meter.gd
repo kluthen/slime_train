@@ -47,6 +47,7 @@ extends Node
 ## behaviour, the simulation's own default) and OFF (0). The meter measures
 ## in every mode (the perf log reports it); only AUTO hands its ceiling over.
 # @spec-link [[req_offscreen_simulation]]
+# @spec-link [[rule_crowd_detail_only_under_load]]
 
 ## A window's length, real microseconds (about 1 s).
 const WINDOW_USEC := 1_000_000
@@ -151,6 +152,7 @@ func _process(_delta: float) -> void:
 ## `speed`. Returns the verdict of the window it closes (see the class doc),
 ## or "" while the window runs; the first frame only starts it.
 # @spec-link [[req_offscreen_simulation]]
+# @spec-link [[rule_crowd_detail_only_under_load]]
 func feed(busy_usec: int, ticks: int, speed: float) -> String:
 	assert(busy_usec >= 0 and ticks >= 0, "LoadMeter.feed: busy %d us, %d ticks" % [busy_usec, ticks])
 	var now: int = clock.call()
@@ -177,6 +179,7 @@ func feed(busy_usec: int, ticks: int, speed: float) -> String:
 
 ## The verdict of a window with busy share `busy` and `missed` beats.
 # @spec-link [[req_offscreen_simulation]]
+# @spec-link [[rule_crowd_detail_only_under_load]]
 static func verdict_for(busy: float, missed: int) -> String:
 	if busy > PRESSED_SHARE or missed >= PRESSED_MISSED:
 		return PRESSED
@@ -189,6 +192,7 @@ static func verdict_for(busy: float, missed: int) -> String:
 ## restarted at the next frame (the game root's, for a new simulation or a
 ## load).
 # @spec-link [[req_offscreen_simulation]]
+# @spec-link [[rule_crowd_detail_only_under_load]]
 func reset() -> void:
 	ceiling = 0
 	calm_run = 0

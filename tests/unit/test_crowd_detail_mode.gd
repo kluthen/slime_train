@@ -53,6 +53,7 @@ func test_test_mode_flags_accept_it() -> void:
 
 
 # @test-link [[req_offscreen_simulation]]
+# @test-link [[rule_crowd_detail_only_under_load]]
 func test_normal_play_runs_auto_from_0() -> void:
 	var game := _game()
 	assert_null(game.test_mode)

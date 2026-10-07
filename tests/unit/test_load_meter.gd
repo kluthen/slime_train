@@ -9,6 +9,7 @@ extends GutTest
 ## windows, until a step down holds 10 windows or a reset. A window holding a frame over
 ## 250 ms, or a frame at a speed other than 1x, gives no verdict.
 # @test-link [[req_offscreen_simulation]]
+# @test-link [[rule_crowd_detail_only_under_load]]
 
 ## A 60 Hz frame, real microseconds: 60 of them make a window.
 const FRAME := 16_667

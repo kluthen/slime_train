@@ -158,6 +158,7 @@ var crowd_level := 0
 ## The detail ceiling (see the class doc), 0 to SlimeBodies.MAX_DETAIL: an
 ## input handed over at a tick boundary, not state. Not saved.
 # @spec-link [[req_offscreen_simulation]]
+# @spec-link [[req_test_level_and_test_mode]]
 var detail_ceiling := SlimeBodies.MAX_DETAIL
 ## Free slime id -> the tick its off-screen count starts from.
 var away := {}
