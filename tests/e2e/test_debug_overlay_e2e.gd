@@ -5,8 +5,10 @@ extends GutTest
 ## tap (and its release) from the simulation and sends the slime under it to
 ## the start of the loop; Census logs every slime and says how many, changing
 ## nothing; a touch on a control never reaches the simulation
-## while one elsewhere does; a release build gets no overlay, and a game a
-## test adds gets one only when the test asks.
+## while one elsewhere does; --debug-labels starts with the labels shown (a
+## debug build, normal play or test mode; off without it), never changing
+## the state; a release build gets no overlay and ignores --debug-labels, and
+## a game a test adds gets one only when the test asks.
 ##
 ## Every game here that saves gets its own SaveStore on a scratch directory.
 
@@ -315,6 +317,82 @@ func test_the_labels_draw_for_every_slime() -> void:
 	assert_string_contains(overlay.counter_label.text, "Woken 1 / available")
 
 
+# --- Labels at start (--debug-labels) ---------------------------------------------
+
+## A game as _ready builds it from `args`: --debug-labels read, then the
+## overlay added.
+func _game_with_args(args: PackedStringArray, is_debug_build := true) -> Node:
+	var game: Node = load(MAIN_SCENE).instantiate()
+	game.test_mode_guard = TestModeGuard.new(is_debug_build)
+	add_child_autofree(game)
+	game.use_debug_labels(args)
+	game.add_debug_overlay()
+	return game
+
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_the_debug_labels_flag_is_on_with_it_and_off_without() -> void:
+	var game: Node = load(MAIN_SCENE).instantiate()
+	add_child_autofree(game)
+	assert_false(game.debug_labels, "off by default")
+	assert_eq(game.use_debug_labels(PackedStringArray(["--seed=1", "--perf-log"])), "")
+	assert_false(game.debug_labels, "off without the flag")
+	assert_eq(game.use_debug_labels(PackedStringArray(["--debug-labels"])), game.DEBUG_LABELS_ON)
+	assert_true(game.debug_labels)
+
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_the_flag_starts_with_the_labels_shown_as_if_pressed() -> void:
+	var game := _game_with_args(PackedStringArray(["--debug-labels"]))
+	var overlay: Node = game.debug_overlay
+	assert_not_null(overlay)
+	assert_true(overlay.labels.visible, "shown from the start")
+	assert_true(overlay.labels.is_processing(), "and drawing")
+	assert_true(overlay.labels_button.button_pressed, "the button shows it pressed")
+	overlay.labels_button.button_pressed = false
+	assert_false(overlay.labels.visible, "the button still turns them off")
+
+
+func test_the_flag_shows_the_labels_of_an_overlay_already_there() -> void:
+	var game := _game()
+	assert_false(game.debug_overlay.labels.visible)
+	assert_eq(game.use_debug_labels(PackedStringArray(["--debug-labels"])), game.DEBUG_LABELS_ON)
+	assert_true(game.debug_overlay.labels.visible)
+	assert_true(game.debug_overlay.labels_button.button_pressed)
+
+
+func test_without_the_flag_the_labels_start_hidden_in_play_and_test_mode() -> void:
+	var play := _game_with_args(PackedStringArray(["--perf-log"]))
+	assert_false(play.debug_overlay.labels.visible, "normal play")
+	var run := _game_with_args(PackedStringArray(["--test-mode", "--seed=1"]))
+	assert_eq(run.start_test_mode_from_args(PackedStringArray(["--test-mode", "--seed=1"])),
+			PackedStringArray())
+	assert_false(run.debug_overlay.labels.visible, "test mode")
+
+
+func test_test_mode_accepts_the_flag() -> void:
+	var args := PackedStringArray(["--test-mode", "--seed=1", "--debug-labels"])
+	var game := _game_with_args(args)
+	assert_eq(game.start_test_mode_from_args(args), PackedStringArray())
+	assert_not_null(game.test_mode)
+	assert_true(game.debug_overlay.labels.visible)
+
+
+## The labels only draw: the same run with them shown ends on the same hash.
+func test_the_labels_never_change_the_state() -> void:
+	var plain := _game(null, {"seed": SEED})
+	var labelled := _game_with_args(PackedStringArray(["--debug-labels"]))
+	assert_eq(labelled.enable_test_mode({"seed": SEED, "time_scale": 0}), PackedStringArray())
+	assert_true(labelled.debug_overlay.labels.visible)
+	for game in [plain, labelled]:
+		for frame in 120:
+			game.test_mode.run_ticks(1)
+			game.debug_overlay._process(0.0)
+			game.debug_overlay.labels._process(0.0)
+	assert_eq(labelled.simulation.tick, plain.simulation.tick)
+	assert_eq(labelled.simulation.state_hash(), plain.simulation.state_hash())
+
+
 # --- Release guard ----------------------------------------------------------------
 
 func test_a_release_build_gets_no_overlay() -> void:
@@ -324,6 +402,15 @@ func test_a_release_build_gets_no_overlay() -> void:
 	game.add_debug_overlay()
 	assert_null(game.debug_overlay)
 	assert_false(game.session_clock is DebugClock)
+
+
+# @test-link [[req_platform_and_performance_targets]]
+func test_a_release_build_ignores_the_debug_labels_flag() -> void:
+	var game := _game_with_args(PackedStringArray(["--debug-labels"]), false)
+	assert_eq(game.use_debug_labels(PackedStringArray(["--debug-labels"])), game.DEBUG_LABELS_IGNORED)
+	assert_false(game.debug_labels)
+	assert_null(game.debug_overlay)
+	assert_null(game.get_node_or_null("DebugSlimeLabels"))
 
 
 func test_a_game_a_test_adds_has_no_overlay_unless_asked() -> void:

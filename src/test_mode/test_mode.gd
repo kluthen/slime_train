@@ -420,6 +420,9 @@ static func load_config_file(path: String) -> Dictionary:
 ##   --crowd-detail=MODE      not test mode's: the game root's crowd detail
 ##                            mode, auto|always|off (src/main.gd; test mode
 ##                            runs `always` without it); skipped here
+##   --debug-labels           not test mode's: the game root's debug labels
+##                            at start (src/main.gd; off without it);
+##                            skipped here
 ## Returns {"config", "run_ticks" (-1 when absent), "print_state",
 ## "save_path" ("" when absent), "errors"}.
 static func config_from_args(user_args: PackedStringArray) -> Dictionary:
@@ -434,7 +437,7 @@ static func config_from_args(user_args: PackedStringArray) -> Dictionary:
 			"--test-mode":
 				pass
 			"--perf-log", "--max-ticks-per-frame", "--wipe-save", "--phase-timers", "--tick", \
-					"--census-every", "--census-until", "--crowd-detail":
+					"--census-every", "--census-until", "--crowd-detail", "--debug-labels":
 				pass
 			"--test-script":
 				var loaded := load_config_file(value)
