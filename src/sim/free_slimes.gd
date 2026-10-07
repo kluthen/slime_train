@@ -196,7 +196,7 @@ func steer(bodies: SlimeBodies, dt: float, level: LevelData, open_gates: Array) 
 		var from := bodies.centre_of(slime_id)
 		if bodies.supported[s] != 0 and _on_gentle_ground(bodies, s, from):
 			bodies.brake(slime_id, GRIP)
-		# SlimeBodies hops this tick exactly when this holds (see _auto_hops).
+		# SlimeBodies hops this tick exactly when this holds (see SlimeHops.auto_hops).
 		if bodies.hop_timer[s] - dt > 0.0 or bodies.supported[s] == 0 or bodies.held[s] != 0:
 			continue
 		var record: Dictionary = _records[slime_id]

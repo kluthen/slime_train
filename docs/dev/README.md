@@ -840,6 +840,14 @@ every tick, so it isn't state. `brake(id, share)` removes that share of a
 slime's mean velocity and spin, keeping its squish: how the train makes a
 slime grip the ground between hops.
 
+The hop code is `SlimeHops` (`src/sim/slime_hops.gd`, the health review's
+S1): static functions over the `SlimeBodies` arrays (`auto_hops`, the
+take-off `hop_at`, `can_hop`, `interval_range`, and `hold_on_slope`, see
+"Hold on a climb"). `SlimeBodies` keeps the arrays, the `HOP_*` tuning and
+its interface (`hop`, `can_hop`, `hop_interval_range`, `hold_on_slope`,
+and `_auto_hops`, which `tick()` and the native equivalence tests call),
+and calls them.
+
 ### Merge and split
 
 `merge(a, b)` keeps the lower id, adds the sizes (refused above
@@ -3563,7 +3571,11 @@ Master spec §6.4 and D72 (`req_persistence_and_saves`,
 `Simulation.from_save(save, level_data, terrain, fallback_seed)` wrap it. A
 reloaded save has the saved state hash and stays equal to the run that
 never stopped, tick for tick (`tests/unit/test_save_data.gd`), when no
-slime was saved in mid-air.
+slime was saved in mid-air. A slime's body goes out and back through
+`SlimeBodies.body_of` and `set_body` (and `create_with_id` makes it with
+its saved id); their code, and the bodies' `dump()`, is `SlimeBodiesSave`
+(`src/sim/slime_bodies_save.gd`, the health review's S1 seam 3), static
+functions over the `SlimeBodies` arrays.
 
 **The save format before the first store release** (D149). Keeping a
 player's save across a save-format change, with a migration, is owed only
@@ -6031,7 +6043,7 @@ from the same build. What changed:
 
 Code: `src/sim/train.gd` (`hops_taken`, `short_hops_taken`, counted in
 `follow()`), `src/sim/slime_bodies.gd` (`train_hopped`, filled by the
-automatic hops), `src/debug/perf_log.gd` (`train_hops()`, the window's
+automatic hops, `src/sim/slime_hops.gd`), `src/debug/perf_log.gd` (`train_hops()`, the window's
 deltas), `tools/android/perf_summary.py`. Tests:
 `tests/unit/test_train_progress.gd` ("Hop counters"),
 `tests/unit/test_perf_log.gd`, `perf_summary.py --self-test`. The local

@@ -455,7 +455,10 @@ change. Its GDScript solver passes, the ones the native solver mirrors, are
 bodies' arrays, called through `SlimeBodies._integrate`, `_build_pairs`,
 `_solve_contacts`, `_solve_rings` and `_solve_terrain`). Its GDScript rest
 pass is `SlimeDetail.rest` (`src/sim/slime_detail.gd`, with the other calm,
-rest and detail code), called through `SlimeBodies._rest`. Behind it:
+rest and detail code), called through `SlimeBodies._rest`. Its hops are
+`SlimeHops`' (`src/sim/slime_hops.gd`) and its saves and dump
+`SlimeBodiesSave`'s (`src/sim/slime_bodies_save.gd`), both called through
+`SlimeBodies` too. Behind it:
 
 - **The native solver** (`SlimeSolver`) runs the solver part of the tick:
   substeps of integrate, the pair grid (first substep), slime contacts,
@@ -466,12 +469,13 @@ rest and detail code), called through `SlimeBodies._rest`. Behind it:
   union-find).
 - **The terrain:** `TerrainSegments` still bakes its segment arrays and grid
   in GDScript at level load; the solver reads them, read only (D97).
-- **What stays in GDScript:** the hop clears and the automatic hops (each
-  slime's random stream: all randomness stays in the one seeded generator),
-  the support reset, the topology changes (`create`, `remove`, `merge`,
-  `split`, `_reshape`, `_resample`), the saves (`body_of`, `set_body`),
-  `dump()`, the public wakes, and all the behaviour code (the train, the
-  calls, fusion, Offscreen, the loop-start queue).
+- **What stays in GDScript:** the hop clears and the automatic hops
+  (`SlimeHops`; each slime's random stream: all randomness stays in the one
+  seeded generator), the support reset, the topology changes (`create`,
+  `remove`, `merge`, `split`, `_reshape`, `_resample`), the saves
+  (`body_of`, `set_body`) and `dump()` (`SlimeBodiesSave`), the public
+  wakes, and all the behaviour code (the train, the calls, fusion,
+  Offscreen, the loop-start queue).
 - **Pass by pass.** Each pass is ported and tested on its own against the
   GDScript one (units U1 to U5); `step` then runs them all in one call
   (U6). The fixtures' state hashes didn't change: on the desktop the native

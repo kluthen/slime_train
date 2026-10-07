@@ -372,11 +372,10 @@ static func _polygon_area(n: int, r: float) -> float:
 	return 0.5 * n * r * r * sin(TAU / n)
 
 
-## (shortest, longest) seconds between two automatic hops.
-# @spec-link [[req_hopping_behavior]]
+## (shortest, longest) seconds between two automatic hops
+## (SlimeHops.interval_range).
 static func hop_interval_range(slime_size: int) -> Vector2:
-	var scale := 1.0 + HOP_INTERVAL_PER_SIZE * (slime_size - 1)
-	return Vector2(HOP_INTERVAL_MIN, HOP_INTERVAL_MAX) * scale
+	return SlimeHops.interval_range(slime_size)
 
 
 ## The take-off velocity (px/s) of a hop along `direction` (any length).
@@ -645,33 +644,29 @@ func brake(slime_id: int, share: float) -> void:
 ## its mean motion down the slope is taken away and `lift` px/s up it added
 ## (the Train gives a share of the tick's pull down the slope, so the tick
 ## ends nearly where it started). Its spin, squish and motion up the slope
-## are left alone. How the Train holds a train slime standing on a climb.
-# @spec-link [[req_hopping_behavior]]
-# @spec-link [[rule_train_climbs_without_sliding_back]]
+## are left alone. How the Train holds a train slime standing on a climb
+## (SlimeHops.hold_on_slope).
 func hold_on_slope(slime_id: int, tangent: Vector2, lift: float) -> void:
 	var s := index_of(slime_id)
-	if s < 0:
-		return
-	var along := _velocity_at(s).dot(tangent)
-	var step := tangent * (maxf(along, 0.0) + lift - along) * _h
-	for i in range(first[s], first[s] + npts[s]):
-		prev[i] -= step
+	if s >= 0:
+		SlimeHops.hold_on_slope(self, s, tangent, lift)
 
 
-## Whether the slime hops on its own: train and free slimes not held still.
+## Whether the slime hops on its own: train and free slimes not held still
+## (SlimeHops.can_hop).
 func can_hop(slime_id: int) -> bool:
 	var s := index_of(slime_id)
-	return s >= 0 and _can_hop_at(s)
+	return s >= 0 and SlimeHops.can_hop(state[s], held[s], calm[s])
 
 
 ## Makes a supported slime hop now along `direction`, `strength` 1 for a
 ## normal hop. False (and nothing happens) for a missing slime, one that
-## doesn't hop in its state, or one not on the ground.
+## doesn't hop in its state, or one not on the ground (SlimeHops.hop_at).
 func hop(slime_id: int, direction: Vector2, strength: float) -> bool:
 	var s := index_of(slime_id)
-	if s < 0 or not _can_hop_at(s) or supported[s] == 0:
+	if s < 0 or not SlimeHops.can_hop(state[s], held[s], calm[s]) or supported[s] == 0:
 		return false
-	_hop_at(s, hop_velocity(size[s], direction, strength))
+	SlimeHops.hop_at(self, s, hop_velocity(size[s], direction, strength))
 	return true
 
 
@@ -745,83 +740,27 @@ func split(slime_id: int) -> PackedInt32Array:
 # --- Saves ------------------------------------------------------------------
 
 ## create() with a given id, for loading a save: `slime_id` must be at least
-## next_id (slimes are created in ascending id order). Returns the id, or -1.
+## next_id (slimes are created in ascending id order). Returns the id, or -1
+## (SlimeBodiesSave.create_with_id).
 func create_with_id(slime_id: int, slime_species: int, slime_size: int, at: Vector2,
 		slime_state := STATE_TRAIN) -> int:
-	if slime_id < next_id:
-		push_error("SlimeBodies: id %d is taken or out of order (next is %d)" % [slime_id, next_id])
-		return -1
-	var kept := next_id
-	next_id = slime_id
-	var made := create(slime_species, slime_size, at, slime_state)
-	if made < 0:
-		next_id = kept
-	return made
+	return SlimeBodiesSave.create_with_id(self, slime_id, slime_species, slime_size, at, slime_state)
 
 
 ## Everything a save needs to put the slime's body back exactly: the points
 ## and their previous positions (so the velocities), the solver's centre, the
-## hop timer, the heading, held and supported, and its stream's state.
-## Empty for a missing slime.
+## hop timer, the heading, held and supported, its stream's state, its calm
+## and detail. Empty for a missing slime (SlimeBodiesSave.body_of).
 func body_of(slime_id: int) -> Dictionary:
-	var s := index_of(slime_id)
-	if s < 0:
-		return {}
-	var f := first[s]
-	var n := npts[s]
-	return {"points": pos.slice(f, f + n), "previous": prev.slice(f, f + n), "centre": centre[s],
-			"hop_timer": hop_timer[s], "heading": heading[s], "held": held[s] != 0,
-			"supported": supported[s] != 0, "rng_state": _streams[s].state,
-			"calm": calm[s], "still": still_ticks[s], "anchor": rest_anchor[s], "pile": pile[s],
-			"detail": detail[s]}
+	return SlimeBodiesSave.body_of(self, slime_id)
 
 
 ## Puts back a body from body_of(). False (and nothing changes) when the
-## slime is missing or the point counts don't match its size (at the body's
-## detail level, "detail", 0 when absent). The body's "calm" and "still" are put
-## back too; a body without them leaves the slime ACTIVE. A body that moves
-## the slime by more than a pixel wakes the resting slimes touching where it
-## was (a slime taken out from under a pile, a basket's release), not the
-## rest of their pile (D156).
-# @spec-link [[req_offscreen_simulation]]
+## slime is missing or the point counts don't match its size at the body's
+## detail level. A body that moves the slime by more than a pixel wakes the
+## resting slimes touching where it was (SlimeBodiesSave.set_body).
 func set_body(slime_id: int, body: Dictionary) -> bool:
-	var s := index_of(slime_id)
-	if s < 0:
-		return false
-	var points: PackedVector2Array = body["points"]
-	var previous: PackedVector2Array = body["previous"]
-	var level: int = body.get("detail", 0)
-	if level < 0 or level > MAX_DETAIL:
-		push_error("SlimeBodies: invalid detail level %d" % level)
-		return false
-	var n := detail_points_for(size[s], level)
-	if points.size() != n or previous.size() != n:
-		return false
-	if detail[s] != level:
-		detail[s] = level
-		_resample(s, n)
-	var was: Vector2 = centre[s]
-	var f := first[s]
-	for k in n:
-		pos[f + k] = points[k]
-		prev[f + k] = previous[k]
-	_centre_ok[s] = 0
-	centre[s] = body["centre"]
-	hop_timer[s] = body["hop_timer"]
-	heading[s] = body["heading"]
-	held[s] = 1 if body["held"] else 0
-	supported[s] = 1 if body["supported"] else 0
-	_streams[s].state = body["rng_state"]
-	if body.has("calm"):
-		calm[s] = int(body["calm"])
-		still_ticks[s] = int(body.get("still", 0))
-		rest_anchor[s] = body.get("anchor", centre[s])
-		pile[s] = int(body.get("pile", 0))
-	else:
-		_wake_at(s)
-	if centre[s].distance_squared_to(was) > 1.0 and calm[s] != PARKED:
-		_wake_around(was, bound_r[s], s)
-	return true
+	return SlimeBodiesSave.set_body(self, slime_id, body)
 
 
 # --- Calm and detail (chunk 15) ---------------------------------------------
@@ -1012,35 +951,13 @@ func _rest() -> void:
 
 ## The whole state of the slimes, as plain data in id order, for
 ## Simulation.dump(). Centres are rounded to 0.01 px and timers to 0.1 ms, so
-## the dump is stable to print; the rng states are strings (64-bit).
+## the dump is stable to print; the rng states are strings (64-bit)
+## (SlimeBodiesSave.dump).
 func dump() -> Array:
-	var out := []
-	for s in slime_count:
-		out.append({
-			"id": id[s],
-			"species": species[s],
-			"size": size[s],
-			"state": STATE_NAMES[state[s]],
-			"centre": _centre_at(s).snapped(Vector2(0.01, 0.01)),
-			"velocity": _velocity_at(s).snapped(Vector2(0.01, 0.01)),
-			"hop_timer": snappedf(hop_timer[s], 0.0001),
-			"heading": heading[s],
-			"held": held[s] != 0,
-			"supported": supported[s] != 0,
-			"rng_state": str(_streams[s].state),
-			"calm": CALM_NAMES[calm[s]],
-			"still": still_ticks[s],
-			"pile": pile[s],
-			"detail": detail[s],
-		})
-	return out
+	return SlimeBodiesSave.dump(self)
 
 
 # --- Internals --------------------------------------------------------------
-
-func _can_hop_at(s: int) -> bool:
-	return (state[s] == STATE_TRAIN or state[s] == STATE_FREE) and held[s] == 0 and calm[s] == ACTIVE
-
 
 ## Whether the slime may rest: the pile states, which never hop (a slime in a
 ## basket, or asleep at bedtime; SlimeDetail.can_rest).
@@ -1126,43 +1043,10 @@ func _set_velocity_at(s: int, velocity: Vector2) -> void:
 		prev[i] = pos[i] - step
 
 
-func _hop_at(s: int, velocity: Vector2) -> void:
-	var step := velocity * _h
-	for i in range(first[s], first[s] + npts[s]):
-		prev[i] -= step
-	supported[s] = 0
-	hopped.append(id[s])
-
-
-## Automatic hops: each able slime counts its timer down; at zero, if it
-## stands on something, it hops (heading-slanted, strength jittered by its
-## stream, or at its hop_aim when steered) and draws its next interval; if
-## not, it hops on landing. Every hop_aim is then cleared. A train slime's
-## hop goes in train_hopped.
-# @spec-link [[req_hopping_behavior]]
+## Automatic hops, `dt` seconds of them (SlimeHops.auto_hops: the timers,
+## the take-offs, train_hopped; the native equivalence tests call this).
 func _auto_hops(dt: float) -> void:
-	for s in slime_count:
-		if not _can_hop_at(s):
-			continue
-		var t := hop_timer[s] - dt * hop_rate
-		if t > 0.0:
-			hop_timer[s] = t
-			continue
-		hop_timer[s] = 0.0
-		if supported[s] == 0:
-			continue
-		var stream: Rng = _streams[s]
-		var strength := 1.0 + stream.randf_range(-HOP_STRENGTH_JITTER, HOP_STRENGTH_JITTER)
-		var direction := Vector2(heading[s] * HOP_FORWARD, -1.0)
-		if hop_aim[s] != Vector2.ZERO:
-			_hop_at(s, hop_aim[s])
-		else:
-			_hop_at(s, hop_velocity(size[s], direction, strength))
-		if state[s] == STATE_TRAIN:
-			train_hopped.append(id[s])
-		var interval := hop_interval_range(size[s])
-		hop_timer[s] = stream.randf_range(interval.x, interval.y)
-	hop_aim.fill(Vector2.ZERO)
+	SlimeHops.auto_hops(self, dt)
 
 
 ## Gives slime index `s` a fresh rest ring of `slime_size` centred at `at`,
