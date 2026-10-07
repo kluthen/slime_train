@@ -3452,10 +3452,41 @@ desktop; the phone's share is chunk 22's repeat to measure.
 **The release guard.** The game root adds the overlay only when
 `TestModeGuard` allows it (a debug build) and only when it is the running
 main scene; a game a test adds gets one only through
-`add_debug_overlay()`. It names the overlay by path only
-(`DEBUG_OVERLAY_SCRIPT`), and no script outside `src/debug/` names a debug
+`add_debug_overlay()`. It names the overlay by path only, through the
+debug wiring (below), and no script outside `src/debug/` names a debug
 class (a lint in `tests/unit/test_debug_overlay.gd`), so a release export
 loads nothing from `src/debug/` and its preset can leave it out.
+
+**The debug wiring (health review S3).** The game root's debug-build work
+lives in `src/debug/debug_wiring.gd` (no class name): adding the overlay,
+and what `--debug-labels`, `--perf-log` and `--max-ticks-per-frame`,
+`--phase-timers`, `--census-every`/`--census-until` and `--wipe-save` turn
+on. `src/main.gd` loads it by path in one place, `_debug_wiring()`, only
+after `TestModeGuard` allows it, and the wiring's is the one
+`res://src/debug/` path `src/main.gd` holds. The
+game root keeps each flag's release side in its public hooks
+(`add_debug_overlay()`, `use_debug_labels()`, `add_perf_log()`,
+`use_phase_timers()`, `use_census()`, `wipe_saves()`): the flag looked for,
+then, in a release build, the line that says it is ignored (the perf log's
+refusal) without loading anything from `src/debug/`; in a debug build the
+call goes on to the wiring, which sets the game's fields (`debug_overlay`,
+`debug_labels`, `perf_log`, `max_ticks_per_frame`, `phase_timers`,
+`census`). The wiring loads each debug script by path, in one place each
+(lints in the debug tests). Checked on the release pack (2026-10-07):
+`godot --headless --export-pack "Android release"` holds no file under
+`src/debug/` or `src/test_mode/`, and run beside the Linux release
+template with every debug flag it prints the same ignored lines as before.
+
+`_ready` runs the launch in phases, in this order: the stores, the save
+wipe (`_wipe_at_launch()`), the level and the views
+(`_open_level_and_views()`), the platform hooks (`_add_platform_hooks()`:
+the parent layer, the app's quit, screen pinning, the safe area, the load
+meter), the arguments read before the first simulation
+(`_use_launch_args()`: `--crowd-detail`, `--debug-labels` then the overlay,
+`--phase-timers`, the census), a simulation, the arguments read once it
+runs (`_start_from_args()`: the perf log, test mode), then normal play. A
+phase that stops the launch (a refused wipe, a bad flag) returns false and
+`_ready` stops there, with exit code 1 as before.
 
 **The perf log (chunk 22).** `src/debug/perf_log.gd` (`PerfLog`), the same
 way: the game root adds it by path (`add_perf_log()`), after
