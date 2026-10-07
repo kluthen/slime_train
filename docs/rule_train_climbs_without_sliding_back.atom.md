@@ -1,6 +1,6 @@
 ---
 id: rule_train_climbs_without_sliding_back
-status: REVIEW
+status: STABLE
 version: 1.1
 priority: 3
 tags: [slimes,movement,train,climb]

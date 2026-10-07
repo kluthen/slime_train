@@ -1,6 +1,6 @@
 ---
 id: rule_train_relay_on_take_off
-status: REVIEW
+status: STABLE
 type: RULE
 layer: BUSINESS
 version: 1.2
