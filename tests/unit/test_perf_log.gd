@@ -116,7 +116,8 @@ func test_line_holds_every_field() -> void:
 			"tick_ms_frame_mean=20.00", "rest_ms_mean=30.00", "physics=0", "on_screen=0", "in_range=0",
 			"parked=0", "resting=0", "largest_cluster=0", "hops=9", "short_hops=4", "bodies=0", "active=55.5",
 			"pairs=120.5", "section=0", "zoom=",
-			"slimes_ms=0.50", "main_ms=5.50", "field_gpu_ms=10.50", "draw_calls=12", "primitives=14"]:
+			"slimes_ms=0.50", "main_ms=5.50", "field_gpu_ms=10.50", "draw_calls=12", "primitives=14",
+			"ceiling=3", "crowd_level=0", "detail=0", "busy=0.00", "missed=0"]:
 		assert_string_contains(text, " " + field)
 	assert_false("\n" in text, "one line")
 
@@ -140,7 +141,29 @@ func test_line_is_key_value_numbers_in_the_documented_order() -> void:
 			"largest_cluster", "hops", "short_hops", "bodies", "active", "pairs", "section", "zoom", "slimes_ms",
 			"eyes_ms", "frontier_ms", "hud_ms", "debug_ms",
 			"main_ms", "setup_ms", "render_cpu_ms", "render_gpu_ms", "field_cpu_ms", "field_gpu_ms", "draw_calls",
-			"objects", "primitives"]))
+			"objects", "primitives", "ceiling", "crowd_level", "detail", "busy", "missed"]))
+
+
+## The crowd detail fields (D141): the ceiling handed over, the crowd's
+## level, the detail used, and the load meter's last window.
+func test_the_line_holds_the_crowd_detail() -> void:
+	var sim := Simulation.new(7)
+	sim.offscreen.crowd_level = 3
+	sim.offscreen.detail_ceiling = 1
+	var ticking := PerfLog.tick_stats(PackedFloat64Array([0.02]), PackedInt32Array([1]), PackedInt64Array([5_000]),
+			PackedInt32Array([1]), PackedInt32Array([0]))
+	var text := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 5.0, 1, 0, 0,
+			sim, _parts(), "", {"verdict": LoadMeter.PRESSED, "busy": 0.917, "missed": 4})
+	assert_true(text.ends_with(" ceiling=1 crowd_level=3 detail=1 busy=0.92 missed=4"), text)
+	var none := PerfLog.line(1.0, PerfLog.window_stats(PackedFloat64Array([0.02])), ticking, 5.0, 1, 0, 0,
+			null, _parts())
+	assert_true(none.ends_with(" ceiling=0 crowd_level=0 detail=0 busy=0.00 missed=0"), none)
+
+
+func test_the_ceiling_line() -> void:
+	var step := {"from": 1, "to": 2, "reason": LoadMeter.PRESSED, "busy": 0.88, "missed": 3}
+	assert_eq(PerfLog.ceiling_line(12.34, step, 3),
+			"PERF_CEILING t=12.3 from=1 to=2 reason=pressed busy=0.88 missed=3 crowd_level=3")
 
 
 ## The part means: the window's sums over its frames.

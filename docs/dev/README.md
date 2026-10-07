@@ -5206,6 +5206,11 @@ What exists now:
     the game's `--phase-timers` to `slime_args`, so every `PERF` line
     carries `phases=` and the summary splits the tick into solver and
     behaviour (see "Chunk 5N: U0a phase timers").
+  - **`--crowd-detail=auto|always|off`** (chunk 22c, D141, either mode;
+    default `auto`): adds the game's `--crowd-detail=MODE` to `slime_args`
+    in both modes, so a fixture run (test mode, `always` without it)
+    measures `auto`, the shipping behaviour; `always` or `off` to compare
+    (see "Chunk 22c: crowd detail only under load").
   - **Ctrl-C** (in either mode) stops the recording cleanly, summarises
     what was recorded and exits 0. Otherwise: exit 0; 2 on bad arguments
     or no single device; 1 when the build or install fails, no `PERF` line
@@ -5217,8 +5222,8 @@ What exists now:
   - `logcat.txt`: the full logcat stream of the `godot` and `SlimePlatform`
     tags;
   - `perf.log`: a `# ` header (the device, its Android version, the mode,
-    the launch arguments, how the session ended), the `PERF_INFO` line and
-    every `PERF` line;
+    the launch arguments, how the session ended), the `PERF_INFO` line,
+    every `PERF` line and every `PERF_CEILING` line (chunk 22c);
   - `thermal.log`: every 15 s (`THERMAL_EVERY` in the environment changes
     it), the thermal status (`dumpsys thermalservice`, 0 none to 6
     shutdown) and the battery temperature;
@@ -5281,7 +5286,9 @@ What exists now:
   `hud_ms`, `debug_ms`, `main_ms`, `setup_ms`, `render_cpu_ms`,
   `render_gpu_ms`, `field_cpu_ms`, `field_gpu_ms`, `draw_calls`, `objects`,
   `primitives` (what each times: "Chunk 22b: drawing", "How to measure the
-  parts"). The class doc defines each. Frame times come from the real clock (`Time.get_ticks_usec()`), not
+  parts"), then crowd detail's (chunk 22c): `ceiling`, `crowd_level`,
+  `detail`, `busy`, `missed` (see "Chunk 22c: crowd detail only under
+  load"), and `phases` last when the phase timers are on. The class doc defines each. Frame times come from the real clock (`Time.get_ticks_usec()`), not
   the smoothed delta; `process_ms_mean` is the frame's real process span
   (from the tree's `process_frame` to the perf log's own `_process`, which
   runs last), not `Performance.TIME_PROCESS` (Godot 4.7 updates that once a

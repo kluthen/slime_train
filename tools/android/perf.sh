@@ -8,11 +8,11 @@
 #                         [--warm-minutes=M] [--period=P] [--no-build]
 #                         [--no-install] [--label=TEXT] [--wipe-save]
 #                         [--phase-timers] [--tick=gdscript|native]
-#                         [--census[=EVERY,UNTIL]]
+#                         [--census[=EVERY,UNTIL]] [--crowd-detail=MODE]
 #   tools/android/perf.sh --free-play [--minutes=N] [--serial=S] [--period=P]
 #                         [--no-build] [--no-install] [--label=TEXT]
 #                         [--wipe-save] [--phase-timers] [--tick=gdscript|native]
-#                         [--census[=EVERY,UNTIL]]
+#                         [--census[=EVERY,UNTIL]] [--crowd-detail=MODE]
 #
 #   --serial=S        the device (adb serial); default: the only one attached
 #   --fixture=NAME    fixture mode: a fixture of the test level, played in test
@@ -58,6 +58,17 @@
 #                     --census-until=UNTIL added to slime_args. Each census
 #                     freezes the game for a moment. Read them back with
 #                     tools/census.py DIR/logcat.txt (CSVs in DIR/census/)
+#   --crowd-detail=MODE
+#                     crowd detail's mode (D141, chunk 22c), auto, always
+#                     or off, the game's --crowd-detail=MODE added to
+#                     slime_args in both modes. Default auto, the shipping
+#                     behaviour (the load meter moves the detail ceiling),
+#                     which a fixture run in test mode would not otherwise
+#                     have (test mode defaults to always); always (D140's
+#                     behaviour) or off (only the zoom's detail) to compare.
+#                     Each PERF line carries ceiling, crowd_level, detail,
+#                     busy and missed, and a PERF_CEILING line marks each
+#                     ceiling step with its reason (both kept in perf.log)
 #
 # It exports and installs the debug APK, clears logcat, starts the app with
 # the perf log (the launch intent's "slime_args" extra, read by the
@@ -68,7 +79,7 @@
 #                (resumed where it stopped when the adb server restarts: any
 #                Godot run on this computer restarts it as it quits)
 #   perf.log     a "# " header (device, mode, launch, how it ended), the
-#                PERF_INFO line and every PERF line
+#                PERF_INFO line, every PERF line and every PERF_CEILING line
 #   thermal.log  a sample every THERMAL_EVERY s (default 15): "<date>
 #                elapsed_s=<s> thermal_status=<n> battery_c=<C>" (dumpsys
 #                thermalservice's status, dumpsys battery's temperature)
@@ -131,9 +142,10 @@ wipe_save=0
 phase_timers=0
 tick=""
 census=""
+crowd_detail=auto
 
 usage() {
-	sed -n '7,60p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
+	sed -n '7,71p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
 	exit 2
 }
 
@@ -159,6 +171,7 @@ for arg in "$@"; do
 	--tick=*) tick="${arg#*=}" ;;
 	--census) census=10,60 ;;
 	--census=*) census="${arg#*=}" ;;
+	--crowd-detail=*) crowd_detail="${arg#*=}" ;;
 	-h | --help) usage ;;
 	*) fail_args "unknown argument '$arg' (--help lists them)" ;;
 	esac
@@ -180,6 +193,10 @@ else
 	[ "$wipe_save" = 0 ] || [ "$fixture" = none ] || fail_args "--wipe-save is refused with a fixture (here '$fixture'): a fixture run never reads the player's save; use it with --free-play or --fixture=none"
 fi
 [ -z "$tick" ] || [ "$tick" = gdscript ] || [ "$tick" = native ] || fail_args "--tick expects gdscript or native, got '$tick'"
+case "$crowd_detail" in
+auto | always | off) ;;
+*) fail_args "--crowd-detail expects auto, always or off, got '$crowd_detail'" ;;
+esac
 if [ -n "$census" ]; then
 	[[ "$census" =~ ^([0-9]+),([0-9]+)$ ]] && [ "${BASH_REMATCH[1]}" -gt 0 ] && [ "${BASH_REMATCH[2]}" -gt 0 ] \
 		|| fail_args "--census=EVERY,UNTIL expects two whole numbers of seconds > 0, got '$census'"
@@ -265,6 +282,9 @@ fi
 [ "$phase_timers" = 0 ] || slime_args="$slime_args,--phase-timers"
 [ -z "$tick" ] || slime_args="$slime_args,--tick=$tick"
 [ -z "$census" ] || slime_args="$slime_args,--census-every=${census%,*},--census-until=${census#*,}"
+# Crowd detail's mode, in both modes (a fixture run is test mode, `always`
+# unless asked: auto by default, as the app ships).
+slime_args="$slime_args,--crowd-detail=$crowd_detail"
 
 stamp="$(date +%Y%m%d-%H%M%S)"
 out_dir="$root/build/perf/$label-$mode-$stamp"
@@ -488,7 +508,7 @@ echo "Session $ended after $((SECONDS - start_s)) s."
 	tick_line="$(grep -oE 'TICK (native|gdscript) .*' "$logcat_file" | tr -d '\r' | head -1)"
 	echo "# tick: ${tick_line:-no TICK line in logcat}"
 	echo "# ended: $ended, after $((SECONDS - start_s)) s"
-	grep -oE 'PERF(_INFO)? .*' "$logcat_file" | tr -d '\r'
+	grep -oE 'PERF(_INFO|_CEILING)? .*' "$logcat_file" | tr -d '\r'
 } >"$perf_file"
 
 summary_args=(--thermal="$thermal_file")
