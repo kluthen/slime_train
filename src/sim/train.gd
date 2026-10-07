@@ -42,7 +42,10 @@ extends RefCounted
 ## (SlimeBodies.hold_on_slope), so the tick's gravity brings it back nearly to
 ## rest where it was (alone on a rise it still slides about 1.6 px/s: the two
 ## substeps would need 0.75 to cancel it exactly). Its motion up the slope
-## (the queue's push) is GRIP's. The return route's slide is left alone.
+## (the queue's push) is GRIP's. The return route's slide is left alone, and
+## so is a slime knocked off the route: held where it steers from a point
+## behind, its hops from there may skim a steep slope and be braked away
+## (a stall rule 2's lap run found); it slides back to where they carry it.
 ##
 ## The relay. A packed queue moves at its hop timers' pace: a slime only gains
 ## ground once the one ahead has gone, and its own timer (1.5 to 3 s) mostly
@@ -619,7 +622,10 @@ func steer(bodies: SlimeBodies, dt: float) -> void:
 			var slope := direction_at(progress)
 			if absf(slope.y) <= absf(slope.x) * GRIP_MAX_SLOPE:
 				bodies.brake(slime_id, GRIP)
-				if waiting and -slope.y > absf(slope.x) * HOLD_FROM and bodies.calm[s] == SlimeBodies.ACTIVE:
+				# Knocked off the route (it steers from a point behind), it isn't held.
+				var on_route: bool = progress == record["distance"]
+				if on_route and waiting and -slope.y > absf(slope.x) * HOLD_FROM \
+						and bodies.calm[s] == SlimeBodies.ACTIVE:
 					bodies.hold_on_slope(slime_id, slope, -bodies.gravity.dot(slope) * dt * HOLD_LIFT)
 		if waiting:
 			continue

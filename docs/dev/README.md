@@ -954,7 +954,11 @@ outgoing route, where the route rises more than `HOLD_FROM` (0.1, up to
 45°), an active train slime standing between hops also has its motion down
 the slope cancelled and gets `HOLD_LIFT` (half) of a tick's pull along the
 slope up it (`SlimeBodies.hold_on_slope`): alone on a rise it slides about
-1.6 px/s instead of 12.9. The return route's slide is untouched.
+1.6 px/s instead of 12.9. The return route's slide is untouched, and so
+is a slime knocked off the route (it steers from a point behind): held
+there, its hops could skim a steep climb and be braked away (rule 2's lap
+run on a fresh 4-section skeleton stalled a size 2 that way on a 0.87
+climb), so it slides back to where its hops carry it.
 
 **The relay (chunk 24g).** A packed queue moved at its hop timers' pace (a
 slime gains ground only once the one ahead has gone; its own 1.5 to 3 s

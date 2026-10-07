@@ -14,6 +14,13 @@ orchestrator's brief-24g-a.md. Worktree `.claude/worktrees/24g`, branch feat/24g
       paragraph points at it) with the measures.
 - [x] 2. Unit tests G and R: tests/unit/test_train_climb.gd (10; 6 pass on main's train.gd,
       the 4 core ones fail there: held, cancel, relayed, wave), both ticks
-- [ ] 3. Full suite, triage, fixture hashes
+- [ ] 3. Full suite, triage, fixture hashes. Run 1 (73caab4+tests): 1514/1515 + 126/126,
+      exit 1: test_new_level_e2e's 4-section skeleton, rule 2, a size 2 stalled (G held it
+      knocked off the route on a 0.87 climb under a sleeper plate; its hops skimmed the slope
+      and GRIP braked them away). Fixed: no hold when knocked off the route (steering
+      progress != recorded progress); test_no_hold_once_knocked_off_the_route. This
+      changes exp's g,r numbers a little (stress-dense 3600: speed 24.3, fus/min 22, hash
+      2606692e...). Next: suite run 2, then the 18 fixtures' hashes (scratchpad hashes.sh
+      logic: `--test-mode --level=test --fixture=X --seed=909 --run-ticks=N`, both ticks).
 - [ ] 4. Measure (probe) vs exp/dip-jam's g,r row
 - [ ] 5. This file rewritten for part B (the geyser object)

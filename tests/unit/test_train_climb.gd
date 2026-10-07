@@ -138,6 +138,26 @@ func test_no_hold_in_the_air() -> void:
 	assert_almost_eq(bodies.velocity_of(slime).dot(_up()), -40.0, 0.01, "unsupported: untouched")
 
 
+func test_no_hold_once_knocked_off_the_route() -> void:
+	# Found by rule 2's lap run on a fresh 4-section skeleton: a size-2 slime
+	# whose progress had reached the flat top of a 0.87 climb slid back down
+	# it past OFF_ROUTE, steered from the climb behind, was held there, and
+	# every hop from that spot skimmed the slope and was braked away: stalled.
+	# Knocked off the route (here its progress 100 px further up the climb), a
+	# slime isn't held: GRIP alone brakes it, it slides back to where it hops.
+	var setup := _on_the_climb()
+	var bodies: SlimeBodies = setup[0]
+	var train: Train = setup[1]
+	var slime: int = setup[2]
+	var at := train.distance_of(slime)
+	train.track(slime, at + 100.0)
+	assert_ne(train.steering_distance(at + 100.0, bodies.centre_of(slime)), at + 100.0, "knocked off the route")
+	bodies.set_velocity(slime, -_up() * 40.0)
+	train.steer(bodies, DT)
+	assert_almost_eq(bodies.velocity_of(slime).dot(_up()), -40.0 * (1.0 - Train.GRIP), 0.01,
+			"braked by GRIP only")
+
+
 func test_the_return_routes_slide_up_a_climb_is_not_held() -> void:
 	# The climb is a return route here: the slime is carried along it at
 	# the slide's pace (Train._carry), and nothing else. The same slime
