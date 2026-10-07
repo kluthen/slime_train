@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v26 (5N done, 0f3d027; 24g part A done, a0ffdde, its closure measured, 7595762, the relay across a save and reload being fixed; 22c done, 57d38e7, the hold after a bounce, proposed, D162; O122 answered, its acceptance proposed, D162; next: chunk 22 repeated on the S20 FE; v25: the geyser object and TL2 after v1, the user's, D161: their sections moved under "After v1"; chunk 24g kept as the train's climb (the hold on a climb and the relay, rule 24's run tool without the geyser), proposed, O125; the order after 5N: 24g, 22c, 22 repeated, the rest of 24, the health review; chunk 22's repeat judges DoD 30 with the loop start's crowding set aside, proposed; earlier, v24: chunk 24g restated: the geyser as a level object, the hold on a climb and the relay, the dip nudge unchanged, the start's measures recorded not gated; chunk TL2, the test level's start review, proposed, not a lock gate, its place the user's, O123; D160; earlier, v23: chunk 24g, the geyser and the train's flow off the start, before v1 closes, proposed next after 5N, D159; O91 fixed, 0061ccf; earlier, v22: 22h done, fccbb8e, 96725f1, as-built note under D150; 19w's as-built note under D149; 5N next, D158; earlier, v21: 5N next, after 22h, for headroom, D158; 19w done, fdae364; 22h step A done, fccbb8e; 22m part 2 done, 3b765f3; the real S20 FE of 2026-10-03; earlier, v20: 22l done, 600de6b, 5f6a6b0; 22m's fixture done, 4aac65a, its run tool being built; DoD 30's status on the phone emulation; earlier, v19: 22l: every wake local, D156 (7); `stress-moving`'s abuse target in chunk 22 and 24.1, D153; earlier, v18: the fps session after 0196c25 reverted, D155: chunks 22e, 22f, 22g, 22i, 22j and 22k withdrawn, kept on branch `archive/fps-session-2026-10`; chunk 22d done, 1a539db; new chunks 22l, the local wake, D156, and 22m, the `stress-dense` fixture and the 10,000-tick run tool, D153, D154, both being built with the revert; chunk 19w, the save wipe and the save format before the first store release, D148, D149, and chunk 22h, the loop-start queue, D150, re-entered; the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE, the rest of 24, the health review, D155; approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v27 (D163: 24g closed, the relay's save and reload fix 5d7409f, merged 578ccff; 24.4 done, 61b8d5f, settled by the user, with 24.5's fixture `loop-start-pile`; 24.7 done, 5509f71, rule 23 now leaving a basket's own fill out, the user's; the tick cap settled and the phone frame budget a headroom target, the user's, so 24.1 gates on the frame rate and records the ticks; chunk 22 repeated on the S20 FE, session 6: DoD 30 met on three fixtures, the repeat open until session 7; the order: the fill's exclusion, 24.3, 24.8, 24.2, 24.1, session 7 and chunk 20's checks by hand, the health review; v26: 5N done, 0f3d027; 24g part A done, a0ffdde, its closure measured, 7595762, the relay across a save and reload being fixed; 22c done, 57d38e7, the hold after a bounce, proposed, D162; O122 answered, its acceptance proposed, D162; next: chunk 22 repeated on the S20 FE; v25: the geyser object and TL2 after v1, the user's, D161: their sections moved under "After v1"; chunk 24g kept as the train's climb (the hold on a climb and the relay, rule 24's run tool without the geyser), proposed, O125; the order after 5N: 24g, 22c, 22 repeated, the rest of 24, the health review; chunk 22's repeat judges DoD 30 with the loop start's crowding set aside, proposed; earlier, v24: chunk 24g restated: the geyser as a level object, the hold on a climb and the relay, the dip nudge unchanged, the start's measures recorded not gated; chunk TL2, the test level's start review, proposed, not a lock gate, its place the user's, O123; D160; earlier, v23: chunk 24g, the geyser and the train's flow off the start, before v1 closes, proposed next after 5N, D159; O91 fixed, 0061ccf; earlier, v22: 22h done, fccbb8e, 96725f1, as-built note under D150; 19w's as-built note under D149; 5N next, D158; earlier, v21: 5N next, after 22h, for headroom, D158; 19w done, fdae364; 22h step A done, fccbb8e; 22m part 2 done, 3b765f3; the real S20 FE of 2026-10-03; earlier, v20: 22l done, 600de6b, 5f6a6b0; 22m's fixture done, 4aac65a, its run tool being built; DoD 30's status on the phone emulation; earlier, v19: 22l: every wake local, D156 (7); `stress-moving`'s abuse target in chunk 22 and 24.1, D153; earlier, v18: the fps session after 0196c25 reverted, D155: chunks 22e, 22f, 22g, 22i, 22j and 22k withdrawn, kept on branch `archive/fps-session-2026-10`; chunk 22d done, 1a539db; new chunks 22l, the local wake, D156, and 22m, the `stress-dense` fixture and the 10,000-tick run tool, D153, D154, both being built with the revert; chunk 19w, the save wipe and the save format before the first store release, D148, D149, and chunk 22h, the loop-start queue, D150, re-entered; the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE, the rest of 24, the health review, D155; approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
@@ -200,11 +200,11 @@ technology, not business behaviour:
 - **Chunk 24g** part A done (a0ffdde: the hold on a climb and the
   relay); its closure measures done (7595762, on `chore/24g-close`): the
   fusion drop explained (O122 answered, D162), `stress-dense`'s census,
-  the tick cost (+0.4 to +6 % native, mostly the relay's scan). **One fix
-  in progress:** the relay must survive a save and reload, since
-  `SlimeBodies.train_hopped` isn't state (a `stress-dense` save taken
-  just after a take-off parts from the run that never stopped one tick
-  after the load).
+  the tick cost (+0.4 to +6 % native, mostly the relay's scan; judged
+  within noise, D163). **Closed** (D163): the relay's save and reload fix
+  landed (5d7409f, merged in 578ccff; ATD 459642e), since
+  `SlimeBodies.train_hopped` wasn't state. `Train._behind`'s linear scan
+  goes to the health review.
 - **Chunk 22c** done (57d38e7; suite 1552/1552 native, 126/126 the
   GDScript pass, the 36 fixture hashes unchanged; as-built note D162):
   the load meter, the detail ceiling, the modes, and the hold after a
@@ -213,10 +213,29 @@ technology, not business behaviour:
 - **Watch (D162, proposed):** the lower fusion rate on
   `s3-basket-59of60` (about 17 -> 7.5 per minute) in chunk 22's repeat
   and the playtest; if fusion feels rare, a chunk 24 item.
-- **Next:** chunk **22 repeated** on the real S20 FE with the perf log,
-  in `auto` (DoD 30 judged with the loop start's crowding set aside),
-  then the rest of chunk **24**, then the closing health review.
-- **The order as planned (D158; 24g placed by D159, restated by D161, proposed):** chunk **5N** (the native tick, now, for headroom, not a missed target:
+- **Item 24.4** done (61b8d5f; settled by the user, D163): a displaced
+  sleeper stays asleep. **Item 24.5's fixture** `loop-start-pile` done
+  with it; its phone run waits for session 7.
+- **Item 24.7** done (5509f71): rule 23's measure (`ClusterWatch`), its
+  tests, the checker's line, the tutorial and the skill. The test level:
+  sections 1 and 2 never above the limit; section 3 above it because of
+  basket 3's fill, which the user has since left out of the rule (D163).
+- **Chunk 22 repeated on the S20 FE, session 6** (2026-10-07, main
+  cfe1dab, `auto`, native tick; D163): `s3-basket-59of60` 59.1 fps cold
+  and warm, `stress-dense` 59.1 / 59.1, `stress-moving` 23.0 cold, 59.0
+  warm; thermal 0. DoD 30 met on the reference phone for these three
+  fixtures; the floor phone unmeasured (O14). Not yet run: the labels'
+  cost (24.6), normal play, `loop-start-pile` (24.5), the second native
+  basket run, chunk 20's checks by hand: **the repeat stays open until
+  session 7**. The phone's hashes differ from the desktop's (bionic's
+  `atan2f`; hashes compare within one platform, D163).
+- **Next (D163):** 1. `ClusterWatch` leaves a basket's own fill out (a
+  small change, 24.7's follow-up); 2. item **24.3** (running); 3. item
+  **24.8**; 4. item **24.2**, the quota pies (a placeholder look until
+  ux-writer's); 5. item **24.1**, recording the numbers; 6. the phone's
+  **session 7** (the runs above not yet run) and chunk 20's checks by
+  hand; 7. the closing health review.
+- **The order as planned before D163 (D158; 24g placed by D159, restated by D161, proposed; 5N, 24g and 22c since done):** chunk **5N** (the native tick, now, for headroom, not a missed target:
   the user, "go native"; it ports the local wake), chunk **24g** (the
   train's climb: the hold on a climb and the relay, D160, D161,
   proposed, O125), chunk **22c** (crowd detail only under load,
@@ -249,7 +268,8 @@ technology, not business behaviour:
   wake (D156, chunk 22l); 24.8 stays the lean, unbuilt (D155).
 - **Closing step, last of all:** the coding-rule health review
   (`CODING_RULE.md`'s health and clean-up list), after every other chunk,
-  chunk 24 included (D122, kept by D123 and D128).
+  chunk 24 included (D122, kept by D123 and D128). It also looks at
+  `Train._behind`'s linear scan (24g's tick cost, D163).
 
 ## Overview
 
@@ -287,11 +307,11 @@ technology, not business behaviour:
 | 22m | The `stress-dense` fixture and the 10,000-tick run tool (the user's, details proposed, D153, D154; fixture done, 4aac65a; run tool done, 3b765f3) | S | 22d | the fixture built by `tools/make_fixture.gd`, no format change; 200 train slimes (fewer only if they don't fit before switch 3, reported), 9 per 300 px stretch, the bowl's bottom two at 12, along the loop line; its hash at 600 and 2400 ticks recorded with the others'; its scripted test; the run tool over 10,000 ticks; a first phone-emulation reading |
 | 22e–22k | Withdrawn with the fps session (22e, 22f, 22g, 22i, 22j, 22k; D155); kept on branch `archive/fps-session-2026-10`; their ids aren't reused | — | — | — |
 | 22c | Crowd detail only under load (proposed, D141; done, 57d38e7, D162) | S | 5N | the load meter's unit tests; same hashes in `always`; `auto` measured on the desktop |
-| 24g | The train's climb (proposed, D160, D161; O125; part A done, a0ffdde, the relay across a save and reload in progress, D162): the hold on a climb and the relay (from exp/dip-jam), rule 24's run tool without the geyser | S | 5N (proposed) | unit tests of the hold and the relay; `s3-basket-59of60` held on the start, seeds 1 and 2, recorded against D159's baseline (not a pass or fail on rules 23 and 24); `stress-dense`'s census; the fusion drop explained (O122); [DoD 1], the `bump` fixture; same hash on both ticks; changed hashes listed; the whole suite |
+| 24g | The train's climb (proposed, D160, D161; O125; done and closed, a0ffdde, the relay's save and reload fix 5d7409f, merged 578ccff, D163): the hold on a climb and the relay (from exp/dip-jam), rule 24's run tool without the geyser | S | 5N (proposed) | unit tests of the hold and the relay; `s3-basket-59of60` held on the start, seeds 1 and 2, recorded against D159's baseline (not a pass or fail on rules 23 and 24); `stress-dense`'s census; the fusion drop explained (O122); [DoD 1], the `bump` fixture; same hash on both ticks; changed hashes listed; the whole suite |
 | — | The geyser object (after v1, D161; once 24g's first part; see "After v1") | M | 24g | not in v1's order |
 | TL2 | The test level's start review (after v1, D161; see "After v1") | S–M | 24g, the geyser object | not in v1's order |
 | 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
-| 24 | Playtest issues, round 2 (open list; proposed) | S per issue (24.1 may be M) | 22 repeated (after 22b, 22d, 19w, 22h, 22l, 22m and 5N, D140, D143, D155) | each issue's own done-when |
+| 24 | Playtest issues, round 2 (open list; proposed) | S per issue (24.1 may be M) | 22 repeated (after 22b, 22d, 19w, 22h, 22l, 22m and 5N, D140, D143, D155; its session 6 done, session 7 after 24.1, D163) | each issue's own done-when |
 | LD | Level-design toolkit (technical) | L | 16 | the checker agrees with the level-rule tests on the test level; a scaffolded level loads, passes its generated tests and appears in test mode |
 | TL1 | Test level finishable from fresh (done, D129) | S | LD, R22 | the checker gives 0 warnings on the test level; a scripted play from `fresh` fills basket 1 |
 
@@ -566,7 +586,7 @@ D155, D158; O97 closed by D140). The fps session after 0196c25 (22e to
 - Atomic writes with one backup, used when the latest save can't be read.
 - A slime in mid-air on load: grounded, or put back at the start of its jump,
   or lost.
-- Save migration by level version: displaced slimes count as lost.
+- Save migration by level version: displaced slimes count as lost (*since item 24.4, D163:* a displaced sleeper stays asleep at its own or the nearest empty sleeper spot; only awake slimes, and a sleeper with no spot left, are lost).
 - **The parent code's file too** (`user://parent.json`, proposed, D130):
   the same atomic write and backup, so a damaged file no longer reads as
   "no code" (setup shown again, maybe to the child, and the wait lost).
@@ -765,9 +785,10 @@ device (the user's).
   endgame is bound by the GDScript tick (estimated 15 to 17 ms cold, 24 to
   27 ms throttled on the phone), so **chunk 5N is recommended** (not
   started), and this chunk repeats after it. Proposed, for the user: the
-  cap of 2 ticks per frame at 1x, the phone frame budget (simulation at
-  most 8 ms, drawing at most 4 ms, at least 4.7 ms left), numbers from
-  logs only. The rest rule's findings are O105; a fired basket's releases
+  cap of 2 ticks per frame at 1x (**settled**, D163), the phone frame
+  budget (simulation at most 8 ms, drawing at most 4 ms, at least 4.7 ms
+  left; **a headroom target**, recorded, not a v1 gate, D163), numbers
+  from logs only. The rest rule's findings are O105; a fired basket's releases
   waking its pile, O106 (with 24.3); parked asleep slimes stacking, O91 (closed by D159's fix; the stacking itself unchecked, O105's note).
 - **Crowd detail** (the user's idea, merged after the chunk; proposed,
   D140): fewer ring points when many slimes are active. On a slowed
@@ -794,8 +815,24 @@ device (the user's).
   what is left above 4 ms is recorded, and O108's levers are the user's
   call. It takes item 24.6's phone number too (labels on against off, in
   the same scene).
+- **Repeated, session 6** (D163; 2026-10-07, the real S20 FE, main
+  cfe1dab, `auto`, native tick, `perf.sh` runs p8-*): `s3-basket-59of60`
+  59.1 / 58.7 fps cold (p50 / p5), 59.1 / 58.8 warm, the detail ceiling
+  stepped to 1 at 47 s; `stress-dense` 59.1 / 58.9 cold, 59.1 / 58.7
+  warm, ceiling 0; `stress-moving` 23.0 / 21.0 cold, 59.0 / 43.9 warm,
+  ceiling 3 within 5 s, no thrash. The GDScript tick on
+  `s3-basket-59of60`: 21.2 / 16.7 cold, 23.4 / 22.6 warm. A tick about
+  10 ms (off screen 4.0, `train_follow` 1.7, fusion 1.0, the frontier
+  1.0, the native solver 0.3); battery at most 32.1 °C, thermal status
+  0. **DoD 30 is met on the reference phone for these three fixtures**;
+  the floor phone is unmeasured (O14). **Not yet run** (session 7, all
+  scripted): the labels off against on (24.6's number), normal play,
+  `loop-start-pile` (24.5), the second native basket run, chunk 20's
+  checks by hand. This chunk's repeat stays open until then. The phone's
+  hashes differ from the desktop's (D163: bionic's `atan2f`, through
+  crowd detail's resampling; reproduced by `tools/linux/bionic_libm.sh`).
 - **DoD 30's status after 22l and 22m** (phone emulation only, not the
-  phone; still not met): `s3-basket-59of60`, the basket scene, reaches
+  phone; still not met then): `s3-basket-59of60`, the basket scene, reaches
   35.0 fps, past 30 (the floor phone unmeasured, O14); `stress-dense`
   22.9 fps, short of 30; `stress-moving` 16.1 fps on the mean, 13.0 at
   the 5th percentile, so its abuse target hangs on O115.
@@ -1152,7 +1189,7 @@ must not run while another chunk edits the slime body code.
   (proposed) took it to 5: a pressed window within 10 judged windows
   after a step down makes the next step down wait for 60 calm windows.
 
-### 24g. The train's climb: the hold on a climb and the relay (S, proposed, D160, D161; O125; part A done, a0ffdde; closure measured, a fix in progress, D162)
+### 24g. The train's climb: the hold on a climb and the relay (S, proposed, D160, D161; O125; done, a0ffdde; closed with the relay's save and reload fix, 5d7409f, merged 578ccff, D163)
 
 The user (2026-10-05, the `stress-dense` report, in chunk 24's list):
 "movement wise, it fails grossly". D160 (4) found the cause on
@@ -1468,19 +1505,22 @@ and slime counts (built 2026-09-29).
   native code here. If chunk 22 (or 5N) has already brought section 3 to
   the target, 24.1 closes with the measurement alone.
 - **From chunk 22 (D138):** the fixture is `s3-basket-59of60`; the
-  endgame is bound by the tick, and 5N is recommended (going ahead, D140); if D138's phone
-  frame budget is approved, the desktop target below follows it (a tick
-  of about 2.4 to 3.8 ms, proposed).
-- **Target (proposed):** on the desktop (the Linux build at test mode's
-  1152 × 648 window), a steady 60 fps on the overlay through section 3
-  in normal play, and the section 3 bench cases at most 8 ms per tick at
-  p95 (half the frame, leaving the rest to drawing), `stress-moving`
-  excepted (no desktop tick budget: its target is [DoD 30]'s abuse
-  target on the reference phone, not a 30 fps target, D153). The phones' targets stay
-  chunk 22's [DoD 30].
+  endgame is bound by the tick, and 5N is recommended (going ahead, D140).
+  *D163 (the user's):* the phone frame budget is a headroom target, not a
+  gate, so this item's target follows it: **the frame rate gates, the
+  tick is recorded**. On the reference phone chunk 22's repeat already
+  reads 59 fps on `s3-basket-59of60` (session 6).
+- **Target:** on the desktop (the Linux build at test mode's 1152 × 648
+  window), a steady 60 fps on the overlay through section 3 in normal
+  play (the gate, proposed); the section 3 bench cases' ms per tick
+  (median and p95) **recorded** against the budget's simulation share (a
+  desktop tick of about 2.4 to 3.8 ms), not gated (D163; it replaces
+  D128's proposed 8 ms at p95), `stress-moving` excepted (its target is
+  [DoD 30]'s abuse target on the reference phone, not a 30 fps target,
+  D153). The phones' targets stay chunk 22's [DoD 30].
 - **Done when:** the before and after numbers (overlay readings and bench
-  table) are in `docs/dev/`; the section 3 bench cases hold the tick
-  budget above; a windowed run through section 3 reads a steady 60 fps;
+  table, the ticks against the headroom target) are in `docs/dev/`; a
+  windowed run through section 3 reads a steady 60 fps;
   the whole suite is green, and the same seed gives the same hash; [DoD
   30] still holds if chunk 22 has run.
 
@@ -1562,7 +1602,13 @@ basket" and 5.4; D86, D91, D105).
   same hash; [DoD 1] and [DoD 9] still pass.
 
 **24.4 A migration wakes sleepers** (reported 2026-09-30, the phone
-session; proposed, D139; master spec's saving rules, D72, D131). The
+session; proposed, D139; **settled by the user and done, 61b8d5f, D163**;
+master spec's saving rules, D72, D131). *As built and settled:* a
+displaced sleeper goes back to its stable ID's spot (a moved spot, or a
+changed species with the save's species kept), else to the nearest empty
+sleeper spot, taking its ID; only awake slimes, and a sleeper with no
+spot left, are lost. The phone's version-1 save: 105 sleepers lost
+before, none after. The
 phone's old test save (level version 1: 199 sleepers and 1 train slime)
 migrated to version 2 as 103 train slimes and 94 sleepers: about 100
 sleepers whose spots no longer exist were made lost and sent **awake** to
@@ -1585,7 +1631,9 @@ the loop start.
   pass; the same seed gives the same hash.
 
 **24.5 A big awake pile at the loop start collapses the frame rate**
-(reported 2026-09-30, the phone session; proposed, D139; [DoD 30]). About
+(reported 2026-09-30, the phone session; proposed, D139; [DoD 30]; *its
+fixture `loop-start-pile` done with 24.4, 61b8d5f; the phone run waits
+for session 7, D163*). About
 100 awake slimes piled at the loop start ran at 3 fps on the reference
 phone (the debug bar: 12 on screen, 99 simulated, 86 off screen). Awake
 slimes out of a basket never rest, and the pile sits near the view, so it
@@ -1620,7 +1668,17 @@ screen (D138); they haven't been measured on the phone since.
 
 **24.7 Level rule 23: no spot where many slimes gather awake** (the
 user, 2026-09-30; D143, approved in direction, D144, the limit proposed;
-`../../level-design.md` rule 23; O107).
+`../../level-design.md` rule 23; O107; **done, 5509f71**, D163).
+*D163 (the user's):* **a basket's own fill doesn't count**: slimes inside
+a basket's box are left out, the pile outside it still counts. As built,
+`ClusterWatch` counts the fill; leaving it out is the next small change,
+with its done-when: a unit test where a basket's fill above the limit
+alone passes and a pile outside it above the limit fails; the test
+level's numbers (each section, each basket's drain) taken again and
+recorded; the tutorial pages and the `level-review` skill say so; the
+suite passes. As measured before it: sections 1 and 2 never above the
+limit; section 3 above it in its play (59, 21.9 s in a row) and its
+drain (55, 11.3 s), from basket 3's fill.
 The user saw "piles of active slimes" next to basket 3, "legit slow fps".
 - **The measure:** the level bench's RESULT line takes chunk 22d's count
   names, `largest_cluster` (its maximum over the case) and the seconds

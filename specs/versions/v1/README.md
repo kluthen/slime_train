@@ -96,7 +96,11 @@ Items are settled. The decision IDs point to
 - Godot 4, Android. A Linux build for tests (D5). Landscape, locked (D78).
 - 60 fps on the reference phone in normal play; at least 30 fps on the floor
   phone with the level's largest realistic pile on one screen, a full basket
-  plus the train, mostly still (D82, amended by D96).
+  plus the train, mostly still (D82, amended by D96). Met on the reference
+  phone for the three fixtures measured after the native tick (D163); the
+  floor phone is unmeasured (O14). At most 2 ticks a frame (slow motion
+  rather than a collapse); the phone frame budget is a headroom target,
+  not a gate (D163).
 - A paid app, about $3–5 (D31): for the first store release, probably v4, not v1 (D135, D137).
 
 ## Explicitly not in v1

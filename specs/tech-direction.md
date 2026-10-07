@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v27 (chunk 22c as built, the hold after a bounce, exact repeat outside `auto`, proposed, D162; 5N and 24g part A done; v26: chunks 22l and 22m's fixture built on main, their phone-emulation readings; v25: every wake local, D156 (7); `stress-moving`'s abuse target of 15 fps, not a 30 fps target, D153; earlier, v24: the fps session after 0196c25 reverted, D155: the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE; the local wake, D156, chunk 22l; `stress-moving` an abuse test and `stress-dense`'s target, D153, D154; the save format before the first store release and a save a build can't use set aside, proposed, D149; the save wipe for automated testing only, chunk 19w, D148, approved in direction, D149)
+Status: draft v28 (the tick cap settled, the phone frame budget a headroom target, a displaced sleeper stays asleep, hashes within one platform (the phone's `atan2f`), chunk 22's repeat on the S20 FE, session 6, D163; v27: chunk 22c as built, the hold after a bounce, exact repeat outside `auto`, proposed, D162; 5N and 24g part A done; v26: chunks 22l and 22m's fixture built on main, their phone-emulation readings; v25: every wake local, D156 (7); `stress-moving`'s abuse target of 15 fps, not a 30 fps target, D153; earlier, v24: the fps session after 0196c25 reverted, D155: the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE; the local wake, D156, chunk 22l; `stress-moving` an abuse test and `stress-dense`'s target, D153, D154; the save format before the first store release and a save a build can't use set aside, proposed, D149; the save wipe for automated testing only, chunk 19w, D148, approved in direction, D149)
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -281,17 +281,32 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   under load (D141). Then chunk 22 repeated on the reference phone with
   the perf log, in `auto`.
 - **Chunks 5N, 24g and 22c on main** (D162): 5N done (0f3d027); 24g part A
-  (the train's climb) done, a0ffdde, a fix in progress (the relay across a
-  save and reload); 22c done (57d38e7), the hold after a bounce added.
-  Next: chunk 22 repeated on the real S20 FE, in `auto`.
-- **The cap on ticks per frame: 2 at 1x** (proposed, D138; was 8): an
+  (the train's climb) done, a0ffdde, and closed with the relay's save and
+  reload fix (5d7409f, merged 578ccff; D163); 22c done (57d38e7), the hold
+  after a bounce added.
+- **Chunk 22 repeated on the real S20 FE, session 6** (D163; 2026-10-07,
+  main cfe1dab, `auto`, native tick): `s3-basket-59of60` 59.1 fps cold
+  and warm (p5 58.7 / 58.8), `stress-dense` 59.1 / 59.1 (p5 58.9 / 58.7),
+  `stress-moving` 23.0 cold (p5 21.0), 59.0 warm (p5 43.9); the detail
+  ceiling reached 3 on `stress-moving` with no thrash. A tick is about
+  10 ms on the phone (off screen 4.0 ms, `train_follow` 1.7, fusion 1.0,
+  the frontier 1.0, the native solver 0.3); thermal status 0. DoD 30 is
+  met on the reference phone for those three fixtures; the floor phone
+  is unmeasured (O14). Still to run (session 7): the labels' cost, normal
+  play, `loop-start-pile`, a second native basket run; the repeat stays
+  open until then.
+- **The cap on ticks per frame: 2 at 1x** (D138; settled, D163, the
+  user's; was 8): an
   overloaded scene plays in slow motion instead of collapsing into the
   catch-up spiral; the cap scales with the debug speed.
-- **A frame budget on the reference phone** (proposed, D138), so that
-  meeting DoD 30 now leaves room for v2's music and animated objects: per
-  16.7 ms frame, the simulation at most 8 ms, drawing at most 4 ms, and at
-  least 4.7 ms left. On the desktop, the simulation's share is a tick of
-  at most about 3.8 ms (phone cold) or 2.4 ms (throttled).
+- **A frame budget on the reference phone** (D138), so that meeting DoD
+  30 now leaves room for v2's music and animated objects: per 16.7 ms
+  frame, the simulation at most 8 ms, drawing at most 4 ms, and at least
+  4.7 ms left. **A headroom target** (D163, the user's: "recorded but not
+  a v1 gate, since 59 fps already holds"): measured and recorded at each
+  phone session; DoD 30's frame rate is the gate. On the desktop, the
+  simulation's share is a tick of at most about 3.8 ms (phone cold) or
+  2.4 ms (throttled).
 - **Pending:** the floor phone, once it is bought (O14). The floor decision
   rests on its measurement (D71). The 200-slime cap stays (D67).
 - Not covered by the spike: game logic, the camera and the UI, which share
@@ -324,8 +339,13 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
 
 - One save file per level. The user can delete one level's save (D43).
 - Released levels aren't meant to change. If one does, the update must be
-  minor and ship with its migration. Saves are never wiped, and displaced
-  slimes count as lost and reappear at the start of the loop (D72).
+  minor and ship with its migration. Saves are never wiped. An awake slime
+  the migration displaces counts as lost and reappears at the start of
+  the loop (D72). A displaced sleeper stays asleep (D163, the user's): at
+  its stable ID's spot if the level still has that sleeper (moved, or of
+  another species: the save's species kept), else at the empty sleeper
+  spot nearest it, whose stable ID it takes; only a sleeper with no spot
+  left is lost.
 - The save records the level's version, and slimes, objects and
   gates keep stable IDs across versions.
 - Saves are written atomically (write a new file, then swap it in),
@@ -354,7 +374,16 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   comes from one random generator with a seed, so a test run can be repeated
   exactly.
 - **Repeatable runs:** state hashes are compared between runs of the same
-  build. *(Proposed, D162:)* runs repeat in crowd detail's `always` (test
+  build **on the same platform** (D163). The phone and the desktop differ
+  even on one tick: Android's C library (bionic) gives an `atan2f` that
+  differs from glibc's in the last bit, and it enters the state through
+  `Vector2.angle()` in `SlimeBodies._resample` when crowd detail
+  resamples a ring (`s3-basket-59of60`: 4c5d03d2… on the phone on both
+  ticks, a0223398… on the desktop). `tools/linux/bionic_libm.sh` gives a
+  desktop run bionic's `atan2`, `atan2f`, `sin` and `cos`, and reproduces
+  the phone's hashes. *Not scheduled, possibly after v1:* our own
+  `atan2`, `sin` and `cos` would make runs repeat across devices, if
+  replays or sharing ever need it (`versions/timeline.md`). *(Proposed, D162:)* runs repeat in crowd detail's `always` (test
   mode's default: fixtures, scripts, the bench, the tests) and `off`; a
   run passed `--crowd-detail=auto` (`perf.sh`'s phone runs) follows the
   device's load, doesn't repeat, and its hash isn't a fixture hash. If the native contingency is ever adopted (D96), a native build

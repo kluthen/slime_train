@@ -1,6 +1,6 @@
 # Level design requirements
 
-Status: draft v17 (rule 25 and the geyser after v1, D161, the user's; rule 24's run tool from chunk 24g, its window after v1; v16: rule 25, placing a geyser, a level object, D160, the user's object, the rule and its check proposed; rule 24: a geyser gives room, pacing parked (O118), D160; v15: rule 24 strengthened: at the loop's start arrivals never outpace what the train takes off it, a rate check over the scripted runs, what to do when it fails, D159, the user's ask, wording and check proposed; v14: rule 24, arrivals clear faster than they come, D157, the user's, wording and check proposed; v13: rule 23, clusters, D143, approved in direction, D144; its limit proposed, O107)
+Status: draft v18 (rule 23: a basket's own fill left out, D163, the user's; the limit still proposed, O107; v17: rule 25 and the geyser after v1, D161, the user's; rule 24's run tool from chunk 24g, its window after v1; v16: rule 25, placing a geyser, a level object, D160, the user's object, the rule and its check proposed; rule 24: a geyser gives room, pacing parked (O118), D160; v15: rule 24 strengthened: at the loop's start arrivals never outpace what the train takes off it, a rate check over the scripted runs, what to do when it fails, D159, the user's ask, wording and check proposed; v14: rule 24, arrivals clear faster than they come, D157, the user's, wording and check proposed; v13: rule 23, clusters, D143, approved in direction, D144; its limit proposed, O107)
 
 Rules every level must follow, whoever builds it. These rules make up the
 checklist for every level's design (see `levels/`). Levels are
@@ -129,7 +129,12 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     group of touching slimes that cost physics, D143) over the level's
     own scripted runs (its played test from fresh, and each basket's
     fire-and-drain; the `stress-*` fixtures excepted) stays at or under
-    20 slimes, or goes above it for at most 5 s in a row. The level bench
+    20 slimes, or goes above it for at most 5 s in a row. **A basket's
+    own fill doesn't count** (D163, the user's): slimes inside a
+    basket's box are left out, and the pile outside it still counts
+    (*proposed:* inside by its centre, and the cluster is taken over the
+    other slimes, so piles outside aren't joined through the basket's).
+    Whether a train queue on the loop counts is still O107. The level bench
     and the level's played test measure it; the level-rules checker
     points at them. The number is calibrated in chunk 24 (O107). A
     cluster the player builds with calls is accepted: crowd detail and

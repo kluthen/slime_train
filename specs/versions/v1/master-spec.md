@@ -44,7 +44,15 @@ crowding is not a v1 blocker (the user's, D160; Known gap 9), and
 Definition of done 30 is judged with it set aside (the user's reading,
 D161; wording proposed). Test runs repeat exactly except in a run that
 asks for normal play's crowd detail, which follows the device's load
-(6, Testability; proposed, D162).
+(6, Testability; proposed, D162), and only on one platform: the phone and
+the desktop give different hashes (6, Testability; D163). A level update
+keeps a displaced sleeper asleep at its own or a free sleeper spot, so
+only awake slimes, and a sleeper with no spot left, are lost (5.10, the
+user's, D163). An overloaded scene plays in slow motion at worst, at most
+2 ticks a frame (6, the user's, D163); the phone's frame budget is a
+headroom target, recorded, not a Definition of done item (6, D163). The
+reference phone meets Definition of done 30 on the three fixtures
+measured so far (7, D163).
 
 ## 1. Concept and objective
 
@@ -663,8 +671,12 @@ reopening the app → the state the stored timers give
 - On load, a slime saved in mid-air is put on the ground or back at the start
   of its jump, whichever is easier to build; if neither works, it is lost.
 - **Saves are never wiped.** A released level isn't meant to change. If one
-  does, the change is minor and ships with a save migration; slimes it
-  displaces are treated as lost. The save records the level's
+  does, the change is minor and ships with a save migration. A sleeper
+  it displaces stays asleep: back at its own spot if the level still has
+  that sleeper (moved, or of another species now: the saved species is
+  kept), otherwise at the nearest empty sleeper spot, which it takes as
+  its own. Awake slimes it displaces, and a sleeper left with no spot,
+  are treated as lost. The save records the level's
   version, and slimes, objects and gates have stable IDs.
 - Saves are written atomically, and the previous one is kept as a
   backup that is used if the latest can't be read. If neither can be read,
@@ -768,12 +780,16 @@ Every level, the test level included, follows these rules.
   tick; a save loads under either tick; the scripting-language tick stays
   as the fallback. The behaviour around the tick (hops, the call's
   phases, fusion timing) stays in the scripting language either way.
+  A frame runs at most 2 ticks at normal speed, so an overloaded scene
+  plays in slow motion instead of collapsing into a catch-up spiral.
 - **Drawing is kept cheap by design,** not assumed cheap: only the slimes
   near the view are drawn, each drawing redraws only when what it shows
   changes, and repeated shapes (eyes, a basket's slots) are one instanced
   draw each. Before that work, drawing cost more of the frame than the
-  tick on light scenes. *(proposed)* Its share of the reference phone's
-  frame is at most 4 ms. The renderer is Godot's Compatibility renderer,
+  tick on light scenes. As a headroom target, recorded at each phone
+  session but not a gate, its share of the reference phone's frame is at
+  most 4 ms and the simulation's at most 8 ms, leaving at least 4.7 ms
+  for later animation, music and the system. The renderer is Godot's Compatibility renderer,
   which reaches the most Android phones.
 - **Physics only near the screen.** Up to 200 slimes on a mid-range phone
   rules out simulating every slime all the time. Off-screen slimes move along
@@ -795,9 +811,11 @@ Every level, the test level included, follows these rules.
 - **One save per level, never wiped.** A parent can reset one level without
   losing others; level updates migrate saves rather than breaking them.
 - **Testability:** all gameplay randomness comes from one seeded
-  generator so test runs repeat exactly within one build (a desktop and an
-  Android build aren't promised to give identical results once the tick
-  runs as native code). *(Proposed, D162:)* that holds in test mode's
+  generator so test runs repeat exactly within one build on one platform:
+  the desktop and the phone give different results even on the same tick,
+  because Android's math library rounds one angle function differently
+  (a desktop tool reproduces the phone's results). Repeating across
+  devices isn't a v1 aim. *(Proposed, D162:)* that holds in test mode's
   default crowd detail and with crowd detail off; a run that asks for
   normal play's crowd detail, which follows the device's load
   (`--crowd-detail=auto`, the phone's performance runs), doesn't repeat,
@@ -824,11 +842,14 @@ tests, and the technical choices made while building are in the project's
   the bottom of section 3's bowl at 4, filled from the bowl outward) and,
   for the abuse case (200 moving slimes, all piled in the bowl), an abuse
   target, not a 30 fps target: no crash, no freeze and at least 15 fps.
-- **Measured so far:** the reference phone, with 200 slimes all simulated
-  and nothing else (see section 6). The floor phone still has to be bought,
-  and the whole game at the endgame is measured on both phones. The
-  reference phone missed its target on the first measurement, so the tick
-  moves to native code and the measurement is repeated after it.
+- **Measured so far:** the reference phone missed its target on the first
+  measurement, so the tick moved to native code and the measurement was
+  repeated after it (2026-10-07, crowd detail as in normal play): the
+  section 3 endgame (basket 3 at 59 of 60) and the dense case at 59 fps
+  cold and warm, the abuse case at 23 fps cold and 59 warm, with no
+  throttling. Still to measure on it: normal play, a big awake pile at the
+  loop's start, and the debug labels' cost. The floor phone still has to
+  be bought.
 - Test environments:
 
 | Environment | Used for | Not used for |
@@ -1054,9 +1075,10 @@ Still undecided.
    came first, then the whole game at the endgame missed its target too,
    so the tick moves to native code (section 6). The floor phone's target
    now applies to the largest realistic pile, not 200 slimes on one screen
-   (Definition of done, 30). Still waiting: the floor phone (it has to be
-   bought), the whole game measured again on both phones after the native
-   tick, the phone's GPU cost of the blending (it can't be read on Android
+   (Definition of done, 30). After the native tick the reference phone
+   holds its targets on the three fixtures measured (section 7). Still
+   waiting: the floor phone (it has to be bought), normal play on the
+   reference phone, the phone's GPU cost of the blending (it can't be read on Android
    with this renderer, so only the frame rate shows it), and tilt input. Android audio
    latency matters only from the version that adds sound.
 6. *(Closed, D159.)* Why slimes of different species sometimes ended up

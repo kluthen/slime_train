@@ -21,3 +21,4 @@ is assigned, it moves to that version's README (D52).
 | Music generator, ported from JS to Godot | D42, O12 | music is v2 (D134); whether it uses the generator is open |
 | Procedural world generation | O13 | |
 | iOS | precursor | |
+| Runs that repeat across devices (our own `atan2`, `sin` and `cos`, so the phone's and the desktop's hashes match) | D163 | not scheduled, possibly after v1; only if replays or sharing ever need it. Today hashes compare within one platform (bionic's `atan2f` differs from glibc's) |

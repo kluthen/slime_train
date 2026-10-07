@@ -585,6 +585,10 @@ Resolves O20.
 - **Saves are never wiped.**
 - Slimes displaced by an update are treated as **lost** and reappear at the
   start of the loop (D10).
+  *Refined by D163 (2026-10-07, the user's):* a displaced **sleeper** goes
+  back asleep to its stable ID's spot, else to the nearest empty sleeper
+  spot (taking its ID); only awake slimes, and a sleeper with no spot
+  left, are lost.
 - **Any level update must ship with its migration.**
 - (proposed) To make that possible, the save records the level's version, and
   slimes, objects and gates keep stable IDs across versions.
@@ -2130,14 +2134,15 @@ and after.
 
 **2. Proposed** (the user reviews):
 - **a. The cap on ticks per frame: 2 at 1× speed** (`MAX_TICKS_PER_FRAME`,
-  was 8) (proposed). With 8, a tick costing more than a frame made every
+  was 8) (proposed; *settled by D163, the user's*). With 8, a tick costing more than a frame made every
   frame run 8 ticks: the game collapsed to a few fps (the catch-up spiral).
   With 2, a 33 ms frame (30 fps) still plays at full speed, and an
   overloaded scene plays in slow motion instead of collapsing (in the
   slowed desktop run, 15.6 fps instead of 5.4). The cap scales with the
   debug speed (2 × the speed, rounded up), so the overlay's and test mode's
   speeds keep their pace. Built so; the hash is unchanged.
-- **b. A frame budget on the reference phone** (proposed). The user's goal
+- **b. A frame budget on the reference phone** (proposed; *D163, the
+  user's: a headroom target, recorded, not a v1 gate*). The user's goal
   (2026-09-30), verbatim: "we must reach the maximum performance now,
   because this version is the raw one. I fully intent to have other
   objects on screen that will be animated, and music, etc... which will
@@ -2220,7 +2225,8 @@ call on 5N (recommended); then chunk 22 repeated (D96), then chunk 24
 Proposed; the user reviews. From the user's hand-played session on the
 S20 FE (`docs/perf/2026-09-30-s20fe-session.md`), relayed by the
 coordinator. The items and their done-whens are in the build plan, chunk 24.
-- **24.4 A migration wakes sleepers.** Proposed: a sleeper displaced by a
+- **24.4 A migration wakes sleepers.** *(Settled by D163, the user's, as
+  built in 61b8d5f.)* Proposed: a sleeper displaced by a
   migration stays a sleeper, placed by its stable ID or at a surviving
   sleeper spot; only awake slimes are made lost. This refines D72 (and
   D131's migration), which make every displaced slime lost; the master
@@ -4414,3 +4420,165 @@ review.
 **Flagged:** for documentalist, `req_offscreen_simulation` (the hold
 after a bounce) and `req_test_level_and_test_mode` (exact repeat
 outside `auto`).
+
+## D163 — The user's answers of 2026-10-07: a displaced sleeper stays asleep (D139, 24.4) settled; rule 23 leaves a basket's own fill out; the tick cap settled, the phone frame budget a headroom target (D138); catch-up: 24g closed, chunk 22's repeat on the phone (session 6), the phone hash finding, 24.4 and 24.7 done (2026-10-07)
+Answers O107 (a) in part. Settles D139's 24.4 (refines D72 and D131) and
+D138 (2a); turns D138 (2b) into a headroom target.
+
+The user's words (2026-10-07, answering the orchestrator's questions):
+1. "Approve: D139 settled; rule_saves_never_wiped reworded ('re-placed
+   when their spot or a free spot exists, else lost'), contract_atd minor
+   bump. The no-wipe guarantee is unchanged."
+2. "Exclude basket fill: slimes inside a basket's box don't count toward
+   rule 23; the pile outside it still does".
+3. "Approve cap, budget as target: the cap is settled; 8/4 ms becomes a
+   headroom target, recorded but not a v1 gate, since 59 fps already
+   holds."
+
+**1. A migration keeps a displaced sleeper asleep (settled, as built in
+61b8d5f).** Refines D72 and D131 (both made every displaced slime lost).
+- A sleeper displaced by a level-version migration goes back to **its
+  stable ID's spot** when the level still has that sleeper: its spot
+  moved, or its species changed (the save's species is kept).
+- Otherwise it goes to the **nearest empty sleeper spot** (a level
+  sleeper no slime of the save holds, nearest the sleeper's saved
+  centre) and **takes that spot's stable ID**; each spot takes one, in
+  save order.
+- **Only awake displaced slimes, and a sleeper left with no spot** (the
+  level has fewer empty spots than such sleepers), **are lost**: to the
+  loop start (D10), each once, the population whole.
+- **Saves are never wiped:** unchanged. D72's "displaced slimes are
+  treated as lost" now reads: an awake displaced slime is lost; a
+  displaced sleeper is re-placed when its spot or a free spot exists,
+  else lost.
+- **As measured:** the phone's version-1 save of 2026-09-30 lost 105
+  sleepers before, none after. The `old-version` fixture's moved sleeper
+  is now put back asleep at its spot, nothing lost (its hashes
+  re-recorded).
+- D139's other items aren't in this answer: 24.5 stays proposed; 24.6
+  was approved with chunk 22b (D144).
+
+**2. Level rule 23 leaves a basket's own fill out (the user's).**
+Answers O107 (a) in part.
+- **Slimes inside a basket's box** (where its caught slimes rest) **don't
+  count toward rule 23; the pile outside a basket still does.**
+- *(Proposed, the measure's reading:)* a slime is inside when its centre
+  is inside the box; the largest awake cluster is then taken over the
+  other slimes, so two piles outside a basket aren't joined into one
+  through the slimes in it.
+- **The limit stays proposed:** above 20 slimes for more than 5 s in a
+  row fails. `ClusterWatch`'s values (`LIMIT` 20, `HOLD_SECONDS` 5,
+  sampled every 6 ticks, 0.1 s) are now rows in `tuning.md`, proposed.
+- **Still open in O107:** whether a train queue on the loop counts ((a)'s
+  other half; `stress-moving`'s dense train reads as one cluster of
+  133), the lean (b, item 24.8), whether section 3 needs an edit (c), and
+  rule 24's reuse of the limit (d).
+- **On the test level:** item 24.7's numbers were taken with the fill
+  counted. Section 3 went above the limit in its play (59 slimes, 21.9 s
+  in a row) and its basket's drain (55, 11.3 s) because basket 3's fill
+  of 59 to 60 is one cluster by itself. They are taken again once
+  `ClusterWatch` leaves the fill out (the next small change), before any
+  verdict.
+
+**3. The tick cap settled; the phone frame budget a headroom target
+(the user's).**
+- **Settled (D138 (2a)):** at most **2 ticks per frame at 1x**
+  (`MAX_TICKS_PER_FRAME`, was 8), times the debug speed, rounded up. An
+  overloaded scene plays in slow motion instead of collapsing into the
+  catch-up spiral.
+- **The reference phone's frame budget (D138 (2b))** (simulation at most
+  8 ms, drawing at most 4 ms, at least 4.7 ms left, per 16.7 ms frame) is
+  a **headroom target**: measured and recorded at each phone session,
+  not a v1 gate and not part of the Definition of done. DoD 30, the frame
+  rate, is the gate.
+- **Item 24.1's target follows:** the frame rate gates (a steady 60 fps
+  on the desktop overlay through section 3; DoD 30 on the phones). Its
+  tick numbers are recorded against the budget's simulation share (on
+  the desktop, a tick of about 2.4 to 3.8 ms), not gated. D128's
+  proposed gate of 8 ms per tick at p95 on the section 3 bench cases is
+  replaced by this.
+- D138 (2c), the `s3-basket-59of60` fixture, and (2d), phone numbers
+  through logs, aren't in this answer; they stay as they were.
+
+**4. Catch-up (facts, from the commits and `docs/dev/`).**
+- **a. Chunk 24g closed.** The relay's save and reload fix landed
+  (5d7409f, merged in 578ccff; ATD 459642e). Tick cost +0.4 to +6 % on
+  the native tick, judged within noise by the orchestrator.
+  `Train._behind`'s linear scan goes on the health review's list. O125
+  stays the user's: 24g is built in v1, and the user may still drop it.
+- **b. Chunk 22's repeat on the phone, session 6** (2026-10-07, main
+  cfe1dab, crowd detail `auto`, native tick, `perf.sh` runs p8-*):
+
+  | Fixture | Cold p50 / p5 | Warm p50 / p5 | Detail ceiling |
+  |---|---|---|---|
+  | `s3-basket-59of60` | 59.1 / 58.7 fps | 59.1 / 58.8 fps | stepped to 1 at 47 s |
+  | `stress-dense` | 59.1 / 58.9 fps | 59.1 / 58.7 fps | stayed 0 |
+  | `stress-moving` | 23.0 / 21.0 fps | 59.0 / 43.9 fps | reached 3 in 5 s, no thrash |
+
+  - The GDScript tick on `s3-basket-59of60`: 21.2 / 16.7 fps cold, 23.4 /
+    22.6 warm. The morning's odd pair (GDScript at 58 cold) was a bad run.
+  - A tick costs about 10 ms on the phone: off screen 4.0 ms,
+    `train_follow` 1.7, fusion 1.0, the frontier 1.0, the native solver
+    0.3. The battery stayed at or under 32.1 °C, thermal status 0.
+  - **DoD 30 is met on the reference phone for these three fixtures**
+    (`stress-moving`'s abuse target of 15 fps on both the median and the
+    5th percentile, so O115 doesn't decide it there). The floor phone is
+    still unmeasured (O14).
+  - **Not yet run** (the user needed the phone): the labels off against
+    on (item 24.6's number), normal play, the `loop-start-pile` fixture
+    (item 24.5), the second native basket run, and chunk 20's checks by
+    hand. All are scripted for the next session (7). **Chunk 22's repeat
+    stays open until then.**
+- **c. The phone hash finding** (daf1d66). `s3-basket-59of60`'s hash is
+  4c5d03d2… on the phone on both ticks, and a0223398… on the desktop.
+  Android's C library (bionic) gives an `atan2f` that differs from
+  glibc's in the last bit; it enters the state through `Vector2.angle()`
+  in `SlimeBodies._resample` when crowd detail resamples a ring. Neither
+  the view nor the native tick is the cause. This is the known caveat:
+  **hashes compare within one build and one platform**.
+  `tools/linux/bionic_libm.sh` (a shim giving a desktop run bionic's
+  `atan2`, `atan2f`, `sin` and `cos`) reproduces the phone's hashes on
+  the desktop. *Not scheduled, possibly after v1:* our own `atan2`,
+  `sin` and `cos` would allow determinism across devices, if replays or
+  sharing ever need it (`versions/timeline.md`).
+- **d. Item 24.4 done** (61b8d5f), with **item 24.5's fixture**
+  `loop-start-pile` (the phone's migrated save of 2026-09-30, a stress
+  case kept on purpose: 103 awake, 91 piled at the loop start); its phone
+  run is pending (session 7).
+- **e. Item 24.7 done** (5509f71): the measure (`ClusterWatch`), the
+  bench's fields, the played tests, a synthetic level failing and
+  passing, the checker's line, the tutorial pages and the skill. The test
+  level as measured: sections 1 and 2 never above the limit; section 3
+  above it because of basket 3's fill, which 2 now leaves out.
+
+**5. The next order (the orchestrator's plan):**
+1. a small change: `ClusterWatch` leaves a basket's own fill out (2);
+2. item 24.3, running;
+3. item 24.8;
+4. item 24.2, the quota pies (a placeholder look until ux-writer's);
+5. item 24.1, recording the numbers (3);
+6. the phone's session 7 (the runs in 4b not yet run) and chunk 20's
+   checks by hand;
+7. the health review.
+
+**Documents:** `level-design.md` (rule 23); `tuning.md` (rule 23's rows,
+the cap and the budget, 24.1's row); `tech-direction.md` (the cap, the
+budget, Saving, Testability, the next steps); `versions/v1/master-spec.md`
+(header, 5.10, 6, 7, Known gap 5); `versions/v1/build-plan.md` (header,
+Progress, the table, 22, 24g, 24.1, 24.4, 24.5, 24.7, the closing step);
+`versions/v1/README.md`; `versions/timeline.md` (determinism across
+devices); `levels/test/README.md` (the fixtures `old-version` and
+`loop-start-pile`, Repeatability, rule 23's row); `open-questions.md`
+(O14, O107, O108, O115, O125); `README.md`. Notes added under D72, D138
+and D139.
+**Flagged:** for documentalist, `rule_saves_never_wiped` (the user's
+rewording: "re-placed when their spot or a free spot exists, else
+lost") and `contract_atd`'s minor bump (the user's), the migration's
+pending notes (f09a501), rule 23's DRAFT atom (a basket's own fill left
+out), `req_platform_and_performance_targets` (the cap settled, the
+budget a headroom target, DoD 30 met on the reference phone for three
+fixtures, chunk 22's repeat still open) and `domain_testability` (hashes within
+one build and one platform). Outside `specs/`: the `level-review`
+skill's rule 23 line and `docs/level-design/` (06-population,
+09-check-the-rules) need the basket's fill left out once `ClusterWatch`
+does; `CODING_RULE.md`'s health list gains `Train._behind`'s linear scan.
