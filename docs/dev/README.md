@@ -67,7 +67,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `src/save/` | The save files (`SaveStore`: one per level, never wiped), autosave timing (`Autosave`), the real clocks sessions count on (`SessionClock`) and the app's parent code (`ParentStore`, see "Parent gate and settings (chunk 18)"); the save format itself is `src/sim/save_data.gd` (see "Saves and fixtures") |
 | `src/parent/` | The parent layer: the parent buttons, the code prompt, settings and setup (`ParentGate` and its surfaces), their strings (`ParentText`) and sizes (`ParentLayout`) (see "Parent gate and settings (chunk 18)") |
 | `src/session/` | The session's screen effects (`SessionScreen`: the dusk tint, keeping the screen on); the session logic itself is `src/sim/session.gd` (see "Sessions (chunk 17)") |
-| `src/frontier/` | Frontier set drawing (`FrontierView`: doors, arrows, the basket's outlines, the celebration); the logic itself is `src/sim/frontier_sets.gd` (see "Frontier sets (chunk 14)") |
+| `src/frontier/` | Frontier set drawing (`FrontierView`: doors, arrows, the basket's quota as outlines or quota pies, laid out by `QuotaDisplay`, the celebration); the logic itself is `src/sim/frontier_sets.gd` (see "Frontier sets (chunk 14)") |
 | `src/taps/` | Tap feedback drawing (`TapFeedback`: the ripples and the slimes' eye dots); the tap logic itself is in `src/sim/` (see "Taps and the call") |
 | `src/slimes/` | Slime drawing (`SlimeRenderer` and its shaders), the terrain hand-off to the simulation (`SlimeWorld`) and the slime demo scene |
 | `src/draw/` | Scene-layer drawing helpers: `ShapeInstances`, many copies of one shape in one instanced draw (see "Chunk 22b: drawing") |
@@ -2177,8 +2177,10 @@ keeps them as they are.
 **Placeholder art** (`FrontierView`, z 5): the shut trapdoors, closed gate
 boxes and shut lids as blocks; the switch's and signpost's arrows (down
 into the basket when flipped, else along the loop); the basket's quota as
-slime outlines filled by weight, pulsing during the reward; rings for the
-celebration; bunting for the lasting mark (chunk 23D).
+slime outlines (up to 10) or quota pies (above 10, item 24.2), filled in
+the caught slimes' colours, pulsing during the reward, emptying with the
+release and gone once the basket is inert; rings for the celebration;
+bunting for the lasting mark (chunk 23D).
 
 **Tuning** (constants in `FrontierSets`): `REWARD_SECONDS` 2.0,
 `RELEASE_SECONDS` 0.3, `CELEBRATION_SECONDS` 4.0, `OUTLET_CLEARANCE` 8 px
@@ -5706,8 +5708,9 @@ Each keeps the picture as it was.
   down) and instance colours in half floats, both inexact. Used for:
   - **the eyes**: one draw per eye radius (a ring's radius depends only on
     the slime's size, so 3 radii);
-  - **the baskets' quota slots**: per basket a `BasketDiscsN` child (the
-    filled slots) and a `BasketOutlinesN` child (every outline). The
+  - **the baskets' quota slots**: per basket six `BasketDiscsN<A..F>`
+    children (the filled slots, one per species colour since item 24.2)
+    and a `BasketOutlinesN` child (every outline, or every pie's rim). The
     celebration and the lasting mark move to a last child, `Overlay`, to
     stay above them. At the reward pulse's peak, when an outline's feather
     would reach the next disc, that basket draws slot by slot as before,
@@ -7548,3 +7551,96 @@ the limit, but the basket's own pile still goes above it (see "Since item
 ```sh
 tools/test.sh -gselect=test_basket_drain_e2e
 ```
+
+## Quota pies (item 24.2)
+
+A basket's quota above 10 used to draw one outline per unit: basket 3's 60
+ran wider than the screen. `src/frontier/quota_display.gd` (`QuotaDisplay`)
+now lays a basket's quota out, and `FrontierView` draws it. Drawing only:
+nothing in `src/sim/` changed, and no hash.
+
+![Basket 3 at 59 of 60 as six quota pies, s3.frame.basket at zoom 0.8](img/basket-quota-pies.png)
+
+**The layout** (pure functions, `QuotaDisplay`):
+
+- **10 or less:** one slime outline per unit of weight, as before
+  (`OUTLINE_RADIUS` 14, `OUTLINE_GAP` 8, 30 px above the box). Basket 1
+  still shows 6.
+- **Above 10:** one quota pie per 10 of weight, the last holding the rest
+  (`groups()`: 15 gives 10 and 5, basket 2; 60 gives six of 10, basket 3),
+  one slice per unit. A row centred over the box, 56 px above it.
+- **Filling:** the units fill in order, the first pie first
+  (`filled_per_group()`: 23 of 60 is 10, 10, 3, 0, 0, 0), each in the
+  colour of the slime filling it (`unit_species()`): the slimes in the
+  basket in ascending id order, each filling as many units as its size, so
+  a size-3 slime at 8 of 15 fills the first pie and one slice of the
+  second. A full pie stays full while the basket fills.
+- **Size:** `PIE_RADIUS` 40 level px, `PIE_GAP` 16. At `s3.frame.basket`'s
+  zoom 0.8 a pie is 64 viewport px across, 6.7 mm on the reference phone
+  (`ScreenView.REFERENCE_PX_PER_MM`, about 9.57: 405 ppi, its 1080 px
+  showing the viewport's 648), over the spec's 6 mm (proposed). Six pies
+  take 560 px of basket 3's 668; basket 2's two take 176 of 403. The
+  sizes are constants: a level whose basket is narrower than its row isn't
+  caught by the level checker yet.
+
+**The states** (ux D4 Q10, outlines and pies alike): filling, each unit in
+its slime's colour; the reward swells every outline or pie (1 + 0.25 sin,
+as the outlines did; the fill keeps the slimes' colours, where the build
+used to turn it a flat reward yellow); releasing (fired, slimes still in
+it), a unit empties with each slime let go, from the end of the row; inert
+(fired and empty), nothing is drawn. The build before 24.2 kept every
+outline filled once fired. At bedtime the slimes stay in, so the fill
+stays. The opt-out empties the fill one release at a time (ux D4's 0.5 s
+drain is not built).
+
+**Which slimes are in which basket.** The view reads the slimes in state
+`in_basket` and gives each to the basket whose box is nearest its centre
+(the rule `FrontierSets` weighs them by), only when a basket's weight, the
+level or the simulation changes (`_refresh_units()`), not every frame.
+When the release lets the lowest id go first, the colours of the units
+left move up by one slime: the count is exact, the order of the colours
+follows the slimes still in.
+
+**How it draws.** Outlines: the instanced draws of chunk 22b, now six disc
+draws per basket (one per species colour, the colour still the node's
+`self_modulate`) plus the outlines. Pies: each pie's rim is the outlines'
+instanced ring (3 px, 48 points, antialiased), and its slices (a fan each,
+40 rim points per pie; the empty ones a faint white) and dividers (2 px)
+are one triangle list per basket, one
+`RenderingServer.canvas_item_add_triangle_array` call, built again only
+when its radius or a basket's weight changes, so a frame the celebration
+redraws reuses it. **Placeholder art** until ux-writer draws the pies
+(ux D4 Q10): the colours, rim, dividers, empty-slice tint and sizes.
+
+**Cost** (desktop, `tools/perf_slow.sh --full-speed --seconds=30
+s3-basket-59of60`, 20 `PERF` lines, medians):
+
+| | Before (60 outlines) | After (6 pies) |
+|---|---|---|
+| fps p50 | 994 | 1119 |
+| `frontier` ms a frame | 0.04 | 0.04 |
+| `frontier` at the reward and celebration (t=14.9 s) | 0.21 | 0.19 |
+| draw calls a frame | 84 | 82 |
+| primitives a frame | 19,000 | 8,424 |
+
+The fps and the tick move with the desktop's load between runs; the
+`frontier` part and the draw calls are the drawing's own. Without the
+triangle cache the celebration's peak read 0.32 ms.
+
+**Tests.** `tests/unit/test_quota_display.gd` (the layout: 6, 10, 11, 15,
+60, 23 of 60, a size-3 slime at 8 of 15, a full pie staying full, the cut
+at the quota, a pie's triangles, and on the test level basket 3's row
+within its width and each pie at least 6 mm at `s3.frame.basket`'s zoom,
+basket 2's two pies, basket 1's 6 outlines); `tests/unit/test_frontier_view.gd`
+(the slimes' colours, the release emptying the outlines then none once
+inert, the reward pulse, pies filling slice by slice in the slimes'
+colours, pulsing, emptying, gone). [DoD 9]: `tests/e2e/test_frontier_e2e.gd`.
+
+```sh
+tools/test.sh -gselect=test_quota_display
+tools/test.sh -gselect=test_frontier_view
+```
+
+The screenshot is a movie maker frame (`godot --path . --write-movie
+<dir>/f.png --fixed-fps 60 --quit-after 900 -- --test-mode
+--fixture=s3-basket-59of60 --seed=1`, frame 60, tick 61).
