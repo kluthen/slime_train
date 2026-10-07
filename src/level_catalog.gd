@@ -9,7 +9,6 @@ extends RefCounted
 ## Choosing a level by ID is for test mode, the tools and the tests (debug
 ## builds only): v1 ships one level and the player never chooses one
 ## (TestModeGuard keeps test mode out of release builds).
-# @spec-link [[req_test_level_and_test_mode]]
 
 const LEVELS_DIR := "res://levels/"
 ## The level scene inside a level's folder.
@@ -53,6 +52,7 @@ static func exists(id: String) -> bool:
 
 ## Every level's ID, sorted: the folders of LEVELS_DIR that hold a level
 ## scene.
+# @spec-link [[req_test_level_and_test_mode]]
 static func ids() -> PackedStringArray:
 	var out := PackedStringArray()
 	for name in DirAccess.get_directories_at(LEVELS_DIR):
@@ -63,6 +63,7 @@ static func ids() -> PackedStringArray:
 
 
 ## Why level `id` can't be loaded, or "" when it can.
+# @spec-link [[req_test_level_and_test_mode]]
 static func problem(id: String) -> String:
 	if not is_valid_id(id):
 		return "invalid level id '%s' (expected lowercase letters, digits and hyphens)" % id

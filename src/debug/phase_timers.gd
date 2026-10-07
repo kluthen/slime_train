@@ -26,7 +26,6 @@ extends RefCounted
 ## named by path there like the perf log, so the release preset can leave
 ## src/debug/ out; every simulation the game runs gets it, and the perf
 ## log's PERF line carries the means of its window).
-# @spec-link [[req_platform_and_performance_targets]]
 
 ## The phases that are the slime solver, as means() names them: what 5N
 ## moves to native code (integrate, the pair grid, contacts, rings, terrain
@@ -76,6 +75,7 @@ func clear() -> void:
 
 
 ## Gives `sim` and its slime bodies a timer each (their `phases`).
+# @spec-link [[req_platform_and_performance_targets]]
 static func attach(sim: Simulation) -> void:
 	sim.phases = PhaseTimers.new(Simulation.StepPhase.keys())
 	sim.slimes.phases = PhaseTimers.new(SlimeBodies.TickPhase.keys())
@@ -95,6 +95,7 @@ static func attached(sim: Simulation) -> bool:
 ## `sim`'s mean µs per tick by phase since the last clear(), in tick order,
 ## the slime bodies' passes in place of BODIES_PHASE: {name: µs}. Empty
 ## without timers or a timed tick. The means add up to the whole step.
+# @spec-link [[req_platform_and_performance_targets]]
 static func means(sim: Simulation) -> Dictionary:
 	if not attached(sim) or sim.phases.ticks == 0:
 		return {}

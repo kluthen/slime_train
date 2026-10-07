@@ -7,7 +7,6 @@ extends RefCounted
 ## Adding a string: add its key to TABLE with a value in EVERY language of
 ## LANGUAGES (test_parent_text checks it). Placeholders are {name}, filled by
 ## the caller with String.format().
-# @spec-link [[req_parent_gate_and_access]]
 
 ## The languages, the first being the one used unless the phone is in French.
 const LANGUAGES := ["en", "fr"]
@@ -91,6 +90,7 @@ static var language_override := ""
 
 ## The language of the parent surfaces: "fr" on a phone set to French, else
 ## "en" (or language_override when set; an unknown one is refused loudly).
+# @spec-link [[req_parent_gate_and_access]]
 static func language() -> String:
 	if language_override != "":
 		assert(language_override in LANGUAGES, "ParentText.language_override: unknown language '%s'" % language_override)
@@ -100,6 +100,7 @@ static func language() -> String:
 
 ## The text of `key` in `lang`. An unknown key or language is refused loudly
 ## (a caller's bug) and gives "".
+# @spec-link [[req_parent_gate_and_access]]
 static func text(key: String, lang: String) -> String:
 	if not TABLE.has(key):
 		push_error("ParentText.text: unknown key '%s'" % key)

@@ -69,7 +69,6 @@ extends RefCounted
 ## from take-off to landing), last_short (less than half its reach).
 ## A free slime adds phase, since, call_point, route_back, away (ticks off
 ## screen) and left_alone.
-# @spec-link [[req_platform_and_performance_targets]]
 
 ## The line tag, and each line's kind.
 const TAG := "CENSUS"
@@ -157,6 +156,7 @@ static func parse_args(user_args: PackedStringArray) -> Dictionary:
 ## Takes a census of `sim` for `reason` (BUTTON or TIMER) and prints it.
 ## `fixture`: the test-mode fixture running ("" for none). Returns how many
 ## slimes it logged.
+# @spec-link [[req_platform_and_performance_targets]]
 static func run(sim: Simulation, reason: String, fixture := "") -> int:
 	var out := lines(sim, reason, fixture)
 	for line in out:
@@ -166,6 +166,7 @@ static func run(sim: Simulation, reason: String, fixture := "") -> int:
 
 ## The census of `sim` as its lines: the header, one line per slime (in id
 ## order), the footer (with the time it took).
+# @spec-link [[req_platform_and_performance_targets]]
 static func lines(sim: Simulation, reason: String, fixture := "") -> PackedStringArray:
 	var start_usec := Time.get_ticks_usec()
 	var context := _context(sim)

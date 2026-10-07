@@ -18,7 +18,6 @@ extends Node2D
 ## (one call for every pie), and the celebration and the mark are drawn on a
 ## last child (the overlay), so they stay above them.
 # @spec-link [[req_switch_basket_gate_set]]
-# @spec-link [[rule_signpost_at_every_fork]]
 # @spec-link [[req_level_completion_celebration]]
 
 ## A quota outline's and a quota pie's rim point counts (antialiased; the
@@ -189,6 +188,7 @@ func _paint_overlay() -> void:
 
 ## This frame's drawing: switches, signposts, gates and baskets (the
 ## celebration and the lasting mark are the overlay's, _paint_overlay()).
+# @spec-link [[rule_signpost_at_every_fork]]
 func _paint() -> void:
 	_sync_slots(simulation.level if simulation != null else null)
 	if simulation == null or simulation.level == null:

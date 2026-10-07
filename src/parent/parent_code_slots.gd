@@ -6,7 +6,6 @@ extends Control
 ## only). Used by the code prompt (ParentCodePrompt) and by settings' change
 ## of the code (ParentChangeCode); the surface counts the steps (step()) and
 ## places the row (lay_out()). Its controls ignore the mouse.
-# @spec-link [[req_parent_gate_and_access]]
 
 ## A shake, simulation steps (0.4 s).
 const SHAKE_STEPS := 24
@@ -38,6 +37,7 @@ func _init() -> void:
 
 
 ## Shows `count` dots, from the left.
+# @spec-link [[req_parent_gate_and_access]]
 func show_digits(count: int) -> void:
 	for i in _slots.size():
 		_slots[i].color = SLOT_FILLED if i < count else SLOT_EMPTY
@@ -52,6 +52,7 @@ func filled() -> int:
 
 
 ## Starts a shake (a wrong or mismatched entry).
+# @spec-link [[req_parent_gate_and_access]]
 func shake() -> void:
 	_shake_left = SHAKE_STEPS
 

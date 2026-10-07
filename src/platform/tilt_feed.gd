@@ -19,7 +19,6 @@ extends RefCounted
 ## the reading pushed before, at most CHANGE_DEGREES and one tick off.
 ##
 ## Tilt is never a touch: it doesn't restart the idle clock (Camera.watch()).
-# @spec-link [[req_tilt_input]]
 
 ## The smallest change of the in-plane angle worth a new input, degrees
 ## (proposed: well under the 10° dead zone, above most sensor noise).
@@ -38,6 +37,7 @@ var _last := {}
 ## Reads the sensor and, when the reading is new for `sim` (another
 ## simulation, a change of CHANGE_DEGREES or more, or flat or not), pushes it
 ## as a tilt input for the next tick. Returns whether it pushed.
+# @spec-link [[req_tilt_input]]
 func feed(sim: Simulation) -> bool:
 	var gravity: Vector3 = sensor.call()
 	if gravity == Vector3.ZERO:
@@ -54,6 +54,7 @@ func feed(sim: Simulation) -> bool:
 ## Whether reading `after` differs enough from `before` (TiltSensor.reading()
 ## dictionaries) to be pushed: flat or not changed, or the angle moved by
 ## CHANGE_DEGREES or more (across ±180° too).
+# @spec-link [[req_tilt_input]]
 static func changed(before: Dictionary, after: Dictionary) -> bool:
 	if before.is_empty() or before["flat"] != after["flat"]:
 		return true

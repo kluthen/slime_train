@@ -11,7 +11,6 @@ extends Path2D
 ## The outline must not cross itself. Straight parts stay two points; curves
 ## are subdivided until each step turns less than `bake_tolerance_degrees`,
 ## which stays smooth at the closest zoom the game reaches (4x).
-# @spec-link [[req_loop_and_world]]
 
 ## The fill. Placeholder: black stone.
 @export var fill_color := Color.BLACK:
@@ -54,6 +53,7 @@ func _ready() -> void:
 
 
 ## Bakes the curve into the fill, the outline and the collision polygon.
+# @spec-link [[req_loop_and_world]]
 func bake() -> void:
 	if not is_node_ready():
 		return
@@ -87,6 +87,7 @@ func bake() -> void:
 
 
 ## The closed outline of `curve` as a polygon (the closing point dropped).
+# @spec-link [[req_loop_and_world]]
 static func bake_polygon(curve: Curve2D, tolerance_degrees: float) -> PackedVector2Array:
 	if curve == null or curve.point_count < 3:
 		return PackedVector2Array()

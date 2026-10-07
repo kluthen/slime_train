@@ -15,8 +15,6 @@ extends Area2D
 ## level's assumption) drops them onto the onward route `outlet_before` px
 ## before the slide entrance its target gate retires; "point" drops them at
 ## `outlet_point`.
-# @spec-link [[req_interactive_objects_general]]
-# @spec-link [[req_switch_basket_gate_set]]
 
 const COLOR := Color(1.0, 1.0, 1.0)
 
@@ -31,6 +29,7 @@ const COLOR := Color(1.0, 1.0, 1.0)
 		size = value
 		_resize()
 ## The weight that fills it (a size-3 slime counts 3).
+# @spec-link [[req_switch_basket_gate_set]]
 @export_range(1, 200) var quota := 1:
 	set(value):
 		quota = value
@@ -73,11 +72,14 @@ func tap_target() -> Dictionary:
 
 
 ## Events it can trigger a rule with.
+# @spec-link [[req_interactive_objects_general]]
 func rule_events() -> PackedStringArray:
 	return PackedStringArray(["full"])
 
 
 ## Its rule, in the shared format: when full, fire the target.
+# @spec-link [[req_interactive_objects_general]]
+# @spec-link [[req_switch_basket_gate_set]]
 func rules() -> Array[Rule]:
 	var out: Array[Rule] = []
 	if not on_full_object.is_empty():

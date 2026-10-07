@@ -13,8 +13,6 @@ extends Path2D
 ##
 ## Segments join end to start; a return route starts where its section's
 ## outgoing route ends and ends at the start of the loop.
-# @spec-link [[req_loop_and_world]]
-# @spec-link [[rule_return_route_per_section]]
 
 const ROUTE_COLORS := {"outgoing": Color(1.0, 0.8, 0.3, 0.7), "return": Color(0.3, 0.9, 1.0, 0.7)}
 
@@ -27,6 +25,7 @@ const ROUTE_COLORS := {"outgoing": Color(1.0, 0.8, 0.3, 0.7), "return": Color(0.
 ## The section the segment belongs to (1, 2...).
 @export_range(1, 99) var section := 1
 ## "outgoing" or "return".
+# @spec-link [[rule_return_route_per_section]]
 @export_enum("outgoing", "return") var kind := "outgoing":
 	set(value):
 		kind = value
@@ -34,6 +33,7 @@ const ROUTE_COLORS := {"outgoing": Color(1.0, 0.8, 0.3, 0.7), "return": Color(0.
 ## For a return route: the gate whose opening retires it (the section's
 ## frontier gate). Empty for an outgoing segment, and for a last section's
 ## return route that is never retired.
+# @spec-link [[rule_return_route_per_section]]
 @export var gate_id := ""
 ## Draw the route (greybox); off for the real art.
 @export var show_route := true:
@@ -57,6 +57,7 @@ func _draw() -> void:
 
 
 ## The route as a polyline in the coordinates of `level`.
+# @spec-link [[req_loop_and_world]]
 func level_points(level: Level) -> PackedVector2Array:
 	if curve == null:
 		return PackedVector2Array()

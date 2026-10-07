@@ -7,8 +7,6 @@ extends Node2D
 ##
 ## At load, the Level turns the segments into LoopData (plain data in level
 ## pixels) that the simulation uses; see src/sim/loop_data.gd.
-# @spec-link [[req_loop_and_world]]
-# @spec-link [[rule_return_route_per_section]]
 
 ## The loop's stable ID; by convention `start.loop`.
 @export var stable_id := "start.loop"
@@ -28,6 +26,8 @@ func segment_nodes() -> Array[LoopSegment]:
 
 
 ## The loop as plain data, in the coordinates of `level`.
+# @spec-link [[req_loop_and_world]]
+# @spec-link [[rule_return_route_per_section]]
 func build_data(level: Level) -> LoopData:
 	var loop_data := LoopData.new(stable_id)
 	for segment in segment_nodes():

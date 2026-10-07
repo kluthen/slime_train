@@ -15,8 +15,6 @@ extends Area2D
 ## How it sends the flow: `trapdoor`, a box of the onward path that is solid
 ## while the switch sends the flow onward and opens, dropping the slimes that
 ## walk onto it into the basket, while it is flipped.
-# @spec-link [[req_interactive_objects_general]]
-# @spec-link [[req_switch_basket_gate_set]]
 
 const COLOR := Color(1.0, 0.6, 0.2)
 
@@ -31,6 +29,7 @@ const COLOR := Color(1.0, 0.6, 0.2)
 		size = value
 		_resize()
 ## The basket it sends the flow into when flipped.
+# @spec-link [[req_switch_basket_gate_set]]
 @export var basket_id := ""
 ## The trapdoor: a box relative to the switch's position, in level pixels
 ## (solid while the flow goes onward, open while flipped). Empty: none.
@@ -66,6 +65,7 @@ func tap_target() -> Dictionary:
 
 
 ## The stable IDs it points at, by property (see Level): its basket.
+# @spec-link [[req_interactive_objects_general]]
 func references() -> Dictionary:
 	return {"basket_id": basket_id}
 

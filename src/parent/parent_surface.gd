@@ -16,13 +16,13 @@ extends Control
 ##   every frame while open).
 ## To close or move on, a surface calls gate.close() or gate.open_state().
 ## Its controls ignore the mouse: every press comes through the gate.
-# @spec-link [[req_parent_gate_and_access]]
 
 ## The gate that opened this surface (set by ParentGate.add_surface).
 var gate: ParentGate = null
 
 
 ## The gate entered this surface's state.
+# @spec-link [[req_parent_gate_and_access]]
 func opened() -> void:
 	pass
 
@@ -34,6 +34,7 @@ func covers(_at: Vector2) -> bool:
 
 
 ## A press on the surface at screen point `at`.
+# @spec-link [[req_parent_gate_and_access]]
 func press(_at: Vector2) -> void:
 	pass
 

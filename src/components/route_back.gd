@@ -8,9 +8,6 @@ extends Path2D
 ##
 ## It must start inside the branch it serves, end on the loop, and only go
 ## down, so gravity leads back (checked by tests/e2e/test_test_level.gd).
-# @spec-link [[rule_exploration_branch_has_route_back]]
-# @spec-link [[rule_no_dead_ends]]
-# @spec-link [[rule_gravity_leads_back_to_loop]]
 
 const COLOR := Color(0.4, 1.0, 0.5, 0.7)
 
@@ -20,6 +17,7 @@ const COLOR := Color(0.4, 1.0, 0.5, 0.7)
 		stable_id = value
 		queue_redraw()
 ## The stable ID of the ExplorationBranch it serves.
+# @spec-link [[rule_exploration_branch_has_route_back]]
 @export var serves := ""
 ## Draw the route (greybox).
 @export var show_route := true:
@@ -43,6 +41,8 @@ func _draw() -> void:
 
 
 ## The route as a polyline in the coordinates of `level`.
+# @spec-link [[rule_gravity_leads_back_to_loop]]
+# @spec-link [[rule_no_dead_ends]]
 func level_points(level: Level) -> PackedVector2Array:
 	if curve == null:
 		return PackedVector2Array()

@@ -6,9 +6,6 @@ extends Area2D
 ## it (Camera, "Framing zones"). Level.build() hands it to the simulation as
 ## LevelData.framing_zones. Put one wherever the view needs to be wider: a
 ## branch, a high step, a place the child must see to understand.
-# @spec-link [[req_level_design_rules]]
-# @spec-link [[req_camera_rails_and_framing]]
-# @spec-link [[rule_framing_zone_wherever_wider_view_needed]]
 
 const COLOR := Color(0.5, 0.8, 1.0, 0.5)
 
@@ -24,6 +21,7 @@ const COLOR := Color(0.5, 0.8, 1.0, 0.5)
 		_resize()
 ## The camera zoom inside the zone, as Camera2D.zoom: 1 is normal play,
 ## below 1 shows more (0.8 shows 25% more), above 1 closes in.
+# @spec-link [[req_camera_rails_and_framing]]
 @export_range(0.25, 2.0, 0.05) var zoom := 1.0:
 	set(value):
 		zoom = value
@@ -52,6 +50,8 @@ func _draw() -> void:
 
 
 ## Whether `offset` (from its position) is inside its box.
+# @spec-link [[rule_framing_zone_wherever_wider_view_needed]]
+# @spec-link [[req_level_design_rules]]
 func contains(offset: Vector2) -> bool:
 	return PlaceholderArt.box_contains(size, offset)
 

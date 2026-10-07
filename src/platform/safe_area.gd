@@ -19,7 +19,6 @@ extends Node
 ##
 ## The tap zones (the parent zone, the edge strips) stay measured on the
 ## screen's edges (req_controls_tap_zones), not on the safe area.
-# @spec-link [[req_controls_tap_zones]]
 # @spec-link [[req_parent_gate_and_access]]
 
 ## The phone's services.
@@ -64,6 +63,7 @@ func refresh() -> void:
 
 
 ## Gives `view` the insets (its safe_rect() follows its own size).
+# @spec-link [[req_controls_tap_zones]]
 func apply_to(view: ScreenView) -> void:
 	view.set_safe_insets(inset_start, inset_end)
 
@@ -89,5 +89,6 @@ static func in_viewport(safe_area: Rect2i, window: Rect2i, to_window: Transform2
 
 ## The insets of `safe` from the edges of a viewport of `view_size`: [left and
 ## top, right and bottom], viewport pixels.
+# @spec-link [[req_controls_tap_zones]]
 static func insets_of(safe: Rect2, view_size: Vector2) -> Array[Vector2]:
 	return [safe.position, view_size - safe.end]

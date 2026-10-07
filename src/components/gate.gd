@@ -8,9 +8,6 @@ extends Node2D
 ## opens when its basket fires (a rule) and stays open. `entrance_lid` shuts
 ## the old slide entrance once it is open, so the flow carries on through
 ## the gate. The behaviour is FrontierSets' (src/sim/frontier_sets.gd).
-# @spec-link [[req_interactive_objects_general]]
-# @spec-link [[req_switch_basket_gate_set]]
-# @spec-link [[rule_gate_opens_via_switch_basket_set]]
 
 const COLOR := Color(0.85, 0.3, 0.3)
 
@@ -43,5 +40,8 @@ func _draw() -> void:
 
 
 ## Actions a rule can ask of it.
+# @spec-link [[req_interactive_objects_general]]
+# @spec-link [[req_switch_basket_gate_set]]
+# @spec-link [[rule_gate_opens_via_switch_basket_set]]
 func rule_actions() -> PackedStringArray:
 	return PackedStringArray(["open"])

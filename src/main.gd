@@ -139,7 +139,6 @@ var slime_renderer: SlimeRenderer = null
 ## Draws the tap ripples and the slimes' facing, above the slimes.
 var tap_feedback: TapFeedback = null
 ## Draws the frontier sets' state and the celebration (chunk 14).
-# @spec-link [[req_switch_basket_gate_set]]
 var frontier_view: FrontierView = null
 ## Draws the edge buttons, in screen pixels on the HUD layer.
 var edge_buttons: EdgeButtons = null
@@ -177,7 +176,6 @@ var autosave := Autosave.new()
 ## The app's parent store (the parent code), or null: no parent layer at
 ## all. Like save_store, the main scene gets the default (user://parent.json)
 ## in _ready; a game a test adds gets the store the test gives it, or none.
-# @spec-link [[req_parent_gate_and_access]]
 var parent_store: ParentStore = null
 ## The parent layer (parent buttons and surfaces), or null without a store.
 var parent_gate: ParentGate = null
@@ -187,16 +185,13 @@ var quit_app := Callable()
 ## The phone's services (screen pinning, the back gesture, the lock screen):
 ## the Android plugin's in an Android build, else the desktop stub, whose
 ## calls do nothing. Tests put a fake first, before the game enters the tree.
-# @spec-link [[req_screen_pinning]]
 var platform: PhonePlatform = PhonePlatform.for_this_build()
 ## Screen pinning at launch and the back gesture, through `platform`.
 var screen_pinning: ScreenPinning = null
 ## The display's safe area through `platform`, handed to the view (sync_view()).
-# @spec-link [[req_parent_gate_and_access]]
 var safe_area: SafeArea = null
 ## The phone's tilt sensor, fed to the simulation in normal play only (test
 ## mode's script is its only tilt). Tests replace its `sensor`.
-# @spec-link [[req_tilt_input]]
 var tilt_feed := TiltFeed.new()
 ## The load meter: the crowd detail's ceiling in `auto` (see the class doc).
 ## A child of the game in _ready; tests may drive its clock.
@@ -720,7 +715,6 @@ func _first_level_id(user_args: PackedStringArray) -> String:
 
 ## Loads level `id` (LevelCatalog) in place of the loaded one. Returns the
 ## errors; on an error the loaded level stays.
-# @spec-link [[req_loop_and_world]]
 func _load_level(id: String) -> PackedStringArray:
 	var opened := _open_level(id)
 	if opened["errors"].is_empty():

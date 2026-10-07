@@ -19,7 +19,6 @@ extends RefCounted
 ## the screen's plane for that angle to mean anything: the screen within
 ## FLAT_DEGREES of horizontal (face up or face down), or no gravity to speak
 ## of (no sensor, free fall).
-# @spec-link [[req_tilt_input]]
 
 ## The screen within this many degrees of horizontal counts as flat (the
 ## in-plane part of gravity under sin(FLAT_DEGREES) of the whole; proposed,
@@ -33,6 +32,7 @@ const MIN_MAGNITUDE := 1.0
 ## The reading for `gravity` (Input.get_accelerometer()): {"degrees": the
 ## in-plane angle (0 when flat), "flat": whether the phone lies flat}, the
 ## arguments of Simulation.tilt().
+# @spec-link [[req_tilt_input]]
 static func reading(gravity: Vector3) -> Dictionary:
 	if is_flat(gravity):
 		return {"degrees": 0.0, "flat": true}
@@ -42,6 +42,7 @@ static func reading(gravity: Vector3) -> Dictionary:
 ## The angle of `gravity` in the screen's plane from the screen's down,
 ## degrees in -180 to 180, positive when the phone's right edge dips.
 ## Meaningless when the phone is flat (see is_flat()).
+# @spec-link [[req_tilt_input]]
 static func degrees_of(gravity: Vector3) -> float:
 	return rad_to_deg(atan2(gravity.x, -gravity.y))
 

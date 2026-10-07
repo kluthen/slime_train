@@ -10,18 +10,19 @@ extends RefCounted
 ##     tell a restart (a new epoch) from time passing (see Session).
 ## The game root reads it before every tick in normal play; tests replace it
 ## with anything that has a now() returning a reading.
-# @spec-link [[req_session_lifecycle]]
 
 static var _epoch := ""
 
 
 ## The clocks now.
+# @spec-link [[req_session_lifecycle]]
 func now() -> Dictionary:
 	return Session.reading(int(Time.get_unix_time_from_system() * 1000.0), floori(Time.get_ticks_usec() / 1000.0), epoch())
 
 
 ## This process's epoch: its ID and when it started, wall clock (unique
 ## enough across restarts).
+# @spec-link [[req_session_lifecycle]]
 static func epoch() -> String:
 	if _epoch.is_empty():
 		var started_ms := int(Time.get_unix_time_from_system() * 1000.0) - Time.get_ticks_msec()

@@ -26,7 +26,6 @@ extends Node2D
 ##
 ## Each redraw of the owner: set the shape (rebuilt only when its arguments
 ## change), clear(), add() each copy's place, then commit().
-# @spec-link [[req_platform_and_performance_targets]]
 
 ## draw_circle()'s segment count (canvas_item_add_ellipse in Godot 4.7): a
 ## disc is DISC_SEGMENTS + 1 rim points, the last closing the rim, then the
@@ -153,6 +152,7 @@ func clear() -> void:
 
 
 ## Adds a copy of the shape at `at` (its origin moved there).
+# @spec-link [[req_platform_and_performance_targets]]
 func add(at: Vector2) -> void:
 	if instance_count == _capacity:
 		_grow()
@@ -171,6 +171,7 @@ func instance_at(k: int) -> Vector2:
 
 ## Hands the copies to the MultiMesh (the whole buffer, the visible count)
 ## and redraws this node, so its canvas item's bounds follow them.
+# @spec-link [[req_platform_and_performance_targets]]
 func commit() -> void:
 	if _allocated != _capacity:
 		RenderingServer.multimesh_allocate_data(_multimesh, _capacity, RenderingServer.MULTIMESH_TRANSFORM_2D)

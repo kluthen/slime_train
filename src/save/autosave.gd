@@ -17,7 +17,6 @@ extends RefCounted
 ## The game also saves when its root leaves the tree (quitting).
 ##
 ## Test mode turns it off unless the run configuration says "autosave": true.
-# @spec-link [[req_persistence_and_saves]]
 
 const INTERVAL_SECONDS := 15.0
 ## Wall-clock seconds are sums of floats: 130.2 - 115.2 is a hair under 15.
@@ -37,6 +36,7 @@ func start(now: float) -> void:
 
 
 ## Whether a save is due at `now`.
+# @spec-link [[req_persistence_and_saves]]
 func due(now: float) -> bool:
 	return enabled and now - _last >= interval - _SLACK
 
@@ -48,6 +48,7 @@ func saved(now: float) -> void:
 
 ## Whether notification `what` means the app is going to the background (or
 ## away): save now.
+# @spec-link [[req_persistence_and_saves]]
 static func is_background(what: int) -> bool:
 	return what in [Node.NOTIFICATION_APPLICATION_PAUSED, Node.NOTIFICATION_APPLICATION_FOCUS_OUT,
 			Node.NOTIFICATION_WM_CLOSE_REQUEST, Node.NOTIFICATION_WM_GO_BACK_REQUEST]

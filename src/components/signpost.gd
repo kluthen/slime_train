@@ -5,8 +5,6 @@ extends Node2D
 ## (in v1, each frontier switch) and shows which way the loop goes. Not
 ## interactive. Placeholder: a labelled post until the art; the game draws
 ## its arrow the way its switch sends the flow (FrontierView).
-# @spec-link [[req_interactive_objects_general]]
-# @spec-link [[rule_signpost_at_every_fork]]
 
 const COLOR := Color(0.8, 0.65, 0.4)
 
@@ -16,6 +14,7 @@ const COLOR := Color(0.8, 0.65, 0.4)
 		stable_id = value
 		queue_redraw()
 ## The stable ID of the Switch it explains.
+# @spec-link [[rule_signpost_at_every_fork]]
 @export var switch_id := ""
 
 
@@ -30,5 +29,6 @@ func _draw() -> void:
 
 
 ## The stable IDs it points at, by property (see Level): its switch.
+# @spec-link [[req_interactive_objects_general]]
 func references() -> Dictionary:
 	return {"switch_id": switch_id}

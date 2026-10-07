@@ -20,7 +20,6 @@ extends RefCounted
 ##
 ## Rects are window pixels: the window is edge to edge on the phone, so they
 ## are the Android decor view's coordinates too.
-# @spec-link [[req_screen_pinning]]
 
 ## Emitted once per confirm_credential(): whether the device's lock screen
 ## (PIN, pattern, password or biometric) was confirmed.
@@ -56,18 +55,21 @@ func is_phone() -> bool:
 
 
 ## Asks Android to pin the screen (it shows its own confirmation, every time).
+# @spec-link [[req_screen_pinning]]
 func request_pinning() -> void:
 	if _singleton != null:
 		_singleton.startPinning()
 
 
 ## Ends screen pinning, if the screen is pinned.
+# @spec-link [[req_screen_pinning]]
 func stop_pinning() -> void:
 	if _singleton != null:
 		_singleton.stopPinning()
 
 
 ## Whether the screen is pinned now (the parent may have declined, or unpinned).
+# @spec-link [[req_screen_pinning]]
 func is_pinned() -> bool:
 	return _singleton != null and _singleton.isPinned()
 

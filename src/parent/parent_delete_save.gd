@@ -10,7 +10,6 @@ extends Control
 ## back to settings, nothing deleted. The parent store (the code, the wrong
 ## tries) is not a level save and stays. Its controls ignore the mouse:
 ## settings give it its presses.
-# @spec-link [[req_parent_gate_and_access]]
 # @spec-link [[req_persistence_and_saves]]
 
 ## The confirmation text's height, mm (two lines).
@@ -42,6 +41,7 @@ func _init(owning_settings: ParentSettings) -> void:
 
 
 ## Asks to confirm the delete of level `id`'s save (`label`: its name).
+# @spec-link [[req_parent_gate_and_access]]
 func begin(id: String, label: String) -> void:
 	level_id = id
 	level_label = label
@@ -49,6 +49,7 @@ func begin(id: String, label: String) -> void:
 
 
 ## A press on the screen: yes deletes, no goes back.
+# @spec-link [[req_parent_gate_and_access]]
 func press(at: Vector2) -> void:
 	if yes_rect().has_point(at):
 		_delete()

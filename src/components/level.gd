@@ -18,10 +18,6 @@ extends Node2D
 ## `rule_events()`, `rule_actions()` and `rules()` (see Rule), and
 ## `tap_target()` ({"kind": a TapDispatcher.KIND_*, "size": the drawn box,
 ## centred on the component}) for what a tap can land on.
-# @spec-link [[req_loop_and_world]]
-# @spec-link [[req_interactive_objects_general]]
-# @spec-link [[rule_released_level_stable_with_migration]]
-# @spec-link [[req_level_design_rules]]
 
 ## The group every level component joins, to be found by the registry.
 const THINGS_GROUP := &"level_things"
@@ -30,6 +26,7 @@ const THINGS_GROUP := &"level_things"
 @export var level_id := ""
 ## The level's version, recorded in saves. Bump it on any change to a
 ## released level, which then needs a save migration (D72).
+# @spec-link [[rule_released_level_stable_with_migration]]
 @export_range(1, 1000) var level_version := 1
 ## Extra rules held by the level itself. Most rules are held by the object
 ## that triggers them (a Basket's on_full_* properties).
@@ -42,6 +39,7 @@ var load_errors := PackedStringArray()
 ## The level as plain data, for the simulation. Built by build().
 var data: LevelData = null
 ## The Loop component.
+# @spec-link [[req_loop_and_world]]
 var loop: Loop = null
 
 
@@ -52,6 +50,7 @@ func _ready() -> void:
 
 ## Builds the registry and the plain data, and checks them. Returns the
 ## problems found (also kept in load_errors). Doesn't need the scene tree.
+# @spec-link [[req_level_design_rules]]
 func build() -> PackedStringArray:
 	var errors := PackedStringArray()
 	registry = {}
@@ -138,6 +137,7 @@ func ids() -> PackedStringArray:
 
 
 ## Every rule: the level's own and those its components hold.
+# @spec-link [[req_interactive_objects_general]]
 func all_rules() -> Array[Rule]:
 	var out: Array[Rule] = []
 	out.append_array(rules)

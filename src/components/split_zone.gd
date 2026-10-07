@@ -5,8 +5,6 @@ extends Area2D
 ## base slimes. The start of the loop carries one (rule 4). The component
 ## marks the box; the splitting is SplitZones' (src/sim/split_zones.gd), in
 ## the simulation.
-# @spec-link [[rule_start_carries_split_zone]]
-# @spec-link [[req_interactive_objects_general]]
 
 const COLOR := Color(1.0, 0.4, 0.9)
 
@@ -35,6 +33,8 @@ func _draw() -> void:
 
 
 ## Whether `offset` (from its position) is inside its box.
+# @spec-link [[req_interactive_objects_general]]
+# @spec-link [[rule_start_carries_split_zone]]
 func contains(offset: Vector2) -> bool:
 	return PlaceholderArt.box_contains(size, offset)
 

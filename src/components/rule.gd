@@ -12,7 +12,6 @@ extends Resource
 ## objects must be in the level, the "when" object must emit the event
 ## (its rule_events()) and the "then" object must accept the action (its
 ## rule_actions()). Executing rules comes with chunk 14.
-# @spec-link [[req_interactive_objects_general]]
 
 ## The stable ID of the object whose event triggers the rule.
 @export var when_object := ""
@@ -26,6 +25,7 @@ extends Resource
 
 ## A rule: when object `when_id` sends `event`, object `then_id` does
 ## `action`.
+# @spec-link [[req_interactive_objects_general]]
 static func make(when_id: String, event: String, then_id: String, action: String) -> Rule:
 	var rule := Rule.new()
 	rule.when_object = when_id
@@ -50,6 +50,7 @@ func to_dict() -> Dictionary:
 
 ## What is wrong with the rule against `registry` (stable ID -> node), as
 ## readable errors; empty when both ends exist and understand it.
+# @spec-link [[req_interactive_objects_general]]
 func validate(registry: Dictionary) -> PackedStringArray:
 	var errors := PackedStringArray()
 	var label := "rule \"when %s %s, %s %s\"" % [when_object, when_event, then_object, then_action]
