@@ -189,7 +189,7 @@ func _reweigh(sim: Simulation) -> void:
 ## from the colours of the view's pie triangles, when every pie has 10
 ## slices (QuotaDisplay.PIE_SEGMENTS / 10 rim points a slice).
 func _slices(view: FrontierView) -> Array:
-	var triangles := view.pie_triangles()
+	var triangles := view.pie_triangles(Frontier.BASKET)
 	var per_slice := ceili(float(QuotaDisplay.PIE_SEGMENTS) / QuotaDisplay.PIE_SLICES) + 2
 	var out := []
 	var at := 0
@@ -343,7 +343,7 @@ func test_the_reward_pulses_every_pie_and_the_release_empties_them_then_they_are
 	# 1 + 0.25 * sin(5 * 0.3): the first slice's rim point from its pie's centre.
 	var swollen := QuotaDisplay.PIE_RADIUS * (1.0 + 0.25 * sin(1.5))
 	var first_pie := QuotaDisplay.centres(Frontier.BASKET_BOX, 20)[0]
-	assert_almost_eq(view.pie_triangles().points[1].distance_to(first_pie), swollen, 0.01,
+	assert_almost_eq(view.pie_triangles(Frontier.BASKET).points[1].distance_to(first_pie), swollen, 0.01,
 			"the slices with them")
 	sim.object_states[Frontier.BASKET]["phase"] = FrontierSets.FIRED
 	for k in 3:
@@ -357,5 +357,5 @@ func test_the_reward_pulses_every_pie_and_the_release_empties_them_then_they_are
 		sim.slimes.set_state(slime_id, SlimeBodies.TRAIN)
 	_reweigh(sim)
 	await _redraws_over_frames(drawn[1])
-	assert_eq(view.pie_triangles().points.size(), 0, "inert: the pies are gone")
+	assert_eq(view.pie_triangles(Frontier.BASKET).points.size(), 0, "inert: the pies are gone")
 	assert_eq(rims.instance_count, 0)

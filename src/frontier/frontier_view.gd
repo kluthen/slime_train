@@ -75,9 +75,12 @@ var _ways_gates: Array = []
 # @spec-link [[req_platform_and_performance_targets]]
 var _slots := {}
 var _slots_level: LevelData = null
-## Every pie's slices and dividers this redraw, drawn in one call.
+## Per basket id with pies, its pies' slices and dividers, drawn in one call
+## (_pies()), and what they were built from: [the radius, _units_key]. They
+## are rebuilt only when that changes, so a frame the celebration redraws
+## reuses them.
 # @spec-link [[req_platform_and_performance_targets]]
-var _pie_triangles := QuotaDisplay.Triangles.new()
+var _pie_draws := {}
 ## Per basket id, the species filling each unit of its quota
 ## (QuotaDisplay.unit_species(), -1 empty), from the slimes in it; worked
 ## out again only when _units_key (the simulation, the level and every
@@ -210,12 +213,8 @@ func _paint() -> void:
 		if state.get("entrance_closed", false) and (gate["lid"] as Rect2).has_area():
 			draw_rect(gate["lid"], DOOR_COLOR)
 	_refresh_units()
-	_pie_triangles.clear()
 	for id in level.baskets:
 		_basket(id, level.baskets[id], states.get(id, {}))
-	if not _pie_triangles.indices.is_empty():
-		RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), _pie_triangles.indices,
-				_pie_triangles.points, _pie_triangles.colors)
 
 
 ## Makes the baskets' instanced draws (_slots) for `level` (null: none) when
@@ -230,6 +229,7 @@ func _sync_slots(level: LevelData) -> void:
 			remove_child(node)
 			node.queue_free()
 	_slots.clear()
+	_pie_draws.clear()
 	_slots_level = level
 	if level == null:
 		return
@@ -256,9 +256,10 @@ func basket_slots(id: String) -> Array:
 	return _slots[id]
 
 
-## Every pie's slices and dividers the last redraw drew (see _pie_triangles).
-func pie_triangles() -> QuotaDisplay.Triangles:
-	return _pie_triangles
+## Basket `id`'s pie slices and dividers as last drawn (see _pie_draws);
+## empty when it has no pies or showed none.
+func pie_triangles(id: String) -> QuotaDisplay.Triangles:
+	return _pie_draws[id][1] if _pie_draws.has(id) else QuotaDisplay.Triangles.new()
 
 
 ## Works out _units again when the simulation, the level or a basket's weight
@@ -379,8 +380,8 @@ func _arrow(from: Vector2, way: Vector2) -> void:
 ## (its reach) stays clear of the next slot's disc (at rest the gap is
 ## OUTLINE_GAP + OUTLINE_RADIUS minus the outline's half width and feather,
 ## about 6 px). The reward pulse swells them until it doesn't, and then they
-## are drawn slot by slot, as before. A pie's slices go to _pie_triangles,
-## its rim to the rims' instanced draw.
+## are drawn slot by slot, as before. A pie's slices and dividers are one
+## triangle list (_pie_draws), its rim in the rims' instanced draw.
 # @spec-link [[req_switch_basket_gate_set]]
 # @spec-link [[req_platform_and_performance_targets]]
 func _basket(id: String, basket: Dictionary, state: Dictionary) -> void:
@@ -391,14 +392,16 @@ func _basket(id: String, basket: Dictionary, state: Dictionary) -> void:
 	for node: ShapeInstances in draws:
 		node.clear()
 	var inert := phase == FrontierSets.FIRED and (units.is_empty() or units[0] < 0)
-	if not inert:
+	if inert:
+		_pie_draws.erase(id)
+	else:
 		var pulse := 1.0
 		if phase == FrontierSets.REWARD:
 			pulse += PULSE_SWELL * sin(float(simulation.tick - int(state.get("since", 0))) * PULSE_RATE)
 		var radius := QuotaDisplay.radius(quota) * pulse
 		var centres := QuotaDisplay.centres(basket["box"], quota)
 		if QuotaDisplay.uses_pies(quota):
-			_pies(quota, centres, radius, units, draws[Species.COUNT])
+			_pies(id, quota, centres, radius, units, draws[Species.COUNT])
 		else:
 			_outlines(quota, centres, radius, units, draws)
 	for node: ShapeInstances in draws:
@@ -429,16 +432,27 @@ func _outlines(quota: int, centres: PackedVector2Array, radius: float, units: Pa
 
 ## A basket's quota pies at `centres`, of radius `radius`, slice k (counted
 ## across the pies) filled by species `units[k]` (-1: empty): the slices and
-## dividers into _pie_triangles, the rims into `rims`.
-func _pies(quota: int, centres: PackedVector2Array, radius: float, units: PackedInt32Array,
-		rims: ShapeInstances) -> void:
+## dividers as one triangle list (built again only when the radius or
+## _units_key changed, _pie_draws), the rims into `rims`.
+func _pies(id: String, quota: int, centres: PackedVector2Array, radius: float,
+		units: PackedInt32Array, rims: ShapeInstances) -> void:
 	rims.set_ring(radius, QuotaDisplay.PIE_RIM_WIDTH, PIE_RIM_SEGMENTS, true)
 	var slices := QuotaDisplay.groups(quota)
-	var first := 0
 	for g in slices.size():
-		_pie_triangles.add_pie(centres[g], radius, slices[g], units, first)
 		rims.add(centres[g])
-		first += slices[g]
+	var key := [radius, _units_key]
+	if not _pie_draws.has(id) or _pie_draws[id][0] != key:
+		var triangles := QuotaDisplay.Triangles.new()
+		if _pie_draws.has(id):
+			triangles = _pie_draws[id][1]
+			triangles.clear()
+		var first := 0
+		for g in slices.size():
+			triangles.add_pie(centres[g], radius, slices[g], units, first)
+			first += slices[g]
+		_pie_draws[id] = [key, triangles]
+	var drawn: QuotaDisplay.Triangles = _pie_draws[id][1]
+	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), drawn.indices, drawn.points, drawn.colors)
 
 
 ## A burst of rings over the view, from the tick it began (deterministic),
