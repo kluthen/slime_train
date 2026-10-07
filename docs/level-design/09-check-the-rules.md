@@ -71,7 +71,7 @@ rule 19  MANUAL  A framing zone wherever a wider view is needed
          note: the level has no framing zone
 ...
 rule 23  MANUAL  No spot where many slimes gather awake
-         manual: the result comes from the level's own scripted runs, which this checker can't play: the level's played test (from fresh, filling every basket, each basket's fire-and-drain; its rule 23 line, ClusterWatch) and tools/level.sh bench --level=zz-tutorial (largest_cluster, above_limit_s, longest_above_s on each RESULT line); the largest awake cluster above 20 slimes for more than 5 s in a row fails (stress-* fixtures excepted). By eye: keep apart a bowl or dip next to a basket, an outlet releasing into a crowd, a narrow ledge where the train queues, and a sleeper shelf's landing spot next to any of these
+         manual: the result comes from the level's own scripted runs, which this checker can't play: the level's played test (from fresh, filling every basket, each basket's fire-and-drain; its rule 23 line, ClusterWatch) and tools/level.sh bench --level=zz-tutorial (largest_cluster, above_limit_s, longest_above_s on each RESULT line); the largest awake cluster, the slimes inside a basket's box left out (a basket's own fill doesn't count, the pile outside it does), above 20 slimes for more than 5 s in a row fails (stress-* fixtures excepted). By eye: keep apart a bowl or dip next to a basket, an outlet releasing into a crowd, a narrow ledge where the train queues, and a sleeper shelf's landing spot next to any of these
          note: the limit is proposed, to calibrate (O107): ClusterWatch.LIMIT 20 slimes, HOLD_SECONDS 5 s
 check_level: 21 PASS, 0 FAIL, 2 MANUAL, 0 N/A, 0 warnings, 5.0 s
 ```
@@ -85,7 +85,8 @@ the level, which the checker can't do: its line is always MANUAL and says
 where the result is. Like rule 12, whose proof is the level's played test,
 rule 23's verdict is **your level's test**: it plays section 1 from fresh
 through its basket's fire-and-drain, watches the largest awake cluster
-(`ClusterWatch`), prints its numbers and fails when it stays above 20
+(`ClusterWatch`; a basket's own fill left out: the slimes whose centre is
+inside a basket's box don't count, nor join two piles), prints its numbers and fails when it stays above 20
 slimes for more than 5 s in a row:
 
 ```sh

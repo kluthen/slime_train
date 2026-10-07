@@ -65,8 +65,8 @@ extends SceneTree
 ## the solver's candidate pairs (pairs: SlimeBodies.candidate_pair_count).
 ## Level rule 23's measure over the timed ticks (chunk 24, item 24.7:
 ## ClusterWatch, tools/level_check/cluster_watch.gd, sampled every 0.1 s
-## outside the timed span): the largest awake cluster (largest_cluster, in
-## slimes), the seconds it was above ClusterWatch.LIMIT (above_limit_s) and
+## outside the timed span): the largest awake cluster, the slimes inside a
+## basket's box left out (largest_cluster, in slimes), the seconds it was above ClusterWatch.LIMIT (above_limit_s) and
 ## the longest of them in a row (longest_above_s); numbers only, no verdict
 ## (a case isn't a level's played run: the played test gives the verdict).
 # @spec-link [[req_platform_and_performance_targets]]

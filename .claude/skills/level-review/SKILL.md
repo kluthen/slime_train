@@ -102,7 +102,10 @@ no fixture). Rule 16's item: `tools/level.sh bench --level=<id>` (the
 level as new and each fixture with a save; `--fixture=<name>` for one),
 then watch the pile in play. Rule 23's item (MANUAL: the checker can't
 play the level): its result is the level's played test, whose rule 23
-line gives the largest awake cluster, the seconds above 20 slimes and the
+line gives the largest awake cluster (a basket's own fill left out: the
+slimes whose centre is inside a basket's box don't count, nor join two
+piles outside it; the pile outside still counts), the seconds above 20
+slimes and the
 longest in a row, and fails over 5 s in a row
 (`tools/test.sh -gdisable_colors -gselect=test_level_<id>`); the bench's
 `RESULT` lines end with the same numbers per case (`largest_cluster`,
