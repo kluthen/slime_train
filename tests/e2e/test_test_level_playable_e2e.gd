@@ -26,7 +26,10 @@ extends GutTest
 ## for each, measured as-is: the test doesn't fail on them until items 24.3
 ## and 24.8 have landed and the user has settled section 3 (O107); the loop
 ## start's crowding is set aside meanwhile (D161). They are recorded in
-## docs/dev/README.md ("Level rule 23 on the test level").
+## docs/dev/README.md ("Level rule 23 on the test level"). The drain itself
+## is held to D128's bound (O127): each basket empty within its quota x
+## RELEASE_SECONDS plus DRAIN_SLACK (basket 1 11.8 s, basket 2 14.5 s,
+## basket 3 28 s).
 ##
 ## Before chunk TL1 section 1 held only two sleepers a called base slime
 ## could reach, so basket 1 (quota 6) could never fill from fresh.
@@ -65,6 +68,9 @@ const CALL_ZOOM := 0.7
 ## The longest a fired basket's drain is watched: 60 slimes released one
 ## every 0.3 s at the clearest, the rest the outlet's waits.
 const DRAIN_TICKS := 120 * TICK_RATE
+## D128: a fired basket empties within its quota x RELEASE_SECONDS plus this,
+## seconds.
+const DRAIN_SLACK := 10.0
 
 ## Rule 23's measure over the current play (_run_until feeds it).
 var _clusters: ClusterWatch = null
@@ -148,6 +154,10 @@ func _play(section: int) -> void:
 	gut.p("rule 23, %s's fire-and-drain (%s): %s" % [basket, "empty after %d ticks" % drained if drained >= 0
 			else "not empty after %d ticks" % DRAIN_TICKS, _clusters.report()])
 	_clusters = null
+	var quota := int(sim.level.baskets[basket]["quota"])
+	var limit := quota * FrontierSets.RELEASE_SECONDS + DRAIN_SLACK
+	assert_between(drained, 0, int(round(limit * TICK_RATE)),
+			"%s (quota %d) empties within %.1f s once fired (D128)" % [basket, quota, limit])
 
 
 ## The sleepers to call among `asleep`: per line of touching sleepers
