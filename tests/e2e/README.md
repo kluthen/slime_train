@@ -158,7 +158,11 @@ Four editor-only files are left out there; the script lists them.
   section 3 from `gate2-open` until basket 3 fires and the celebration
   plays (calls on the sleepers the progress estimate counts on, a tap on
   each switch); each fired basket then empties within D128's bound
-  (quota x 0.3 s + 10 s: 11.8 s, 14.5 s and 28 s; O127); and the
+  (quota x 0.3 s + 10 s: 11.8 s, 14.5 s and 28 s; O127); level rule 23
+  holds over each section's play and each basket's fire-and-drain
+  (`ClusterWatch.passes()`: never above 20 slimes for more than 5 s in a
+  row, a basket's own fill and the train queues on the loop left out;
+  D167), its numbers printed (`rule 23, ...` lines); and the
   level-rules checker gives the level no warning. About 1.5 minutes.
 - `test_new_level_e2e.gd` (chunk LD1) scaffolds throwaway levels with
   `tools/new_level.gd` (1, 2 and 4 sections), checks they load, pass the
@@ -180,4 +184,5 @@ Four editor-only files are left out there; the script lists them.
   none parked.
 - `levels/test_level_<id>.gd`: each level's own test, written by the
   scaffolder (the level loads, passes the checker, runs 2 minutes with no
-  input losing nothing, and its fixtures load).
+  input losing nothing, section 1 plays to its basket full and drained
+  with level rule 23 held, and its fixtures load).
