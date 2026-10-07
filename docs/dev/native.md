@@ -517,6 +517,18 @@ so 11 fixtures changed (at 600 ticks, 2400, or both): `bump`, `fresh`,
 are the same. Native and GDScript gave the same hashes for all 18 at 600
 and 2400 ticks.
 
+**Re-recorded with the 24g relay fix (2026-10-07):** the relay now cuts
+the hop timer at the end of the take-off's tick instead of at the start of
+the next one (see "Closure" under "Chunk 24g" in `docs/dev/README.md`), so
+a hash taken on a tick when a relay acted shows the cut timer one tick
+sooner. 4 hashes changed: `s3-basket-59of60` at 600, `stress-dense` at 600
+and 2400, `stress-moving` at 2400; the other 32 are the same. The motion
+didn't change: on those three fixtures the state without the hop timers is
+the same as before the fix on every tick (to 620, 2400 and 2400 ticks),
+and the full hash one tick later is the same too (`s3-basket-59of60` at
+601). Native and GDScript gave the same hashes for all 18 at 600 and 2400
+ticks.
+
 **On the phone (unit U8, 2026-10-06):** the S20 FE (arm64, bionic) gave
 the 600-tick hashes then recorded (before chunk 24g) for `stress-dense`
 and `stress-moving`, on both ticks, two runs each. That wasn't expected:
@@ -538,9 +550,9 @@ are still compared within one build and platform.
 | `s1-optout` | `0a01989974e37d78a4b12a08e100a376b330a5297192d3c41baaffd4c8f0ca78` | `4e359fbaa0852076731a22db89186acbfccafde5c565a3db4b0812617a53d1ca` |
 | `s2-basket-offscreen` | `df9505ea337f43f30352b7e45a1ecd305344e83062009c5e1e767e83c31e3247` | `fcdb40131c591c9a351e9cc5d90730c87b62da47e65ad5b0e5fc859b1889bcd3` |
 | `s2-cave-return` | `ca1245d013105513dcd94f95aeb7109f780987ef9444e5fdfd849929cb0116ea` | `7a48dc0899882e86ab70cf5659195c30454ac793dd1b50d7b51cf4bca1394984` |
-| `s3-basket-59of60` | `94ac716f594a7d98db995a10fcb7cee0ca05c343a60b4f13d1e52785ca79a3b0` | `13fbe3f5592e52bf2c10a00cfac41ab91dcf11b7a13879ad4a9b3d8c4fe7132a` |
-| `stress-dense` | `4ad859b5620d44beeda8721127952e70bc9225ed79928f3c0620066944aa97eb` | `9ced6ce14d8cd4dbd8259fa66616a3411eebae3c889f1b245ddd426c8aa15485` |
-| `stress-moving` | `cee540fc61f6a8d76eba240801fafa610d7a65205b2aec896a2df869495c7dd8` | `b140a930d92ba2255c529810eac35cf46a4eb4b4c3959b366906cf7e3ea4bc7d` |
+| `s3-basket-59of60` | `a02233987e184234274869061b60a9744d72dbe9b4db5f7cfeb3ad5dee1de1cf` | `13fbe3f5592e52bf2c10a00cfac41ab91dcf11b7a13879ad4a9b3d8c4fe7132a` |
+| `stress-dense` | `c389dd44328edbd31c433dca49a3656a7afdcc6929b141f09de523f11a189228` | `6fd6f0385d09962b19fff68be0178112f59138e65a8f646fe05b2b325ba6aa54` |
+| `stress-moving` | `cee540fc61f6a8d76eba240801fafa610d7a65205b2aec896a2df869495c7dd8` | `09a460c88db349712a63aab85d3ccbf290ddfb13c7b17f609ab9bc6d27408381` |
 | `stress-still` | `4c50a541d5a60dda72d85cfd5941782b28975e8352d1529ed12eedfdb8aa2f27` | `9efbbc6b1f014895180f7e007b574fd3a03309e29dec2798b913cf0260da49e7` |
 | `sunrise` | `8db8d2c83ee28167f22616d7187ab43f8e1bace7d29b88c492a35f7c3429c9eb` | `eb0221091629c9fc6d09df861653a62b048e1b34f6f77c1de66c1cd002c2b785` |
 | `wind-down` | `1f6ba0b95667450033a0bf6d9fd123d23ea46fc2a6ae664fd731a32bda2a50eb` | `801144a13df0b9c9422e87ae353786d1c6c5e9c3973a61d67e6995c1aa92b851` |

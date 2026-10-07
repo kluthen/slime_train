@@ -7084,10 +7084,34 @@ ticks later (the state's dump, entry by entry). Results:
   take-offs), which is documented as "not state: not in dump() nor in
   saves"; a save taken just after a train slime took off reloads with it
   empty, so the slime behind isn't relayed on the first tick and the run
-  goes another way. Not fixed here (measure-only): the save keeps what it
-  saved, but a reload no longer always carries on as the run that never
-  stopped (see "Saves and fixtures": "stays equal to the run that never
-  stopped, tick for tick ... when no slime was saved in mid-air").
+  goes another way. Not fixed in the closure (measure-only): the save kept
+  what it saved, but a reload no longer always carried on as the run that
+  never stopped (see "Saves and fixtures": "stays equal to the run that
+  never stopped, tick for tick ... when no slime was saved in mid-air").
+- **Fixed after the closure (branch chore/24g-close):** the relay now acts
+  at the end of the take-off's own tick, at the end of `Train.follow()`
+  (where the train already counts the take-offs), instead of at the start
+  of the next tick's `steer()`. Nothing about it crosses the tick boundary
+  but the cut hop timer, which is state and saved; no new state, no save
+  key. Between the end of `follow()` and the next `steer()` (the stuck
+  slimes, the loop-start queue, the camera, then the input, the session,
+  Offscreen) nothing reads or changes a hop timer. What the relay checks
+  (the follower's state, parking, support, the records' distances) is now
+  read before those steps rather than after, so a slime parked, moved to
+  the loop start or picked up at that boundary may be relayed differently;
+  on the runs measured it never was, and the motion is the same: on
+  `s3-basket-59of60`, `stress-dense` and `stress-moving` the
+  state without the hop timers is unchanged on every tick (to 620, 2400 and
+  2400 ticks). Only a hash taken on a tick when a relay acted changes (it
+  shows the cut timer one tick sooner): 4 of the 36 fixture hashes,
+  re-recorded in `docs/dev/native.md` ("Fixture hashes"). The check is now
+  permanent: `tests/e2e/test_tick_cross_load_e2e.gd`,
+  `test_a_reload_after_a_take_off_carries_on_as_the_run_that_never_stopped`
+  (`stress-dense`, native tick, saved at the first tick from 120 on with a
+  train take-off and no slime in the air, tick 185; the state's dump, the
+  hint left out, equal to the run that never stopped at the load, +1 and
+  +600). Before the fix it failed (the slimes differ at +1; the slimes, the
+  train and fusion at +600); after it, it passes.
 
 #### Tick cost
 
