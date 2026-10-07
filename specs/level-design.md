@@ -1,6 +1,6 @@
 # Level design requirements
 
-Status: draft v21 (rule 23's train-queue exclusion as built, c0924d9; a pile on the route at an outlet is rule 24's; rule 24's cluster check counts train slimes, proposed; D166; v20: rule 23: a train queue on the loop doesn't count, D165, the user's, the reading proposed; v19: rule 23: the basket's fill left out as built, b14f0d5, and the test level passing in every section, D164; v18: rule 23: a basket's own fill left out, D163, the user's; the limit still proposed, O107; v17: rule 25 and the geyser after v1, D161, the user's; rule 24's run tool from chunk 24g, its window after v1; v16: rule 25, placing a geyser, a level object, D160, the user's object, the rule and its check proposed; rule 24: a geyser gives room, pacing parked (O118), D160; v15: rule 24 strengthened: at the loop's start arrivals never outpace what the train takes off it, a rate check over the scripted runs, what to do when it fails, D159, the user's ask, wording and check proposed; v14: rule 24, arrivals clear faster than they come, D157, the user's, wording and check proposed; v13: rule 23, clusters, D143, approved in direction, D144; its limit proposed, O107)
+Status: draft v22 (rules 12, 20, 21, 22's house style, 23 and 24's wording and checks settled, the limit 20 for 5 s, O107 closed, D167; rule 24's rate window O119 and rule 25 still proposed, after v1; v21: rule 23's train-queue exclusion as built, c0924d9; a pile on the route at an outlet is rule 24's; rule 24's cluster check counts train slimes, proposed; D166; v20: rule 23: a train queue on the loop doesn't count, D165, the user's, the reading proposed; v19: rule 23: the basket's fill left out as built, b14f0d5, and the test level passing in every section, D164; v18: rule 23: a basket's own fill left out, D163, the user's; the limit still proposed, O107; v17: rule 25 and the geyser after v1, D161, the user's; rule 24's run tool from chunk 24g, its window after v1; v16: rule 25, placing a geyser, a level object, D160, the user's object, the rule and its check proposed; rule 24: a geyser gives room, pacing parked (O118), D160; v15: rule 24 strengthened: at the loop's start arrivals never outpace what the train takes off it, a rate check over the scripted runs, what to do when it fails, D159, the user's ask, wording and check proposed; v14: rule 24, arrivals clear faster than they come, D157, the user's, wording and check proposed; v13: rule 23, clusters, D143, approved in direction, D144; its limit proposed, O107)
 
 Rules every level must follow, whoever builds it. These rules make up the
 checklist for every level's design (see `levels/`). Levels are
@@ -37,11 +37,11 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
 11. The **first section has 3 native species**, and each later section adds one
     (D22).
 12. A frontier gate opens through the **switch-plus-basket set** (D14, D35).
-    *(Proposed, D127):* each section's basket can be filled by play from
+    *(D127, D167):* each section's basket can be filled by play from
     the slimes that can be woken by then, starting from a fresh game. The
     level-rules checker estimates it and only warns (it can't see climbs
     or lips); a played test is the proof.
-    *Reading (proposed, D129):* "the slimes the train can make", fusion
+    *Reading (D129, D167):* "the slimes the train can make", fusion
     included, as the checker estimates by default; filling with base
     slimes alone is not required (that would make fusion never needed).
     Sleepers in a **touching line** wake together (chain waking).
@@ -80,7 +80,7 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
 20. **A released level isn't meant to change.** Any update must be minor and
     ship with a save migration. Keep the stable IDs of slimes, objects and
     gates (D72).
-    *Numbering after release (proposed, D127):* before release, each
+    *Numbering after release (D127, D167):* before release, each
     section's sleepers are numbered `.01` to N, left to right, with no
     gaps. A released level keeps a list of its released stable IDs (for
     example `levels/<id>/released_ids`): every released ID must still
@@ -94,7 +94,7 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
 21. **At the rails' framing, every interactive object sits fully below the
     parent zone** (the band along the top of the screen), so the child can
     operate it: the call drag is the only way to move the camera up
-    (D111). *Reading (chunk 23E, D126, proposed):* the views checked are
+    (D111). *Reading (chunk 23E, D126, D167):* the views checked are
     the settled views of every section's outgoing route's rails, framing
     zones included, on the reference phone's screen; the return routes'
     rails aren't checked. An object framed above the top of the screen
@@ -112,34 +112,34 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     path (D117, D123). The level-rules checker measures (b) with the
     simulation's own numbers (a called base slime reaches about 133 px, a
     size 3's hop about 130 px; `docs/dev/level-tooling.md`, D126).
-    *House style (proposed, D129):* a ledge a called base slime must
+    *House style (D129, D167):* a ledge a called base slime must
     reach keeps its underside at least 130 px over any loop ground under
     it, wherever the slime reaches it from (stricter than the checker,
     which measures only ledges within reach of the loop beneath them).
 
 ## Where slimes gather
 
-23. *(D143, approved in direction, D144; the measure's numbers proposed, O107.)* **No spot where many slimes gather awake.** Keep apart the places
+23. *(D143, approved in direction, D144; the measure and its readings settled, D167.)* **No spot where many slimes gather awake.** Keep apart the places
     where slimes pile up off the route: a bowl or dip next to a basket,
     an outlet releasing into a crowd, the landing spot of a sleeper shelf
     next to any of these. (A narrow ledge where the train queues is rule
-    24's, the train's flow; proposed, D165.) A pile that
+    24's, the train's flow; D165, D167.) A pile that
     rests costs little; an awake cluster keeps waking itself and costs
     every tick.
-    *Measure (proposed):* the **largest awake cluster** (the biggest
+    *Measure (D167):* the **largest awake cluster** (the biggest
     group of touching slimes that cost physics, D143) over the level's
     own scripted runs (its played test from fresh, and each basket's
     fire-and-drain; the `stress-*` fixtures excepted) stays at or under
     20 slimes, or goes above it for at most 5 s in a row. **A basket's
     own fill doesn't count** (D163, the user's): slimes inside a
     basket's box are left out, and the pile outside it still counts
-    (*proposed:* inside by its centre, and the cluster is taken over the
+    (inside by its centre, and the cluster is taken over the
     other slimes, so piles outside aren't joined through the basket's;
     built so, b14f0d5, D164). *As measured (D164):* the test level passes
     in every section (section 3's play 23 slimes at most, 0.1 s in a row;
     its drain 5). **A train queue on the loop doesn't count** (D165,
     the user's: "rule 23 targets piles off the route; a queue on the
-    route is rule 24's business (the train's flow)"). *Proposed reading:*
+    route is rule 24's business (the train's flow)"). *Reading (D167):*
     train slimes on the loop's route are left out before clustering, the
     way a basket's fill is; every other awake slime counts, free slimes
     and slimes off the route included (a train slime due a move to the
@@ -155,11 +155,13 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     section passes; the plays peak at 5, 4 and 23 (0.1 s in a row), every
     basket's drain at 1. The level bench
     and the level's played test measure it; the level-rules checker
-    points at them. The number is calibrated in chunk 24 (O107). A
+    points at them. The limit, 20 slimes for 5 s in a row, is settled
+    with the test level passing it in every section (D167). A
     cluster the player builds with calls is accepted: crowd detail and
     the tick cap cover it.
 24. *(D157, the user's; strengthened by D159, the user's ask; wording,
-    reading and check proposed.)* **Where slimes arrive fast, they get
+    reading and check settled, D167, but for the rate's window and
+    threshold, O119, after v1.)* **Where slimes arrive fast, they get
     away faster than they arrive; at the loop's start, arrivals never
     outpace what the train takes off it.** The place where a flow lands
     slimes (the end of a return route at the loop's start, a slide's end,
@@ -178,7 +180,7 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     loop start (lost, stuck, stalled) are paced by the loop-start queue
     and land on free spots (D150); this rule is about the level's own
     arrivals.
-    *Check (proposed):* over the level's own scripted runs (the `stress-*`
+    *Check (D167; the window and threshold O119):* over the level's own scripted runs (the `stress-*`
     fixtures excepted), from the first arrival on: **the arrival rate at
     the loop's start is at most the departure rate off its first
     stretch**: the mean arrivals per 600 ticks stay at or below the mean
@@ -186,8 +188,8 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     geyser's farthest landing, where one is placed; 750 px on the test
     level); and **the
     largest awake cluster** with a slime within 240 px of the loop's start
-    stays within rule 23's limit (O107), counting train slimes, unlike
-    rule 23 (proposed, D165, O107 (d)), or at the loop's start it would
+    stays within rule 23's limit, counting train slimes, unlike
+    rule 23 (D165, D167), or at the loop's start it would
     see nothing; and over a 10,000-tick
     `tools/thru.gd` run no slime is stuck again within 10 s of landing
     there (D157). The run tool (chunk 24g) counts the rates and the

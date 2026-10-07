@@ -4909,3 +4909,151 @@ built.
 `README.md`.
 **Flagged:** for ux-writer, O128 (the pies' look, the opt-out's drain,
 the colours' order).
+
+## D167 — The user's sign-offs before v1's lock: item 24.6 closed, the quota pies accepted for v1, every proposed decision approved, the climb atoms to STABLE, DoD 30's floor phone on the phone emulation; phone session 7 (2026-10-07)
+Closes O107, O127 and O128. Settles every decision still marked proposed
+in `specs/` (part 3), except the after-v1 items tied to a parked
+question. Closes chunk 22's repeat but for the floor emulation measure.
+Notes on O14, O108 and O115.
+
+The user's words (2026-10-07), answering the orchestrator's list of what
+was left before v1's lock: "labels are debug only so we really don't
+care. pie are okay enough for v1. agreed for old branches. atoms (both
+climb and the remaining) ok. So far emulation has been the weaker and
+will serves as floor phone for now."
+
+The list offered: the labels at 49 fps; the pie colour shift; deleting
+old branches; the climb fix's atoms to STABLE; "about 30 decisions still
+marked proposed (D126–D133 from chunks 18 to 21, D162's hold, the pie
+look, and others): put them to you in one batch for sign-off before the
+lock"; and DoD 30's floor-phone gap (buy one, lift the floor (D71), or
+lock v1 with the gap recorded).
+
+**1. Item 24.6 closed (the user's: debug builds only).** On the
+reference phone, in the same scene: labels off 59.1 / 58.8 fps (p50 /
+p5), labels on 49.2 / 40.6; the labels' part 4.2 ms a frame. Source:
+phone session 7 (2026-10-07, main da9b95b, `build/perf/p9-labels-*`).
+The labels exist only in debug builds and measurements run with them off
+(D139), so their cost is accepted as it is; no further work.
+
+**2. The quota pies accepted for v1 (the user's: "pie are okay enough
+for v1").** Closes O128 for v1: the pies as built (item 24.2, f1861e1),
+the fill emptying one release at a time (ux D4's 0.5 s opt-out drain not
+built) and the units' colours shifting along by one slime as slimes
+leave. The pies' look stays the interface design's (ux D4 Q10) for later
+versions; it may settle the drain and the colours' order then.
+
+**3. Every decision still marked proposed is approved as proposed (the
+user's: "the remaining ok").** Each part below is settled as written in
+its entry; the docs now state it as fact (one line in the build plan
+points here instead). Tuning values stay starting values, to try: being
+settled means approved as the value to build to, not frozen.
+
+| ID | Settled |
+|---|---|
+| D126 (1) | 23E's readings: a sleeper's tap margin of 24 screen px; a hit area's 20 mm floor grown about the object's centre; overlapping hit areas compare only objects answering a tap; rule 21 checks the outgoing routes' rail views, every switch, basket and gate |
+| D126 (2) | LD1's checker: rule 18's "close" as a third of a screen (the working threshold until O94, parked); rule 22's thresholds follow the simulation's constants |
+| D127 (2) | a fixture sidecar's `camera` may be a stable ID; rule 12's line: each basket can be filled by play from fresh |
+| D127 (3), (4) | chunk TL1 (done); rule 20: a released level's released-ID list, due before the first level's release |
+| D128 | chunk 24 as an open list (done); a fired basket always empties, none falling back in, within its quota × 0.3 s plus 10 s |
+| D128, D166 | the quota pies above a quota of 10 (part 2), and DoD 9's wording covering them |
+| D129 (3) | rule 22 (b)'s house style (a called-to ledge's underside at least 130 px over the loop's ground); rule 12 read "with fusion"; basket 3's tight margin (62 for 60) on the test level |
+| D130 (2), (4) | chunk 18's choices (the 6th digit submits, a parent-zone tap closes the prompt, the wake-early prompt closes at bedtime's end, setup's steps); `parent.json` hardened in chunk 19; the offline brute-force risk accepted for v1 |
+| D131 (2) | chunk 19's choices: unreadable files set aside, mid-air slimes grounded on load, migration by stable IDs, the parent file's mirror and LOCKED state |
+| D132 (2) | chunk 20's choices: fixed landscape, Back to the background, the controls inside the safe area, the dpi and tilt thresholds, the forgot-code texts, no LOCKED text, the package |
+| D133 (2) | chunk 21's choices: four tool-driven test files in the editor suite only, repeatability proved per fixture, scripts as text in the Linux build |
+| D138 (2c), (2d) | the fixture `s3-basket-59of60`; phone numbers through logs only, screenshots for visual bugs |
+| D139 | 24.5: a big awake pile plays in slow motion at worst (passes, 4); 24.6: cheap labels, debug builds only, measured with labels off (closed, 1) |
+| D140 | crowd detail: ring points per level, the crowd's steps and ease, the pile cap at level 2, the hexagon look when zoomed out; the order of the next steps (done) |
+| D141 | crowd detail only under load: the load meter's window, pressed and calm, the detail ceiling's steps, the modes (`auto` in normal play and release builds, `always` in test mode), chunk 22c's place (done) |
+| D142, D144 | the 4 ms drawing share, now part of D163's headroom target; the throttled drawing verdict, closed by chunk 22's repeat through the frame rate (4) |
+| D143 | chunk 22d's debug counters and their terms (the slime counts, awake cluster); O106's default (answered by D156); section 3 left as is; v2's activity-zone tool and population fork, as v2 candidates |
+| D143, D163, D165, D166 | rule 23's measure: above 20 slimes for more than 5 s in a row fails, sampled every 0.1 s; touching as written; a basket's fill left out by a slime's centre, the cluster taken over the other slimes; train slimes on the loop's route left out (a train slime due a move to the loop start, lost, stuck, stalled or out of bounds counts); rule 23's ledge example now rule 24's; rule 24's own cluster check counts train slimes. Closes O107: (c) no edit to section 3 |
+| D148 | the save wipe's details: `--wipe-save`, every file in `user://saves/`, `parent.json` kept, at startup, debug builds only, refused with a save to load, its log line, `perf.sh --wipe-save`, the guard test, chunk 19w's name |
+| D149 | a breaking save-format change bumps the format number; before the first store release a save a build can't use is set aside; built in 19w; the term **shipped**; an unreadable test script refuses the wipe |
+| D150 | the loop-start queue's details: free lost slimes included; first due, first moved, out of bounds first, ties by id; a queued slime carries on; derived, not saved; the landing stretch of 240 px, 8 draws, a retry every 0.5 s; the stall clock's pause by moving the last mark on |
+| D153 | `stress-dense`'s details (species, gates, camera); "no freeze" read as the train hopping in every 600-tick window over 10,000 ticks |
+| D154 | the bowl's two bottom stretches at 4 per 100 px; "shuffle" read as the two densities' deterministic mix |
+| D156 | the fallback if piles churn (the touched slimes' touching neighbours, one step), unbuilt, kept as the fallback |
+| D157 | rule 24's wording; rule 4 counts arrivals in base slimes; "a clear way onward" counts its pace; the by-eye check |
+| D161 (1), (3), (4) | the reading of "etc." (the geyser and what serves the start's crowding, the climb fix outside it); DoD 30's wording with the loop start's crowding set aside; the order after 5N (done) |
+| D162 | the load meter's hold after a bounce (`BOUNCE_WINDOWS` 10, `BACKOFF_WINDOWS` 60) and the build's choices; exact repeat in `always` and `off`, not in `auto`; O122's acceptance: the lower fusion rate on `s3-basket-59of60` |
+| D164 | basket 3's outlet over slide 3's drop, (535.68, -134), on the test level (O62, the basket's own outlet design, stays open) |
+| D166 | O127: the played test's base-slime drains meet D128's bound; since asserted per basket in the played test (1632eb0). Closes O127 |
+| tuning.md | the build's values of chunks 10, 12, 13, 14 and 17; the screensaver and idle zoom 1/1.15; the camera drag's 230.4 px/s; every row marked proposed for the items above |
+| personas.md | P1's abilities and limits, as the working assumptions (still checked against the real child, at the playtest) |
+| timeline.md, v4 | the cooldown's default of 10 min once the parent may choose it (D44); the code's "shipped" switch turned on with the first store release (D149) |
+
+*Left out, still proposed:* the after-v1 items tied to a parked
+question: the geyser object's details (D159, D160; O120), rule 25 and
+its check (D160 (2); O124), rule 24's rate check's window and threshold
+(O119), pacing the return route's end (O118) and the test level's start
+review, TL2. *Still open, with their proposed defaults unanswered:* O14,
+O22, O62, O65, O96, O98, O101, O104, O105, O108, O113, O114, O115, O116
+and O121; parked: O12, O13, O92, O93, O94, O118, O119, O120, O124.
+
+**4. The climb fix's atoms go to STABLE (the user's: "atoms (both climb
+...) ok").** `rule_train_climbs_without_sliding_back` and
+`rule_train_relay_on_take_off`, at REVIEW since dcf8cb4. The
+documentalist moves them.
+
+**5. DoD 30's floor phone: the phone emulation stands in (the user's:
+"emulation has been the weaker and will serve as floor phone for
+now").** Until a floor phone exists, DoD 30's floor-phone half (at least
+30 fps with the level's largest realistic pile on one screen, cold and
+after 5 minutes) is judged on the **phone emulation**: the slowed
+desktop CPU, `tools/perf_slow.sh --pin=main` (D142's method). The floor
+(D71) is unchanged; no phone is bought for v1. Its last reading (chunk
+22l, before 5N): `s3-basket-59of60` 35.0 fps. **A new measure on current
+main** is scheduled after the health review's splits, since the desktop
+must be quiet. O14 stays open for a real floor phone (and tilt input);
+DoD 30 no longer waits on it.
+
+**6. Phone session 7's other numbers (2026-10-07, main da9b95b, the
+reference phone, crowd detail `auto`).** Chunk 22's repeat is closed,
+apart from the emulation measure (5).
+- `loop-start-pile` (item 24.5): 59.1 / 58.9 fps, never more than 2
+  ticks a frame, a tick 7.95 ms. **24.5 passes.**
+- `s3-basket-59of60`, native tick: 59.1 / 58.9 cold, 59.1 / 59.0 warm.
+- Normal play from the phone's own save: 59.1 / 58.0. A light case: 1
+  physics slime, a save near the start.
+- Hashes: `s3-basket-59of60` 4c5d03d2… and `loop-start-pile` dc3f304a…,
+  the same on both ticks; the pile's equals the desktop's, the basket's
+  differs by the known `atan2f` (D163).
+- So DoD 30 is met on the reference phone on every case measured; with
+  normal play at 59, no drawing lever is called for (O108's note).
+
+**7. The branch cleanup (the user's "agreed for old branches"; done by
+the orchestrator).** Kept: `main`, `exp/dip-jam`, `exp/geyser`,
+`exp/pacing` and `archive/fps-session-2026-10`. The merged feature
+branches were deleted.
+
+**8. Progress.** The health review's phase 2 is running (S1, the
+`slime_bodies` split, seam 1; S2, the train split). Next: Q5's tag
+moves, S3, S4, then the floor emulation measure (5). Chunk 20's checks by
+hand wait on the user. Then v1's lock.
+
+**Documents:** `open-questions.md` (O107, O127, O128 out; O14, O108,
+O115 noted); `versions/v1/master-spec.md` (header, 5.x proposed marks, 7,
+DoD 30, Known gaps 3 and 5); `versions/v1/build-plan.md` (header,
+Progress, chunk 22, a line pointing here); `versions/v1/README.md`;
+`tuning.md`; `level-design.md`; `concept.md`; `slimes.md`;
+`interactive-objects.md`; `tech-direction.md`; `levels/test/README.md`;
+`personas.md`; `versions/timeline.md`; `versions/v2/README.md`;
+`versions/v4/README.md`; `README.md`.
+**Flagged:** for documentalist, the two climb atoms to STABLE (4); the
+atoms whose text still says proposed for a part settled here:
+`rule_no_spot_where_slimes_gather_awake` (rule 23's limit and readings),
+`req_platform_and_performance_targets` (DoD 30's set-aside wording, and
+now its floor half on the phone emulation, 5), `rule_crowd_detail_only_under_load`
+and `req_offscreen_simulation` (the load meter, the hold after a bounce),
+`req_test_level_and_test_mode` (exact repeat outside `auto`),
+`req_switch_basket_gate_set` (the pies, the emptying bound, basket 3's
+outlet), `req_level_design_rules`, `rule_arrivals_clear_faster_than_they_arrive`
+(rule 24's wording and readings; its rate window stays O119),
+`rule_stalled_train_slime_moved_to_start`, `rule_stuck_slimes_moved_to_start`
+and `rule_left_alone_and_lost` (the loop-start queue's details),
+`domain_drawing` and `domain_simulation_tick`. Not
+`rule_geyser_spreads_arrivals_at_loop_start` (after v1, still proposed)
+nor `rule_dip_may_nudge_fusion` (O121 open). For ux-writer: O128 closed
+for v1; the pies' look stays ux D4 Q10's for later versions.

@@ -14,22 +14,23 @@ the points the build raised while building, were approved by the user on
 2026-09-29, as were the points chunk 16 added (the stalled train slime and
 its safety net, 5.2 and Definition of done 1; where a return route meets
 the start, now level rule 22 in 5.11), and the details chunk 23's build
-chose (23A–23D). The readings chunk 23E took where the spec was silent
-(a sleeper's tap margin, where a hit area's floor sits, overlapping hit
-areas, which views level rule 21 checks) are tagged (proposed) until the
-user approves them, as are the basket's quota pies and its always
-emptying once fired, from the user's second round of playtest reports
-(5.4, D128). Definition of done 24's line on the time left now matches
+chose (23A–23D). On 2026-10-07, before v1's lock, the user approved every
+point still tagged (proposed) here (D167): the readings chunk 23E took
+where the spec was silent (a sleeper's tap margin, where a hit area's
+floor sits, overlapping hit areas, which views level rule 21 checks), the
+basket's quota pies and its always emptying once fired (5.4, D128), and
+the rest below; this text now states them as settled. The quota pies are
+accepted for v1 as built (D167). Definition of done 24's line on the time left now matches
 5.8 (never on the parent buttons): a wording fix, not a behaviour change
 (D130). The save format may change without a migration until the first
-store release (5.10, the user's, D149); how a build sets aside a save it
-can't use is tagged (proposed). Moves to the loop start go one at a time
+store release (5.10, the user's, D149); a build sets aside a save it
+can't use. Moves to the loop start go one at a time
 to a random free spot, and a parked train slime's stall clock is paused
-(5.2, the user's, D150; its details proposed). Every wake of a resting
+(5.2, the user's, D150). Every wake of a resting
 pile is local: only the slimes reached wake, never the whole pile (5.3,
 D156). Definition of done 30 and section 7 carry the two stress targets,
-the abuse case's an abuse target of 15 fps, not 30 (D153, D154; how they
-are measured proposed). A frame-rate experiment run from 2026-09-30 to 2026-10-02
+the abuse case's an abuse target of 15 fps, not 30 (D153, D154; which
+statistic gates them is still open). A frame-rate experiment run from 2026-09-30 to 2026-10-02
 was withdrawn; only the points above came back from it (D155). Of the
 two fixes the user made mandatory before v1 closes (D159), the first is
 done: the cause of slimes of different species ending up inside each
@@ -42,9 +43,9 @@ fixed by the hold on a climb and the relay (5.2; chunk 24g, the train's
 climb; kept in v1 by the user, D165); the dip nudge is unchanged (D160). The start's
 crowding is not a v1 blocker (the user's, D160; Known gap 9), and
 Definition of done 30 is judged with it set aside (the user's reading,
-D161; wording proposed). Test runs repeat exactly except in a run that
+D161). Test runs repeat exactly except in a run that
 asks for normal play's crowd detail, which follows the device's load
-(6, Testability; proposed, D162), and only on one platform: the phone and
+(6, Testability; D162), and only on one platform: the phone and
 the desktop give different hashes (6, Testability; D163). A level update
 keeps a displaced sleeper asleep at its own or a free sleeper spot, so
 only awake slimes, and a sleeper with no spot left, are lost (5.10, the
@@ -56,7 +57,12 @@ measured so far (7, D163). Chunk 24 as built (D166): section 3 holds a
 steady 60 fps on the desktop (7); a quota above 10 shows as quota pies
 in a placeholder look (5.4; Definition of done 9 reworded to cover
 them, wording only); a slime a basket releases hops away at once
-(5.2).
+(5.2). Phone session 7 (D167) measured the rest on the reference
+phone: normal play, a big awake pile at the loop's start and the debug
+labels' cost; Definition of done 30 is met there on every case measured.
+Until a floor phone exists, the floor phone's half of Definition of done
+30 is judged on the phone emulation, the slowed desktop processor (the
+user's, D167; 7).
 
 ## 1. Concept and objective
 
@@ -293,8 +299,7 @@ One term per concept, used everywhere in the code and documents.
   the start's split zone, never onto another slime. The moves go one at a
   time, the next 0.5 to 2 s (random) after the last, first due first
   moved; a slime that recovers before its turn isn't moved (D150, the
-  user's; the order, the stretch and what a waiting slime does are
-  proposed; the numbers are in `tuning.md`).
+  user's; the numbers are in `tuning.md`).
 
 **Waking**
 
@@ -302,7 +307,7 @@ One term per concept, used everywhere in the code and documents.
   sleeper within a small margin around its drawing (24 screen px), not
   the 20 × 20 mm floor of objects' hit areas: a sleeper is a slime, and
   such a floor would turn any tap within about 1 cm of it into a call
-  centred on it (proposed).
+  centred on it.
 - A sleeper wakes when a free slime touches it, on screen. Train slimes never
   wake sleepers. The woken slime is free and, in time, heads back to the
   train.
@@ -391,11 +396,10 @@ basket full, or inert for good) is a call. **Hit areas** are the drawn
 object grown by 5 mm on every side, and never smaller than 20 × 20 mm, both
 measured on the screen at the current zoom: zooming out shrinks the drawing,
 never the hit area's floor. A hit area still smaller than the floor grows
-about the object's centre (proposed). Where two hit areas overlap, the
+about the object's centre. Where two hit areas overlap, the
 object whose centre is nearest the tap takes it, among the objects
 answering a tap right now: a filling basket's switch takes the tap even
-where a basket's centre is nearer, since a basket never answers a tap
-(proposed).
+where a basket's centre is nearer, since a basket never answers a tap.
 
 - **Switch.** Stands at the fork just before the frontier gate. By default it
   sends the flow back to the start (by the return route). Tapping it flips it
@@ -405,7 +409,7 @@ where a basket's centre is nearer, since a basket never answers a tap
   fill by weight (a size-3 slime fills three). When full, it plays a **reward
   animation**, fires its target (the gate), then releases its slimes. It can
   fill off screen. The reward and the firing wait until the basket
-  is in view. *(Proposed, D128:)* a quota above 10 shows as **quota pies**
+  is in view. A quota above 10 shows as **quota pies**
   instead of outlines: one pie per 10 of weight, the last holding the
   rest, each filling a slice per unit of weight, all of them within the
   basket's width and each at least 6 mm across on the screen at the
@@ -413,7 +417,10 @@ where a basket's centre is nearer, since a basket never answers a tap
   interface design draws them (D166): each pie 6.7 mm across at basket
   3's framing zoom; the reward swells the outlines or pies in the
   slimes' colours, releasing empties a unit per slime let go, and an
-  inert basket shows none. A fired basket always empties: none of the
+  inert basket shows none. Accepted for v1 as built (D167): the fill
+  empties one release at a time after an opt-out, and as slimes leave the
+  units' colours shift along by one slime (the count stays exact); the
+  pies' look is the interface design's for later versions. A fired basket always empties: none of the
   slimes it releases falls back into it, and it is empty within its quota
   × 0.3 s plus 10 s of firing.
 - **Opting out.** Flipping the switch back before the basket is full stops the
@@ -694,7 +701,7 @@ reopening the app → the state the stored timers give
   in a store, so in v1 the save format may change from one build to the
   next without a migration. A save a build can't use is set aside with
   its backup, that level starts fresh and saves again, and one log line
-  says so (proposed). Migrations for every format change are owed from
+  says so. Migrations for every format change are owed from
   the first store release on. Level-version migration (above) is
   unchanged.
 
@@ -717,7 +724,7 @@ Every level, the test level included, follows these rules.
 11. The first section has 3 native species; each later section adds one.
 12. A frontier gate opens through the switch-plus-basket set. Each
     section's basket can be filled by play from the slimes that can be
-    woken by then, starting from a fresh game, fusion included (proposed).
+    woken by then, starting from a fresh game, fusion included.
 13. Each section has its own return route to the start from its unopened
     frontier gate. It is part of the loop and has its own camera rail.
 14. A return route may carry exploration opportunities, but opening a later
@@ -734,19 +741,19 @@ Every level, the test level included, follows these rules.
     save migration, and keeps stable IDs. A released level keeps the list
     of its released stable IDs: each must still exist, new sleepers are
     numbered above the highest released one in their section, and
-    removing one needs a level version bump and a migration (proposed).
+    removing one needs a level version bump and a migration.
 21. At the rails' framing, every interactive object sits fully below the
     parent zone. The views checked are the settled views of the outgoing
     route's rails, framing zones included; the return routes' views aren't
     checked. An object framed above the top of the screen fails too, and
-    switches, baskets and gates are all checked (proposed).
+    switches, baskets and gates are all checked.
 22. A return route delivers slimes into the start behind the loop's start,
     travelling the loop's way, never along the loop's first stretch against
     the flow; and nothing a base slime must be called up to overhangs the
     loop where larger slimes pass (a ledge a called size 1 can reach is too
     low for a size 2 or 3 to pass under). A ledge a called base slime
     must reach keeps its underside at least 130 px over any loop ground
-    under it (proposed).
+    under it.
 
 ### 5.12 Levels and the test level
 
@@ -784,7 +791,7 @@ Every level, the test level included, follows these rules.
   The performance pass on the phone missed its targets at the endgame,
   and fewer ring points in a crowd helped but not enough, so the prepared
   C++ extension (the rings, the contacts, the terrain), built for the
-  Linux desktop and for Android, is adopted. *(proposed)* Its results
+  Linux desktop and for Android, is adopted. Its results
   repeat within one build but aren't bit-equal to the scripting-language
   tick; a save loads under either tick; the scripting-language tick stays
   as the fallback. The behaviour around the tick (hops, the call's
@@ -824,7 +831,7 @@ Every level, the test level included, follows these rules.
   the desktop and the phone give different results even on the same tick,
   because Android's math library rounds one angle function differently
   (a desktop tool reproduces the phone's results). Repeating across
-  devices isn't a v1 aim. *(Proposed, D162:)* that holds in test mode's
+  devices isn't a v1 aim. That holds in test mode's
   default crowd detail and with crowd detail off; a run that asks for
   normal play's crowd detail, which follows the device's load
   (`--crowd-detail=auto`, the phone's performance runs), doesn't repeat,
@@ -856,12 +863,17 @@ tests, and the technical choices made while building are in the project's
   repeated after it (2026-10-07, crowd detail as in normal play): the
   section 3 endgame (basket 3 at 59 of 60) and the dense case at 59 fps
   cold and warm, the abuse case at 23 fps cold and 59 warm, with no
-  throttling. Still to measure on it: normal play, a big awake pile at the
-  loop's start, and the debug labels' cost, on a build with the fired
-  basket's emptying and the release hop. On the desktop, section 3 holds
+  throttling. Measured again on a build with the fired basket's emptying
+  and the release hop (2026-10-07, D167): the section 3 endgame at 59 fps
+  cold and warm; normal play from the phone's own save at 59 (a light
+  case); a big awake pile at the loop's start at 59, never more than 2
+  ticks a frame; the debug labels cost about 4 ms a frame (49 fps with
+  them on), accepted since they exist only in debug builds. On the desktop, section 3 holds
   a steady 60 fps, and its ticks are recorded against the phone frame
-  budget's simulation share (D166). The floor phone still has to be
-  bought.
+  budget's simulation share (D166). **No floor phone is bought for v1:**
+  until one exists, the floor phone's targets are judged on the phone
+  emulation, the slowed desktop processor (the user's, D167); it is
+  measured again on the current build once the code health work is done.
 - Test environments:
 
 | Environment | Used for | Not used for |
@@ -938,8 +950,8 @@ never ships: O101.
 **Objects**
 
 9. Flipping the frontier switch sends the flow into the basket; its quota
-   display (its outlines, or above a quota of 10 its quota pies,
-   proposed) fills by weight; when full it plays the reward animation, opens the gate
+   display (its outlines, or above a quota of 10 its quota pies) fills
+   by weight; when full it plays the reward animation, opens the gate
    and releases its slimes; the loop then extends into the new section and
    the old return route is no longer used.
 10. A basket filled while off screen plays its reward and opens the gate
@@ -1040,9 +1052,10 @@ never ships: O101.
     moving slimes, all piled in the bowl) meets an abuse target, not a
     30 fps target: no crash, no freeze and at least 15 fps
     *(proposed: the mean over a 62 s run, the 5th percentile reported)*.
-    Until the reference phone is measured, the slowed desktop run
-    (`tools/perf_slow.sh --pin=main`) stands in. *(The user's reading,
-    D161; wording proposed:)* these targets are judged with the loop
+    Until a floor phone exists, the floor phone's half is judged on the
+    phone emulation, the slowed desktop run (`tools/perf_slow.sh
+    --pin=main`), the weaker of the two so far (the user's, D167). *(The
+    user's reading, D161:)* these targets are judged with the loop
     start's crowding set aside: the windows where slimes coming home
     crowd the loop's start (in the `s3-basket-59of60` fixture, its
     section 1 window once the train comes home) are measured and
@@ -1074,7 +1087,7 @@ Still undecided.
    It belongs to the basket object's own design, which is still to be
    planned. The test level assumes one outlet onto the onward route;
    basket 3, with no gate, releases over its slide's drop instead, where
-   its slimes fall clear (proposed, item 24.3, D164).
+   its slimes fall clear (item 24.3, D164).
 4. **A minimum zoom.** A big framing zone may shrink slimes too far to tap or
    see. It only matters during play, since the idle camera and screensaver
    mode ignore framing zones. No proposal yet; to find with the prototype.
@@ -1091,9 +1104,9 @@ Still undecided.
    so the tick moves to native code (section 6). The floor phone's target
    now applies to the largest realistic pile, not 200 slimes on one screen
    (Definition of done, 30). After the native tick the reference phone
-   holds its targets on the three fixtures measured (section 7). Still
-   waiting: the floor phone (it has to be bought), normal play on the
-   reference phone, the phone's GPU cost of the blending (it can't be read on Android
+   holds its targets on every case measured, normal play included
+   (section 7). Still waiting: a real floor phone (the phone emulation
+   stands in for it, Definition of done 30), the phone's GPU cost of the blending (it can't be read on Android
    with this renderer, so only the frame rate shows it), and tilt input. Android audio
    latency matters only from the version that adds sound.
 6. *(Closed, D159.)* Why slimes of different species sometimes ended up

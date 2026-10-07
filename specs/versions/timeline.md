@@ -8,7 +8,7 @@ is assigned, it moves to that version's README (D52).
 | Feature | Source | Notes |
 |---|---|---|
 | Parent chooses the session length | D29 | v1 is fixed at 15 min |
-| Parent chooses the cooldown length | D44 | 10 min is the default; the user called it a "default delay" (proposed) |
+| Parent chooses the cooldown length | D44 | 10 min is the default; the user called it a "default delay" (D167) |
 | Freeform camera, moved by hold-and-drag | D46 | would replace the edge buttons |
 | Species behaviour quirks | D40, D81 | |
 | A texture or styling per species | D81 | v1 is colour only |

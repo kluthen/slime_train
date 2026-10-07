@@ -1,6 +1,6 @@
 # Personas
 
-Status: draft v7
+Status: draft v8 (P1's abilities and limits the working assumptions, D167)
 
 Who Slime Train is for, what each person is trying to get done, and the
 circumstances they use it in. These are built from the real people the user
@@ -29,7 +29,7 @@ known, so tilt stays optional (D64, see below).
   it and she can't read.
 - **P1.G4** Never fail, and never get stuck with nothing happening.
 
-**Abilities and limits (proposed, to check against the real child):**
+**Abilities and limits (the working assumptions, D167; to check against the real child):**
 - Taps well. Holding, dragging and precise aiming are unreliable.
 - Doesn't read. Digits are not a given.
 - Holding the phone steady, or tilting it on purpose, is uncertain at 3.

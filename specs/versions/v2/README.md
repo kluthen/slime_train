@@ -1,6 +1,6 @@
 # v2 — Content, level design and music
 
-Status: themes only (D134); no spec yet; two cluster aids proposed (D143); carried in from v1: the geyser object and the test level's start review, first after v1 (D161; the geyser was in v1 from D159 to D161)
+Status: themes only (D134); no spec yet; two cluster aids (D143, settled as v2 candidates, D167); carried in from v1: the geyser object and the test level's start review, first after v1 (D161; the geyser was in v1 from D159 to D161)
 
 Themes, set by the user (D134):
 
@@ -33,7 +33,7 @@ Assigned so far (D50, D54):
   line in setup asking for it (O93), and a
   measurable "first sleeper close" rule (O94). v1 keeps the pulsing mark.
 
-Proposed (D143), both serving level rule 23 (no spot where many slimes
+Settled as v2 candidates (D143, D167), both serving level rule 23 (no spot where many slimes
 gather awake):
 
 - **An activity-zone tool** (theme: level design made as easy as

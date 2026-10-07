@@ -1,6 +1,6 @@
 # Concept
 
-Status: draft v45 (quota pie built in a placeholder look, D166; v44: hold on a climb and relay settled in v1, D165, the user's; v43: geyser after v1, D161, the user's; hold on a climb and relay in chunk 24g, the train's climb, proposed; earlier, v42: geyser restated as a level object, the user's, D160; hold on a climb and relay added, proposed; earlier, v41: geyser added, D159, the user's, details proposed, chunk 24g; earlier, v40: local wake widened to every wake, D156 (7); earlier, v39: the fps session after 0196c25 withdrawn, D155, its terms with it; local wake added, D156; move to the loop start and loop-start queue added, stalled amended (no clock while parked), lost reworded, D150, the user's, details proposed; shipped added, save wipe for automated testing only, the save format before the first store release, D149, proposed; save wipe added, D148, approved in direction)
+Status: draft v46 (every term's proposed details settled, the geyser's apart, D167; v45: quota pie built in a placeholder look, D166; v44: hold on a climb and relay settled in v1, D165, the user's; v43: geyser after v1, D161, the user's; hold on a climb and relay in chunk 24g, the train's climb, proposed; earlier, v42: geyser restated as a level object, the user's, D160; hold on a climb and relay added, proposed; earlier, v41: geyser added, D159, the user's, details proposed, chunk 24g; earlier, v40: local wake widened to every wake, D156 (7); earlier, v39: the fps session after 0196c25 withdrawn, D155, its terms with it; local wake added, D156; move to the loop start and loop-start queue added, stalled amended (no clock while parked), lost reworded, D150, the user's, details proposed; shipped added, save wipe for automated testing only, the save format before the first store release, D149, proposed; save wipe added, D148, approved in direction)
 
 ## One-liner
 
@@ -87,7 +87,7 @@ The slimes stand in for LocoRoco.
 
 Tapping a sleeper calls nearby awake slimes toward it. A tap within 24
 screen px of a sleeper's drawing counts as on it; objects' 20 × 20 mm floor
-(D109) doesn't apply to sleepers, which are slimes (D126, proposed). A sleeper wakes only
+(D109) doesn't apply to sleepers, which are slimes (D126, D167). A sleeper wakes only
 when a **free slime** (one that answered a call) touches it. Train slimes
 never wake sleepers, and sleepers never sit on the loop (D70). Waking happens
 only on screen. The woken slime, being free, in time rejoins the train. Slime
@@ -108,7 +108,7 @@ save (D43). Saves are never wiped. A released level isn't meant to change,
 and any minor update ships with its migration (D72). Until the app has
 shipped (its first store release), the save format may change without a
 migration: a build sets aside a save it can't use and starts that level
-fresh (D149; the setting aside proposed).
+fresh (D149, D167).
 
 ## Controls
 
@@ -244,11 +244,11 @@ survives the app being killed.
 | outlet | where a basket releases its slimes, after firing or after an opt-out; its design is still open (O62) |
 | release | a basket letting its slimes go, one at a time at its outlet, back onto the train: after firing, and after an opt-out; paused at bedtime (D91, D105) |
 | quota outlines | how a basket shows its quota: one empty slime outline per unit of weight, filling in the colour of each slime caught (ux D4). Not "the slime counter" |
-| quota pie | *(proposed, D128; built in a placeholder look, D166)* how a basket with a quota above 10 shows it: one pie per 10 of weight, the last holding the rest, a slice filling per unit of weight |
-| debug overlay | developer tools over the game, in debug builds only: speed, reset, slime labels, the kill tool, the fps and the **slime counts**: Physics (the slimes that cost physics), On screen, In range (not parked) and Parked (D143, proposed, chunk 22d; before it: on screen : simulated off screen : parked) |
-| awake cluster | *(proposed, D143)* a group of touching slimes that all cost physics (awake, not resting, not parked); the **largest awake cluster** is its biggest, in slimes, in the perf log and in level rule 23. Not a resting pile, which costs little |
+| quota pie | *(D128, D167; built in a placeholder look, D166, accepted for v1)* how a basket with a quota above 10 shows it: one pie per 10 of weight, the last holding the rest, a slice filling per unit of weight |
+| debug overlay | developer tools over the game, in debug builds only: speed, reset, slime labels, the kill tool, the fps and the **slime counts**: Physics (the slimes that cost physics), On screen, In range (not parked) and Parked (D143, D167, chunk 22d; before it: on screen : simulated off screen : parked) |
+| awake cluster | *(D143, D167)* a group of touching slimes that all cost physics (awake, not resting, not parked); the **largest awake cluster** is its biggest, in slimes, in the perf log and in level rule 23. Not a resting pile, which costs little |
 | local wake | *(D156, chunk 22l)* how a resting pile wakes: every disturbance (a release, a touch faster than 30 px/s, a move to the loop start, a fusion, a split, a slime taken out of the level, a call, a trapdoor, gate or lid opening or shutting, a tilt change, a state change) wakes only the resting slimes it reaches, never the whole pile, and never a sleeper (replaces D96's whole-pile wake) |
-| crowd detail | *(proposed, D140, D141)* fewer ring points per slime when many slimes are active (20, 30, 40 or more) or when zoomed out; a size-1 slime goes from 12 points down to 10, 8 or 6. A detail level: 0 (full) to 3. In play, the crowd's part applies only when the device can't keep up: a **detail ceiling** set by the device's load caps it (a good device keeps full points); test mode applies it always |
+| crowd detail | *(D140, D141, D167)* fewer ring points per slime when many slimes are active (20, 30, 40 or more) or when zoomed out; a size-1 slime goes from 12 points down to 10, 8 or 6. A detail level: 0 (full) to 3. In play, the crowd's part applies only when the device can't keep up: a **detail ceiling** set by the device's load caps it (a good device keeps full points); test mode applies it always |
 | frontier set | the signpost, switch, basket and gate that end a section: flip the switch, fill the basket, the gate opens (D14). Inert once its gate is open (D86) |
 | trapdoor | the part of a frontier switch that covers its basket: solid while the switch sends the flow onward, open while it is flipped, dropping slimes into the basket |
 | lid | the part of a gate that shuts the old return route's entrance once the gate is open (D105) |
@@ -257,8 +257,8 @@ survives the app being killed.
 | lost | a left-alone slime not back on the loop after 1 min; moved to the loop start (a **move to the loop start**) |
 | stuck | two slimes that can't fuse, found inside each other for about 2 s; a state of its own, not "lost", with the same effect: the smaller one goes to the loop start (D100) |
 | stalled | a train slime whose progress along the loop hasn't advanced for 60 s, or that left the level's bounds; not "lost", but with the same effect: moved to the loop start and logged (D118, D121). The build says "lost as stalled". *From chunk 22h (D150, the user's):* the 60 s count only while it is simulated; parked, its clock is paused |
-| move to the loop start | *(D150, the user's "emergency teleport"; details proposed; chunk 22h)* the one move lost, stuck and stalled slimes take: back on the train, at a random free spot on the loop's first 240 px, inside the start's split zone, never onto another slime. Taken one at a time, through the **loop-start queue** |
-| loop-start queue | *(D150, the user's; details proposed; chunk 22h)* the slimes due a move to the loop start, waiting their turn: one move at a time, the next 0.5 to 2 s (random) after the last; first due, first moved (out of bounds first). A waiting slime carries on as it was; one that recovers before its turn leaves without a move. Not a line of train slimes waiting single file on the loop |
+| move to the loop start | *(D150, the user's "emergency teleport"; details D167; chunk 22h)* the one move lost, stuck and stalled slimes take: back on the train, at a random free spot on the loop's first 240 px, inside the start's split zone, never onto another slime. Taken one at a time, through the **loop-start queue** |
+| loop-start queue | *(D150, the user's; details D167; chunk 22h)* the slimes due a move to the loop start, waiting their turn: one move at a time, the next 0.5 to 2 s (random) after the last; first due, first moved (out of bounds first). A waiting slime carries on as it was; one that recovers before its turn leaves without a move. Not a line of train slimes waiting single file on the loop |
 | geyser | *(D159, D160: a level object, the user's; details proposed; **after v1**, D161)* a level object that launches the train slimes reaching its **catch** high and spreads their landings along a span of the loop ahead, so they come down on the emptiest of a few free spots instead of piling up (level rules 24, 25). It lands them only on the loop's own route, never on the waiting queue, onto a guarded ledge or at or past a gate; off screen it puts them on a free spot directly. Placed and set per level, reusable anywhere; the test level is to place one where its return routes end, at the loop's start (not in v1). Not a **move to the loop start**, which is never launched |
 | hold on a climb | *(D160; chunk 24g, the train's climb, D161; settled, D165)* a train slime standing between hops on a rise of the outgoing route keeps its place instead of sliding back |
 | relay | *(D160; chunk 24g, the train's climb, D161; settled, D165)* when a train slime takes off, the one standing right behind it hops almost at once (0.15 s), so a wave runs down a queue |
@@ -268,12 +268,12 @@ survives the app being killed.
 | signpost | a sign at a fork showing which way the loop goes |
 | large signpost | a signpost that also lets the child pick which branch the camera follows |
 | filter | a fork that sends slimes down a branch by species or by size (D88); usually has a signpost next to it |
-| population fork | *(proposed, v2, D143)* a fork that sends the next slimes down its emptier branch, to break up crowds; not tapped, has a signpost like every fork |
+| population fork | *(v2, D143, D167)* a fork that sends the next slimes down its emptier branch, to break up crowds; not tapped, has a signpost like every fork |
 | screensaver mode | the world running with no session, after sunrise and before the first tap |
 | parent zone | the band along the top of the screen, 7 mm high, full width and unmarked; a tap there reveals the parent buttons and never calls (D57, D113). Also called "the top of the screen" or "the top band" |
 | edge button | the left or right control that moves the camera along the loop: a strip over the screen's whole height, 10% of its width from the edge, that never calls (D99) |
 | framing zone | an area of the level that sets the camera's zoom and position when the camera reaches it |
-| activity zone | *(proposed, D143)* where slimes are simulated with full physics while the camera is at a given spot: the view grown by the off-screen margins; parked beyond. A v2 level-design tool shows it |
+| activity zone | *(v2, D143, D167)* where slimes are simulated with full physics while the camera is at a given spot: the view grown by the off-screen margins; parked beyond. A v2 level-design tool shows it |
 | camera rail | the path the camera runs along, following the loop; every part of the loop, return routes included, has one (D33, D79) |
 | sunrise | the end of bedtime: slimes wake up and screensaver mode begins |
 | species | a kind of slime; only the same species fuse (replaces the precursor's "type") |
@@ -295,6 +295,6 @@ survives the app being killed.
 | stable ID | the name a save uses to find a placed thing, `<place>.<kind>.<name>` (for example `s1.sleeper.01`); kept once a level is released (D72, level rule 20) |
 | test mode | a mode of the Linux and debug Android builds only, never the release: loads a fixture, speeds up or skips time, and injects taps and tilt from a script (D91) |
 | fixture | a named starting state for test mode, stored with its level (a save and a sidecar); test tooling, not a player's save |
-| save wipe | *(D148, approved in direction, D149; its details proposed; chunk 19w)* a launch flag for **automated test runs only**, `--wipe-save`, in debug builds only: every level's save is deleted at launch, the parent code kept. Never in a release build, never passed by save and restore tests, never used in manual play (there, a level is started over with the parent's **delete**). Not the parent's **delete** of one level's save (D43), and not a wiped save in the sense of "saves are never wiped", which is about a player's build |
-| shipped | *(proposed, D149)* the app from its **first store release** on (probably v4; v1 never ships). Before it there is no player's build: the save format may change without a migration, and a save a build can't use is set aside. After it, every save-format change ships with its migration. Not the basket's **release** |
+| save wipe | *(D148, approved in direction, D149; its details D167; chunk 19w)* a launch flag for **automated test runs only**, `--wipe-save`, in debug builds only: every level's save is deleted at launch, the parent code kept. Never in a release build, never passed by save and restore tests, never used in manual play (there, a level is started over with the parent's **delete**). Not the parent's **delete** of one level's save (D43), and not a wiped save in the sense of "saves are never wiped", which is about a player's build |
+| shipped | *(D149, D167)* the app from its **first store release** on (probably v4; v1 never ships). Before it there is no player's build: the save format may change without a migration, and a save a build can't use is set aside. After it, every save-format change ships with its migration. Not the basket's **release** |
 | skeleton | a level just made by the new-level scaffolder: minimal, playable and passing the level rules, for a designer to build on |

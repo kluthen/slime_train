@@ -1,6 +1,6 @@
 # Interactive objects
 
-Status: draft v17 (quota pies built, a placeholder look, the release hop as built, D166; v16: a released slime hops away at once, D165, the user's; v15: the geyser after v1, D161, the user's; v14: the geyser, a level object, D160, the user's, details proposed; v13: population fork, v2, proposed, D143)
+Status: draft v18 (hit areas, the quota pies, accepted for v1, and the population fork settled, D167; v17: quota pies built, a placeholder look, the release hop as built, D166; v16: a released slime hops away at once, D165, the user's; v15: the geyser after v1, D161, the user's; v14: the geyser, a level object, D160, the user's, details proposed; v13: population fork, v2, proposed, D143)
 
 **Versions (D50, D54):** v1 has only the frontier-gate set (switch, basket,
 gate) and the split zone at the start of the loop. Every other object comes
@@ -29,10 +29,10 @@ answering right now (a switch whose basket is full, or inert), is a call.
 Hit areas are the drawn object grown by 5 mm on every side, never smaller
 than 20 × 20 mm, both measured on the screen at the current zoom (D91,
 D109). A hit area still smaller than the floor grows about the object's
-centre (D126, proposed). Where hit areas overlap, the nearest centre is
+centre (D126). Where hit areas overlap, the nearest centre is
 compared only among objects answering a tap right now: a filling basket's
 switch takes the tap even where a basket's centre is nearer (D126,
-proposed). Sleepers are slimes, not objects: their tap margin is in
+D167). Sleepers are slimes, not objects: their tap margin is in
 `concept.md`. Every new object must say when it answers taps.
 
 ## Catalogue
@@ -47,7 +47,7 @@ Collects slimes and shows the ones it still needs as empty slime outlines.
 Activation: presence (weight). When full, it fires its target (usually a gate)
 and then releases its slimes. Properties: the weight it needs, and its target.
 Its outlines fill by weight, so a fused slime fills several at once.
-*(Proposed, D128:)* above a quota of 10 it shows **quota pies** instead:
+*(D128, D167:)* above a quota of 10 it shows **quota pies** instead:
 one pie per 10 of weight, the last holding the rest, a slice per unit of
 weight; readable at the basket's framing zoom (`tuning.md`). A fired
 basket always empties: no released slime falls back into it. *(D165, the
@@ -55,9 +55,9 @@ user's:)* a released slime hops away at once, so it doesn't hold the
 outlet. *As built (D166):* the pies (item 24.2) in a placeholder look
 until the interface design draws them (ux D4 Q10); the opt-out empties
 the fill one release at a time (ux D4's 0.5 s drain isn't built) and the
-units' colours shift along as slimes leave (O128). The release hop: the
+units' colours shift along as slimes leave; both accepted for v1 (the user's, D167), the look still the interface design's for later versions. The release hop: the
 released slime's hop timer is set to 0, so it hops the tick after it
-lands; basket 1 empties in 0.60 s, basket 2 in 3.65 s (O127).
+lands; basket 1 empties in 0.60 s, basket 2 in 3.65 s, and the played test asserts D128's bound per basket (1632eb0, D167).
 - **Off screen (D70):** it can still reach its quota. Filling it earns a
   **reward animation**, then it fires. (D91: the reward and the firing
   wait until the basket is in view)
@@ -139,7 +139,7 @@ A kind of fork that sends slimes down a branch by **species** ("all blue
 slimes go this way") or by **size** ("size 3 goes up here"). It usually has a
 signpost next to it. It isn't tapped. Both filters are v2 (D89).
 
-### Population fork (v2, proposed, D143)
+### Population fork (v2, D143, D167)
 A kind of fork that breaks up crowds: it sends the next slimes down
 whichever of its branches holds fewer slimes on its first stretch.
 Activation: presence (it counts slimes); it isn't tapped. It reads no

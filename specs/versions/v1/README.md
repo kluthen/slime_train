@@ -97,8 +97,10 @@ Items are settled. The decision IDs point to
 - 60 fps on the reference phone in normal play; at least 30 fps on the floor
   phone with the level's largest realistic pile on one screen, a full basket
   plus the train, mostly still (D82, amended by D96). Met on the reference
-  phone for the three fixtures measured after the native tick (D163); the
-  floor phone is unmeasured (O14). On the desktop, section 3 holds a
+  phone on every case measured, normal play included (sessions 6 and 7,
+  D163, D167); the floor phone's half is judged on the phone emulation
+  until a floor phone exists (the user's, D167; a new measure on current
+  main after the health review's splits). On the desktop, section 3 holds a
   steady 60 fps (item 24.1, D166). At most 2 ticks a frame (slow motion
   rather than a collapse); the phone frame budget is a headroom target,
   not a gate (D163).
@@ -116,6 +118,6 @@ Items are settled. The decision IDs point to
 
 ## Open for v1
 
-O14, O65, O101, O121, O127 and O128 (D166; O125 and O126 closed by D165, the user's; O122 answered by D162, its acceptance proposed; O118, O119, O120 and O124 after v1, D161; O123 answered by D161; O91 fixed, D159; O22 and O62 now serve the first real level, v2) (see `../../open-questions.md`). The UX
+O14 (a real floor phone; DoD 30's floor half on the phone emulation meanwhile), O65, O101 and O121 (D167: O107, O127 and O128 closed, and every other proposed decision approved, the user's; O125 and O126 closed by D165, the user's; O122 answered by D162, accepted in D167; O118, O119, O120 and O124 after v1, D161; O123 answered by D161; O91 fixed, D159; O22 and O62 now serve the first real level, v2) (see `../../open-questions.md`). The UX
 review's interaction details (O67–O77) are settled (D102), and so are the
 build's points O79–O87 (D103–D107).

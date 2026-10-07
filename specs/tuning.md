@@ -1,6 +1,6 @@
 # Tuning values
 
-Status: live
+Status: live (every row marked proposed settled, the geyser's apart, D167: starting values, still to try)
 
 Every number the spec leaves to prototypes and playtests, with the starting
 value to try. When a value is tuned, update it here and log the result in
@@ -14,20 +14,20 @@ value to try. When a value is tuned, update it here and log the result in
 | Lost (left alone, not back) | 1 min | D10 |
 | Idle camera takes over | 45 s with no input | D32 |
 | Idle camera cue | starts 10 s before (a smoothstep zoom-out) | D32, D62 |
-| Screensaver and idle zoom | 10–20% wider than normal play; one zoom for both, no stacking; built as zoom 1/1.15 (proposed; to try) | D60, D62, D80 |
+| Screensaver and idle zoom | 10–20% wider than normal play; one zoom for both, no stacking; built as zoom 1/1.15 (to try) | D60, D62, D80 |
 | Minimum zoom inside framing zones | to find with the prototype; measured slime sizes in O65 | O65 |
 | Wrong-code wait | 30 s after 5 wrong tries in a row | D83 |
 | Code prompt closes by itself | about 15 s with no input | D83 |
 | Settings close by themselves | 30 s with no input, a warning over the last 10 s; any touch resets it; the screens opened from settings too | D113 |
 | Parent buttons hide | after 5 s with no press; a new tap on the parent zone restarts it | D113 |
-| Hit area of an interactive object | the drawing plus 5 mm on every side, at least 20 × 20 mm, on the screen at the current zoom; a smaller one grows about the object's centre (proposed) | D109, D126 |
-| A tap on a sleeper | within 24 screen px of its drawing (proposed; to try) | D126 |
+| Hit area of an interactive object | the drawing plus 5 mm on every side, at least 20 × 20 mm, on the screen at the current zoom; a smaller one grows about the object's centre | D109, D126 |
+| A tap on a sleeper | within 24 screen px of its drawing (to try) | D126 |
 | Parent-facing targets | at least 9 × 9 mm on the screen, at least 2 mm apart | D109, ux D3 |
 | The parent zone | a band 7 mm high on the screen, full width, unmarked | D113, ux D4 |
 | A thumb resting on an edge strip | after about 5 s held, it stops blocking other touches (to check in a playtest) | D110 |
 | Delay before leaving a framing zone | a bit longer than a normal move; built as holding an edge button 1.0 s (to try) | D61, D102 |
 | Edge-button press | one fixed step, then a steady pace while held; values below (to try) | D102 |
-| Camera drag toward a call: speed, and when it goes back | slow and steady; built as 230.4 px/s, back to the rails when the 8 s answering window ends (proposed; to try) | D45 |
+| Camera drag toward a call: speed, and when it goes back | slow and steady; built as 230.4 px/s, back to the rails when the 8 s answering window ends (to try) | D45 |
 | Call radius | about half the screen width | D46 |
 | Call cap (a slime that can't reach the point gives up) | about 8 s | D73 |
 | Train slime hop interval | ~1.5–3 s, random per slime | D74 |
@@ -50,8 +50,8 @@ The build picked these while making the chunks named. They are starting
 values, **to try**. The user approved the values of chunks 15 and 16 (D108,
 and the rows added later with D116, D118 and D119 in D120)
 and chunk 23 (D99–D101, and those its build chose in 23A–23D, D124,
-approved in D125); the values of chunks 10, 12, 13, 14 and 17 are still
-**(proposed; to try)**: the user hasn't confirmed them one by one. Pixels are
+approved in D125), and the values of chunks 10, 12, 13, 14 and 17 and
+every row once marked proposed (D167). Pixels are
 world pixels at zoom 1 on a 1152 px wide view unless noted. The code names in
 capitals are the build's own, for finding them in `docs/dev/README.md`.
 
@@ -104,11 +104,11 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | Celebration (`CELEBRATION_SECONDS`) | 4.0 s (settled by ux D4) | D77, ux D4 |
 | Default outlet (`outlet_before`, a basket property) | on the onward route, 200 px along the loop before the start of the return route its gate retires (Known gap 3); a basket may name an `outlet_point` instead | O62 |
 | Test level, basket 1 quota | 6 (weight) | test level |
-| Quota pies (proposed) | above a quota of 10: one pie per 10 of weight, the last holding the rest; the row within the basket's width, each pie at least 6 mm across on the reference phone's screen at the basket's framing zoom. *Built (item 24.2, f1861e1, placeholder sizes):* `PIE_RADIUS` 40 level px, `PIE_GAP` 16, 56 px above the box: 6.7 mm at `s3.frame.basket`'s zoom 0.8; basket 3's six pies 560 of 668 px, basket 2's two 176 of 403; outlines unchanged (`OUTLINE_RADIUS` 14, `OUTLINE_GAP` 8) | D128, D166, item 24.2 |
-| A fired basket empties within (proposed) | its quota × 0.3 s plus 10 s of firing, none of its slimes falling back in. *Measured (item 24.3, 18d1a86):* basket 3 18.4 s (28 s), basket 2's fixture 13.1 s (14.5 s); at the default outlet a basket released about one slime per hop interval. *D165 (the user's):* a released slime hops at once. *Built (75040ed, D166):* basket 1 0.60 s (11.8 s), basket 2 3.65 s (14.5 s), basket 3 18.40 s (28 s), none falling back in; the played test's basket 2, 15 base slimes, 8.6 s (was 17.8 s; O127) | D128, D164, D165, item 24.3 |
-| Section 3 frame rate on the desktop (proposed) | a steady 60 fps at test mode's 1152 × 648 window, the gate. *D163:* the section 3 bench cases' ticks are recorded against the phone frame budget's simulation share (about 2.4 to 3.8 ms a tick on the desktop), not gated; D128's 8 ms per tick at p95 is replaced. `stress-moving` excepted (its target is the abuse target below, D153). *Met (item 24.1, 0d0935c, D166):* native p50 / p5 60.0 / 60.0, GDScript p5 59.9, the detail ceiling at 0; the native ticks (median / p95 ms) `s3-basket-59of60` 3.15 / 3.47 and 3.28 / 3.47 (lead-ins 60, 700), `loop-start-pile` 2.51 / 2.83, `stress-dense` 4.14 / 4.37, `stress-moving` 5.38 / 6.82; GDScript 5.6 to 6.0 | D128, D153, D163, item 24.1 |
-| `stress-dense`'s density (D153, D154; chunk 22m) | 3 of weight per 100 px of loop: 9 per 300 px stretch of loop distance (counted from the loop's start, gates 1 and 2 open); the bowl's two bottom stretches at 4 per 100 px, 12 each (two, proposed); laid along the loop line, evenly by loop distance; 200 size-1 train slimes from the bowl outward, behind first, none past switch 3 (fewer only if they don't fit; proposed: the total, O114) | D153, D154 |
-| Stress fps targets, reference phone (D153) | `stress-dense` at least 30 fps; `stress-moving` (200 moving slimes) an abuse target, not a 30 fps target: at least 15 fps, no crash, no freeze (proposed: the train hops in every 600-tick window over 10,000 ticks); the camera on the bowl; proposed: the mean over a 62 s run, the 5th percentile reported (O115); the phone emulation (`tools/perf_slow.sh --pin=main`) stands in until the phone is measured | D153 |
+| Quota pies (D167; accepted for v1 as built) | above a quota of 10: one pie per 10 of weight, the last holding the rest; the row within the basket's width, each pie at least 6 mm across on the reference phone's screen at the basket's framing zoom. *Built (item 24.2, f1861e1, placeholder sizes):* `PIE_RADIUS` 40 level px, `PIE_GAP` 16, 56 px above the box: 6.7 mm at `s3.frame.basket`'s zoom 0.8; basket 3's six pies 560 of 668 px, basket 2's two 176 of 403; outlines unchanged (`OUTLINE_RADIUS` 14, `OUTLINE_GAP` 8) | D128, D166, item 24.2 |
+| A fired basket empties within (D167) | its quota × 0.3 s plus 10 s of firing, none of its slimes falling back in. *Measured (item 24.3, 18d1a86):* basket 3 18.4 s (28 s), basket 2's fixture 13.1 s (14.5 s); at the default outlet a basket released about one slime per hop interval. *D165 (the user's):* a released slime hops at once. *Built (75040ed, D166):* basket 1 0.60 s (11.8 s), basket 2 3.65 s (14.5 s), basket 3 18.40 s (28 s), none falling back in; the played test's basket 2, 15 base slimes, 8.6 s (was 17.8 s), the bound asserted per basket (1632eb0, D167) | D128, D164, D165, item 24.3 |
+| Section 3 frame rate on the desktop (D167) | a steady 60 fps at test mode's 1152 × 648 window, the gate. *D163:* the section 3 bench cases' ticks are recorded against the phone frame budget's simulation share (about 2.4 to 3.8 ms a tick on the desktop), not gated; D128's 8 ms per tick at p95 is replaced. `stress-moving` excepted (its target is the abuse target below, D153). *Met (item 24.1, 0d0935c, D166):* native p50 / p5 60.0 / 60.0, GDScript p5 59.9, the detail ceiling at 0; the native ticks (median / p95 ms) `s3-basket-59of60` 3.15 / 3.47 and 3.28 / 3.47 (lead-ins 60, 700), `loop-start-pile` 2.51 / 2.83, `stress-dense` 4.14 / 4.37, `stress-moving` 5.38 / 6.82; GDScript 5.6 to 6.0 | D128, D153, D163, item 24.1 |
+| `stress-dense`'s density (D153, D154; chunk 22m) | 3 of weight per 100 px of loop: 9 per 300 px stretch of loop distance (counted from the loop's start, gates 1 and 2 open); the bowl's two bottom stretches at 4 per 100 px, 12 each (two, D167); laid along the loop line, evenly by loop distance; 200 size-1 train slimes from the bowl outward, behind first, none past switch 3 (fewer only if they don't fit; the total is O114) | D153, D154 |
+| Stress fps targets, reference phone (D153) | `stress-dense` at least 30 fps; `stress-moving` (200 moving slimes) an abuse target, not a 30 fps target: at least 15 fps, no crash, no freeze (the train hops in every 600-tick window over 10,000 ticks, D167); the camera on the bowl; proposed: the mean over a 62 s run, the 5th percentile reported (O115); the phone emulation (`tools/perf_slow.sh --pin=main`) stood in until the phone was measured (sessions 6 and 7, D163, D167) | D153 |
 
 ### Off screen, resting piles and detail (chunk 15; crowd detail, D140, D141, D162; clusters, D143; the local wake, D156)
 
@@ -124,20 +124,20 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | Dropping into a basket off screen (`ENTRY_REACH`, `SLOT_GAP`) | a parked train slime whose centre is within 64 px above an open trapdoor drops in, into the first clear slot of a grid its own width plus 4 px apart, bottom row first | D70 |
 | A slime is still (`REST_DRIFT`, `REST_TICKS`) | supported and within 1 px of its anchor for 30 ticks; the anchor is where the count started; kept for v1; measured in chunk 22 (open piles of 40 or more rest in minutes or never), revisiting it is O105 | D96, D107, D138 |
 | A pile rests | when every slime of a touching group of pile slimes (in a basket, or asleep at bedtime) is still at once; awake slimes out of a basket hop and never rest | D96 |
-| A resting pile wakes (`WAKE_SPEED`) | *The local wake (D156, chunk 22l): every wake is local,* waking only the resting slimes it reaches, never the rest of their pile, never a sleeper. A release, a touching slime faster than 30 px/s (a hop, a landing, a neighbour moving), a move to the loop start, a fusion, a split or a slime taken out of the level wakes the resting slimes touching the slime concerned; a state change (bedtime, sunrise, a basket catching or releasing) wakes the slime itself; a call wakes the resting slimes within its radius; a tilt change wakes each resting slime (all of them). The rest of a pile wakes only if a woken slime touches it faster than 30 px/s. No new value. Fallback if piles churn (proposed): the touched slimes' touching neighbours too, one step | D96, D156 |
+| A resting pile wakes (`WAKE_SPEED`) | *The local wake (D156, chunk 22l): every wake is local,* waking only the resting slimes it reaches, never the rest of their pile, never a sleeper. A release, a touching slime faster than 30 px/s (a hop, a landing, a neighbour moving), a move to the loop start, a fusion, a split or a slime taken out of the level wakes the resting slimes touching the slime concerned; a state change (bedtime, sunrise, a basket catching or releasing) wakes the slime itself; a call wakes the resting slimes within its radius; a tilt change wakes each resting slime (all of them). The rest of a pile wakes only if a woken slime touches it faster than 30 px/s. No new value. Fallback if piles churn (unbuilt, D167): the touched slimes' touching neighbours too, one step | D96, D156 |
 | A door wakes nearby resting slimes (`DOOR_WAKE_REACH`) | a trapdoor, gate or lid opening or shutting wakes the resting slimes within 80 px of it, not their whole piles (D156) | D96, D156 |
-| Ring points per detail level (`POINTS_BY_DETAIL`) (proposed) | levels 0 (full) to 3: size 1 12, 10, 8, 6; size 2 15, 12, 10, 8; size 3 18, 15, 12, 9 | D94, D140 |
+| Ring points per detail level (`POINTS_BY_DETAIL`) | levels 0 (full) to 3: size 1 12, 10, 8, 6; size 2 15, 12, 10, 8; size 3 18, 15, 12, 9 | D94, D140 |
 | Zoomed-out detail (`LOW_ZOOM`, `FULL_ZOOM`, `LOW_DETAIL`) | below zoom 0.8, at least level 2 (8, 10 and 12 points for sizes 1, 2 and 3); back from 0.85 | D94, D96, D140 |
-| Crowd detail (`CROWD_STEPS`, `CROWD_EASE`) (proposed) | the crowd is the ACTIVE non-sleeper slimes after the parking; level 1 from 20, 2 from 30, 3 from 40; down only 5 below each step (15, 25, 35); the level used is the higher of the zoom's and the lower of the crowd's and the detail ceiling (D141); only ACTIVE rings are reshaped | D140, D141 |
-| Crowd detail mode (`--crowd-detail`) (proposed) | `auto` (the load meter moves the ceiling) in normal play (any game outside test mode with no flag, one a test adds included, D162), and always in a release build; a run in `auto` doesn't repeat (D162); `always` (ceiling 3, D140's behaviour) is the simulation's default: test mode, fixtures, scripts, the bench, the tests; `off` (ceiling 0) | D141, D162 |
-| Load meter window (proposed) | about 1 s of real time; dropped if it holds a frame over 250 ms, or at a debug speed other than 1x | D141 |
-| Load meter: pressed (proposed) | busy share (the ticks plus the rest of `_process`, over the window's real time) above 85 %, or 3 or more missed beats: frames at 1x that ran 2 ticks or more (`MISSED_TICKS`, D162) | D141, D162 |
-| Load meter: calm (proposed) | busy share below 60 % and at most 1 missed beat | D141 |
-| Detail ceiling steps (proposed) | starts at 0; up one step per pressed window (at most 3); down one step after 3 calm windows in a row (the count starts again after each step); held, and the calm count restarted, by a window in the band; a dropped window changes nothing (D162) | D141, D162 |
-| The ceiling's hold after a bounce (`BOUNCE_WINDOWS`, `BACKOFF_WINDOWS`) (proposed) | a bounce: a pressed window within 10 judged windows after a step down; the next step down then waits for 60 calm windows in a row (about a minute) instead of 3; a step down that lasts 10 judged windows without a pressed one, or a load, sets it back to 3; not saved. Slowed CPU capped at 60 fps: 32 -> 5 steps in 2 min | D162 |
-| Pile detail cap (`PILE_MAX_DETAIL`) (proposed) | pile slimes (in a basket, asleep at bedtime) stop at level 2 (at 6 points the `stress-still` pile rested at about tick 1300 instead of 407) | D140 |
-| Largest awake cluster, level rule 23 (the rule approved in direction, D144; the limit proposed, calibrated in chunk 24, O107) | above 20 slimes for more than 5 s in a row fails, over a level's played test and each basket's fire-and-drain (`stress-*` excepted); touching: in contact on the last tick, or centres within the sum of their radii plus 2 px. *D163 (the user's):* slimes inside a basket's box don't count, the pile outside it does (proposed: inside by the centre; the cluster taken over the other slimes). *D165 (the user's):* a train queue on the loop doesn't count (proposed: train slimes on the loop's route left out the same way; built, c0924d9, D166: a followed train slime not due a move, centre within `Train.OFF_ROUTE`, 36 px, of its route point) | D143, D163, D165, item 24.7 |
-| Rule 23's measure (`ClusterWatch.LIMIT`, `HOLD_SECONDS`, `SAMPLE_TICKS`) (proposed) | 20 slimes; 5.0 s in a row; sampled every 6 ticks (0.1 s), keeping the largest cluster, the seconds above the limit and the longest of them in a row. A basket's fill is left out (D163; built, b14f0d5: by a slime's centre, before clustering); train slimes on the loop's route too (D165; built, c0924d9, D166: within `Train.OFF_ROUTE`, 36 px, of the route point, followed, not due a move) | D143, D163, D165, item 24.7 |
+| Crowd detail (`CROWD_STEPS`, `CROWD_EASE`) | the crowd is the ACTIVE non-sleeper slimes after the parking; level 1 from 20, 2 from 30, 3 from 40; down only 5 below each step (15, 25, 35); the level used is the higher of the zoom's and the lower of the crowd's and the detail ceiling (D141); only ACTIVE rings are reshaped | D140, D141 |
+| Crowd detail mode (`--crowd-detail`) | `auto` (the load meter moves the ceiling) in normal play (any game outside test mode with no flag, one a test adds included, D162), and always in a release build; a run in `auto` doesn't repeat (D162); `always` (ceiling 3, D140's behaviour) is the simulation's default: test mode, fixtures, scripts, the bench, the tests; `off` (ceiling 0) | D141, D162 |
+| Load meter window | about 1 s of real time; dropped if it holds a frame over 250 ms, or at a debug speed other than 1x | D141 |
+| Load meter: pressed | busy share (the ticks plus the rest of `_process`, over the window's real time) above 85 %, or 3 or more missed beats: frames at 1x that ran 2 ticks or more (`MISSED_TICKS`, D162) | D141, D162 |
+| Load meter: calm | busy share below 60 % and at most 1 missed beat | D141 |
+| Detail ceiling steps | starts at 0; up one step per pressed window (at most 3); down one step after 3 calm windows in a row (the count starts again after each step); held, and the calm count restarted, by a window in the band; a dropped window changes nothing (D162) | D141, D162 |
+| The ceiling's hold after a bounce (`BOUNCE_WINDOWS`, `BACKOFF_WINDOWS`) | a bounce: a pressed window within 10 judged windows after a step down; the next step down then waits for 60 calm windows in a row (about a minute) instead of 3; a step down that lasts 10 judged windows without a pressed one, or a load, sets it back to 3; not saved. Slowed CPU capped at 60 fps: 32 -> 5 steps in 2 min | D162 |
+| Pile detail cap (`PILE_MAX_DETAIL`) | pile slimes (in a basket, asleep at bedtime) stop at level 2 (at 6 points the `stress-still` pile rested at about tick 1300 instead of 407) | D140 |
+| Largest awake cluster, level rule 23 (the rule approved in direction, D144; the limit and its readings settled, D167) | above 20 slimes for more than 5 s in a row fails, over a level's played test and each basket's fire-and-drain (`stress-*` excepted); touching: in contact on the last tick, or centres within the sum of their radii plus 2 px. *D163 (the user's):* slimes inside a basket's box don't count, the pile outside it does (inside by the centre; the cluster taken over the other slimes). *D165 (the user's):* a train queue on the loop doesn't count (train slimes on the loop's route left out the same way; built, c0924d9, D166: a followed train slime not due a move, centre within `Train.OFF_ROUTE`, 36 px, of its route point) | D143, D163, D165, item 24.7 |
+| Rule 23's measure (`ClusterWatch.LIMIT`, `HOLD_SECONDS`, `SAMPLE_TICKS`) (D167) | 20 slimes; 5.0 s in a row; sampled every 6 ticks (0.1 s), keeping the largest cluster, the seconds above the limit and the longest of them in a row. A basket's fill is left out (D163; built, b14f0d5: by a slime's centre, before clustering); train slimes on the loop's route too (D165; built, c0924d9, D166: within `Train.OFF_ROUTE`, 36 px, of the route point, followed, not due a move) | D143, D163, D165, item 24.7 |
 | The train leans away from clusters (**withdrawn from v1**, D165, the user's) | *Not built.* Was: a train slime whose hop is due waits 0.5 s while 3 or more slimes that cost physics and can't fuse with it sit within 96 px of its hop's target, at most 4 times in a row (2 s), then hops anyway. *D155:* a replacement was tried and withdrawn. *D165:* the lean's experiment failed the played test; the patch is kept outside the repository | D143, D155, D165, item 24.8 |
 | Test level, basket 2 quota | 15 (weight) | test level |
 
@@ -160,7 +160,7 @@ capitals are the build's own, for finding them in `docs/dev/README.md`.
 | `s3.frame.bowl` | zoom 0.5, offset (0, -200) px | test level |
 | `s3.frame.basket` | zoom 0.8, offset (0, 40) px | test level |
 | Basket 3 quota | 60 (weight) | test level |
-| Basket 3 outlet (proposed, item 24.3) | `outlet_point` (535.68, -134), at x 18979.2, y -144: over slide 3's drop, in the middle of its shaft (x 18893 to 19066), past the plateau's end (no gate, so no default outlet). Was a point on the plateau 200 px before slide 3's entrance (chunk 16), where the release waited on the outlet's clearance | O62, D164 |
+| Basket 3 outlet (item 24.3, D167) | `outlet_point` (535.68, -134), at x 18979.2, y -144: over slide 3's drop, in the middle of its shaft (x 18893 to 19066), past the plateau's end (no gate, so no default outlet). Was a point on the plateau 200 px before slide 3's entrance (chunk 16), where the release waited on the outlet's clearance | O62, D164 |
 
 ### Small issues from play (chunk 23)
 
@@ -190,15 +190,15 @@ All **to try**: recorded in D124, approved in D125.
 ### The loop-start queue (D150, chunk 22h)
 
 The user's: one move to the loop start at a time, 0.5 to 2 s apart, to a
-random spot. The rest **proposed**.
+random spot. The rest settled with D150's details (D167).
 
 | Value | Start at | Source |
 |---|---|---|
 | Wait after a move to the loop start | 30 to 120 ticks (0.5 to 2 s, the user's), uniform, both ends included; the first draw of the derived stream `loop_start:gap:<move tick>` | D150 |
-| Queue order | out of bounds first; then first due, first moved; ties by ascending id (proposed) | D150 |
-| Landing stretch | a distance along the loop drawn uniformly in 0 to 240 px from its start, the centre lifted by the slime's size; inside a split zone (proposed) | D150 |
-| Landing draws per turn | 8, from `loop_start:spot:<tick>`; the first free one (no ring overlapping, parked ones included) is used (proposed) | D150 |
-| No free spot | nobody moves; the head tries again on the next tick that is a multiple of 30 (0.5 s) (proposed) | D150 |
+| Queue order | out of bounds first; then first due, first moved; ties by ascending id | D150 |
+| Landing stretch | a distance along the loop drawn uniformly in 0 to 240 px from its start, the centre lifted by the slime's size; inside a split zone | D150 |
+| Landing draws per turn | 8, from `loop_start:spot:<tick>`; the first free one (no ring overlapping, parked ones included) is used | D150 |
+| No free spot | nobody moves; the head tries again on the next tick that is a multiple of 30 (0.5 s) | D150 |
 
 ### The geyser (D159, D160; after v1, D161)
 
@@ -252,8 +252,8 @@ These stand in until `ui_ux/` designs them.
   (ux D4, D113).
 - **An object's hit box:** built (chunk 23E) as the drawing plus 5 mm,
   at least 20 × 20 mm on the screen, the floor grown about the centre
-  (D109; the centring proposed, D126). A sleeper keeps a 24 screen-px
-  margin (proposed, D126).
+  (D109; the centring D126). A sleeper keeps a 24 screen-px
+  margin (D126).
 - **Dusk colour** (`DUSK_COLOUR`): the tint at full dusk, RGB (0.55, 0.52,
   0.78), over the world only (the parent band and buttons aren't tinted).
 - **Frontier art:** the shut trapdoors, closed gate boxes and shut lids as

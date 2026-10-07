@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v30 (item 24.1 met: a steady 60 fps through section 3 on the desktop; rule 23's train-queue exclusion built; D166; v29: the lean withdrawn and rule 23 not counting a train queue on the loop, D165, the user's; v28: the tick cap settled, the phone frame budget a headroom target, a displaced sleeper stays asleep, hashes within one platform (the phone's `atan2f`), chunk 22's repeat on the S20 FE, session 6, D163; v27: chunk 22c as built, the hold after a bounce, exact repeat outside `auto`, proposed, D162; 5N and 24g part A done; v26: chunks 22l and 22m's fixture built on main, their phone-emulation readings; v25: every wake local, D156 (7); `stress-moving`'s abuse target of 15 fps, not a 30 fps target, D153; earlier, v24: the fps session after 0196c25 reverted, D155: the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE; the local wake, D156, chunk 22l; `stress-moving` an abuse test and `stress-dense`'s target, D153, D154; the save format before the first store release and a save a build can't use set aside, proposed, D149; the save wipe for automated testing only, chunk 19w, D148, approved in direction, D149)
+Status: draft v31 (session 7: chunk 22's repeat closed but for the floor emulation measure; DoD 30's floor phone judged on the phone emulation until one exists; every proposed mark settled, D167; v30: item 24.1 met: a steady 60 fps through section 3 on the desktop; rule 23's train-queue exclusion built; D166; v29: the lean withdrawn and rule 23 not counting a train queue on the loop, D165, the user's; v28: the tick cap settled, the phone frame budget a headroom target, a displaced sleeper stays asleep, hashes within one platform (the phone's `atan2f`), chunk 22's repeat on the S20 FE, session 6, D163; v27: chunk 22c as built, the hold after a bounce, exact repeat outside `auto`, proposed, D162; 5N and 24g part A done; v26: chunks 22l and 22m's fixture built on main, their phone-emulation readings; v25: every wake local, D156 (7); `stress-moving`'s abuse target of 15 fps, not a 30 fps target, D153; earlier, v24: the fps session after 0196c25 reverted, D155: the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE; the local wake, D156, chunk 22l; `stress-moving` an abuse test and `stress-dense`'s target, D153, D154; the save format before the first store release and a save a build can't use set aside, proposed, D149; the save wipe for automated testing only, chunk 19w, D148, approved in direction, D149)
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -28,9 +28,11 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
     "Simulation performance").
   - **Running tests without a screen: settled** in chunk 3 (headless Godot,
     see `docs/dev/README.md`).
-  - **Still to test on real phones (O14):** the floor phone, the real game
-    on both phones (chunk 22), tilt input, and Android audio latency
-    (only from v2, when music arrives, D134).
+  - **Still to test on real phones (O14):** a floor phone (DoD 30's
+    floor half is judged on the phone emulation until one exists, D167),
+    tilt input, and Android audio latency (only from v2, when music
+    arrives, D134). The real game on the reference phone is measured
+    (chunk 22's repeat, sessions 6 and 7, D163, D167).
 
 ## Level authoring
 
@@ -107,7 +109,7 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   - Sleepers stop simulating until something touches them. Slimes
     on screen may use fewer points per ring when zoomed out, or when many
     slimes are active and the device can't keep up (crowd detail,
-    proposed, D140, D141).
+    D140, D141).
   - Off-screen rules (D70): free slimes follow their area's route back, fusion
     and waking happen only on screen, and baskets count weight off screen.
 
@@ -157,7 +159,7 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
     parking (86 parked). A big pile of base slimes in the open rests slowly;
     the rule is kept for v1 and looked at again in chunk 22 (D107);
     measured there, revisiting it is O105 (D138).
-- **Crowd detail (proposed, D140; the user's idea):** on a screen full of
+- **Crowd detail (D140; the user's idea):** on a screen full of
   slimes the chaos hides rounder shapes, so rings take fewer points as the
   crowd grows. Detail levels 0 (full) to 3 (for size 1: 12, 10, 8 and 6
   points; values in `tuning.md`). The crowd is the ACTIVE non-sleeper
@@ -173,7 +175,7 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   (33 -> 30 ms); about 4 to 5 ms of each tick doesn't depend on points,
   and the rest of the frame is about 21 ms either way (overstated by that
   run's method, D142). Helpful, not enough on its own.
-- **Crowd detail only when the device can't keep up (proposed, D141; the
+- **Crowd detail only when the device can't keep up (D141; the
   user's amendment, chunk 22c):** a good device keeps full ring points
   whatever the crowd. A load meter in the scene layer (every build; not
   the debug-only perf log) judges each window of about 1 s: **pressed**
@@ -181,7 +183,7 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   (below 60 % and at most 1 such frame), or in the band. It moves a
   **detail ceiling**, 0 to 3: up one step per pressed window, down one
   step after 3 calm windows in a row, held in the band; it starts at 0.
-  *As built (D162, proposed):* after a bounce (a pressed window within
+  *As built (D162):* after a bounce (a pressed window within
   10 judged windows after a step down) the next step down waits for 60
   calm windows (about a minute); slowed and capped at 60 fps, 32 -> 5
   steps in 2 min.
@@ -209,7 +211,7 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   the resting slimes they reach (a state change, only the slime itself),
   never the whole pile (basket 3's
   drain on the withdrawn build: 0 whole-pile wakes against 6; Physics
-  80 -> 51 on `s3-basket-59of60`). *Proposed (D143):* level
+  80 -> 51 on `s3-basket-59of60`). *(D143, D167:)* level
   rule 23 keeps levels free of spots where many slimes gather awake
   (item 24.7; D165, the user's: a train queue on the loop doesn't
   count, it is rule 24's; built, c0924d9, D166: `ClusterWatch` leaves
@@ -296,10 +298,17 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   10 ms on the phone (off screen 4.0 ms, `train_follow` 1.7, fusion 1.0,
   the frontier 1.0, the native solver 0.3); thermal status 0. DoD 30 is
   met on the reference phone for those three fixtures; the floor phone
-  is unmeasured (O14). Still to run (session 7): the labels' cost, normal
-  play, `loop-start-pile`, a second native basket run, chunk 20's checks
-  by hand, on a build with item 24.3 and the release hop; the repeat
-  stays open until then.
+  is unmeasured (O14).
+- **Session 7** (D167; 2026-10-07, main da9b95b, `auto`, native tick):
+  `loop-start-pile` 59.1 / 58.9 fps (p50 / p5), never more than 2 ticks
+  a frame, a tick 7.95 ms (item 24.5 passes); `s3-basket-59of60` 59.1 /
+  58.9 cold, 59.1 / 59.0 warm; normal play from the phone's own save
+  59.1 / 58.0 (a light case: 1 physics slime, a save near the start); the
+  debug labels off 59.1 / 58.8, on 49.2 / 40.6, their part 4.2 ms a frame
+  (accepted: debug builds only). The hashes match on both ticks; the
+  pile's equals the desktop's, the basket's differs by `atan2f`.
+  **Chunk 22's repeat is closed**, but for the floor emulation measure.
+  Chunk 20's checks by hand wait on the user.
 - **Item 24.1 met on the desktop** (0d0935c, D166; measured only): a
   steady 60 fps through section 3 (native p50 / p5 60.0 / 60.0, GDScript
   p5 59.9, the detail ceiling at 0). The ticks, recorded against the
@@ -320,8 +329,14 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   phone session; DoD 30's frame rate is the gate. On the desktop, the
   simulation's share is a tick of at most about 3.8 ms (phone cold) or
   2.4 ms (throttled).
-- **Pending:** the floor phone, once it is bought (O14). The floor decision
-  rests on its measurement (D71). The 200-slime cap stays (D67).
+- **The floor phone (D167, the user's: "emulation has been the weaker
+  and will serve as floor phone for now"):** until a floor phone exists,
+  DoD 30's floor-phone half is judged on the phone emulation (the slowed
+  desktop CPU, `tools/perf_slow.sh --pin=main`, D142's method). Its last
+  reading, chunk 22l (before 5N): `s3-basket-59of60` 35.0 fps. A new
+  measure on current main comes after the health review's splits (the
+  desktop must be quiet). A real floor phone stays O14; the floor
+  decision (D71) would rest on it. The 200-slime cap stays (D67).
 - Not covered by the spike: game logic, the camera and the UI, which share
   the same frame budget (chunk 22 measures the whole game).
 
@@ -345,7 +360,7 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   - Chunk 22 tests the realistic worst case on the floor phone: the largest
     pile on one screen (D96).
   - **Phone sessions capture numbers through logs** (the user's rule,
-    2026-09-30; proposed, D138): the perf log (`--perf-log`, debug builds),
+    2026-09-30; D138, D167): the perf log (`--perf-log`, debug builds),
     logcat and `tools/android/perf.sh`; screenshots only for visual bugs.
 
 ## Saving (D7, D12, D43)
@@ -369,7 +384,7 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   otherwise, we just wipe"). Until the app has shipped, a save-format
   change may break older saves: no migration, no special approval. From
   the first store release on, the format is a hard contract and every
-  change ships with its migration. *(Proposed:)* a breaking change bumps
+  change ships with its migration. *(D149, D167:)* a breaking change bumps
   the format number; before shipping, a save a build refuses (another
   format, or any other reason `SaveData` gives) is set aside with its
   backup as `.unreadable`, the level starts fresh with autosave on, and
@@ -396,7 +411,7 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   desktop run bionic's `atan2`, `atan2f`, `sin` and `cos`, and reproduces
   the phone's hashes. *Not scheduled, possibly after v1:* our own
   `atan2`, `sin` and `cos` would make runs repeat across devices, if
-  replays or sharing ever need it (`versions/timeline.md`). *(Proposed, D162:)* runs repeat in crowd detail's `always` (test
+  replays or sharing ever need it (`versions/timeline.md`). *(D162, D167:)* runs repeat in crowd detail's `always` (test
   mode's default: fixtures, scripts, the bench, the tests) and `off`; a
   run passed `--crowd-detail=auto` (`perf.sh`'s phone runs) follows the
   device's load, doesn't repeat, and its hash isn't a fixture hash. If the native contingency is ever adopted (D96), a native build
@@ -408,7 +423,7 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   End-to-end tests drive the test level (`levels/test/`) this way.
 - Fixture saves for the test level are listed in `levels/test/README.md`.
 - **Save wipe** *(D148, chunk 19w, approved in direction, D149; its
-  details proposed; the user: "the flag is only for automated testing")*:
+  details D167; the user: "the flag is only for automated testing")*:
   in a debug build only, the launch flag `--wipe-save` deletes every file
   in `user://saves/` at startup, before any save is read;
   `user://parent.json` is kept. **For automated test runs only**
@@ -452,7 +467,7 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
 - **Sticky immersive mode** (no status or navigation bar; the world draws
   edge to edge). The edge strips' and parent zone's tap zones stay on the
   screen's edges; the parent's controls (buttons, the code prompt,
-  settings) stay inside the safe area (proposed, D132). It lets the app
+  settings) stay inside the safe area (D132, D167). It lets the app
   exclude **the whole edge strips** from Android's back gesture (D112):
   `setSystemGestureExclusionRects` on the game's view, through the Android
   plugin. Built in chunk 20: the usual 200 dp cap doesn't apply while the
