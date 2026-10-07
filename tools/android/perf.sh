@@ -9,10 +9,12 @@
 #                         [--no-install] [--label=TEXT] [--wipe-save]
 #                         [--phase-timers] [--tick=gdscript|native]
 #                         [--census[=EVERY,UNTIL]] [--crowd-detail=MODE]
+#                         [--debug-labels]
 #   tools/android/perf.sh --free-play [--minutes=N] [--serial=S] [--period=P]
 #                         [--no-build] [--no-install] [--label=TEXT]
 #                         [--wipe-save] [--phase-timers] [--tick=gdscript|native]
 #                         [--census[=EVERY,UNTIL]] [--crowd-detail=MODE]
+#                         [--debug-labels]
 #
 #   --serial=S        the device (adb serial); default: the only one attached
 #   --fixture=NAME    fixture mode: a fixture of the test level, played in test
@@ -69,6 +71,12 @@
 #                     Each PERF line carries ceiling, crowd_level, detail,
 #                     busy and missed, and a PERF_CEILING line marks each
 #                     ceiling step with its reason (both kept in perf.log)
+#   --debug-labels    the debug overlay's slime labels shown from launch, as
+#                     if its Labels button had been pressed (the game's
+#                     --debug-labels added to slime_args in both modes;
+#                     debug builds only). Off by default: a run measures with
+#                     the labels hidden unless it asks. Compare a run with
+#                     and one without, in the same scene, for what they cost
 #
 # It exports and installs the debug APK, clears logcat, starts the app with
 # the perf log (the launch intent's "slime_args" extra, read by the
@@ -140,6 +148,7 @@ install=1
 label=run
 wipe_save=0
 phase_timers=0
+debug_labels=0
 tick=""
 census=""
 crowd_detail=auto
@@ -168,6 +177,7 @@ for arg in "$@"; do
 	--label=*) label="${arg#*=}" ;;
 	--wipe-save) wipe_save=1 ;;
 	--phase-timers) phase_timers=1 ;;
+	--debug-labels) debug_labels=1 ;;
 	--tick=*) tick="${arg#*=}" ;;
 	--census) census=10,60 ;;
 	--census=*) census="${arg#*=}" ;;
@@ -280,6 +290,7 @@ else
 	slime_args="--test-mode,--fixture=$fixture,--seed=1,--perf-log=$period"
 fi
 [ "$phase_timers" = 0 ] || slime_args="$slime_args,--phase-timers"
+[ "$debug_labels" = 0 ] || slime_args="$slime_args,--debug-labels"
 [ -z "$tick" ] || slime_args="$slime_args,--tick=$tick"
 [ -z "$census" ] || slime_args="$slime_args,--census-every=${census%,*},--census-until=${census#*,}"
 # Crowd detail's mode, in both modes (a fixture run is test mode, `always`
