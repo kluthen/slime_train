@@ -2319,7 +2319,16 @@ Master spec §5.3, D10, D69, D70, D96, DoD 5 and 10
 `req_switch_basket_gate_set` for the off-screen filling). `Offscreen`
 (`src/sim/offscreen.gd`, pure logic) is `simulation.offscreen`; its class
 doc is the reference. `SlimeBodies` gained a per-slime `calm` (ACTIVE,
-RESTING, PARKED) and a low-detail flag.
+RESTING, PARKED) and a low-detail flag. The calm, rest and detail code is
+`SlimeDetail` (`src/sim/slime_detail.gd`, the health review's S1 seam 2):
+static functions over the `SlimeBodies` arrays (`crowd_count`, `park`,
+`unpark`, `wake_resting_in`, `set_detail`,
+`set_active_detail`, the GDScript rest pass `rest` and `rest_piles`, the
+ring rebuilds `resample` and `reshape`). `SlimeBodies` keeps the arrays and
+its interface and calls them; the one wake every path goes through,
+`SlimeBodies._wake_at`, stays in `SlimeBodies`, and so do the per-tick
+paths Offscreen calls for every slime (`translate`, and `park` and `unpark`
+on a slime already so), which read the bodies' own arrays faster.
 
 **Physics only on or near the screen.** `offscreen.step(sim)` runs at the
 start of every tick, before the train steers. A slime whose centre leaves
@@ -5540,8 +5549,9 @@ Each ring has a detail level 0 (full) to 3, `SlimeBodies.POINTS_BY_DETAIL`:
 The level used is the higher of the zoom's (zoomed out: at least 2) and the
 crowd's. Only ACTIVE rings are resampled; pile slimes (in a basket, asleep
 at bedtime) stop at level 2, since a pile of 6-point rings takes about 1300
-ticks to rest instead of about 410. `_resample` builds the rest ring
-exactly as a new slime's (`_rest_offset`, the double-precision radius), so
+ticks to rest instead of about 410. `_resample` (`SlimeDetail.resample`
+since the health review's S1) builds the rest ring exactly as a new slime's
+(`SlimeDetail.rest_offset`, the double-precision radius), so
 a reloaded save is bit for bit the same.
 
 **Measured gain** (headless bench, same machine, before / after, median /
@@ -6375,7 +6385,8 @@ and what stays GDScript (the behaviour), before any porting.
   - `SlimeBodies.tick` times each pass of `SlimeBodies.TickPhase`:
     auto_hops (the hop clears too), integrate, pairs, contacts, rings,
     terrain, doors (the passes in `_solve_terrain`), rest (the touching list
-    and `_rest`, `_rest_piles`, the local wake), tick_other (the support
+    and `_rest`, which runs `SlimeDetail.rest` and `rest_piles`, the local
+    wake), tick_other (the support
     reset, the centre cache cleared), native.
   - On the native tick (chunk 5N U6) one call, `SlimeSolver.step`, runs
     every solver pass (and the centre cache's clearing and the touching

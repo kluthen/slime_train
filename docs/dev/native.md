@@ -406,7 +406,8 @@ equality would also need our own `atan2`, `sin` and `cos`.
 `s3-basket-59of60` gave `4c5d03d2…` (desktop `a0223398…`), the same on
 both ticks. The cause is `atan2f` (bionic and glibc differ in the last
 bit on about 10 % of inputs), reached through `Vector2.angle()` in
-`SlimeBodies._resample` (`a0`, the resampled ring's first angle), which runs
+`SlimeDetail.resample` (`a0`, the resampled ring's first angle; called
+through `SlimeBodies._resample`), which runs
 when crowd detail changes a ring's point count; the double `atan2` of the
 contact pass differs too but has so far vanished in the float32 store. Not
 the view: test mode fixes it at 1152x648. To reproduce a phone hash on the
@@ -452,8 +453,9 @@ so its callers (the simulation, the train, the renderer, the tests) don't
 change. Its GDScript solver passes, the ones the native solver mirrors, are
 `SlimeSolverGD`'s (`src/sim/slime_solver.gd`, static functions over the
 bodies' arrays, called through `SlimeBodies._integrate`, `_build_pairs`,
-`_solve_contacts`, `_solve_rings` and `_solve_terrain`; the rest pass stays
-in `slime_bodies.gd`). Behind it:
+`_solve_contacts`, `_solve_rings` and `_solve_terrain`). Its GDScript rest
+pass is `SlimeDetail.rest` (`src/sim/slime_detail.gd`, with the other calm,
+rest and detail code), called through `SlimeBodies._rest`. Behind it:
 
 - **The native solver** (`SlimeSolver`) runs the solver part of the tick:
   substeps of integrate, the pair grid (first substep), slime contacts,

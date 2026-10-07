@@ -845,41 +845,32 @@ func detail_of(slime_id: int) -> int:
 
 
 ## How many slimes cost physics on a tick: calm ACTIVE and not sleepers
-## (resting and parked slimes, and sleepers, are never integrated).
-# @spec-link [[req_offscreen_simulation]]
+## (SlimeDetail.crowd_count).
 func crowd_count() -> int:
-	var count := 0
-	for s in slime_count:
-		if calm[s] == ACTIVE and state[s] != STATE_SLEEPER:
-			count += 1
-	return count
+	return SlimeDetail.crowd_count(self)
 
 
 ## Parks the slime (off screen): from now on it is neither simulated nor
-## touched, not even as a wall, until unpark(). Its velocity is dropped.
-# @spec-link [[req_offscreen_simulation]]
+## touched, not even as a wall, until unpark() (SlimeDetail.park). Offscreen
+## calls it every tick for every far slime: the parked ones return here.
 func park(slime_id: int) -> void:
 	var s := index_of(slime_id)
-	if s < 0 or calm[s] == PARKED:
-		return
-	calm[s] = PARKED
-	still_ticks[s] = 0
-	_set_velocity_at(s, Vector2.ZERO)
-	_drift[s] = Vector2.ZERO
+	if s >= 0 and calm[s] != PARKED:
+		SlimeDetail.park(self, s)
 
 
-## Simulates a parked slime again, at rest where it was put.
+## Simulates a parked slime again, at rest where it was put
+## (SlimeDetail.unpark). Offscreen calls it every tick for every near slime:
+## the unparked ones return here.
 func unpark(slime_id: int) -> void:
 	var s := index_of(slime_id)
-	if s < 0 or calm[s] != PARKED:
-		return
-	calm[s] = ACTIVE
-	still_ticks[s] = 0
-	_set_velocity_at(s, Vector2.ZERO)
+	if s >= 0 and calm[s] == PARKED:
+		SlimeDetail.unpark(self, s)
 
 
 ## Moves the whole slime by `delta`, its velocity and shape kept (how
-## Offscreen carries a parked slime along).
+## Offscreen carries a parked slime along, every tick: so it stays here, on
+## the bodies' own arrays).
 func translate(slime_id: int, delta: Vector2) -> void:
 	var s := index_of(slime_id)
 	if s < 0:
@@ -900,14 +891,10 @@ func wake(slime_id: int) -> void:
 		_wake_at(s)
 
 
-## Wakes every resting slime whose centre is in `box`. Returns how many.
-# @spec-link [[req_offscreen_simulation]]
+## Wakes every resting slime whose centre is in `box`. Returns how many
+## (SlimeDetail.wake_resting_in).
 func wake_resting_in(box: Rect2) -> int:
-	var woken := 0
-	for s in slime_count:
-		if calm[s] == RESTING and box.has_point(centre[s]):
-			woken += _wake_at(s)
-	return woken
+	return SlimeDetail.wake_resting_in(self, box)
 
 
 ## Wakes every resting slime whose ring may reach within `radius` of `point`.
@@ -918,41 +905,17 @@ func wake_around(point: Vector2, radius: float) -> int:
 
 
 ## Gives the slime's ring the point count of detail `level` (0 to
-## MAX_DETAIL), read off its current shape (_resample), whatever its calm.
-## False when nothing changed.
-# @spec-link [[req_offscreen_simulation]]
+## MAX_DETAIL), read off its current shape, whatever its calm. False when
+## nothing changed (SlimeDetail.set_detail).
 func set_detail(slime_id: int, level: int) -> bool:
-	assert(level >= 0 and level <= MAX_DETAIL, "SlimeBodies: invalid detail level %d" % level)
-	var s := index_of(slime_id)
-	if s < 0 or detail[s] == level:
-		return false
-	detail[s] = level
-	_resample(s, _detail_points(s, size[s]))
-	return true
+	return SlimeDetail.set_detail(self, slime_id, level)
 
 
-## set_detail(`level`) on every calm ACTIVE slime, by index: ascending, like
-## ids(), so the same state as one call per id (Offscreen, every tick); a
-## pile slime takes PILE_MAX_DETAIL at most. Resting and parked slimes keep
-## their rings (a reshape would wake a resting pile); they take the level
-## once ACTIVE again, on the next call. Returns how many rings changed.
-# @spec-link [[req_offscreen_simulation]]
+## set_detail(`level`) on every calm ACTIVE slime, a pile slime at
+## PILE_MAX_DETAIL at most; resting and parked slimes keep their rings.
+## Returns how many rings changed (SlimeDetail.set_active_detail).
 func set_active_detail(level: int) -> int:
-	assert(level >= 0 and level <= MAX_DETAIL, "SlimeBodies: invalid detail level %d" % level)
-	# Often every ring already has it: one native count, no loop.
-	if level <= PILE_MAX_DETAIL and detail.count(level) == slime_count:
-		return 0
-	var pile_level := mini(level, PILE_MAX_DETAIL)
-	var changed := 0
-	for s in slime_count:
-		if calm[s] != ACTIVE:
-			continue
-		var wanted := pile_level if _can_rest(s) else level
-		if detail[s] != wanted:
-			detail[s] = wanted
-			_resample(s, _detail_points(s, size[s]))
-			changed += 1
-	return changed
+	return SlimeDetail.set_active_detail(self, level)
 
 
 # --- Ticking ----------------------------------------------------------------
@@ -1041,89 +1004,10 @@ func _solve_iteration(sv, ph) -> void:
 		_solve_terrain()
 
 
-## The resting-pile rule (see the class doc), after the tick. A resting
-## slime touching a slime moving faster than WAKE_SPEED wakes, only it: the
-## rest of its pile rests on (the local wake, D156). Each active pile slime
-## counts its still, supported ticks; a group of touching active pile slimes
-## whose every member has counted REST_TICKS rests together. Piles rest
-## whole (a half-resting group would make its moving half take every
-## overlap against the wall, jolt, and wake it again); they wake locally
-## (D156; D96 woke them whole).
-# @spec-link [[req_offscreen_simulation]]
+## The resting-pile rule (see the class doc), after the tick, in GDScript:
+## SlimeDetail.rest (the native equivalence tests call this).
 func _rest() -> void:
-	if not rest_enabled:
-		for s in slime_count:
-			_wake_at(s)
-		return
-	var drift2 := REST_DRIFT * REST_DRIFT
-	var fast2 := WAKE_SPEED * _h * WAKE_SPEED * _h
-	for k in _pair_touch.size():
-		if _pair_touch[k] == 0:
-			continue
-		var a: int = _pairs[2 * k]
-		var b: int = _pairs[2 * k + 1]
-		if calm[a] == RESTING and calm[b] == ACTIVE and state[b] != STATE_SLEEPER:
-			if _drift[b].length_squared() > fast2:
-				_wake_at(a)
-		elif calm[b] == RESTING and calm[a] == ACTIVE and state[a] != STATE_SLEEPER:
-			if _drift[a].length_squared() > fast2:
-				_wake_at(b)
-	var ready := false
-	for s in slime_count:
-		if calm[s] != ACTIVE or not _can_rest(s):
-			continue
-		if supported[s] == 0 or centre[s].distance_squared_to(rest_anchor[s]) > drift2:
-			still_ticks[s] = 0
-			rest_anchor[s] = centre[s]
-			continue
-		still_ticks[s] = mini(still_ticks[s] + 1, REST_TICKS)
-		ready = ready or still_ticks[s] == REST_TICKS
-	if ready:
-		_rest_piles()
-
-
-## Rests every group of touching active pile slimes whose members have all
-## been still for REST_TICKS (union-find over the touching pairs).
-func _rest_piles() -> void:
-	var root := PackedInt32Array()
-	root.resize(slime_count)
-	for s in slime_count:
-		root[s] = s
-	for k in _pair_touch.size():
-		if _pair_touch[k] == 0:
-			continue
-		var a: int = _pairs[2 * k]
-		var b: int = _pairs[2 * k + 1]
-		if calm[a] != ACTIVE or calm[b] != ACTIVE or not _can_rest(a) or not _can_rest(b):
-			continue
-		var ra := _find(root, a)
-		var rb := _find(root, b)
-		if ra != rb:
-			root[maxi(ra, rb)] = mini(ra, rb)
-	# A group rests when none of its members is short of REST_TICKS.
-	var short := PackedByteArray()
-	short.resize(slime_count)
-	for s in slime_count:
-		if calm[s] == ACTIVE and _can_rest(s) and still_ticks[s] < REST_TICKS:
-			short[_find(root, s)] = 1
-	for s in slime_count:
-		if calm[s] != ACTIVE or not _can_rest(s):
-			continue
-		var r := _find(root, s)
-		if short[r] != 0:
-			continue
-		calm[s] = RESTING
-		still_ticks[s] = 0
-		pile[s] = id[r]
-		_set_velocity_at(s, Vector2.ZERO)
-		_drift[s] = Vector2.ZERO
-
-
-static func _find(root: PackedInt32Array, s: int) -> int:
-	while root[s] != s:
-		root[s] = root[root[s]]
-		s = root[s]
-	return s
+	SlimeDetail.rest(self)
 
 
 ## The whole state of the slimes, as plain data in id order, for
@@ -1159,9 +1043,9 @@ func _can_hop_at(s: int) -> bool:
 
 
 ## Whether the slime may rest: the pile states, which never hop (a slime in a
-## basket, or asleep at bedtime).
+## basket, or asleep at bedtime; SlimeDetail.can_rest).
 func _can_rest(s: int) -> bool:
-	return state[s] == STATE_IN_BASKET or state[s] == STATE_BEDTIME_ASLEEP
+	return SlimeDetail.can_rest(state[s])
 
 
 ## Whether the slime is a wall in the contacts: a sleeper, or resting.
@@ -1202,54 +1086,10 @@ func _wake_around(point: Vector2, radius: float, except: int) -> int:
 	return woken
 
 
-## The ring point count of slime index `s` at `slime_size`, at its detail.
-func _detail_points(s: int, slime_size: int) -> int:
-	return POINTS_BY_DETAIL[detail[s]][slime_size]
-
-
-## Gives slime index `s` a ring of `n` points read off its current shape: the
-## new points sit at even angles from its point 0's, each at the radius of
-## the current ring there (its radial profile), all moving at the slime's
-## mean velocity; the rest ring, area and edge are the regular `n`-gon's.
-## Its slice changes size like in _reshape.
+## Gives slime index `s` a ring of `n` points read off its current shape
+## (SlimeDetail.resample).
 func _resample(s: int, n: int) -> void:
-	var f := first[s]
-	var old := npts[s]
-	var c := _centre_at(s)
-	var velocity := _velocity_at(s)
-	var a0 := (pos[f] - c).angle()
-	# Not ring_radius[s] (32-bit): the radius _reshape uses, so the rest ring
-	# and area are bit for bit a fresh ring's (a reloaded save resamples).
-	var r := ring_radius_for(size[s])
-	var ring := PackedVector2Array()
-	var back := PackedVector2Array()
-	var offs := PackedVector2Array()
-	ring.resize(n)
-	back.resize(n)
-	offs.resize(n)
-	var step := velocity * _h
-	for k in n:
-		var t := float(k) * old / n
-		var i := int(t)
-		var fr := t - i
-		var r0 := (pos[f + i] - c).length()
-		var r1 := (pos[f + (i + 1) % old] - c).length()
-		var a := a0 + TAU * k / n
-		ring[k] = c + Vector2.from_angle(a) * (r0 + (r1 - r0) * fr)
-		back[k] = ring[k] - step
-		offs[k] = _rest_offset(k, n, r)
-	pos = pos.slice(0, f) + ring + pos.slice(f + old)
-	prev = prev.slice(0, f) + back + prev.slice(f + old)
-	rest_off = rest_off.slice(0, f) + offs + rest_off.slice(f + old)
-	_centre_ok[s] = 0
-	for t in range(s + 1, slime_count):
-		first[t] += n - old
-	npts[s] = n
-	rest_area[s] = _polygon_area(n, r)
-	rest_edge[s] = 2.0 * r * sin(PI / n)
-	centre[s] = c
-	_wake_at(s)
-	topology_version += 1
+	SlimeDetail.resample(self, s, n)
 
 
 ## The mean of slime index `s`'s points: _centre_at() from the cache when its
@@ -1325,54 +1165,10 @@ func _auto_hops(dt: float) -> void:
 	hop_aim.fill(Vector2.ZERO)
 
 
-## Point `k`'s offset on a rest ring of `n` points and radius `r`: point 0
-## at the bottom. _reshape and _resample share it, so a ring resampled on
-## loading a save (SlimeBodies.set_body) is bit for bit the one made fresh.
-static func _rest_offset(k: int, n: int, r: float) -> Vector2:
-	var a := TAU * k / n + PI * 0.5
-	return Vector2(cos(a), sin(a)) * r
-
-
 ## Gives slime index `s` a fresh rest ring of `slime_size` centred at `at`,
-## moving at `velocity`, replacing its point slice (the later slimes' slices
-## move to stay back to back).
+## moving at `velocity`, replacing its point slice (SlimeDetail.reshape).
 func _reshape(s: int, slime_size: int, at: Vector2, velocity: Vector2) -> void:
-	var n := _detail_points(s, slime_size)
-	var r := ring_radius_for(slime_size)
-	_wake_at(s)
-	var ring := PackedVector2Array()
-	var offs := PackedVector2Array()
-	ring.resize(n)
-	offs.resize(n)
-	for k in n:
-		# Point 0 at the bottom: the ring is mirror-symmetric about the
-		# vertical and stands on a point (its stable resting pose), whatever
-		# the point count, so a resting slime doesn't roll.
-		var off := _rest_offset(k, n, r)
-		offs[k] = off
-		ring[k] = at + off
-	var step := velocity * _h
-	var back := PackedVector2Array()
-	back.resize(n)
-	for k in n:
-		back[k] = ring[k] - step
-	var f := first[s]
-	var old := npts[s]
-	pos = pos.slice(0, f) + ring + pos.slice(f + old)
-	prev = prev.slice(0, f) + back + prev.slice(f + old)
-	rest_off = rest_off.slice(0, f) + offs + rest_off.slice(f + old)
-	_centre_ok[s] = 0
-	for t in range(s + 1, slime_count):
-		first[t] += n - old
-	npts[s] = n
-	size[s] = slime_size
-	ring_radius[s] = r
-	rest_area[s] = _polygon_area(n, r)
-	rest_edge[s] = 2.0 * r * sin(PI / n)
-	bound_r[s] = r * 1.3
-	centre[s] = at
-	angle0[s] = 0.0
-	topology_version += 1
+	SlimeDetail.reshape(self, s, slime_size, at, velocity)
 
 
 func _remove_at(s: int) -> void:
