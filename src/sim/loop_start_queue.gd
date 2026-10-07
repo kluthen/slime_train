@@ -71,6 +71,9 @@ var _gap := 0
 
 ## One tick, last in Simulation.step: on an open turn, moves the head of the
 ## queue (see the class doc).
+# @spec-link [[rule_stalled_train_slime_moved_to_start]]
+# @spec-link [[rule_stuck_slimes_moved_to_start]]
+# @spec-link [[rule_left_alone_and_lost]]
 func step(sim: Simulation) -> void:
 	if sim.train == null:
 		return

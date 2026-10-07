@@ -35,6 +35,7 @@ var placed := false
 
 ## Finds the hint's place on `data`: its sleeper nearest the first slime's
 ## marker (the smaller stable ID on a tie).
+# @spec-link [[req_first_play_hint]]
 func place(data: LevelData) -> void:
 	placed = false
 	position = Vector2.ZERO
@@ -69,6 +70,7 @@ func called() -> void:
 
 ## Whether the hint shows at `tick`: due, placed, not bedtime, and 10 s since
 ## the world showed.
+# @spec-link [[req_first_play_hint]]
 func update(tick: int) -> void:
 	visible = placed and not done and not bedtime and tick - since >= DUE_TICKS
 

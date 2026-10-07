@@ -41,6 +41,7 @@ var neutral := 0.0
 
 
 ## A new reading from the sensor (or from test mode).
+# @spec-link [[req_tilt_input]]
 func read(reading_degrees: float, is_flat := false) -> void:
 	degrees = reading_degrees
 	flat = is_flat
@@ -72,6 +73,7 @@ func gravity_degrees() -> float:
 
 ## The unit vector free slimes fall along: exactly Vector2.DOWN inside the
 ## dead zone, turned toward screen-right for a positive tilt.
+# @spec-link [[req_tilt_input]]
 func down() -> Vector2:
 	var turned := gravity_degrees()
 	if turned == 0.0:

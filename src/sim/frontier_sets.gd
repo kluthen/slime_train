@@ -222,7 +222,6 @@ static func _gate_state(saved: Variant) -> Dictionary:
 ## A tap on anything left out lands on what is under it, open ground: a
 ## call, which in screensaver mode starts a session.
 # @spec-link [[req_interactive_objects_general]]
-# @spec-link [[req_controls_tap_zones]]
 func answering(sim: Simulation, targets: Dictionary) -> Dictionary:
 	var out := {}
 	for id in targets:
@@ -344,6 +343,7 @@ func dump() -> Dictionary:
 			"celebration_hops": hops.dump()}
 
 
+# @spec-link [[req_slime_states]]
 func _catch(sim: Simulation) -> void:
 	var bodies := sim.slimes
 	var ids := _sorted(_level.baskets)
@@ -427,6 +427,7 @@ func _basket_wait(sim: Simulation, id: String, inside: PackedInt32Array) -> void
 
 ## Runs the rules basket `id` triggers when full, then checks whether every
 ## basket has fired (the celebration).
+# @spec-link [[rule_gate_opens_via_switch_basket_set]]
 func _fire(sim: Simulation, id: String) -> void:
 	for rule in _level.rules:
 		var when: Dictionary = rule.get("when", {})
@@ -447,6 +448,7 @@ func _fire(sim: Simulation, id: String) -> void:
 
 
 ## Opens gate `id` for good, and grows the train's loop (see the class doc).
+# @spec-link [[rule_gate_opens_via_switch_basket_set]]
 func _open_gate(sim: Simulation, id: String) -> void:
 	sim.gate_states[id]["open"] = true
 	_opened_on[id] = sim.tick
@@ -528,7 +530,6 @@ func _doors_step(sim: Simulation) -> void:
 
 ## A door opening or shutting wakes the resting slimes by it (chunk 15),
 ## not the rest of their piles (D156).
-# @spec-link [[req_offscreen_simulation]]
 static func _disturb(sim: Simulation, box: Rect2) -> void:
 	if box.has_area():
 		sim.slimes.wake_resting_in(box.grow(DOOR_WAKE_REACH))
