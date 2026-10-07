@@ -113,7 +113,6 @@ extends RefCounted
 ## randomness.
 # @spec-link [[req_offscreen_simulation]]
 # @spec-link [[rule_left_alone_and_lost]]
-# @spec-link [[req_persistence_and_saves]]
 
 ## Parked beyond the view grown by this, px (a third of a screen).
 const PARK_MARGIN := 384.0
@@ -279,6 +278,7 @@ func step(sim: Simulation) -> void:
 
 
 ## The state as plain data, for Simulation.dump().
+# @spec-link [[req_persistence_and_saves]]
 func dump() -> Dictionary:
 	var counts := []
 	for slime_id in _sorted_ids(away):
@@ -294,6 +294,7 @@ func dump() -> Dictionary:
 
 
 ## Puts back the state saved from dump()'s plain data (with exact values).
+# @spec-link [[req_persistence_and_saves]]
 func restore(data: Dictionary) -> void:
 	zoomed_out = bool(data.get("zoomed_out", false))
 	crowd_level = int(data.get("crowd_level", 0))

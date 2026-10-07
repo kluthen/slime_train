@@ -100,7 +100,6 @@ extends RefCounted
 ## them would leave a finger stuck down), input not yet consumed, and what
 ## each tick recomputes (hop aims, touching pairs).
 # @spec-link [[req_persistence_and_saves]]
-# @spec-link [[req_interactive_objects_general]]
 
 const FORMAT := 1
 ## Whether the app has shipped: gone out in a store (D149). False until the
@@ -119,6 +118,7 @@ const PHASES := [FreeSlimes.ANSWERING, FreeSlimes.UNSURE, FreeSlimes.HEADING_BAC
 # --- Saving --------------------------------------------------------------------
 
 ## The save of `sim`, as plain JSON data.
+# @spec-link [[req_interactive_objects_general]]
 static func capture(sim: Simulation) -> Dictionary:
 	var slimes := []
 	for slime_id in sim.slimes.ids():

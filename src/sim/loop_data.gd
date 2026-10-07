@@ -15,9 +15,6 @@ extends RefCounted
 ## Queries take `open_gates`, the stable IDs of the gates open so far (the gate
 ## state lives in the simulation, not here). The current loop is a cycle:
 ## distances wrap round it.
-# @spec-link [[req_loop_and_world]]
-# @spec-link [[rule_return_route_per_section]]
-# @spec-link [[rule_no_dead_ends]]
 
 const OUTGOING := "outgoing"
 const RETURN := "return"
@@ -37,6 +34,7 @@ func _init(id := "") -> void:
 
 
 ## Appends a segment. `gate` is the gate that retires a RETURN segment.
+# @spec-link [[rule_return_route_per_section]]
 func add_segment(id: String, section: int, kind: String, points: PackedVector2Array, gate := "") -> void:
 	var lengths := Polyline.cumulative_lengths(points)
 	segments.append({
@@ -61,6 +59,8 @@ func segment(id: String) -> Dictionary:
 ## The segments in use, in order: each section's outgoing segments, up to the
 ## first section whose return route's gate is not in `open_gates`, then that
 ## return route. When every gate is open, the last return route stays in use.
+# @spec-link [[req_loop_and_world]]
+# @spec-link [[rule_return_route_per_section]]
 func current_segments(open_gates: Array = []) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var last_return: Dictionary = {}
@@ -89,6 +89,7 @@ func length(open_gates: Array = []) -> float:
 
 ## The point at `distance` px along the current loop from its start. The loop
 ## is a cycle, so the distance wraps.
+# @spec-link [[req_loop_and_world]]
 func position_at(distance: float, open_gates: Array = []) -> Vector2:
 	var current := current_segments(open_gates)
 	if current.is_empty():
@@ -149,6 +150,7 @@ func gap(point: Vector2) -> float:
 ## What is wrong with the loop's shape, as readable errors (empty when fine):
 ## no segments, a segment with fewer than two points, an unknown kind, two
 ## segments that don't join, or a return route that doesn't reach the start.
+# @spec-link [[rule_no_dead_ends]]
 func validate() -> PackedStringArray:
 	var errors := PackedStringArray()
 	if segments.is_empty():

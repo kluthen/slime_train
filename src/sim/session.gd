@@ -57,7 +57,6 @@ extends RefCounted
 ## it came more than SUNRISE_CUE_LATE_MS late: a cooldown that ran out while
 ## the app was closed lands in screensaver mode without replaying sunrise.
 # @spec-link [[req_session_lifecycle]]
-# @spec-link [[req_actor_roles_and_permissions]]
 
 const SCREENSAVER := "screensaver"
 const SESSION := "session"
@@ -132,6 +131,7 @@ func is_timed() -> bool:
 
 
 ## Whether a tap that reaches the world starts a session now.
+# @spec-link [[req_actor_roles_and_permissions]]
 func can_start() -> bool:
 	return enabled and phase == SCREENSAVER
 

@@ -22,7 +22,6 @@ extends RefCounted
 ## Simulation keeps one: load_level() names the first slime, step() hands
 ## split parts their members, Simulation.fuse() merges them, and every tick
 ## forgets the slimes that are gone.
-# @spec-link [[req_persistence_and_saves]]
 
 ## Runtime slime id -> PackedStringArray of stable IDs, sorted. Only slimes
 ## with members are listed.
@@ -79,6 +78,7 @@ func tidy(bodies: SlimeBodies) -> void:
 
 
 ## The named slimes in id order, as plain data: [{"id", "members"}].
+# @spec-link [[req_persistence_and_saves]]
 func dump() -> Array:
 	var ids := _members.keys()
 	ids.sort()

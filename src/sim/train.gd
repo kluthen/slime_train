@@ -81,14 +81,9 @@ extends RefCounted
 ## Hop bookkeeping (debug: the PERF line's hops and short_hops, the slime
 ## census's hop record): hop_log, a TrainHopLog that steer(), hop_target()
 ## and follow() feed. Not state: not in dump() nor saves.
-# @spec-link [[req_loop_and_world]]
-# @spec-link [[req_hopping_behavior]]
-# @spec-link [[rule_loop_travelable_with_no_input]]
-# @spec-link [[rule_all_sizes_travel_loop_v1]]
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
 # @spec-link [[req_offscreen_simulation]]
 # @spec-link [[req_platform_and_performance_targets]]
-# @spec-link [[req_persistence_and_saves]]
 
 ## How far ahead of its last progress (px) a slime's progress may move in one
 ## projection. A slime moves at most max_speed / 60 = 20 px per tick.
@@ -209,11 +204,13 @@ static func bounds_for(terrain: TerrainSegments, loop_data: LoopData) -> Rect2:
 # --- Sizes ------------------------------------------------------------------
 
 ## How far ahead along the loop a slime of `size` aims its hops, px.
+# @spec-link [[rule_all_sizes_travel_loop_v1]]
 static func hop_reach(size: int) -> float:
 	return HOP_REACH * (1.0 + HOP_REACH_PER_SIZE * (size - 1))
 
 
 ## How high above the route a slime of `size` tops out, px.
+# @spec-link [[rule_all_sizes_travel_loop_v1]]
 static func hop_apex(size: int) -> float:
 	return HOP_APEX * (1.0 + HOP_APEX_PER_SIZE * (size - 1))
 
@@ -228,6 +225,7 @@ static func hop_cap(size: int) -> float:
 ## under `gravity` (px/s², downward). Faster than `cap`, the upward part is
 ## kept (clamped to 97 % of the cap) and the forward part reduced: the hop
 ## lands short.
+# @spec-link [[req_hopping_behavior]]
 static func aim(from: Vector2, to: Vector2, apex: float, gravity: float, cap: float) -> Vector2:
 	var top := minf(from.y, to.y) - maxf(apex, 1.0)
 	var rise := from.y - top
@@ -263,6 +261,7 @@ func slide_length() -> float:
 
 
 ## The point `distance` px along the current loop (wraps).
+# @spec-link [[req_loop_and_world]]
 func position_at(distance: float) -> Vector2:
 	if _pts.size() < 2 or _len <= 0.0:
 		return Vector2.ZERO
@@ -291,6 +290,7 @@ func direction_at(distance: float) -> Vector2:
 ## Changes the gates opened so far, and with them the current loop. Progress
 ## is kept as a distance from the start (it stays on the part of the loop
 ## that doesn't change, which is all a slime can be on when a gate opens).
+# @spec-link [[req_loop_and_world]]
 func set_open_gates(gates: Array) -> void:
 	open_gates = gates.duplicate()
 	_flatten()
@@ -346,6 +346,7 @@ func steering_distance(distance: float, point: Vector2) -> float:
 
 ## Where a slime at `progress` aims its next hop, `reach` px ahead along the
 ## loop, or at a step's foot, or over it (see the class doc).
+# @spec-link [[req_hopping_behavior]]
 func hop_target(progress: float, reach: float) -> Vector2:
 	var target := progress + reach
 	# The first step (steep rise) or drop starting before the target, if any.
@@ -517,6 +518,7 @@ func inherit(parts: PackedInt32Array) -> void:
 ## Before the bodies tick: aims the hops about to happen, holds the slimes
 ## standing on a climb (TrainClimb.hold), and holds and carries the slimes on
 ## a slide.
+# @spec-link [[rule_loop_travelable_with_no_input]]
 func steer(bodies: SlimeBodies, dt: float) -> void:
 	hop_log.clear_aims()
 	for slime_id in tracked_ids():
@@ -586,12 +588,14 @@ func follow(bodies: SlimeBodies, tick: int) -> void:
 ## Slime `slime_id`'s record, exactly (for saves): TrainRecord.to_dict()'s
 ## {"distance", "laps", "on_slide", "mark", "marked_at"}, or {} when it isn't
 ## followed.
+# @spec-link [[req_persistence_and_saves]]
 func record_of(slime_id: int) -> Dictionary:
 	return _records[slime_id].to_dict() if _records.has(slime_id) else {}
 
 
 ## Follows slime `slime_id` from a saved record (record_of). Missing fields
 ## take track()'s values.
+# @spec-link [[req_persistence_and_saves]]
 func restore_record(slime_id: int, record: Dictionary) -> void:
 	track(slime_id, record.get("distance", 0.0))
 	var mine: TrainRecord = _records[slime_id]
@@ -606,6 +610,7 @@ func restore_record(slime_id: int, record: Dictionary) -> void:
 
 
 ## The train's state as plain data, for Simulation.dump().
+# @spec-link [[req_persistence_and_saves]]
 func dump() -> Dictionary:
 	var slimes := []
 	for slime_id in tracked_ids():

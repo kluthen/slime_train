@@ -59,8 +59,8 @@ extends RefCounted
 ## The interface (create, remove, tick, merge, split, hop, the accessors and
 ## dump) is kept small and plain so the tick can move to a GDExtension later
 ## without the callers changing.
-# @spec-link [[req_waking_sleepers]]
 
+# @spec-link [[req_waking_sleepers]]
 const STATE_SLEEPER := 0
 const STATE_TRAIN := 1
 const STATE_FREE := 2
@@ -550,6 +550,7 @@ func touching(a: int, b: int) -> bool:
 
 ## Every pair of slimes whose rings touched during the last tick, as
 ## Vector2i(lower id, higher id), in order.
+# @spec-link [[req_waking_sleepers]]
 func touching_pairs() -> Array:
 	return _touching.duplicate()
 

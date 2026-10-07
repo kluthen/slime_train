@@ -9,7 +9,6 @@ extends CanvasModulate
 ##
 ## Placeholder look: DUSK_COLOUR is a stand-in until the ui_ux tree settles
 ## the dusk (ux-writer); it is a value here, not a design token.
-# @spec-link [[req_session_lifecycle]]
 
 ## Placeholder: the world's tint at full dusk.
 const DUSK_COLOUR := Color(0.55, 0.52, 0.78)
@@ -21,6 +20,7 @@ var simulation: Simulation = null
 var _keep_on: Variant = null
 
 
+# @spec-link [[req_session_lifecycle]]
 func _process(_delta: float) -> void:
 	if simulation == null:
 		return

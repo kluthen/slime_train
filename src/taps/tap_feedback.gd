@@ -11,8 +11,6 @@ extends Node2D
 ## Place it at the world origin. It redraws only when what it draws may have
 ## changed (refresh()); the eyes of one radius are one instanced draw
 ## (ShapeInstances, a child drawn after the ripples and the hint).
-# @spec-link [[req_controls_tap_zones]]
-# @spec-link [[req_first_play_hint]]
 
 const RIPPLE_COLOR := Color(1.0, 1.0, 1.0, 0.9)
 ## The ripple's radius at its start and end, and its line width, screen pixels.
@@ -127,6 +125,8 @@ func _paint() -> void:
 
 
 ## Every ripple and the hint while it shows.
+# @spec-link [[req_controls_tap_zones]]
+# @spec-link [[req_first_play_hint]]
 func _paint_taps() -> void:
 	var zoom := simulation.view.zoom
 	for ripple in simulation.ripples:

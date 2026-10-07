@@ -50,9 +50,6 @@ extends RefCounted
 ## Tick order (Simulation.step): answer_call() while input is applied; steer()
 ## before the bodies tick; paced() after it; inherit() for split parts;
 ## follow() after the split zones and before Train.follow().
-# @spec-link [[req_call_mechanic]]
-# @spec-link [[req_slime_states]]
-# @spec-link [[rule_exploration_branch_has_route_back]]
 
 const ANSWERING := "answering"
 const UNSURE := "unsure"
@@ -137,6 +134,7 @@ func tracked_ids() -> PackedInt32Array:
 
 
 ## The slime's phase (ANSWERING, UNSURE, HEADING_BACK), or "".
+# @spec-link [[req_slime_states]]
 func phase_of(slime_id: int) -> String:
 	return _records[slime_id]["phase"] if _records.has(slime_id) else ""
 
@@ -152,6 +150,7 @@ func point_of(slime_id: int) -> Vector2:
 
 
 ## The route back the slime chose at its last hop heading back, or "".
+# @spec-link [[rule_exploration_branch_has_route_back]]
 func route_of(slime_id: int) -> String:
 	return _records[slime_id]["route"] if _records.has(slime_id) else ""
 
@@ -160,6 +159,7 @@ func route_of(slime_id: int) -> String:
 
 ## A call at `point` on `tick`, answered by every awake slime within `radius`.
 ## Returns the ids that answered, ascending.
+# @spec-link [[req_call_mechanic]]
 func answer_call(point: Vector2, tick: int, bodies: SlimeBodies, radius: float) -> PackedInt32Array:
 	call_point = point
 	call_tick = tick
@@ -346,6 +346,7 @@ static func _toward(from: Vector2, target: Vector2, reach: float, apex: float, s
 ## Where a heading-back slime at `from` hops for: along its branch's route
 ## back, or at the nearest point of the current loop (see the class doc).
 ## Records the route chosen.
+# @spec-link [[rule_exploration_branch_has_route_back]]
 func _way_back(record: Dictionary, from: Vector2, reach: float, level: LevelData,
 		open_gates: Array) -> Vector2:
 	record["route"] = ""

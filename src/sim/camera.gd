@@ -86,9 +86,6 @@ extends RefCounted
 ## The zoom is the camera's: no input sets it (DoD 18); framing zones, the
 ## cue and the idle camera do.
 # @spec-link [[req_camera_rails_and_framing]]
-# @spec-link [[req_controls_tap_zones]]
-# @spec-link [[rule_return_route_per_section]]
-# @spec-link [[rule_framing_zone_wherever_wider_view_needed]]
 # @spec-link [[req_idle_camera_and_screensaver_zoom]]
 # @spec-link [[req_camera_shows_gate_opening]]
 
@@ -238,6 +235,7 @@ var _zone_ids: Array = []
 ## Puts the camera on the rails of `loop` (the current segments for
 ## `open_gates`), at the rail point nearest `near` (a level point), or at the
 ## start of the loop when `near` is null. Without a loop it stays put.
+# @spec-link [[rule_return_route_per_section]]
 func start(loop: LoopData, open_gates: Array, near: Variant = null) -> void:
 	mode = RAILS
 	rail_left = 0.0
@@ -271,6 +269,7 @@ func start(loop: LoopData, open_gates: Array, near: Variant = null) -> void:
 
 ## An edge button pressed by `finger`: `side` -1 is the left button
 ## (backward), 1 the right (forward). The press is applied on the next step().
+# @spec-link [[req_controls_tap_zones]]
 func press(side: int, finger: int) -> void:
 	_take_back()
 	_pressed = side
@@ -281,6 +280,7 @@ func press(side: int, finger: int) -> void:
 
 ## A finger lifting: if it was holding an edge button, the camera eases to a
 ## stop.
+# @spec-link [[req_controls_tap_zones]]
 func release(finger: int) -> void:
 	if finger == hold_finger:
 		hold_finger = -1
@@ -509,6 +509,7 @@ func is_on_rails() -> bool:
 
 ## The framing zone whose box holds `point` (level px), or "": the current
 ## zone while it still holds it, else the smaller ID where boxes overlap.
+# @spec-link [[rule_framing_zone_wherever_wider_view_needed]]
 func zone_at(point: Vector2) -> String:
 	if frame_zone != "" and zones.has(frame_zone) and (zones[frame_zone]["box"] as Rect2).has_point(point):
 		return frame_zone
@@ -652,6 +653,7 @@ func _exit_ticks(id: String) -> int:
 
 ## Frames the camera by the zone holding the rail point `base`: a new zone
 ## restarts the exit hold.
+# @spec-link [[rule_framing_zone_wherever_wider_view_needed]]
 func _frame_at(base: Vector2) -> void:
 	var zone := zone_at(base)
 	if zone != frame_zone:

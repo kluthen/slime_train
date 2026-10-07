@@ -43,8 +43,6 @@ extends RefCounted
 ## The counts and the log are in dump() and in saves ("stuck_slimes",
 ## SaveData).
 # @spec-link [[rule_stuck_slimes_moved_to_start]]
-# @spec-link [[req_slime_states]]
-# @spec-link [[req_persistence_and_saves]]
 
 ## How often the pairs are checked, ticks (0.5 s, D100).
 const CHECK_TICKS := 30
@@ -74,6 +72,7 @@ var stuck: Array[Dictionary] = []
 ## One tick, after the train follows: on a check tick, counts the close
 ## pairs and logs the stuck ones neither of which may move (see the class
 ## doc); the others wait in the loop-start queue.
+# @spec-link [[req_slime_states]]
 # @spec-link [[rule_stuck_slimes_moved_to_start]]
 func step(sim: Simulation) -> void:
 	if sim.tick % CHECK_TICKS != 0:
@@ -128,6 +127,7 @@ static func mover_of(bodies: SlimeBodies, pair: Vector2i) -> int:
 
 ## The state as plain data, for Simulation.dump() and saves: {"counts":
 ## [[lower id, higher id, checks]] in order, "stuck": the log}.
+# @spec-link [[req_persistence_and_saves]]
 func dump() -> Dictionary:
 	var pairs := counts.keys()
 	pairs.sort()
@@ -139,6 +139,7 @@ func dump() -> Dictionary:
 
 ## Puts back the state dump() gave, as plain JSON data (numbers may be
 ## floats): counts and log.
+# @spec-link [[req_persistence_and_saves]]
 func restore(data: Dictionary) -> void:
 	counts = {}
 	for entry in data.get("counts", []):

@@ -33,12 +33,8 @@ extends RefCounted
 ##
 ## How the strips and the parent zone are drawn (the arrows, any marking) is
 ## interface design (ux-writer); src/taps/edge_buttons.gd draws placeholders.
-# @spec-link [[req_controls_tap_zones]]
 # @spec-link [[req_interactive_objects_general]]
 # @spec-link [[req_parent_gate_and_access]]
-# @spec-link [[req_camera_rails_and_framing]]
-# @spec-link [[req_switch_basket_gate_set]]
-# @spec-link [[rule_frontier_set_inert_after_gate_open]]
 
 const ZONE_PARENT := "parent_zone"
 const ZONE_EDGE := "edge_button"
@@ -79,6 +75,7 @@ static func parent_zone_height(view: ScreenView) -> float:
 ## The left (side -1) or right (side 1) edge strip's rectangle on `view`'s
 ## screen, screen pixels: a tenth of the screen's width against that side,
 ## from the parent zone down to the bottom.
+# @spec-link [[req_camera_rails_and_framing]]
 static func edge_button_rect(side: int, view: ScreenView) -> Rect2:
 	var top := parent_zone_height(view)
 	var width := view.screen_size.x * EDGE_STRIP_SHARE
@@ -94,6 +91,7 @@ static func edge_button_rect(side: int, view: ScreenView) -> Rect2:
 ## "call_point" (level pixels: the tap, or the sleeper's centre)}.
 ## `edge_buttons`: whether the edge buttons show; hidden (at bedtime) they
 ## are no zone, and a tap there lands on what is under it.
+# @spec-link [[req_controls_tap_zones]]
 static func dispatch(at: Vector2, view: ScreenView, tap_targets: Dictionary, edge_buttons := true) -> Dictionary:
 	var world := view.screen_to_world(at)
 	var result := {"zone": ZONE_GROUND, "world": world, "side": 0, "object": "", "kind": "",
@@ -143,6 +141,8 @@ static func hit_area(kind: String, box: Rect2, view: ScreenView) -> Rect2:
 ## The stable ID of the tap target whose hit area (hit_area()) holds `world`
 ## (level pixels) in `view`, or "". Where several do, the one whose box
 ## centre is nearest wins (ties: the smaller ID).
+# @spec-link [[req_switch_basket_gate_set]]
+# @spec-link [[rule_frontier_set_inert_after_gate_open]]
 # @spec-link [[req_interactive_objects_general]]
 static func object_at(world: Vector2, view: ScreenView, tap_targets: Dictionary) -> String:
 	var ids := tap_targets.keys()

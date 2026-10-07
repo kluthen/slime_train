@@ -21,13 +21,11 @@ extends RefCounted
 ##   the slimes free at its start wake others.
 ## - Tapping: a tap on a sleeper is a call centred on its body (TapDispatcher);
 ##   the tap box follows the body, and a woken sleeper is no longer one.
-# @spec-link [[req_waking_sleepers]]
-# @spec-link [[req_slime_states]]
-# @spec-link [[req_offscreen_simulation]]
 
 
 ## Creates the level's sleepers in `sim` (a fresh game): stable ID order,
 ## size 1, asleep, centred on their markers, each named by its stable ID.
+# @spec-link [[req_slime_states]]
 static func place(sim: Simulation, data: LevelData) -> void:
 	var ids := data.sleepers.keys()
 	ids.sort()
@@ -41,6 +39,7 @@ static func place(sim: Simulation, data: LevelData) -> void:
 
 ## Wakes every sleeper a free slime touched during the last bodies tick, both
 ## on screen (`sim.view`). Call right after SlimeBodies.tick().
+# @spec-link [[req_waking_sleepers]]
 static func wake(sim: Simulation) -> void:
 	var bodies := sim.slimes
 	var woken := PackedInt32Array()
@@ -95,6 +94,7 @@ static func tap_targets(sim: Simulation) -> Dictionary:
 
 
 ## Whether any of slime `slime_id`'s ring shows in `sim.view`.
+# @spec-link [[req_offscreen_simulation]]
 static func _on_screen(sim: Simulation, slime_id: int) -> bool:
 	var view := sim.view
 	var size := view.screen_size / view.zoom

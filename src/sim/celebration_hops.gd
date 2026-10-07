@@ -14,8 +14,6 @@ extends RefCounted
 ## don't join in. The hops still due are state: in dump() (so the state
 ## hash) and in saves (transient.frontier, SaveData). No randomness: the
 ## slimes are taken in id order.
-# @spec-link [[req_level_completion_celebration]]
-# @spec-link [[req_hopping_behavior]]
 
 ## How many times each slime hops.
 const HOPS := 2
@@ -29,6 +27,8 @@ var _due := {}
 
 
 ## The burst begins: every awake slime on screen now has HOPS hops to do.
+# @spec-link [[req_hopping_behavior]]
+# @spec-link [[req_level_completion_celebration]]
 func begin(sim: Simulation) -> void:
 	_due.clear()
 	var view := Fusion.view_rect(sim.view)
@@ -41,6 +41,8 @@ func begin(sim: Simulation) -> void:
 ## One tick. `playing`: whether the burst still plays; once it doesn't, the
 ## hops still due are dropped. Each slime with a hop due that stands on
 ## something hops now.
+# @spec-link [[req_hopping_behavior]]
+# @spec-link [[req_level_completion_celebration]]
 func step(sim: Simulation, playing: bool) -> void:
 	if not playing:
 		_due.clear()

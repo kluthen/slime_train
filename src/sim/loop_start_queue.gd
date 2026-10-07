@@ -51,7 +51,6 @@ extends RefCounted
 # @spec-link [[rule_stalled_train_slime_moved_to_start]]
 # @spec-link [[rule_stuck_slimes_moved_to_start]]
 # @spec-link [[rule_left_alone_and_lost]]
-# @spec-link [[req_persistence_and_saves]]
 
 ## The wait from one move to the next turn, ticks (0.5 to 2 s, D150).
 const TURN_MIN := 30
@@ -109,6 +108,7 @@ func next_turn(sim: Simulation) -> int:
 
 
 ## The latest tick in the three move logs no later than now, or -1.
+# @spec-link [[req_persistence_and_saves]]
 static func last_move(sim: Simulation) -> int:
 	var tick := sim.tick
 	var last := -1
@@ -121,6 +121,7 @@ static func last_move(sim: Simulation) -> int:
 ## The slimes due a move to the loop start now, in the queue's order (see
 ## the class doc): {"id", "reason", "since" (the tick it came due), "other"
 ## (a stuck slime's pair, else -1), "out" (out of bounds)}.
+# @spec-link [[req_persistence_and_saves]]
 static func due(sim: Simulation) -> Array[Dictionary]:
 	var tick := sim.tick
 	var bodies := sim.slimes

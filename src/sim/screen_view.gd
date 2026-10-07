@@ -33,7 +33,6 @@ extends RefCounted
 ## safe_rect() follows the screen's size. What the parent reads or taps is
 ## laid out inside it (ParentLayout); the tap zones stay on the screen's
 ## edges. A property of the display too: neither in dump() nor in saves.
-# @spec-link [[req_controls_tap_zones]]
 
 ## The project's viewport (canvas_items stretch): 1152 x 648 logical pixels.
 ## Headless runs report a square window, so the size always comes from here
@@ -93,6 +92,7 @@ func set_to(view_centre: Vector2, view_zoom: float, size: Vector2) -> void:
 
 
 ## The level point shown at screen point `at`.
+# @spec-link [[req_controls_tap_zones]]
 func screen_to_world(at: Vector2) -> Vector2:
 	return centre + (at - screen_size * 0.5) / zoom
 
@@ -103,6 +103,7 @@ func world_to_screen(at: Vector2) -> Vector2:
 
 
 ## The viewport px that `millimetres` span on this screen (at any zoom).
+# @spec-link [[req_controls_tap_zones]]
 func mm_to_px(millimetres: float) -> float:
 	return millimetres * px_per_mm
 

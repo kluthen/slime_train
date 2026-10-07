@@ -7,8 +7,6 @@ extends RefCounted
 ## the level's rules.
 ## Built at load by the Level component
 ## (src/components/level.gd); nothing here refers to a scene node.
-# @spec-link [[req_loop_and_world]]
-# @spec-link [[rule_released_level_stable_with_migration]]
 
 ## One screen, in level pixels: the width of the view at normal zoom (the
 ## project's viewport is 1152 x 648). Level layouts are given in screens
@@ -83,6 +81,7 @@ func _init(id := "", version := 0) -> void:
 
 
 ## Adds a route back serving the exploration branch `serves`.
+# @spec-link [[req_loop_and_world]]
 func add_route_back(id: String, serves: String, points: PackedVector2Array) -> void:
 	route_backs[id] = {"serves": serves, "points": points, "lengths": Polyline.cumulative_lengths(points)}
 
@@ -93,6 +92,7 @@ func add_split_zone(id: String, box: Rect2) -> void:
 
 
 ## Adds an exploration branch covering `box` (level pixels).
+# @spec-link [[req_loop_and_world]]
 func add_branch(id: String, box: Rect2) -> void:
 	branches[id] = box
 
@@ -162,5 +162,6 @@ func branch_at(point: Vector2) -> String:
 
 
 ## The ID and version, as the simulation's dump carries them.
+# @spec-link [[rule_released_level_stable_with_migration]]
 func header() -> Dictionary:
 	return {"id": level_id, "version": level_version}

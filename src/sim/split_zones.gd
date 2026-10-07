@@ -4,8 +4,6 @@ extends RefCounted
 ## inside a split zone is split at once into base slimes of its species and
 ## state (SlimeBodies.split). Nothing else in the game splits a slime. Plain
 ## data over SlimeBodies; the zones come from the level (LevelData).
-# @spec-link [[rule_split_zone_only_splitter]]
-# @spec-link [[rule_start_carries_split_zone]]
 
 ## Stable ID -> the box it covers (Rect2, level pixels).
 var zones: Dictionary = {}
@@ -22,6 +20,7 @@ func _init(split_zones: Dictionary = {}) -> void:
 
 
 ## Whether `point` is inside a split zone.
+# @spec-link [[rule_start_carries_split_zone]]
 func covers(point: Vector2) -> bool:
 	for box in _boxes:
 		if box.has_point(point):
@@ -32,6 +31,8 @@ func covers(point: Vector2) -> bool:
 ## Splits every slime bigger than a base slime whose centre is in a split
 ## zone. Returns the splits, in slime id order: each the parts' ids, the
 ## original id first (SlimeBodies.split).
+# @spec-link [[rule_split_zone_only_splitter]]
+# @spec-link [[rule_start_carries_split_zone]]
 func apply(bodies: SlimeBodies) -> Array:
 	var out := []
 	if _boxes.is_empty():

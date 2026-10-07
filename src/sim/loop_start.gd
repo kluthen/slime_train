@@ -25,9 +25,6 @@ extends RefCounted
 ## fix in the contacts (the very case the stuck net is for), and part with a
 ## jolt since. free_spot() gives the first free draw, or NO_SPOT when
 ## every draw is taken: the queue then moves nobody and tries again later.
-# @spec-link [[rule_left_alone_and_lost]]
-# @spec-link [[rule_stuck_slimes_moved_to_start]]
-# @spec-link [[rule_stalled_train_slime_moved_to_start]]
 
 ## How far along the loop from its start a landing spot may be, px (D150).
 const STRETCH := 240.0
@@ -90,6 +87,9 @@ static func landing_point(train: Train, size: int, distance: float) -> Vector2:
 
 ## Moves slime `slime_id` to `distance` px along the loop of `train`, back
 ## on the train (see the class doc).
+# @spec-link [[rule_left_alone_and_lost]]
+# @spec-link [[rule_stalled_train_slime_moved_to_start]]
+# @spec-link [[rule_stuck_slimes_moved_to_start]]
 static func move(bodies: SlimeBodies, train: Train, slime_id: int, distance: float) -> void:
 	assert(bodies.has(slime_id), "LoopStart.move: no slime %d" % slime_id)
 	var at := landing_point(train, bodies.size_of(slime_id), distance)

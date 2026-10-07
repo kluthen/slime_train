@@ -9,7 +9,6 @@ extends RefCounted
 ## (specs/levels/test/README.md: A red, B blue, C yellow, D green, E purple);
 ## F, not placed in the test level yet, is pink. The real palette comes with
 ## the art. Lightness, darkest to lightest: E, B, A, D, F, C.
-# @spec-link [[req_species_and_colour]]
 
 const COUNT := 6
 const LETTERS := "ABCDEF"
@@ -25,6 +24,7 @@ const COLORS: Array[Color] = [
 
 
 ## "A" to "F".
+# @spec-link [[req_species_and_colour]]
 static func letter(species: int) -> String:
 	return LETTERS[species]
 
@@ -37,6 +37,7 @@ static func from_letter(text: String) -> int:
 
 
 ## The colour of `species` (an index into LETTERS).
+# @spec-link [[req_species_and_colour]]
 static func color(species: int) -> Color:
 	return COLORS[species]
 

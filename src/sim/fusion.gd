@@ -73,9 +73,7 @@ extends RefCounted
 ## Tick order (Simulation.step): after the split zones, before the free
 ## slimes and the train follow (they drop the fused-away slime's records).
 # @spec-link [[rule_fusion_contact_time]]
-# @spec-link [[rule_max_size_three]]
 # @spec-link [[rule_dip_may_nudge_fusion]]
-# @spec-link [[req_offscreen_simulation]]
 
 ## Continuous contact before two slimes fuse, s (specs/tuning.md).
 const CONTACT_SECONDS := 3.0
@@ -141,6 +139,7 @@ static func view_rect(view: ScreenView) -> Rect2:
 
 
 ## Whether level point `at` counts as on screen for fusion.
+# @spec-link [[req_offscreen_simulation]]
 static func on_screen(view: ScreenView, at: Vector2) -> bool:
 	return view_rect(view).grow(-VIEW_MARGIN).has_point(at)
 
@@ -253,6 +252,7 @@ func restore(data: Array) -> void:
 # --- Internals --------------------------------------------------------------
 
 ## Whether the touching pair (a, b) counts toward fusing or bumping.
+# @spec-link [[rule_max_size_three]]
 func _counts(sim: Simulation, a: int, b: int) -> bool:
 	var bodies := sim.slimes
 	var sa := bodies.index_of(a)

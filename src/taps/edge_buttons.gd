@@ -9,7 +9,6 @@ extends Node2D
 ## art until the ui_ux tree settles the look. Place it on a CanvasLayer: it
 ## draws in screen pixels. It redraws only when what it draws changes
 ## (refresh()).
-# @spec-link [[req_controls_tap_zones]]
 
 const FILL := Color(1.0, 1.0, 1.0, 0.22)
 const OUTLINE := Color(1.0, 1.0, 1.0, 0.45)
@@ -43,6 +42,7 @@ func _process(_delta: float) -> void:
 ## Shows the buttons when the camera does, and asks for a redraw when what
 ## _paint() draws changed since the last one asked (picture()): the drawn
 ## arrows stay on screen until then. Returns whether it asked.
+# @spec-link [[req_controls_tap_zones]]
 # @spec-link [[req_platform_and_performance_targets]]
 func refresh() -> bool:
 	visible = simulation != null and simulation.camera.edge_buttons_visible
@@ -74,6 +74,7 @@ func _draw() -> void:
 
 
 ## This frame's drawing: an arrow in the middle of each edge strip.
+# @spec-link [[req_controls_tap_zones]]
 func _paint() -> void:
 	if simulation == null:
 		return
