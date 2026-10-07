@@ -1,8 +1,10 @@
 class_name FrontierView
 extends Node2D
 ## Draws what the simulation says about the frontier sets (FrontierSets),
-## above the level's placeholder boxes: each basket's quota outlines, filled
-## by the weight in it (a size-3 slime fills 3); the reward while it plays;
+## above the level's placeholder boxes: each basket's quota (QuotaDisplay:
+## outlines up to 10, quota pies above), filled in the colours of the slimes
+## in it (a size-3 slime fills 3), pulsing through the reward, emptying with
+## the release and gone once the basket is inert (fired and empty, ux D4 Q10);
 ## each switch's shut trapdoor and which way it sends the flow; each
 ## signpost's arrow, the way its switch sends the flow; each gate's box while
 ## closed and its lid once the old slide entrance is closed; the level's
@@ -10,28 +12,27 @@ extends Node2D
 ## once it has played, the level's lasting mark at the start of the loop
 ## (item 23.11). It only reads the simulation. Placeholder art until the
 ## ui_ux tree settles the look. Place it at the world origin.
-## Each basket's slots are two instanced draws (ShapeInstances children: the
-## filled slots' discs, then every slot's outline), and the celebration and
-## the mark are drawn on a last child (the overlay), so they stay above them.
+## Each basket's slots are instanced draws (ShapeInstances children: the
+## filled outlines' discs, one draw per species, then every outline's or
+## pie's rim), a basket's pie slices are triangles of this node's own drawing
+## (one call for every pie), and the celebration and the mark are drawn on a
+## last child (the overlay), so they stay above them.
 # @spec-link [[req_switch_basket_gate_set]]
 # @spec-link [[rule_signpost_at_every_fork]]
 # @spec-link [[req_level_completion_celebration]]
 
-const OUTLINE_COLOR := Color(1.0, 1.0, 1.0, 0.8)
-const FILL_COLOR := Color(1.0, 0.85, 0.3, 0.9)
-## One quota outline's radius and the gap between two, level pixels.
-const OUTLINE_RADIUS := 14.0
-const OUTLINE_GAP := 8.0
-## A quota outline's line width (level pixels, antialiased) and point count.
-const OUTLINE_WIDTH := 2.0
+## A quota outline's and a quota pie's rim point counts (antialiased; the
+## sizes and widths are QuotaDisplay's).
 const OUTLINE_SEGMENTS := 24
-## How far above the basket's box the outlines sit, level pixels.
-const OUTLINE_LIFT := 30.0
+const PIE_RIM_SEGMENTS := 48
+## How much the reward pulse swells a basket's outlines or pies, and how fast
+## (radians a tick).
+const PULSE_SWELL := 0.25
+const PULSE_RATE := 0.3
 const DOOR_COLOR := Color(0.55, 0.45, 0.35)
 const GATE_COLOR := Color(0.5, 0.5, 0.6, 0.9)
 const ARROW_COLOR := Color(1.0, 1.0, 1.0, 0.9)
 const ARROW_LENGTH := 44.0
-const REWARD_COLOR := Color(1.0, 0.95, 0.5)
 const CELEBRATION_COLORS: Array[Color] = [Color(1.0, 0.4, 0.4), Color(1.0, 0.85, 0.3),
 		Color(0.4, 0.8, 1.0), Color(0.5, 1.0, 0.5), Color(0.85, 0.5, 1.0)]
 ## The lasting mark's placeholder bunting, level pixels: half the span
@@ -67,12 +68,26 @@ var _ways := {}
 var _ways_level: LevelData = null
 var _ways_gates: Array = []
 
-## Per basket id, its slots' two instanced draws, children before _overlay:
-## [the filled slots' discs, every slot's outline], made for level
+## Per basket id, its slots' instanced draws, children before _overlay:
+## Species.COUNT disc draws (the filled outlines of species 0 to 5, each
+## coloured its species), then every outline's or pie's rim, made for level
 ## _slots_level (_sync_slots()).
 # @spec-link [[req_platform_and_performance_targets]]
 var _slots := {}
 var _slots_level: LevelData = null
+## Per basket id with pies, its pies' slices and dividers, drawn in one call
+## (_pies()), and what they were built from: [the radius, _units_key]. They
+## are rebuilt only when that changes, so a frame the celebration redraws
+## reuses them.
+# @spec-link [[req_platform_and_performance_targets]]
+var _pie_draws := {}
+## Per basket id, the species filling each unit of its quota
+## (QuotaDisplay.unit_species(), -1 empty), from the slimes in it; worked
+## out again only when _units_key (the simulation, the level and every
+## basket's weight) changes, so not every frame of the reward pulse.
+# @spec-link [[req_switch_basket_gate_set]]
+var _units := {}
+var _units_key := []
 ## The last child, drawn after the baskets' instanced draws (children draw
 ## after their parent's own drawing, in tree order): the celebration and the
 ## lasting mark, which the baskets' outlines used to be drawn under.
@@ -197,6 +212,7 @@ func _paint() -> void:
 			draw_rect(gate["box"], GATE_COLOR)
 		if state.get("entrance_closed", false) and (gate["lid"] as Rect2).has_area():
 			draw_rect(gate["lid"], DOOR_COLOR)
+	_refresh_units()
 	for id in level.baskets:
 		_basket(id, level.baskets[id], states.get(id, {}))
 
@@ -213,25 +229,85 @@ func _sync_slots(level: LevelData) -> void:
 			remove_child(node)
 			node.queue_free()
 	_slots.clear()
+	_pie_draws.clear()
 	_slots_level = level
 	if level == null:
 		return
 	for id in level.baskets:
-		var discs := ShapeInstances.new()
-		discs.name = "BasketDiscs%d" % _slots.size()
+		var draws := []
+		for species in Species.COUNT:
+			var discs := ShapeInstances.new()
+			discs.name = "BasketDiscs%d%s" % [_slots.size(), Species.letter(species)]
+			discs.self_modulate = Species.color(species)
+			add_child(discs)
+			draws.append(discs)
 		var outlines := ShapeInstances.new()
 		outlines.name = "BasketOutlines%d" % _slots.size()
-		outlines.self_modulate = OUTLINE_COLOR
-		add_child(discs)
+		outlines.self_modulate = QuotaDisplay.OUTLINE_COLOR
 		add_child(outlines)
-		_slots[id] = [discs, outlines]
+		draws.append(outlines)
+		_slots[id] = draws
 	move_child(_overlay, -1)
 
 
-## Basket `id`'s instanced draws: [the filled slots' discs, every slot's
-## outline] (see _slots).
+## Basket `id`'s instanced draws: Species.COUNT disc draws (index: the
+## species), then the rims (index Species.COUNT) (see _slots).
 func basket_slots(id: String) -> Array:
 	return _slots[id]
+
+
+## Basket `id`'s pie slices and dividers as last drawn (see _pie_draws);
+## empty when it has no pies or showed none.
+func pie_triangles(id: String) -> QuotaDisplay.Triangles:
+	return _pie_draws[id][1] if _pie_draws.has(id) else QuotaDisplay.Triangles.new()
+
+
+## Works out _units again when the simulation, the level or a basket's weight
+## changed since the last time: each slime in a basket (SlimeBodies.IN_BASKET)
+## belongs to the basket whose box is nearest its centre (holding it: 0), the
+## same rule FrontierSets weighs them by, and fills its units in ascending id
+## order. The weights then match the units filled, as FrontierSets sets
+## every basket's weight from the slimes in it each tick.
+# @spec-link [[req_switch_basket_gate_set]]
+func _refresh_units() -> void:
+	var level := simulation.level
+	var key := [simulation.get_instance_id(), level.get_instance_id()]
+	for id in level.baskets:
+		key.append((simulation.object_states.get(id, {}) as Dictionary).get("weight", 0))
+	if key == _units_key:
+		return
+	_units_key = key
+	var ids := PackedStringArray(level.baskets.keys())
+	ids.sort()
+	var species := {}
+	var sizes := {}
+	for id in ids:
+		species[id] = PackedInt32Array()
+		sizes[id] = PackedInt32Array()
+	var bodies := simulation.slimes
+	for s in bodies.slime_count:
+		if bodies.state[s] != SlimeBodies.IN_BASKET:
+			continue
+		var id := _basket_nearest(level, ids, bodies.centre_of(bodies.id[s]))
+		species[id].append(bodies.species[s])
+		sizes[id].append(bodies.size[s])
+	_units.clear()
+	for id in ids:
+		_units[id] = QuotaDisplay.unit_species(level.baskets[id]["quota"], species[id], sizes[id])
+
+
+## Of baskets `ids` (sorted) of `level`, the one whose box is nearest `at`
+## (0 inside it), the first on a tie.
+static func _basket_nearest(level: LevelData, ids: PackedStringArray, at: Vector2) -> String:
+	var best := ""
+	var best_gap := INF
+	for id in ids:
+		var box: Rect2 = level.baskets[id]["box"]
+		var gap := at.distance_to(at.clamp(box.position, box.end))
+		if gap < best_gap:
+			best_gap = gap
+			best = id
+	return best
 
 
 ## Where the level's lasting mark is drawn (the start of the loop), or null
@@ -294,52 +370,89 @@ func _arrow(from: Vector2, way: Vector2) -> void:
 	draw_line(tip, tip - way.rotated(-0.5) * 14.0, ARROW_COLOR, 4.0)
 
 
-## Basket `basket` (id `id`, state `state`)'s quota slots in a row above its
-## box: an outline each, filled from the left by the weight in it (all once
-## FIRED), swelling with the reward pulse. Drawn as two instanced draws, the
-## filled slots' discs (draw_circle()'s) then every outline (draw_arc()'s),
-## where each slot drew its disc then its outline: the same picture while a
-## slot's outline (its reach) stays clear of the next slot's disc (at rest the
-## gap is OUTLINE_GAP + OUTLINE_RADIUS minus the outline's half width and
-## feather, about 6 px). The reward pulse swells them until it doesn't, and
-## then they are drawn slot by slot, as before.
+## Basket `basket` (id `id`, state `state`)'s quota (QuotaDisplay): its
+## outlines or pies in a row above its box, filled from the first by the
+## slimes in it (_units), each unit in its slime's species colour, swelling
+## with the reward pulse; nothing once the basket is inert (FIRED and empty:
+## its release done). The outlines are instanced draws, the filled ones'
+## discs then every outline (draw_circle()'s, draw_arc()'s), where each slot
+## drew its disc then its outline: the same picture while a slot's outline
+## (its reach) stays clear of the next slot's disc (at rest the gap is
+## OUTLINE_GAP + OUTLINE_RADIUS minus the outline's half width and feather,
+## about 6 px). The reward pulse swells them until it doesn't, and then they
+## are drawn slot by slot, as before. A pie's slices and dividers are one
+## triangle list (_pie_draws), its rim in the rims' instanced draw.
+# @spec-link [[req_switch_basket_gate_set]]
 # @spec-link [[req_platform_and_performance_targets]]
 func _basket(id: String, basket: Dictionary, state: Dictionary) -> void:
-	var box: Rect2 = basket["box"]
 	var quota: int = basket["quota"]
-	var weight: int = state.get("weight", 0)
 	var phase: String = state.get("phase", FrontierSets.FILLING)
-	var step := OUTLINE_RADIUS * 2.0 + OUTLINE_GAP
-	var left := box.get_center().x - step * (quota - 1) * 0.5
-	var y := box.position.y - OUTLINE_LIFT
-	var rewarding := phase == FrontierSets.REWARD
-	var pulse := 1.0
-	if rewarding:
-		pulse = 1.0 + 0.25 * sin(float(simulation.tick - int(state.get("since", 0))) * 0.3)
-	var radius := OUTLINE_RADIUS * pulse
-	var color := REWARD_COLOR if rewarding else FILL_COLOR
-	var filled := quota if phase == FrontierSets.FIRED else weight
-	var discs: ShapeInstances = _slots[id][0]
-	var outlines: ShapeInstances = _slots[id][1]
-	discs.clear()
-	outlines.clear()
-	outlines.set_ring(radius, OUTLINE_WIDTH, OUTLINE_SEGMENTS, true)
-	if radius + outlines.reach >= step:
-		for k in quota:
-			var at := Vector2(left + step * k, y)
-			if k < filled:
-				draw_circle(at, radius, color)
-			draw_arc(at, radius, 0.0, TAU, OUTLINE_SEGMENTS, OUTLINE_COLOR, OUTLINE_WIDTH, true)
+	var units: PackedInt32Array = _units[id]
+	var draws: Array = _slots[id]
+	for node: ShapeInstances in draws:
+		node.clear()
+	var inert := phase == FrontierSets.FIRED and (units.is_empty() or units[0] < 0)
+	if inert:
+		_pie_draws.erase(id)
 	else:
-		discs.set_disc(radius)
-		discs.self_modulate = color
+		var pulse := 1.0
+		if phase == FrontierSets.REWARD:
+			pulse += PULSE_SWELL * sin(float(simulation.tick - int(state.get("since", 0))) * PULSE_RATE)
+		var radius := QuotaDisplay.radius(quota) * pulse
+		var centres := QuotaDisplay.centres(basket["box"], quota)
+		if QuotaDisplay.uses_pies(quota):
+			_pies(id, quota, centres, radius, units, draws[Species.COUNT])
+		else:
+			_outlines(quota, centres, radius, units, draws)
+	for node: ShapeInstances in draws:
+		node.commit()
+
+
+## A basket's quota outlines at `centres`, of radius `radius`, unit k filled
+## by species `units[k]` (-1: empty), into its instanced draws `draws` (see
+## _basket()).
+func _outlines(quota: int, centres: PackedVector2Array, radius: float, units: PackedInt32Array,
+		draws: Array) -> void:
+	var outlines: ShapeInstances = draws[Species.COUNT]
+	outlines.set_ring(radius, QuotaDisplay.OUTLINE_WIDTH, OUTLINE_SEGMENTS, true)
+	if radius + outlines.reach >= QuotaDisplay.step(quota):
 		for k in quota:
-			var at := Vector2(left + step * k, y)
-			if k < filled:
-				discs.add(at)
-			outlines.add(at)
-	discs.commit()
-	outlines.commit()
+			if units[k] >= 0:
+				draw_circle(centres[k], radius, Species.color(units[k]))
+			draw_arc(centres[k], radius, 0.0, TAU, OUTLINE_SEGMENTS, QuotaDisplay.OUTLINE_COLOR,
+					QuotaDisplay.OUTLINE_WIDTH, true)
+		return
+	for k in quota:
+		if units[k] >= 0:
+			var discs: ShapeInstances = draws[units[k]]
+			discs.set_disc(radius)
+			discs.add(centres[k])
+		outlines.add(centres[k])
+
+
+## A basket's quota pies at `centres`, of radius `radius`, slice k (counted
+## across the pies) filled by species `units[k]` (-1: empty): the slices and
+## dividers as one triangle list (built again only when the radius or
+## _units_key changed, _pie_draws), the rims into `rims`.
+func _pies(id: String, quota: int, centres: PackedVector2Array, radius: float,
+		units: PackedInt32Array, rims: ShapeInstances) -> void:
+	rims.set_ring(radius, QuotaDisplay.PIE_RIM_WIDTH, PIE_RIM_SEGMENTS, true)
+	var slices := QuotaDisplay.groups(quota)
+	for g in slices.size():
+		rims.add(centres[g])
+	var key := [radius, _units_key]
+	if not _pie_draws.has(id) or _pie_draws[id][0] != key:
+		var triangles := QuotaDisplay.Triangles.new()
+		if _pie_draws.has(id):
+			triangles = _pie_draws[id][1]
+			triangles.clear()
+		var first := 0
+		for g in slices.size():
+			triangles.add_pie(centres[g], radius, slices[g], units, first)
+			first += slices[g]
+		_pie_draws[id] = [key, triangles]
+	var drawn: QuotaDisplay.Triangles = _pie_draws[id][1]
+	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), drawn.indices, drawn.points, drawn.colors)
 
 
 ## A burst of rings over the view, from the tick it began (deterministic),
