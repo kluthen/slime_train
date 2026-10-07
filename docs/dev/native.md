@@ -401,6 +401,21 @@ tests need, and a Linux hash isn't expected to equal an Android one. The flags a
 basic arithmetic and `sqrt` identical across builds; cross-platform
 equality would also need our own `atan2`, `sin` and `cos`.
 
+**Checked on the phone (2026-10-07, main cfe1dab):** `stress-dense` and
+`stress-moving` gave the desktop's hashes at 600 ticks, but
+`s3-basket-59of60` gave `4c5d03d2…` (desktop `a0223398…`), the same on
+both ticks. The cause is `atan2f` (bionic and glibc differ in the last
+bit on about 10 % of inputs), reached through `Vector2.angle()` in
+`SlimeBodies._resample` (`a0`, the resampled ring's first angle), which runs
+when crowd detail changes a ring's point count; the double `atan2` of the
+contact pass differs too but has so far vanished in the float32 store. Not
+the view: test mode fixes it at 1152x648. To reproduce a phone hash on the
+desktop, `tools/linux/bionic_libm.sh` builds an LD_PRELOAD shim with
+bionic's `atan2`, `atan2f`, `sin` and `cos` (it counts the calls that
+differ); `LD_PRELOAD=build/bionic_libm/libbionic_libm.so godot --headless
+...` gives all three phone hashes. The shim can't reach the native
+extension (loaded with RTLD_DEEPBIND), which keeps glibc's `atan2`.
+
 ## Checking on the phone
 
 Every export ships the extension now (the descriptor sits in
