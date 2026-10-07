@@ -1,0 +1,50 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+---  GUT  ---
+[1m[INFO]:  [0musing [/home/bastien/.local/share/godot/app_userdata/Slime Train] for temporary output.
+Godot version:  4.7.2
+GUT version:  9.7.1
+[4m
+
+res://tests/unit/test_geyser.gd
+[0m* test_an_arrival_is_launched_high_and_wide
+TICK native (SLIME_TICK=native)
+* test_it_comes_down_on_its_spot
+* test_the_draws_repeat_with_the_seed
+* test_its_stream_is_its_own
+* test_off_nothing_is_launched
+* test_a_base_slime_may_land_past_the_split_zone
+* test_a_fused_arrival_lands_only_in_a_split_zone
+* test_a_flight_into_an_overhang_is_refused
+* test_flight_clear_sees_a_ledge_beside_the_landing
+* test_the_emptiest_kept_spot_is_taken
+* test_never_onto_a_slime_off_the_route
+* test_never_onto_a_spot_with_no_ground
+* test_never_under_a_guarded_ledge
+* test_never_at_or_past_a_gate
+* test_with_no_spot_left_the_arrival_is_plain
+* test_a_parked_arrival_is_put_on_a_free_spot
+* test_a_parked_arrival_with_no_free_spot_stays_in_line
+* test_it_lifts_the_arrival_above_the_pile
+* test_lift_origin_leaves_a_free_or_buried_slime_where_it_is
+[1m19/19 passed.
+[0m
+
+
+
+[33m==============================================
+[0m[33m= Run Summary
+[0m[33m==============================================
+[0m
+Totals
+------
+Scripts               1
+Tests                19
+Passing Tests        19
+Asserts              90
+Time              1.849s
+
+
+Ran Scripts matching "test_geyser"
+[32m---- All tests passed! ----
+[0m

@@ -263,6 +263,12 @@ var stalled: Array[Dictionary] = []
 ## moved on by the ticks parked since, see the class doc; -1 before the
 ## first follow)}.
 var _records := {}
+## EXPERIMENT (exp/geyser): the ids whose progress wrapped past the loop's
+## end (the return route's end, the loop's start) since the Geyser last
+## looked, as a set (id -> true). Filled by advance() (follow()'s and
+## Offscreen's proxies'), emptied by Geyser.step. Not state: not in dump()
+## nor saves.
+var lapped := {}
 ## The current loop flattened into one closed polyline: points, cumulative
 ## distances, and for each edge whether it is on a return route.
 var _pts := PackedVector2Array()
@@ -565,6 +571,7 @@ func advance(slime_id: int, centre: Vector2, tick: int) -> void:
 	if progress >= _len:
 		progress -= _len
 		record["laps"] += 1
+		lapped[slime_id] = true
 	record["distance"] = progress
 	var now := progress_of(slime_id)
 	if record["marked_at"] < 0 or now - record["mark"] >= STALL_ADVANCE:
@@ -610,6 +617,17 @@ func log_stalled(slime_id: int, tick: int, reason: String) -> void:
 	stalled.append({"id": slime_id, "tick": tick, "reason": reason})
 	if stalled.size() > STALL_LOG_SIZE:
 		stalled.pop_front()
+
+
+## EXPERIMENT (exp/geyser): puts followed slime `slime_id`'s progress
+## `distance` px along the loop from its start, in the same lap: how the
+## Geyser places a parked arrival further along the first stretch (forward
+## only, the slime having just wrapped). Its stall mark is left to
+## advance().
+func place(slime_id: int, distance: float) -> void:
+	var record: Dictionary = _records[slime_id]
+	assert(distance >= record["distance"], "Train.place: progress never goes back")
+	record["distance"] = distance
 
 
 ## Split parts carry on from where the slime was: `parts` from

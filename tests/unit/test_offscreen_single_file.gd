@@ -80,6 +80,11 @@ func _run_keeping_order(sim: Simulation, behind: int, ahead: int, room: float, t
 
 func test_a_parked_slime_on_the_slide_waits_behind_the_parked_slime_ahead() -> void:
 	var sim := _sim()
+	# The single file across the loop's end, the geyser off (EXPERIMENT,
+	# exp/geyser): with it, the one behind, wrapping past the loop's end, is
+	# put on a free spot 150 to 700 px along the loop on purpose, ahead of
+	# the one ahead (tests/unit/test_geyser.gd covers that placement).
+	sim.geyser.enabled = false
 	var length := sim.train.length()
 	# The one behind comes off the slide (at the slide's speed) 0.28 s later,
 	# when the one ahead is only about 24 px into the outgoing part.

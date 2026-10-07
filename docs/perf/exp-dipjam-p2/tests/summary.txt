@@ -27,3 +27,4 @@ g,h,r test_fusion exit=0 Tests                38 Passing Tests        38
 g,h,r test_slime_hops exit=0 Tests                12 Passing Tests        12 
 
 [exited with code 0]
+geyser+g,r test_geyser exit=0 Tests 19 Passing 19; geyser+g,r test_train exit=0 Tests 41 Passing 41

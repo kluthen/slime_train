@@ -589,6 +589,18 @@ func set_velocity(slime_id: int, velocity: Vector2) -> void:
 		prev[i] = pos[i] - step
 
 
+## EXPERIMENT (exp/geyser): launches the slime: every point gets the
+## velocity `velocity` (px/s, as set_velocity) and the slime leaves the
+## ground (unsupported, as a hop's take-off), so nothing grips it on the
+## tick it flies off. For the Geyser.
+func launch(slime_id: int, velocity: Vector2) -> void:
+	var s := index_of(slime_id)
+	if s < 0:
+		return
+	set_velocity(slime_id, velocity)
+	supported[s] = 0
+
+
 ## Takes `share` (0 to 1) of the slime's rigid motion away: its mean
 ## velocity and its spin about its centre, so it neither slides nor rolls,
 ## while its squish (the points' motion relative to that) is kept. How a slime

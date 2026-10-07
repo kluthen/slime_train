@@ -329,6 +329,10 @@ func _run(game: Node) -> void:
 	print("DJ_OVER %s" % " ".join(counts))
 	print("DJ_CLU max=%d mean=%.2f over=%d run_s=%.1f" % [clu_max, clu_sum / maxi(clu_n, 1), clu_over,
 			clu_run_max / 60.0])
+	# Throwaway (the geyser combined run): Geyser's counters.
+	print("DJ_GEYSER on=%s arrivals=%d launches=%d refused=%d lifted=%d rejects=%s" % [sim.geyser.enabled,
+			sim.geyser.arrivals, sim.geyser.launches, sim.geyser.refused, sim.geyser.lifted,
+			JSON.stringify(sim.geyser.rejects)])
 	print("STATE tick=%d hash=%s" % [sim.tick, sim.state_hash()])
 
 
