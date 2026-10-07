@@ -89,6 +89,7 @@ const TEST_MODE_REFUSED := "Test mode is not available in this build (release bu
 ## than a frame's time no longer multiplies the next frame (it was 8, and on
 ## the reference phone an overloaded frame then ran 8 ticks, 4-5 fps). A
 ## faster debug speed scales it (FixedStep.max_ticks_for).
+# @spec-link [[req_platform_and_performance_targets]]
 const MAX_TICKS_PER_FRAME := 2
 ## The export feature tag that swaps the game for spike 1's benchmark.
 const SPIKE_SOFT_SLIMES_FEATURE := "spike_soft_slimes"
