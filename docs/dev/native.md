@@ -561,6 +561,16 @@ ticks (it fires at about tick 675; its 600-tick hash is the same). The
 other 37 hashes are the same. Native and GDScript gave the same hashes for
 all 19 at 600 and 2400 ticks.
 
+**A released slime hops away at once (O126, 2026-10-07):** a basket's
+released slime hops on the tick after it lands at the outlet (see "A
+released slime hops away at once (O126)" in `docs/dev/README.md`), so
+only a run where a basket releases changes: `s1-basket-5of6` at 600 and
+2400 ticks (basket 1 releases before tick 600), `s3-basket-59of60` at 2400
+(its 600-tick hash is the same: it fires at about tick 675).
+`s2-basket-offscreen` is the same: with the fixture's camera basket 2
+waits full off screen and never fires. The other 35 hashes are the same.
+Native and GDScript gave the same hashes for all 19 at 600 and 2400 ticks.
+
 **On the phone (unit U8, 2026-10-06):** the S20 FE (arm64, bionic) gave
 the 600-tick hashes then recorded (before chunk 24g) for `stress-dense`
 and `stress-moving`, on both ticks, two runs each. That wasn't expected:
@@ -579,11 +589,11 @@ are still compared within one build and platform.
 | `midair` | `04734d3f46724b193253dacfd154ae7cefa775a75364b7e8d7afe264f030fc78` | `fc549af11315a0bd59fc8ded2a8880ee49d45479cbb0f0f94fb2ca32a46b45eb` |
 | `loop-start-pile` | `dc3f304a64517ed37149cddbb89cc94c8e8f9dae1e786240afdefe215bcc6837` | `cb2da78839842dba988ab190c02a6aa9bf0f74a64a343866e06e71954d9e551c` |
 | `old-version` | `419e7f5fc52e5b371d5b95b51b3ff66f2fa40c2e6ac47d65ed60d003842c4f35` | `a0da0b38df6d54a4464ad454c3e730c9b6d4b7b7028ca8c4b27e871a9287e4d7` |
-| `s1-basket-5of6` | `09ce88ba5579baa20c8136623a2aca81363601d31f47adc0b3d83886c2cb09b9` | `cb233082d58263857d9631e7e34d7619a51dd780f7d8094a3f7da610cfaf02f7` |
+| `s1-basket-5of6` | `162b48841d5b58c383df0855a74e2a3cae70237d5eb9dbdab0585dfc349a8fce` | `67255f6a798f9544cdeb7df0e730a701c0e25709506e02b073ac90ab44445baa` |
 | `s1-optout` | `0a01989974e37d78a4b12a08e100a376b330a5297192d3c41baaffd4c8f0ca78` | `4e359fbaa0852076731a22db89186acbfccafde5c565a3db4b0812617a53d1ca` |
 | `s2-basket-offscreen` | `df9505ea337f43f30352b7e45a1ecd305344e83062009c5e1e767e83c31e3247` | `fcdb40131c591c9a351e9cc5d90730c87b62da47e65ad5b0e5fc859b1889bcd3` |
 | `s2-cave-return` | `ca1245d013105513dcd94f95aeb7109f780987ef9444e5fdfd849929cb0116ea` | `7a48dc0899882e86ab70cf5659195c30454ac793dd1b50d7b51cf4bca1394984` |
-| `s3-basket-59of60` | `a02233987e184234274869061b60a9744d72dbe9b4db5f7cfeb3ad5dee1de1cf` | `ed8c21c4893ee428410287c15464e5a059c6609c4df59a471d7b846f4e9dce69` |
+| `s3-basket-59of60` | `a02233987e184234274869061b60a9744d72dbe9b4db5f7cfeb3ad5dee1de1cf` | `32991befd59798f46c0a87d710a2b78efeeeb4ce24e164fe65f2ba340032d9a3` |
 | `stress-dense` | `c389dd44328edbd31c433dca49a3656a7afdcc6929b141f09de523f11a189228` | `6fd6f0385d09962b19fff68be0178112f59138e65a8f646fe05b2b325ba6aa54` |
 | `stress-moving` | `cee540fc61f6a8d76eba240801fafa610d7a65205b2aec896a2df869495c7dd8` | `09a460c88db349712a63aab85d3ccbf290ddfb13c7b17f609ab9bc6d27408381` |
 | `stress-still` | `4c50a541d5a60dda72d85cfd5941782b28975e8352d1529ed12eedfdb8aa2f27` | `9efbbc6b1f014895180f7e007b574fd3a03309e29dec2798b913cf0260da49e7` |

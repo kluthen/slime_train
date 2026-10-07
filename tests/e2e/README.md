@@ -100,7 +100,10 @@ Four editor-only files are left out there; the script lists them.
   celebration) and is empty within 28 s, from `s2-basket-offscreen` basket
   2 within 14.5 s (quota x 0.3 s + 10 s), every released slime a train
   slime with its size and species, none back in the basket; bedtime pauses
-  basket 3's releases until sunrise, then they resume.
+  basket 3's releases until sunrise, then they resume. Since O126 a
+  released slime hops on the tick after it lands at the outlet (3 ticks
+  after its release at basket 2), basket 2 is empty within 5 s and basket 1
+  (`s1-basket-5of6`) within 11.8 s.
 - `test_celebration_e2e.gd` (chunk 23D, item 23.11) checks the
   celebration from `stress-still` (woken early): the camera stays put
   through the burst, a tap during it calls, the awake slimes on screen

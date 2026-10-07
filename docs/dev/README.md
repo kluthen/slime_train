@@ -2125,7 +2125,8 @@ and builds the doors. Each tick, after fusion, `frontier.step(sim)`:
 3. lets a basket that isn't holding (fired, or its switch flipped back)
    release its slimes, lowest id first, one every `RELEASE_SECONDS`, at its
    outlet when there is room; the slime is moved there at rest and rides
-   the train again;
+   the train again, its hop timer run out so it hops away on the tick
+   after it lands (O126, see "A released slime hops away at once");
 4. sets the doors: a flipped switch's trapdoor is open, a closed gate's box
    is solid, an open gate's lid shuts the old slide entrance; a door only
    shuts once no slime is in its way. The shut ones go to
@@ -7429,6 +7430,23 @@ basket's own fill, woken by the faster releases. With both merged (main
 0.0 s, and the `--lead-in=700` bench largest 17, 0.0 s, 0.0 s, the same as
 the table's "after". The other rows are the same.
 
+**Since a released slime hops away at once** (O126, see "A released slime
+hops away at once (O126)"), the played test's drains, the basket's fill
+left out (branch feat/release-hop, from `6934e43`, native tick):
+
+| Run | Empty after, before -> after (ticks) | Largest cluster, before -> after | Above the limit s | Longest in a row s |
+|---|---|---|---|---|
+| s1.basket's fire-and-drain | 559 -> 225 | 2 -> 4 | 0.0 -> 0.0 | 0.0 -> 0.0 |
+| s2.basket's fire-and-drain | 1066 -> 518 | 6 -> 10 | 0.0 -> 0.0 | 0.0 -> 0.0 |
+| s3.basket's fire-and-drain | 1062 -> 1062 | 5 -> 5 | 0.0 -> 0.0 | 0.0 -> 0.0 |
+
+Baskets 1 and 2 empty in about half the time; the slimes released faster
+are more together outside the box (4 and 10), still far under the limit.
+Basket 3's outlet is over slide 3's drop, where a slime fell clear already:
+the same. The three sections' plays are the same (5, 5 and 23 for 0.1 s).
+In the played test basket 2 (filled with base slimes) now empties in
+8.6 s, within D128's 14.5 s; before, it took 17.8 s.
+
 The `stress-*` fixtures are excepted from the rule (D96); `stress-moving`'s
 dense train reads as one long cluster (O107 (a)'s question: a train queue
 on the loop counts, as measured). It has no basket in play, so it doesn't
@@ -7520,11 +7538,12 @@ release code are unchanged. The generator
 scene was edited by hand since (its unique IDs and `level_version`), so the
 scene's one line was changed by hand, not regenerated.
 
-*Not built (an option if a busier outlet comes up):* a released slime
+*Not built then (an option if a busier outlet comes up):* a released slime
 hopping at once (its hop timer set to 0 on release) brought basket 2 to
 3.65 s but basket 3, with the outlet on the plateau, only to 136 s: the
 train crossing the outlet is the limit there, which only the outlet's place
-solves.
+solves. Built since, beside the moved outlet: see "A released slime hops
+away at once (O126)".
 
 **Tests that assumed the old outlet.** `test_frontier_level.gd`'s
 outlet test now covers baskets 1 and 2 (on the onward route) and a new one
@@ -7544,6 +7563,53 @@ compared as before.
 **Level rule 23.** Section 3's drain is shorter and spends less time above
 the limit, but the basket's own pile still goes above it (see "Since item
 24.3" under "Level rule 23 on the test level"); no verdict (O107).
+
+```sh
+tools/test.sh -gselect=test_basket_drain_e2e
+```
+
+## A released slime hops away at once (O126)
+
+The user's decision, 2026-10-07 (O126): "a released slime hops away
+immediately: basket 2 empties in about 3.7 s instead of 13 s. Changes
+hashes." (`req_switch_basket_gate_set`; branch feat/release-hop, from
+`6934e43`.)
+
+**The change.** `FrontierSets._release` puts the slime at the outlet at
+rest and unsupported, as before, and now runs its hop timer out
+(`hop_timer` 0 in the body it sets). A timer at 0 hops the first tick the
+slime stands on something (see "Hops"), so it hops on the tick after it
+lands and clears the outlet for the next one. At basket 2's default outlet
+(on the loop, at its height) it falls about 0.6 px, lands on the 2nd tick
+after its release and hops on the 3rd; over a drop (basket 3) it hops on
+landing below. Nothing else changes: one slime at a time, every
+`RELEASE_SECONDS` (0.3 s) when the outlet is clear, lowest id first; at
+bedtime nothing is released (`_basket_wait`); no new state, no save format
+change (the hop timer was already saved).
+
+**The drains** (`tests/e2e/test_basket_drain_e2e.gd`, seed 14, from each
+basket's fixture, the camera on the basket; both ticks the same):
+
+| Basket (fixture, slimes held) | Before | After | Bound (quota x 0.3 s + 10 s) |
+|---|---|---|---|
+| 1 (`s1-basket-5of6`, 3) | 326 ticks, 5.43 s | 36 ticks, 0.60 s | 11.8 s |
+| 2 (`s2-basket-offscreen`, 6) | 788 ticks, 13.13 s | 219 ticks, 3.65 s | 14.5 s |
+| 3 (`s3-basket-59of60`, 61) | 1104 ticks, 18.40 s | 1104 ticks, 18.40 s | 28 s |
+
+Baskets 1 and 2 are now held by the 0.3 s pace and the clearance of the
+slime before (basket 1: 2 x 18 ticks); basket 3 was already (its outlet
+over the drop). None falls back in, in any of the three.
+
+**The tests** (in `test_basket_drain_e2e.gd`): every slime basket 2
+released lands on the 2nd tick after its release and hops on the 3rd, the
+tick after it lands (the brief asked for 1 or 2 ticks; 2 would need a slime
+put down already standing, which an outlet over a drop can't be); basket 2
+is empty within 5 s of firing; basket 1 drains within its 11.8 s; basket 3
+within 28 s and the bedtime pause are kept as they were.
+
+**Hashes.** The runs where a basket releases change (`docs/dev/native.md`,
+"Fixture hashes"). Level rule 23's drains: see "Since a released slime
+hops away at once" under "Level rule 23 on the test level".
 
 ```sh
 tools/test.sh -gselect=test_basket_drain_e2e
