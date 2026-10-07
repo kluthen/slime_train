@@ -63,7 +63,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `src/sim/` | The simulation core: pure logic, with no scene dependencies, so it can be unit tested |
 | `src/test_mode_guard.gd` | The one check that keeps test mode out of release builds |
 | `src/test_mode/` | Test mode: scripted input, time control, fixtures and saves to start from, the on-screen marker |
-| `src/debug/` | The debug overlay, debug builds only: speed, reset, slime labels, the kill tool, the fps, the woken/available counter, the slime counts (see "Debug overlay"); the perf log (`PerfLog`, see "Measuring on the phone"); the largest awake cluster (`DebugCounts.largest_cluster()`, see "Chunk 22d: debug counters and the largest awake cluster"); the save wipe (`SaveWipe`, `--wipe-save`, see "Chunk 19w: the save wipe"); the phase timers (`PhaseTimers`, `--phase-timers`, see "Chunk 5N: U0a phase timers"); the slime census (`SlimeCensus`, the Census button and `--census-every`, see "Slime census") |
+| `src/debug/` | The debug overlay, debug builds only: speed, reset, slime labels, the kill tool, the fps, the woken/available counter, the slime counts (see "Debug overlay"); the perf log (`PerfLog`, see "Measuring on the phone"); the largest awake cluster (`DebugCounts.largest_cluster()`, see "Chunk 22d: debug counters and the largest awake cluster"); the save wipe (`SaveWipe`, `--wipe-save`, see "Chunk 19w: the save wipe"); the phase timers (`PhaseTimers`, `--phase-timers`, see "Chunk 5N: U0a phase timers"); the slime census (`SlimeCensus`, the Census button and `--census-every`, see "Slime census"); the labels at start (`--debug-labels`, see "Debug overlay") |
 | `src/save/` | The save files (`SaveStore`: one per level, never wiped), autosave timing (`Autosave`), the real clocks sessions count on (`SessionClock`) and the app's parent code (`ParentStore`, see "Parent gate and settings (chunk 18)"); the save format itself is `src/sim/save_data.gd` (see "Saves and fixtures") |
 | `src/parent/` | The parent layer: the parent buttons, the code prompt, settings and setup (`ParentGate` and its surfaces), their strings (`ParentText`) and sizes (`ParentLayout`) (see "Parent gate and settings (chunk 18)") |
 | `src/session/` | The session's screen effects (`SessionScreen`: the dusk tint, keeping the screen on); the session logic itself is `src/sim/session.gd` (see "Sessions (chunk 17)") |
@@ -295,7 +295,9 @@ across processes). Test mode leaves the perf log's flags, `--perf-log` and
 the save wipe (chunk 19w; refused with `--load` or a script's `"load"`, see
 "Chunk 19w: the save wipe"), and `--phase-timers` to the game root's phase
 timers (see "Chunk 5N: U0a phase timers"), and `--census-every`,
-`--census-until` to the game root's slime census (see "Slime census"). A
+`--census-until` to the game root's slime census (see "Slime census"), and
+`--debug-labels` to the game root's debug labels at start (see "Debug
+overlay"; off without it). A
 run that can't start
 quits with code 1. Without `--run-ticks`, in a window, the game plays the
 script in real time (scaled) with a pink "TEST MODE" banner and a ring on
@@ -3295,7 +3297,7 @@ labels on and 2x at frame 3 and arming Kill at frame 150: tick 299 at frame
 |---|---|
 | **1x / 2x / 5x / 10x** | The simulation speed. Each frame runs that many times the ticks (the same ticks, see below) |
 | **Reset** | Asks ("Reset? click again"). A second click within 2 s starts the level over and replaces its save |
-| **Labels** | Draws each slime's runtime id and state under it (`#12 train`) and its stable ID on a second line (`s1.sleeper.04 +2`: its first member and how many more). Only for the slimes seen on screen (`LABEL_REACH`, 160 screen px past its edge), and nothing redrawn while off (chunk 22). They cost a lot on the phone: measure with labels off |
+| **Labels** | Draws each slime's runtime id and state under it (`#12 train`) and its stable ID on a second line (`s1.sleeper.04 +2`: its first member and how many more). Only for the slimes seen on screen (`LABEL_REACH`, 160 screen px past its edge), and nothing redrawn while off (chunk 22). They cost a lot on the phone: measure with labels off. `--debug-labels` starts with them on (see below) |
 | **Kill** | Arms the kill tool (red, "Kill: tap a slime"). The next tap sends the slime under it to the start of the loop, as a lost slime |
 | **Census** | Prints a census of every slime to the log ("census: 200 slimes logged"; see "Slime census") |
 | **60 fps** | The frame rate (`Engine.get_frames_per_second()`, rounded), refreshed at most every 250 ms |
@@ -3412,6 +3414,28 @@ the band keeps its meaning; a control over the world takes that spot's
 taps, which is fine for a debug tool. The overlay is a CanvasLayer (layer
 50) above the HUD, below the parent layer (60); the labels are a
 world-space Node2D beside `TapFeedback`, and only read the simulation.
+
+**Labels at start (`--debug-labels`).** A debug build launched with
+`--debug-labels` starts with the labels shown, exactly as if the Labels
+button had been pressed at start (the button shows pressed and still turns
+them off): the game root reads the flag (`use_debug_labels()`, after
+`TestModeGuard` allows it) before adding the overlay, and
+`add_debug_overlay()` then calls `show_labels(true)`. In normal play or
+test mode alike (test mode skips the flag, its default is off); without it
+the labels start hidden, so a perf run measures with them off unless it
+asks. A release build ignores it and prints "Debug labels: --debug-labels
+ignored, not a debug build.". The labels only draw: a run with them ends
+on the same state hash. It exists so an unattended session can measure
+their cost in one scene (`tools/android/perf.sh --debug-labels`, build
+plan item 24.6). Tests: the "Labels at start" and release guard cases of
+`tests/e2e/test_debug_overlay_e2e.gd`.
+Measured on the desktop (2026-10-07, `tools/perf_slow.sh --full-speed
+--seconds=30 s3-basket-59of60`, with and without `--debug-labels`, the
+median of the 17 `PERF` lines up to t=36 s, before other processes loaded
+the machine): 968 fps uncapped without the labels, 232 with; the frame's
+p50 0.71 ms against 3.41 ms, the `debug` part 0.02 ms against 1.71 ms a
+frame, the draw calls 80 against 449. About 2.7 ms a frame on this
+desktop; the phone's share is chunk 22's repeat to measure.
 
 **The release guard.** The game root adds the overlay only when
 `TestModeGuard` allows it (a debug build) and only when it is the running
@@ -5211,6 +5235,12 @@ What exists now:
     in both modes, so a fixture run (test mode, `always` without it)
     measures `auto`, the shipping behaviour; `always` or `off` to compare
     (see "Chunk 22c: crowd detail only under load").
+  - **`--debug-labels`** (chunk 22's repeat, off by default, either mode):
+    adds the game's `--debug-labels` to `slime_args`, so the debug
+    overlay's slime labels show from launch, as if its Labels button had
+    been pressed (see "Debug overlay"). Without it a run measures with the
+    labels hidden. Run the same scene with and without it to measure what
+    they cost (build plan item 24.6).
   - **Ctrl-C** (in either mode) stops the recording cleanly, summarises
     what was recorded and exits 0. Otherwise: exit 0; 2 on bad arguments
     or no single device; 1 when the build or install fails, no `PERF` line
