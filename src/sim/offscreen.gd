@@ -70,7 +70,8 @@ extends RefCounted
 ## Detail (D96; crowd detail). Each tick, once the slimes near the view are
 ## simulated and the far ones parked, every calm ACTIVE ring takes the
 ## detail level detail_level() (SlimeBodies.set_active_detail): the higher
-## of the zoom's and the crowd's.
+## of the zoom's and the lower of the crowd's and the detail ceiling
+## (D141): max(zoom's, min(crowd, ceiling)).
 ##   zoom       below LOW_ZOOM zoomed out: at least SlimeBodies.LOW_DETAIL;
 ##              from FULL_ZOOM up not; in between it stays what it was.
 ##   crowd      the slimes that cost physics this tick (calm ACTIVE, not
@@ -80,12 +81,22 @@ extends RefCounted
 ##              its step (15, 25, 35), so rings never reshape back and forth
 ##              (crowd_level_for). On a screen full of slimes the chaos
 ##              hides the rounder shapes, and the physics costs less.
+##   ceiling    `detail_ceiling`, 0 to SlimeBodies.MAX_DETAIL: how far the
+##              crowd may lower the detail. An input, like the tilt: the
+##              game root hands it over before every tick (src/main.gd,
+##              from the scene layer's LoadMeter in `auto`, D141), so a
+##              change applies from the next tick. Its default is
+##              MAX_DETAIL (`always`: the crowd's level as is, D140's
+##              behaviour), what every run but normal play keeps. Not in
+##              dump() nor saves: the state and its hash don't depend on it,
+##              only the rings it shapes do.
 ## A pile slime (in a basket, asleep at bedtime) stops at
 ## SlimeBodies.PILE_MAX_DETAIL (level 2: at 6 points a pile creeps for long
 ## before it rests). A resting or parked ring keeps its points (a reshape
 ## would wake a resting pile); it takes the level on the tick it is ACTIVE
-## again. From the slimes' states only, never from a measured time: same
-## seed, same hash.
+## again. From the slimes' states and the ceiling handed over, never from a
+## measured time here: same seed and same ceilings, same hash (the default
+## ceiling never changes, so a run that keeps it repeats exactly).
 ##
 ## Resting piles (SlimeBodies' resting-pile rule) are also woken here by the
 ## two disturbances the bodies can't see: a call (every resting slime within
@@ -144,6 +155,10 @@ var enabled := false
 var zoomed_out := false
 ## The crowd's detail level, 0 to SlimeBodies.MAX_DETAIL (crowd_level_for).
 var crowd_level := 0
+## The detail ceiling (see the class doc), 0 to SlimeBodies.MAX_DETAIL: an
+## input handed over at a tick boundary, not state. Not saved.
+# @spec-link [[req_offscreen_simulation]]
+var detail_ceiling := SlimeBodies.MAX_DETAIL
 ## Free slime id -> the tick its off-screen count starts from.
 var away := {}
 ## Parked free slime id -> the way it follows: {"route": the route back's
@@ -199,9 +214,12 @@ static func crowd_level_for(count: int, level: int) -> int:
 
 
 ## The detail level the active rings take (see the class doc): the higher of
-## the zoom's and the crowd's.
+## the zoom's and the lower of the crowd's and the ceiling.
+# @spec-link [[req_offscreen_simulation]]
 func detail_level() -> int:
-	return maxi(crowd_level, SlimeBodies.LOW_DETAIL if zoomed_out else 0)
+	assert(detail_ceiling >= 0 and detail_ceiling <= SlimeBodies.MAX_DETAIL,
+			"Offscreen: invalid detail ceiling %d" % detail_ceiling)
+	return maxi(mini(crowd_level, detail_ceiling), SlimeBodies.LOW_DETAIL if zoomed_out else 0)
 
 
 ## Whether free slime `slime_id` is left alone at `tick`.

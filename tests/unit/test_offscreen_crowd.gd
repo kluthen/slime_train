@@ -251,6 +251,45 @@ func test_a_crowd_keeps_its_mass_through_fusion_and_split() -> void:
 		assert_eq(_points(sim, part), 6, "the parts take the level")
 
 
+# --- The detail ceiling (D141) -------------------------------------------------------------
+
+func test_the_ceiling_caps_the_crowds_level() -> void:
+	var sim := _sim()
+	var crowd := _crowd(sim, 40)
+	sim.offscreen.detail_ceiling = 1
+	sim.run(1)
+	assert_eq(sim.offscreen.crowd_level, 3, "the crowd's level is unchanged")
+	assert_eq(sim.offscreen.detail_level(), 1, "min(crowd 3, ceiling 1)")
+	assert_eq(_points(sim, crowd[0]), 10)
+	sim.offscreen.detail_ceiling = 0
+	sim.run(1)
+	assert_eq(sim.offscreen.detail_level(), 0, "a good device: full rings whatever the crowd")
+	assert_eq(_points(sim, crowd[0]), 12)
+	sim.offscreen.detail_ceiling = SlimeBodies.MAX_DETAIL
+	sim.run(1)
+	assert_eq(_points(sim, crowd[0]), 6, "the ceiling at 3: D140's behaviour")
+
+
+func test_zoomed_out_still_gives_level_2_under_a_ceiling_of_0() -> void:
+	var sim := _sim()
+	var crowd := _crowd(sim, 40)
+	sim.offscreen.detail_ceiling = 0
+	_look(sim, LOOK, 0.7)
+	sim.run(1)
+	assert_eq(sim.offscreen.detail_level(), SlimeBodies.LOW_DETAIL, "max(zoom's 2, min(3, 0))")
+	assert_eq(_points(sim, crowd[0]), 8)
+
+
+func test_the_ceiling_is_neither_state_nor_saved() -> void:
+	var sim := _sim()
+	_crowd(sim, 40)
+	sim.run(1)
+	var hash_before := sim.state_hash()
+	sim.offscreen.detail_ceiling = 1
+	assert_eq(sim.state_hash(), hash_before, "not in the state's hash")
+	assert_false("ceiling" in SaveData.to_text(sim.to_save()), "no save key")
+
+
 # --- Saves and determinism ------------------------------------------------------------
 
 ## A pile resting and a crowd of 42 (level 3, fusing), settled on the floor
@@ -306,3 +345,38 @@ func test_an_old_save_with_low_rings_still_loads() -> void:
 
 func test_the_same_seed_gives_the_same_hash() -> void:
 	assert_eq(_busy(4).state_hash(), _busy(4).state_hash())
+
+
+## A save written in `auto` (a ceiling the load meter set, here 1, below the
+## crowd's level) loads in every mode: the same state, the ceiling not in it.
+## After the load the game's ceiling is the mode's (`auto` starts again at
+## 0); in `always` and `off` a reload goes on exactly the same way twice.
+# @test-link [[req_persistence_and_saves]]
+func test_a_save_written_in_auto_loads_in_every_mode() -> void:
+	var sim := _sim(8)
+	sim.slimes.auto_hops = false
+	_crowd(sim, 42)
+	sim.offscreen.detail_ceiling = 1
+	sim.run(200)
+	for tick in 600:
+		if sim.slimes.supported.count(0) == 0:
+			break
+		sim.run(1)
+	assert_eq(sim.slimes.supported.count(0), 0, "the crowd settles")
+	assert_gt(sim.offscreen.crowd_level, 1, "the crowd's level is above the ceiling")
+	assert_eq(sim.offscreen.detail_level(), 1, "written at the ceiling's level, not the crowd's")
+	var text := SaveData.to_text(sim.to_save())
+	var meter := LoadMeter.new()
+	autofree(meter)
+	for mode in LoadMeter.MODES:
+		var runs: Array[String] = []
+		for k in 2:
+			var copy := Simulation.from_save(JSON.parse_string(text), _level(), _terrain())
+			assert_not_null(copy, mode)
+			assert_eq(copy.state_hash(), sim.state_hash(), "%s: the reloaded state" % mode)
+			copy.offscreen.enabled = true
+			copy.slimes.auto_hops = false
+			copy.offscreen.detail_ceiling = meter.ceiling_for(mode)
+			copy.run(60)
+			runs.append(copy.state_hash())
+		assert_eq(runs[0], runs[1], "%s: a reload goes on the same way" % mode)

@@ -68,6 +68,15 @@ extends Node2D
 ## and the back gesture's excluded edge strips; the parent's leave stops the
 ## pinning (ParentGate.act). In normal play, `tilt_feed` (TiltFeed) hands the
 ## simulation the phone's tilt sensor before every tick.
+##
+## Crowd detail only under load (chunk 22c, D141): `load_meter` (LoadMeter,
+## the scene layer, every build) judges each second whether the device keeps
+## up and moves a detail ceiling; before every tick the game hands the
+## simulation the ceiling of its mode (crowd_detail_mode()): `auto` (the
+## meter's) in normal play, `always` (the simulation's own default, D140's
+## behaviour) in test mode, unless a debug build's --crowd-detail=auto|always|off
+## says otherwise (use_crowd_detail()). The meter starts again at 0 with
+## every simulation the game runs (a load, a reset, test mode starting).
 # @spec-link [[req_test_level_and_test_mode]]
 
 const TEST_MODE_SCRIPT := "res://src/test_mode/test_mode.gd"
@@ -115,6 +124,8 @@ const PHASE_TIMERS_IGNORED := "Phase timers: --phase-timers ignored, not a debug
 const CENSUS_SCRIPT := "res://src/debug/slime_census.gd"
 const CENSUS_FLAGS: PackedStringArray = ["--census-every", "--census-until"]
 const CENSUS_IGNORED := "Census: --census-every/--census-until ignored, not a debug build."
+## A release build ignores --crowd-detail (it is always `auto`), saying so.
+const CROWD_DETAIL_IGNORED := "Crowd detail: --crowd-detail ignored, not a debug build (auto)."
 
 var simulation: Simulation
 ## The loaded level, or null (a release build has none yet).
@@ -186,6 +197,14 @@ var safe_area: SafeArea = null
 ## mode's script is its only tilt). Tests replace its `sensor`.
 # @spec-link [[req_tilt_input]]
 var tilt_feed := TiltFeed.new()
+## The load meter: the crowd detail's ceiling in `auto` (see the class doc).
+## A child of the game in _ready; tests may drive its clock.
+# @spec-link [[req_offscreen_simulation]]
+var load_meter := LoadMeter.new()
+## The crowd detail mode --crowd-detail asked for (LoadMeter.MODES, debug
+## builds only), or "": the default (crowd_detail_mode()). Tests may set it.
+# @spec-link [[req_test_level_and_test_mode]]
+var crowd_detail := ""
 ## The debug overlay, or null (a release build, or a game a test adds).
 ## Loosely typed: src/debug/ is named by path only.
 var debug_overlay: Node = null
@@ -208,6 +227,9 @@ var max_ticks_per_frame := MAX_TICKS_PER_FRAME
 ## around the step_simulation() calls): the perf log reads them.
 var frame_ticks := 0
 var frame_tick_usec := 0
+## The speed the last frame ran at (test mode's time scale times the debug
+## overlay's speed): the load meter judges 1x frames only.
+var frame_speed := 1.0
 ## The real time its own _process took outside the ticks (the frame's
 ## fixed step, the autosave check), microseconds, summed until the debug
 ## perf log takes it (and sets it back to 0); nothing else reads it.
@@ -287,6 +309,18 @@ func _ready() -> void:
 	screen_pinning.launch(parent_gate)
 	safe_area = SafeArea.new(platform)
 	add_child(safe_area)
+	add_child(load_meter)
+	var crowd_use := use_crowd_detail(user_args)
+	if crowd_use["line"] != "":
+		print(crowd_use["line"])
+	for error in crowd_use["errors"]:
+		printerr("Crowd detail: ", error)
+	# A run asked for in a mode it can't have must not run in another.
+	if not crowd_use["errors"].is_empty():
+		set_process(false)
+		set_process_unhandled_input(false)
+		get_tree().quit(1)
+		return
 	if get_tree().current_scene == self:
 		add_debug_overlay()
 	var timers_line := use_phase_timers(user_args)
@@ -337,6 +371,7 @@ func _process(delta: float) -> void:
 	var scale: float = test_mode.time_scale if test_mode != null else 1.0
 	if debug_overlay != null:
 		scale *= debug_overlay.speed
+	frame_speed = scale
 	var ticks := _clock.advance(delta * scale, FixedStep.max_ticks_for(scale, max_ticks_per_frame))
 	var start_usec := Time.get_ticks_usec()
 	for i in ticks:
@@ -410,6 +445,8 @@ func step_simulation() -> void:
 	else:
 		simulation.session.read_clock(session_clock.now())
 		tilt_feed.feed(simulation)
+	# The crowd detail's ceiling, at the tick boundary like the tilt (D141).
+	simulation.offscreen.detail_ceiling = load_meter.ceiling_for(crowd_detail_mode())
 	simulation.step()
 	if census != null:
 		census.after_tick(simulation, test_mode.fixture_name if test_mode != null else "")
@@ -422,6 +459,36 @@ func step_simulation() -> void:
 	sync_view()
 	if parent_gate != null:
 		parent_gate.advance()
+
+
+## The crowd detail mode the game hands the simulation's ceiling in
+## (LoadMeter.MODES): --crowd-detail's (`crowd_detail`) when given, else
+## `always` in test mode (the simulation's own default, so runs repeat:
+## same seed, same hash) and `auto` in normal play.
+# @spec-link [[req_test_level_and_test_mode]]
+# @spec-link [[req_offscreen_simulation]]
+func crowd_detail_mode() -> String:
+	if crowd_detail != "":
+		return crowd_detail
+	return LoadMeter.ALWAYS if test_mode != null else LoadMeter.AUTO
+
+
+## Takes --crowd-detail=auto|always|off from `user_args` into
+## `crowd_detail` in a debug build (TestModeGuard); a release build ignores
+## it, saying so (it is always `auto`). Returns {"line" (to print, or ""),
+## "errors" (a malformed flag: nothing set)}. _ready calls it; tests may.
+# @spec-link [[req_test_level_and_test_mode]]
+func use_crowd_detail(user_args: PackedStringArray) -> Dictionary:
+	var parsed := LoadMeter.parse_args(user_args)
+	if parsed["mode"] == "" and parsed["errors"].is_empty():
+		return {"line": "", "errors": PackedStringArray()}
+	if not test_mode_guard.allows():
+		return {"line": CROWD_DETAIL_IGNORED, "errors": PackedStringArray()}
+	if not parsed["errors"].is_empty():
+		return {"line": "", "errors": parsed["errors"]}
+	crowd_detail = parsed["mode"]
+	return {"line": "Crowd detail: %s (%s=%s)." % [crowd_detail, LoadMeter.FLAG, crowd_detail],
+			"errors": PackedStringArray()}
 
 
 ## Makes the simulation's view show what its camera shows (taps are
@@ -910,6 +977,8 @@ func _use_simulation(fresh: Simulation) -> void:
 	simulation = fresh
 	# The game simulates only near the screen (chunk 15).
 	fresh.offscreen.enabled = true
+	# The crowd detail's ceiling starts at 0 again (D141): not saved.
+	load_meter.reset()
 	if phase_timers != null:
 		phase_timers.attach(fresh)
 	# The world shows: a due first-play hint counts its 10 s from here.

@@ -2399,7 +2399,9 @@ A train slime isn't lost but stalled: `train.stalled` (see "Train").
   | 2 | 15 | 12 | 10 | 8 |
   | 3 | 18 | 15 | 12 | 9 |
 
-  The level is the higher of the zoom's and the crowd's. Zoomed out (below
+  The level is the higher of the zoom's and the lower of the crowd's and
+  the detail ceiling, `max(zoom's, min(crowd, Offscreen.detail_ceiling))`
+  (D141; see "Chunk 22c: crowd detail only under load"). Zoomed out (below
   `LOW_ZOOM` 0.8, back from `FULL_ZOOM` 0.85 up) gives at least level 2
   (`LOW_DETAIL`). The crowd is the slimes costing physics this tick, counted
   after the parking (`SlimeBodies.crowd_count()`: calm ACTIVE, not
@@ -2408,8 +2410,10 @@ A train slime isn't lost but stalled: `train.stalled` (see "Train").
   (`CROWD_EASE`: 15, 25, 35), so rings never reshape back and forth.
   Resting and parked rings keep their points (a reshape would wake a
   resting slime) and take the level on the tick they are ACTIVE again. The
-  count comes from the slimes' states only, never from a measured time, so
-  a run stays repeatable.
+  count comes from the slimes' states only, never from a measured time; the
+  ceiling is an input the game root hands over before every tick (3, so
+  the crowd's level as is, everywhere but normal play), so a run stays
+  repeatable.
 
 **Saves and hash.** A body's `"rest"` (calm, rest count, anchor, pile) and
 `"detail"` level (absent: 0; an older save's `"low": true` reads as level
