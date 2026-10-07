@@ -8,6 +8,10 @@ extends GutTest
 ## every slime released is a train slime with the size and species it had in
 ## the basket, and none falls back in. From basket 3 releasing, bedtime
 ## pauses the releases until sunrise, and they then resume.
+## A released slime hops away at once (O126): it hops on the tick after it
+## lands on the outlet's ground, 3 ticks after its release, so basket 2 empties within 5 s of firing (13.1 s before, when a
+## released slime waited at the outlet for its own hop timer), and basket 1
+## (from `s1-basket-5of6`, quota 6) is empty within its 11.8 s.
 
 # @test-link [[req_switch_basket_gate_set]]
 # @test-link [[rule_frontier_set_inert_after_gate_open]]
@@ -21,6 +25,19 @@ const TICK_RATE := Simulation.TICK_RATE
 ## basket 2 (the s2-basket-offscreen sidecar's basket view).
 const BASKET_3_VIEW := Vector2(15.875 * 1152.0, -150.0)
 const BASKET_2_VIEW := Vector2(12.4 * 1152.0, -50.0)
+## The camera on basket 1 (the s1-basket-5of6 sidecar's).
+const BASKET_1_VIEW := Vector2(7948.8, -50.0)
+## O126: basket 2 is empty within this of firing, in seconds (its 6 slimes
+## at the 0.3 s pace take 1.5 s; it took 13.1 s when a released slime waited
+## for its own hop timer at the outlet).
+const BASKET_2_FAST := 5.0
+## A released slime hops within this many ticks of its release. It is put
+## at the outlet unsupported, at the loop's height: at basket 2 it lands on
+## the 2nd tick (it falls about 0.6 px) and hops on the 3rd, the first tick
+## its timer can act on its landing. (O126's brief said 1 or 2 ticks; 2 would
+## need a slime put down already standing, which an outlet over a drop, as
+## basket 3's, can't be.)
+const HOP_WITHIN := 3
 ## How long each basket has to fill and fire from its fixture (seconds).
 const FIRE_WITHIN := 60
 ## D128: a fired basket empties within its quota x RELEASE_SECONDS plus this.
@@ -115,12 +132,14 @@ static func _drain_limit(sim: Simulation, basket: String) -> int:
 	return int(round((quota * FrontierSets.RELEASE_SECONDS + DRAIN_SLACK) * TICK_RATE))
 
 
-func _assert_drains(game: Node, basket: String, at: Vector2) -> void:
+## Asserts basket `basket` fires and drains as D128 says; returns _drain's
+## result ({} when it didn't fire).
+func _assert_drains(game: Node, basket: String, at: Vector2) -> Dictionary:
 	var sim: Simulation = game.simulation
 	var fired := _run_until_fired(game, basket, at)
 	assert_gt(fired, -1, "%s fires within %d s" % [basket, FIRE_WITHIN])
 	if fired < 0:
-		return
+		return {}
 	var held := _held_at_fire.size()
 	var limit := _drain_limit(sim, basket)
 	var drain := _drain(game, basket, at, limit)
@@ -132,6 +151,7 @@ func _assert_drains(game: Node, basket: String, at: Vector2) -> void:
 	assert_eq(drain["back_in"], [], "no released slime falls back in")
 	assert_eq(drain["left_as"], [], "every released slime rides the train")
 	assert_eq(drain["changed"], [], "each with the size and species it had")
+	return drain
 
 
 # --- Basket 3: the celebration, then empty within 28 s ---------------------------
@@ -144,14 +164,68 @@ func test_basket_3_fired_is_empty_within_28_s_and_none_falls_back_in() -> void:
 	assert_true(sim.frontier.celebration_done, "the last basket fired: the celebration")
 
 
-# --- Basket 2: empty within 14.5 s ------------------------------------------------
+# --- Basket 2: empty within 14.5 s, and within 5 s since O126 ----------------------
 
 func test_basket_2_fired_is_empty_within_14_5_s_and_none_falls_back_in() -> void:
 	var game := _boot("s2-basket-offscreen")
 	var sim: Simulation = game.simulation
 	assert_eq(_drain_limit(sim, "s2.basket"), int(14.5 * TICK_RATE), "15 x 0.3 s + 10 s")
-	_assert_drains(game, "s2.basket", BASKET_2_VIEW)
+	var drain := _assert_drains(game, "s2.basket", BASKET_2_VIEW)
 	assert_true(sim.gate_states["s2.gate"]["open"], "gate 2 open")
+	var empty_after: int = drain.get("empty_after", -1)
+	gut.p("s2.basket: empty %.2f s after firing" % (empty_after / float(TICK_RATE)))
+	assert_between(empty_after, 1, int(BASKET_2_FAST * TICK_RATE),
+			"a released slime hops away at once: basket 2 is empty within %.0f s (13.1 s before)" % BASKET_2_FAST)
+
+
+# --- Basket 1: empty within 11.8 s ------------------------------------------------
+
+func test_basket_1_fired_is_empty_within_11_8_s_and_none_falls_back_in() -> void:
+	var game := _boot("s1-basket-5of6")
+	var sim: Simulation = game.simulation
+	assert_eq(_drain_limit(sim, "s1.basket"), int(round(11.8 * TICK_RATE)), "6 x 0.3 s + 10 s")
+	_assert_drains(game, "s1.basket", BASKET_1_VIEW)
+	assert_true(sim.gate_states["s1.gate"]["open"], "gate 1 open")
+
+
+# --- A released slime hops away at once (O126) -------------------------------------
+
+func test_a_released_slime_hops_on_the_tick_after_it_lands() -> void:
+	var game := _boot("s2-basket-offscreen")
+	var sim: Simulation = game.simulation
+	var bodies := sim.slimes
+	assert_gt(_run_until_fired(game, "s2.basket", BASKET_2_VIEW), -1, "basket 2 fires")
+	var inside := _in_basket(sim)
+	var waiting := {}  # released slime id -> [ticks since its release, tick it landed or -1]
+	var hops := {}  # released slime id -> [ticks from release to landing, to hop]
+	for slime_id in _held_at_fire:
+		if not inside.has(slime_id):
+			waiting[slime_id] = [0, -1]  # released on the firing tick
+	for i in int(BASKET_2_FAST * TICK_RATE):
+		_tick(game, BASKET_2_VIEW)
+		for slime_id in waiting.keys():
+			var seen: Array = waiting[slime_id]
+			seen[0] += 1
+			if slime_id in bodies.hopped:
+				hops[slime_id] = [seen[1], seen[0]]
+				waiting.erase(slime_id)
+			elif seen[1] < 0 and bodies.supported[bodies.index_of(slime_id)] != 0:
+				seen[1] = seen[0]
+		var now := _in_basket(sim)
+		for slime_id in inside:
+			if not now.has(slime_id):
+				waiting[slime_id] = [0, -1]
+		inside = now
+		if inside.is_empty() and waiting.is_empty():
+			break
+	gut.p("ticks from release to [landing, hop]: %s" % hops)
+	assert_eq(hops.size(), _held_at_fire.size(), "every slime it held hopped after its release")
+	for slime_id in hops:
+		var landed: int = hops[slime_id][0]
+		var hopped: int = hops[slime_id][1]
+		assert_gt(landed, 0, "slime %d lands on the outlet's ground" % slime_id)
+		assert_eq(hopped, landed + 1, "slime %d hops on the tick after it lands" % slime_id)
+		assert_between(hopped, 1, HOP_WITHIN, "slime %d hops within %d ticks of its release" % [slime_id, HOP_WITHIN])
 
 
 # --- Bedtime still pauses a fired basket's releases ------------------------------
