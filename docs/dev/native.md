@@ -498,7 +498,7 @@ or the one `native` lap; behaviour: the rest of the step, GDScript on both.
 
 ### Fixture hashes
 
-The test level's 18 fixtures, seed 909, headless test mode
+The test level's 19 fixtures (18 before item 24.5's `loop-start-pile`), seed 909, headless test mode
 (`godot --headless -- --test-mode --level=test --fixture=<name> --seed=909
 --run-ticks=<N>`), on Linux x86_64 (this desktop, glibc), 2026-10-05, at
 the commit of unit U6. They are the native tick's hashes and, on this
@@ -529,6 +529,16 @@ and the full hash one tick later is the same too (`s3-basket-59of60` at
 601). Native and GDScript gave the same hashes for all 18 at 600 and 2400
 ticks.
 
+**Item 24.4 and 24.5 (2026-10-07):** a migration now keeps a displaced
+sleeper asleep at its spot (see "Migration by level version" in
+`docs/dev/README.md`), so `old-version`'s moved sleeper is put back on its
+ledge instead of being lost to the loop start: its hashes changed at 600
+and 2400 ticks (its files didn't, but its sidecar's description). The new
+`loop-start-pile` (the phone's migrated save) is added. Native and
+GDScript gave the same hashes for both at 600 and 2400 ticks; `fresh`,
+`bump` and `stress-dense` were checked unchanged (native at 600 and 2400,
+GDScript at 600).
+
 **On the phone (unit U8, 2026-10-06):** the S20 FE (arm64, bionic) gave
 the 600-tick hashes then recorded (before chunk 24g) for `stress-dense`
 and `stress-moving`, on both ticks, two runs each. That wasn't expected:
@@ -545,7 +555,8 @@ are still compared within one build and platform.
 | `gate2-open` | `c96c61a34602ac84e4ed97ba4caad51ff31d5e605169366a48cf9fa77fa5cc2d` | `12c9da691f6c5135861cac2b637bff6809a9e4ce5288d8ee3b1504e179eb9f96` |
 | `lost` | `a25bab8eace16098cb07366bc45b3b8fd14593bed08d496580c15394f7df72c3` | `1a58286b52fea5ff4932da49395243ce3e8fce413c38ee62289b4e7c086cc84c` |
 | `midair` | `04734d3f46724b193253dacfd154ae7cefa775a75364b7e8d7afe264f030fc78` | `fc549af11315a0bd59fc8ded2a8880ee49d45479cbb0f0f94fb2ca32a46b45eb` |
-| `old-version` | `14143221b668da80553812f55c02e5818c09f7811b3dccef761f077f540902cc` | `f1b7e4258742b7edf7b5ec2dfd2197d61923d831b0bec2ab23e930a6c507af75` |
+| `loop-start-pile` | `dc3f304a64517ed37149cddbb89cc94c8e8f9dae1e786240afdefe215bcc6837` | `cb2da78839842dba988ab190c02a6aa9bf0f74a64a343866e06e71954d9e551c` |
+| `old-version` | `419e7f5fc52e5b371d5b95b51b3ff66f2fa40c2e6ac47d65ed60d003842c4f35` | `a0da0b38df6d54a4464ad454c3e730c9b6d4b7b7028ca8c4b27e871a9287e4d7` |
 | `s1-basket-5of6` | `09ce88ba5579baa20c8136623a2aca81363601d31f47adc0b3d83886c2cb09b9` | `cb233082d58263857d9631e7e34d7619a51dd780f7d8094a3f7da610cfaf02f7` |
 | `s1-optout` | `0a01989974e37d78a4b12a08e100a376b330a5297192d3c41baaffd4c8f0ca78` | `4e359fbaa0852076731a22db89186acbfccafde5c565a3db4b0812617a53d1ca` |
 | `s2-basket-offscreen` | `df9505ea337f43f30352b7e45a1ecd305344e83062009c5e1e767e83c31e3247` | `fcdb40131c591c9a351e9cc5d90730c87b62da47e65ad5b0e5fc859b1889bcd3` |
