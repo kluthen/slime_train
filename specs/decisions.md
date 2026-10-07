@@ -2603,6 +2603,10 @@ replaced the lean (D145 to D152) on a branch of work that was reverted;
 the lean itself stays as written here, approved in direction and
 unbuilt. O106's default became the local wake (D156,
 chunk 22l).
+**Item 24.8 (2 (b)), the lean, withdrawn from v1 (D165, the user's):**
+built as an experiment, it failed the played test and made the loop
+start's crowding worse; the patch is kept outside the repository. Rule
+23's train queue on the loop isn't counted (D165).
 Proposed; the user reviews. Four requests from the user (2026-09-30),
 relayed by the coordinator. D142 is reserved for chunk 22b as built,
 recorded once 22b closes. Refinements of the coordinator's defaults say
@@ -2821,6 +2825,8 @@ The user was shown three items and replied, verbatim: "agreed"
   (`level-design.md`), the lean (`slimes.md`), their `tuning.md` rows and
   the build plan's 24.7 and 24.8 read "approved in direction", their
   numbers proposed.
+- *D165:* item 24.8, the lean, is withdrawn from v1 (the user's); item
+  24.7's rule 23 stands, and no longer counts a train queue on the loop.
 
 ## D145 — Withdrawn: the train holds before a crowd (2026-09-30)
 **Withdrawn by D155 (2026-10-03).** It was the hold: a train slime whose
@@ -4669,3 +4675,91 @@ section 3's drain with the fill counted (57 slimes, 9.2 s in a row) and
 say the basket's pile still goes above the limit. On the merged tree,
 with the fill left out, the drain peaks at 5 (18d1a86's message). The
 `--lead-in=700` bench row has no number taken after both changes.
+
+## D165 — The user's answers of 2026-10-07: item 24.8 withdrawn; rule 23 doesn't count a train queue on the loop; a released slime hops at once (O126); the climb fix stays in v1 (O125) (2026-10-07)
+Closes O107 (b), O125 and O126; answers O107 (a)'s train-queue question.
+Withdraws D143's item 24.8. Sources: the user's answers to the
+orchestrator's questions; the evidence from 24.8's build experiment (not
+committed).
+
+The user's words (2026-10-07):
+1. "Withdraw it: drop 24.8 from v1; the experiment patch stays saved;
+   rule 23 is already met on the test level."
+2. "Don't count train queues: rule 23 targets piles off the route; a
+   queue on the route is rule 24's business (the train's flow)."
+3. "Hop at once: a released slime hops away immediately; basket 2 empties
+   in about 3.7 s instead of 13 s. Changes hashes."
+4. "Keep in v1." (O125, chunk 24g's climb fix)
+
+**1. Item 24.8, the train's lean, withdrawn from v1 (the user's).**
+Closes O107 (b). The evidence, from the build's experiment:
+- the clusters still over rule 23's limit were 100 % mixed-species train
+  queues in section 3's bowl;
+- the lean's trigger fired on 70 to 87 % of train hops;
+- it halved the train's hops, cut departures past 750 px from 7.5 to 6.6
+  per 600 ticks, and raised the loop start's mean cluster from 53.8 to
+  67.6;
+- it failed the played test (2 sleepers left);
+- it would have needed a new save field.
+The patch is kept outside the repository, in the orchestrator's handoff
+folder; nothing of it is on main. The lean's text (D143 2 (b)) stays as
+history, not as a v1 rule; `slimes.md` and `tuning.md` mark it
+withdrawn.
+
+**2. Rule 23 doesn't count a train queue on the loop (the user's).**
+Answers O107 (a)'s train-queue question. A queue on the route is rule
+24's business (the train's flow); rule 23 targets piles off the route.
+- **Proposed reading:** train slimes on the loop's route are left out of
+  rule 23's count, the way a basket's own fill is (D163): left out
+  before clustering, so piles can't join through a queue. Every other
+  awake slime that costs physics counts: free slimes, and slimes off the
+  route (proposed: a train slime due a move to the loop start, lost,
+  stuck, stalled or out of bounds, is off the route and counts). The
+  exact test of "on the route" is the build's.
+- **Consequences, flagged:**
+  - Released slimes are train slimes, so a basket's drain now counts only
+    the non-train slimes around it. Where a drain lands is rule 24's
+    arrival spot.
+  - Rule 23's example "a narrow ledge where the train queues" is now
+    rule 24's (proposed).
+  - Rule 24's own cluster check at an arrival spot (O107 (d)) reuses
+    rule 23's limit. Proposed: it keeps counting train slimes, or at the
+    loop's start it would see nothing.
+  - Section 3's bowl queue, the pile the user saw in D143, is then no v1
+    rule's gate: rule 24's rate check is after v1 (O119). Its cost stays
+    covered by DoD 30 and item 24.1.
+
+**3. O126: a released slime hops away at once (the user's; closes
+O126).** A slime a basket releases hops away at once instead of resting
+on the outlet until its own hop timer runs out (1.5 to 3 s). The exact
+form, a released slime's hop timer set to 0 on release, is the build's.
+Measured during 24.3: basket 2 empties in about 3.7 s (3.65 s) instead
+of 13.1 s. It changes `req_hopping_behavior` and fixture hashes. D128's
+bound (quota × 0.3 s plus 10 s, "however busy the outlet") stays as
+written. O62 (the outlet's design) stays open.
+
+**4. O125: the climb fix stays in v1 (the user's; closes O125).** Chunk
+24g's hold on a climb and relay are decided, as built (a0ffdde; the
+relay's save and reload fix 5d7409f, merged 578ccff). Their values in
+`tuning.md` are the built ones.
+
+**5. Progress.** Running now: rule 23's train-queue exclusion (item 24.7,
+follow-up) and the release hop (item 24.3, follow-up), and item 24.2.
+Then 24.1's record, the phone's session 7 (with chunk 20's checks by
+hand), the health review. 24.8 is withdrawn.
+
+**Documents:** `level-design.md` (rule 23); `slimes.md` (the lean
+withdrawn, the release hop, the climb settled); `interactive-objects.md`
+(basket); `tuning.md` (the lean's row, the emptying bound's row, the hold
+and relay rows, rule 23's rows); `concept.md` (hold on a climb, relay);
+`tech-direction.md`; `levels/test/README.md` (basket 2's outlet, rule
+23's row); `versions/v1/build-plan.md` (header, Progress, 24g, 24.3,
+24.7, 24.8); `versions/v1/master-spec.md` (hopping, the climb);
+`versions/v1/README.md`; `open-questions.md` (O107, O125 and O126
+removed, O62); D143 and D144's notes; `README.md`.
+**Flagged:** for documentalist, `req_hopping_behavior` (the release hop;
+the hold and relay settled; the lean not coming), rule 23's atom (train
+slimes on the route left out, proposed), and the lean's mention under
+D144's atom note. Outside `specs/`: `docs/level-design/` (06-population,
+09-check-the-rules) and the `level-review` skill's rule 23 line, once
+`ClusterWatch` leaves the train out.

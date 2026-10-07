@@ -1,6 +1,6 @@
 # Level design requirements
 
-Status: draft v19 (rule 23: the basket's fill left out as built, b14f0d5, and the test level passing in every section, D164; v18: rule 23: a basket's own fill left out, D163, the user's; the limit still proposed, O107; v17: rule 25 and the geyser after v1, D161, the user's; rule 24's run tool from chunk 24g, its window after v1; v16: rule 25, placing a geyser, a level object, D160, the user's object, the rule and its check proposed; rule 24: a geyser gives room, pacing parked (O118), D160; v15: rule 24 strengthened: at the loop's start arrivals never outpace what the train takes off it, a rate check over the scripted runs, what to do when it fails, D159, the user's ask, wording and check proposed; v14: rule 24, arrivals clear faster than they come, D157, the user's, wording and check proposed; v13: rule 23, clusters, D143, approved in direction, D144; its limit proposed, O107)
+Status: draft v20 (rule 23: a train queue on the loop doesn't count, D165, the user's, the reading proposed; v19: rule 23: the basket's fill left out as built, b14f0d5, and the test level passing in every section, D164; v18: rule 23: a basket's own fill left out, D163, the user's; the limit still proposed, O107; v17: rule 25 and the geyser after v1, D161, the user's; rule 24's run tool from chunk 24g, its window after v1; v16: rule 25, placing a geyser, a level object, D160, the user's object, the rule and its check proposed; rule 24: a geyser gives room, pacing parked (O118), D160; v15: rule 24 strengthened: at the loop's start arrivals never outpace what the train takes off it, a rate check over the scripted runs, what to do when it fails, D159, the user's ask, wording and check proposed; v14: rule 24, arrivals clear faster than they come, D157, the user's, wording and check proposed; v13: rule 23, clusters, D143, approved in direction, D144; its limit proposed, O107)
 
 Rules every level must follow, whoever builds it. These rules make up the
 checklist for every level's design (see `levels/`). Levels are
@@ -120,9 +120,10 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
 ## Where slimes gather
 
 23. *(D143, approved in direction, D144; the measure's numbers proposed, O107.)* **No spot where many slimes gather awake.** Keep apart the places
-    where slimes pile up: a bowl or dip next to a basket, an outlet
-    releasing into a crowd, a narrow ledge where the train queues, the
-    landing spot of a sleeper shelf next to any of these. A pile that
+    where slimes pile up off the route: a bowl or dip next to a basket,
+    an outlet releasing into a crowd, the landing spot of a sleeper shelf
+    next to any of these. (A narrow ledge where the train queues is rule
+    24's, the train's flow; proposed, D165.) A pile that
     rests costs little; an awake cluster keeps waking itself and costs
     every tick.
     *Measure (proposed):* the **largest awake cluster** (the biggest
@@ -136,7 +137,15 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     other slimes, so piles outside aren't joined through the basket's;
     built so, b14f0d5, D164). *As measured (D164):* the test level passes
     in every section (section 3's play 23 slimes at most, 0.1 s in a row;
-    its drain 5). Whether a train queue on the loop counts is still O107. The level bench
+    its drain 5). **A train queue on the loop doesn't count** (D165,
+    the user's: "rule 23 targets piles off the route; a queue on the
+    route is rule 24's business (the train's flow)"). *Proposed reading:*
+    train slimes on the loop's route are left out before clustering, the
+    way a basket's fill is; every other awake slime counts, free slimes
+    and slimes off the route included (a train slime due a move to the
+    loop start is off the route); the exact test of "on the route" is the
+    build's. Released slimes are train slimes, so a basket's drain counts
+    only the slimes around it that aren't. The level bench
     and the level's played test measure it; the level-rules checker
     points at them. The number is calibrated in chunk 24 (O107). A
     cluster the player builds with calls is accepted: crowd detail and

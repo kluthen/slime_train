@@ -38,8 +38,8 @@ closed). The second, the **geyser** (a level object since D160), no
 longer is: it comes
 **after v1**, with the review of the test level's start (the user's,
 D161; section 3, Not in v1). The train's jam off the start is the climb,
-fixed by the hold on a climb and the relay (5.2, proposed; chunk 24g,
-the train's climb); the dip nudge is unchanged (D160). The start's
+fixed by the hold on a climb and the relay (5.2; chunk 24g, the train's
+climb; kept in v1 by the user, D165); the dip nudge is unchanged (D160). The start's
 crowding is not a v1 blocker (the user's, D160; Known gap 9), and
 Definition of done 30 is judged with it set aside (the user's reading,
 D161; wording proposed). Test runs repeat exactly except in a run that
@@ -321,9 +321,10 @@ minute of a session every slime hops more slowly.
 A train slime standing between hops on a rise of the outgoing route keeps
 its place instead of sliding back (the **hold on a climb**), and when a
 train slime takes off, the one standing right behind it hops almost at
-once (the **relay**), so a queue moves as a wave (proposed, D160; in v1,
-chunk 24g, the train's climb, D161; the
-numbers in `tuning.md`).
+once (the **relay**), so a queue moves as a wave (D160; in v1, chunk
+24g, the train's climb, D161; settled, D165; the numbers in
+`tuning.md`). A slime a basket releases hops away at once, so it
+doesn't hold the outlet (D165).
 
 **Size, weight and species**
 

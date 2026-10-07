@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v28 (D164: 24.3 done, 18d1a86, basket 3's outlet over slide 3's drop, proposed; rule 23's basket exclusion built, b14f0d5, the test level passing in every section; next 24.8 (running), 24.2, 24.1's record, session 7, the health review; v27: D163: 24g closed, the relay's save and reload fix 5d7409f, merged 578ccff; 24.4 done, 61b8d5f, settled by the user, with 24.5's fixture `loop-start-pile`; 24.7 done, 5509f71, rule 23 now leaving a basket's own fill out, the user's; the tick cap settled and the phone frame budget a headroom target, the user's, so 24.1 gates on the frame rate and records the ticks; chunk 22 repeated on the S20 FE, session 6: DoD 30 met on three fixtures, the repeat open until session 7; the order: the fill's exclusion, 24.3, 24.8, 24.2, 24.1, session 7 and chunk 20's checks by hand, the health review; v26: 5N done, 0f3d027; 24g part A done, a0ffdde, its closure measured, 7595762, the relay across a save and reload being fixed; 22c done, 57d38e7, the hold after a bounce, proposed, D162; O122 answered, its acceptance proposed, D162; next: chunk 22 repeated on the S20 FE; v25: the geyser object and TL2 after v1, the user's, D161: their sections moved under "After v1"; chunk 24g kept as the train's climb (the hold on a climb and the relay, rule 24's run tool without the geyser), proposed, O125; the order after 5N: 24g, 22c, 22 repeated, the rest of 24, the health review; chunk 22's repeat judges DoD 30 with the loop start's crowding set aside, proposed; earlier, v24: chunk 24g restated: the geyser as a level object, the hold on a climb and the relay, the dip nudge unchanged, the start's measures recorded not gated; chunk TL2, the test level's start review, proposed, not a lock gate, its place the user's, O123; D160; earlier, v23: chunk 24g, the geyser and the train's flow off the start, before v1 closes, proposed next after 5N, D159; O91 fixed, 0061ccf; earlier, v22: 22h done, fccbb8e, 96725f1, as-built note under D150; 19w's as-built note under D149; 5N next, D158; earlier, v21: 5N next, after 22h, for headroom, D158; 19w done, fdae364; 22h step A done, fccbb8e; 22m part 2 done, 3b765f3; the real S20 FE of 2026-10-03; earlier, v20: 22l done, 600de6b, 5f6a6b0; 22m's fixture done, 4aac65a, its run tool being built; DoD 30's status on the phone emulation; earlier, v19: 22l: every wake local, D156 (7); `stress-moving`'s abuse target in chunk 22 and 24.1, D153; earlier, v18: the fps session after 0196c25 reverted, D155: chunks 22e, 22f, 22g, 22i, 22j and 22k withdrawn, kept on branch `archive/fps-session-2026-10`; chunk 22d done, 1a539db; new chunks 22l, the local wake, D156, and 22m, the `stress-dense` fixture and the 10,000-tick run tool, D153, D154, both being built with the revert; chunk 19w, the save wipe and the save format before the first store release, D148, D149, and chunk 22h, the loop-start queue, D150, re-entered; the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE, the rest of 24, the health review, D155; approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v29 (D165, the user's: 24.8 withdrawn from v1; rule 23 doesn't count a train queue on the loop, item 24.7's follow-up; a released slime hops at once, item 24.3's follow-up, O126 closed; 24g's climb fix kept in v1, O125 closed; running: the two follow-ups and 24.2, then 24.1's record, session 7, the health review; v28: D164: 24.3 done, 18d1a86, basket 3's outlet over slide 3's drop, proposed; rule 23's basket exclusion built, b14f0d5, the test level passing in every section; next 24.8 (running), 24.2, 24.1's record, session 7, the health review; v27: D163: 24g closed, the relay's save and reload fix 5d7409f, merged 578ccff; 24.4 done, 61b8d5f, settled by the user, with 24.5's fixture `loop-start-pile`; 24.7 done, 5509f71, rule 23 now leaving a basket's own fill out, the user's; the tick cap settled and the phone frame budget a headroom target, the user's, so 24.1 gates on the frame rate and records the ticks; chunk 22 repeated on the S20 FE, session 6: DoD 30 met on three fixtures, the repeat open until session 7; the order: the fill's exclusion, 24.3, 24.8, 24.2, 24.1, session 7 and chunk 20's checks by hand, the health review; v26: 5N done, 0f3d027; 24g part A done, a0ffdde, its closure measured, 7595762, the relay across a save and reload being fixed; 22c done, 57d38e7, the hold after a bounce, proposed, D162; O122 answered, its acceptance proposed, D162; next: chunk 22 repeated on the S20 FE; v25: the geyser object and TL2 after v1, the user's, D161: their sections moved under "After v1"; chunk 24g kept as the train's climb (the hold on a climb and the relay, rule 24's run tool without the geyser), proposed, O125; the order after 5N: 24g, 22c, 22 repeated, the rest of 24, the health review; chunk 22's repeat judges DoD 30 with the loop start's crowding set aside, proposed; earlier, v24: chunk 24g restated: the geyser as a level object, the hold on a climb and the relay, the dip nudge unchanged, the start's measures recorded not gated; chunk TL2, the test level's start review, proposed, not a lock gate, its place the user's, O123; D160; earlier, v23: chunk 24g, the geyser and the train's flow off the start, before v1 closes, proposed next after 5N, D159; O91 fixed, 0061ccf; earlier, v22: 22h done, fccbb8e, 96725f1, as-built note under D150; 19w's as-built note under D149; 5N next, D158; earlier, v21: 5N next, after 22h, for headroom, D158; 19w done, fdae364; 22h step A done, fccbb8e; 22m part 2 done, 3b765f3; the real S20 FE of 2026-10-03; earlier, v20: 22l done, 600de6b, 5f6a6b0; 22m's fixture done, 4aac65a, its run tool being built; DoD 30's status on the phone emulation; earlier, v19: 22l: every wake local, D156 (7); `stress-moving`'s abuse target in chunk 22 and 24.1, D153; earlier, v18: the fps session after 0196c25 reverted, D155: chunks 22e, 22f, 22g, 22i, 22j and 22k withdrawn, kept on branch `archive/fps-session-2026-10`; chunk 22d done, 1a539db; new chunks 22l, the local wake, D156, and 22m, the `stress-dense` fixture and the 10,000-tick run tool, D153, D154, both being built with the revert; chunk 19w, the save wipe and the save format before the first store release, D148, D149, and chunk 22h, the loop-start queue, D150, re-entered; the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE, the rest of 24, the health review, D155; approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
@@ -240,7 +240,17 @@ technology, not business behaviour:
   -134) (proposed, the orchestrator's acceptance of the build's fix).
   Basket 3 empties 18.4 s after firing (done-when 28 s), basket 2 in
   13.1 s (14.5 s). Raised O126 (baskets 1 and 2 release at the hop pace).
-- **Next (D164):** 1. item **24.8** (running); 2. item **24.2**, the
+- **Item 24.8 withdrawn from v1** (D165, the user's: "Withdraw it: drop
+  24.8 from v1; the experiment patch stays saved; rule 23 is already met
+  on the test level."). The experiment (not committed; the patch kept
+  outside the repository) failed the played test (2 sleepers left), made
+  the loop start's mean cluster worse (53.8 -> 67.6) and needed a new
+  save field.
+- **Now (D165):** running: rule 23's train-queue exclusion (24.7's
+  follow-up), the release hop (24.3's follow-up) and item **24.2**; then
+  item **24.1**'s record, the phone's **session 7** with chunk 20's
+  checks by hand, the closing health review. 24.8 is withdrawn.
+- **Next as planned in D164 (superseded by D165):** 1. item **24.8** (running); 2. item **24.2**, the
   quota pies (a placeholder look until ux-writer's); 3. item **24.1**,
   recording the numbers; 4. the phone's **session 7** (the runs above
   not yet run) and chunk 20's checks by hand; 5. the closing health
@@ -271,7 +281,7 @@ technology, not business behaviour:
   (TL2). **D161** (the user, 2026-10-07: "nah test level review comes
   after v1 is finished. same with geyser etc."): the geyser is no longer
   a v1 blocker; it and TL2 come after v1. 24g keeps only the climb fix
-  (proposed, O125).
+  (proposed, O125; kept in v1 by the user, D165).
 - **Chunk L01** (the first real level) is **v2**, not this plan (D134):
   v1 is the test level only. The release preset stays as built, with the
   test level left out; v1 (full MVP) is never published (D135).
@@ -279,7 +289,7 @@ technology, not business behaviour:
   proposed, D128): after chunk 22's repeat (D140), the last chunk
   before the closing step, as the user asked. The user's next play
   reports go there. O106, 24.3's question, is answered by the local
-  wake (D156, chunk 22l); 24.8 stays the lean, unbuilt (D155).
+  wake (D156, chunk 22l); 24.8, the lean, is withdrawn from v1 (D165).
 - **Closing step, last of all:** the coding-rule health review
   (`CODING_RULE.md`'s health and clean-up list), after every other chunk,
   chunk 24 included (D122, kept by D123 and D128). It also looks at
@@ -321,7 +331,7 @@ technology, not business behaviour:
 | 22m | The `stress-dense` fixture and the 10,000-tick run tool (the user's, details proposed, D153, D154; fixture done, 4aac65a; run tool done, 3b765f3) | S | 22d | the fixture built by `tools/make_fixture.gd`, no format change; 200 train slimes (fewer only if they don't fit before switch 3, reported), 9 per 300 px stretch, the bowl's bottom two at 12, along the loop line; its hash at 600 and 2400 ticks recorded with the others'; its scripted test; the run tool over 10,000 ticks; a first phone-emulation reading |
 | 22e–22k | Withdrawn with the fps session (22e, 22f, 22g, 22i, 22j, 22k; D155); kept on branch `archive/fps-session-2026-10`; their ids aren't reused | — | — | — |
 | 22c | Crowd detail only under load (proposed, D141; done, 57d38e7, D162) | S | 5N | the load meter's unit tests; same hashes in `always`; `auto` measured on the desktop |
-| 24g | The train's climb (proposed, D160, D161; O125; done and closed, a0ffdde, the relay's save and reload fix 5d7409f, merged 578ccff, D163): the hold on a climb and the relay (from exp/dip-jam), rule 24's run tool without the geyser | S | 5N (proposed) | unit tests of the hold and the relay; `s3-basket-59of60` held on the start, seeds 1 and 2, recorded against D159's baseline (not a pass or fail on rules 23 and 24); `stress-dense`'s census; the fusion drop explained (O122); [DoD 1], the `bump` fixture; same hash on both ticks; changed hashes listed; the whole suite |
+| 24g | The train's climb (D160, D161; kept in v1 by the user, D165; done and closed, a0ffdde, the relay's save and reload fix 5d7409f, merged 578ccff, D163): the hold on a climb and the relay (from exp/dip-jam), rule 24's run tool without the geyser | S | 5N (proposed) | unit tests of the hold and the relay; `s3-basket-59of60` held on the start, seeds 1 and 2, recorded against D159's baseline (not a pass or fail on rules 23 and 24); `stress-dense`'s census; the fusion drop explained (O122); [DoD 1], the `bump` fixture; same hash on both ticks; changed hashes listed; the whole suite |
 | — | The geyser object (after v1, D161; once 24g's first part; see "After v1") | M | 24g | not in v1's order |
 | TL2 | The test level's start review (after v1, D161; see "After v1") | S–M | 24g, the geyser object | not in v1's order |
 | 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
@@ -337,7 +347,7 @@ and 11 are independent of each other. Chunk 17 can start as soon as 8 is done, i
 parallel with the camera and objects work. Chunk 23 runs first among the
 remaining chunks, before 18 (D123), and chunk LD runs in parallel with it.
 TL1 ran after both, before 18 (D127; done, D129). After chunk 22, the
-order is 22b, 22d, 19w, 22l, 22m, 22h (all done), then 5N, 24g (the train's climb, D160, D161, proposed, O125), 22c, 22 repeated on the real S20 FE, then the rest of chunk 24, the
+order is 22b, 22d, 19w, 22l, 22m, 22h (all done), then 5N, 24g (the train's climb, D160, D161; kept, D165), 22c, 22 repeated on the real S20 FE, then the rest of chunk 24, the
 last chunk before the closing health review (D128, D140, D141, D143,
 D155, D158; O97 closed by D140). The fps session after 0196c25 (22e to
 22k) was withdrawn (D155). The geyser object and TL2 come after v1
@@ -1203,7 +1213,7 @@ must not run while another chunk edits the slime body code.
   (proposed) took it to 5: a pressed window within 10 judged windows
   after a step down makes the next step down wait for 60 calm windows.
 
-### 24g. The train's climb: the hold on a climb and the relay (S, proposed, D160, D161; O125; done, a0ffdde; closed with the relay's save and reload fix, 5d7409f, merged 578ccff, D163)
+### 24g. The train's climb: the hold on a climb and the relay (S, D160, D161; kept in v1 by the user, D165; done, a0ffdde; closed with the relay's save and reload fix, 5d7409f, merged 578ccff, D163)
 
 The user (2026-10-05, the `stress-dense` report, in chunk 24's list):
 "movement wise, it fails grossly". D160 (4) found the cause on
@@ -1213,6 +1223,8 @@ come after v1 (the user: "nah test level review comes after v1 is
 finished. same with geyser etc."; see "After v1" below); the climb fix
 stays in v1, **proposed**: it answers the `stress-dense` report, which
 doesn't depend on the loop's start, and the user may drop it (O125).
+**D165:** the user kept it ("Keep in v1."); the hold on a climb and
+the relay are decided, as built; O125 is closed.
 The id stays 24g (its branch, `feat/24g`, already carries it). **Proposed:
 next after 5N, before 22c and chunk 22's repeat**, which then measure
 the game with it. Its id is a chunk's, not one of chunk 24's numbered
@@ -1484,7 +1496,7 @@ both keep both ATD steps; 24.6 is debug tooling only. Items 24.7 and
 24.8 are cluster avoidance (the user, 2026-09-30; D143, approved in
 direction, D144, their numbers proposed); they
 run after 24.3 and the local wake (chunk 22l, D156, which answers
-O106), since a draining basket is today's biggest awake cluster; 24.8 changes hopping behaviour, so it
+O106), since a draining basket is today's biggest awake cluster; 24.8 is withdrawn from v1 (D165); it changed hopping behaviour, so it
 keeps both ATD steps, and 24.7's rule goes to documentalist once
 built (a rule atom under `req_level_design_rules`).
 
@@ -1583,6 +1595,17 @@ outlet over slide 3's drop, at (535.68, -134). Basket 3 is empty in
 18.4 s (28 s), basket 2 in 13.1 s (14.5 s), none caught again; the test
 is `test_basket_drain_e2e`. The new outlet meets rule 24 as measured; O62
 stays open; O126 asks about baskets 1 and 2's pace.
+- **Follow-up, the release hop (D165, the user's: "Hop at once"; O126
+  closed; running):** a slime a basket releases hops away at once
+  instead of resting on the outlet until its own hop timer runs out (the
+  exact form, its hop timer set to 0 on release, is the build's). It
+  changes `req_hopping_behavior` and hashes, so both ATD steps. **Done
+  when:** a unit test sees a released slime hop without waiting out a
+  hop interval;
+  from `s2-basket-offscreen`, basket 2 empties in about 3.7 s (13.1 s
+  before); baskets 1 and 2 filled with base slimes (6 and 15) empty
+  within D128's bound; basket 3 still within 28 s; the changed hashes
+  listed and the fixtures regenerated; the suite passes.
 - **What the spec already says, unchanged:** once full, a basket plays
   its reward (waiting until it is in view), fires (its gate opens; basket
   3, with no gate, fires the celebration, D77), then **releases its
@@ -1697,7 +1720,7 @@ b14f0d5** (D164): the test level passes rule 23 in every section (section
 3's play 23 slimes, 0.1 s in a row; with 24.3 in, its drain 5); the
 `s3-basket-59of60` bench reads 37, 2.6 s in a row, under 5 s. Section 3
 needs no edit under the proposed limit (O107 (c), narrowed; measured
-again after 24.8). The change's done-when was: a unit test where a basket's fill above the limit
+again once the train is left out, D165; 24.8 withdrawn). The change's done-when was: a unit test where a basket's fill above the limit
 alone passes and a pile outside it above the limit fails; the test
 level's numbers (each section, each basket's drain) taken again and
 recorded; the tutorial pages and the `level-review` skill say so; the
@@ -1705,6 +1728,18 @@ suite passes. As measured before it: sections 1 and 2 never above the
 limit; section 3 above it in its play (59, 21.9 s in a row) and its
 drain (55, 11.3 s), from basket 3's fill.
 The user saw "piles of active slimes" next to basket 3, "legit slow fps".
+- **Follow-up, a train queue doesn't count (D165, the user's: "Don't
+  count train queues"; running):** train slimes on the loop's route are
+  left out of the count before clustering, the way a basket's fill is
+  (proposed reading; a train slime due a move to the loop start is off
+  the route and counts; the exact test is the build's). The overlay and
+  the PERF line still count every slime. Rule 24's cluster check at an
+  arrival spot keeps counting train slimes (proposed, O107 (d)).
+  **Done when:** a unit test where a train queue above the limit passes
+  and a pile of free slimes above it fails; the test level's numbers
+  (each section, each basket's drain, the benches) taken again and
+  recorded; the tutorial pages (06, 09) and the `level-review` skill say
+  so; the suite passes.
 - **The measure:** the level bench's RESULT line takes chunk 22d's count
   names, `largest_cluster` (its maximum over the case) and the seconds
   above the limit; each level's played test (from fresh, filling every
@@ -1721,7 +1756,7 @@ The user saw "piles of active slimes" next to basket 3, "legit slow fps".
   23's result comes from), and the `level-review` skill's rule list.
 - **The test level:** measured and recorded, not edited (section 3 is the
   stress area, D143); if section 3 still breaks the limit in normal play
-  once 24.3 and 24.8 have landed, the user decides on a level edit (O107).
+  once 24.3 has landed, the user decides on a level edit (O107).
   Its test records rule 23's numbers and doesn't fail on them until then.
 - **Done when:** the bench reports `largest_cluster` and the seconds above
   the limit on every case; a synthetic level with a bowl feeding a basket
@@ -1731,7 +1766,18 @@ The user saw "piles of active slimes" next to basket 3, "legit slow fps".
   numbers (each section, each basket's drain) are in the project
   documentation; the suite passes.
 
-**24.8 The train leans away from clusters** (the user, 2026-09-30;
+**24.8 The train leans away from clusters: withdrawn from v1** (D165,
+the user's: "Withdraw it: drop 24.8 from v1; the experiment patch stays
+saved; rule 23 is already met on the test level."). The build's
+experiment, not committed: the clusters still over rule 23's limit were
+100 % mixed-species train queues in section 3's bowl; the trigger fired
+on 70 to 87 % of train hops; the lean halved the train's hops, cut
+departures past 750 px from 7.5 to 6.6 per 600 ticks and raised the loop
+start's mean cluster from 53.8 to 67.6; it failed the played test (2
+sleepers left); it would have needed a new save field. The patch is
+kept outside the repository, in the orchestrator's handoff folder. The
+text below is the item as it was, kept for the record; it is not built.
+*Was:* (the user, 2026-09-30;
 D143, approved in direction, D144, the numbers proposed;
 `req_hopping_behavior`, O107). "we could favor cluster
 reducing activity". *D155:* a replacement for this item was tried and

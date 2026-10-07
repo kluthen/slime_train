@@ -1,6 +1,6 @@
 # Interactive objects
 
-Status: draft v15 (the geyser after v1, D161, the user's; v14: the geyser, a level object, D160, the user's, details proposed; v13: population fork, v2, proposed, D143)
+Status: draft v16 (a released slime hops away at once, D165, the user's; v15: the geyser after v1, D161, the user's; v14: the geyser, a level object, D160, the user's, details proposed; v13: population fork, v2, proposed, D143)
 
 **Versions (D50, D54):** v1 has only the frontier-gate set (switch, basket,
 gate) and the split zone at the start of the loop. Every other object comes
@@ -50,7 +50,9 @@ Its outlines fill by weight, so a fused slime fills several at once.
 *(Proposed, D128:)* above a quota of 10 it shows **quota pies** instead:
 one pie per 10 of weight, the last holding the rest, a slice per unit of
 weight; readable at the basket's framing zoom (`tuning.md`). A fired
-basket always empties: no released slime falls back into it.
+basket always empties: no released slime falls back into it. *(D165, the
+user's:)* a released slime hops away at once, so it doesn't hold the
+outlet.
 - **Off screen (D70):** it can still reach its quota. Filling it earns a
   **reward animation**, then it fires. (D91: the reward and the firing
   wait until the basket is in view)
