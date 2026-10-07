@@ -741,6 +741,14 @@ contacts. The pair list comes from a uniform grid on the slime centres,
 built on the first substep only (cells at least as big as the largest pair
 reach, so each slime checks its own cell and its neighbours).
 
+The GDScript passes live in `SlimeSolverGD` (`src/sim/slime_solver.gd`, the
+health review's S1 seam 1): static functions over the `SlimeBodies` arrays
+(`integrate`, `build_pairs`, `solve_contacts`, `solve_rings`,
+`solve_terrain`, `solve_against`). `SlimeBodies` keeps the arrays and the
+tick's order, and calls them through its own pass functions (`_integrate`,
+`_build_pairs`, `_solve_contacts`, `_solve_rings`, `_solve_terrain`)
+whenever the native solver doesn't run a pass (see `docs/dev/native.md`).
+
 - **Ring constraints:** edge springs (stiffness 0.8), area (0.6) and shape
   matching toward the rest circle (0.3). The edge springs are solved
   Jacobi-style (all corrections computed, then applied): a sequential pass
@@ -2073,7 +2081,7 @@ longer simulate.
   y −184).
   - After the fix, one slime still stuck there on 9 of 10 seeds.
   - A fix (the vertex's summed normal on a tie, in both `resolve` and
-    `SlimeBodies._solve_terrain`) changes contact physics everywhere, so
+    `SlimeSolverGD.solve_against`) changes contact physics everywhere, so
     it is left open.
 - **Lost by stalling.** Crowds were lost by the 60 s stall rule:
   - at the start basin's lip, around (716 to 723, 370 to 381), on seed 4
@@ -2627,7 +2635,7 @@ at a sharp convex corner both segments are equally near, and when the
 other face's segment was listed first a wedge outside the corner counted
 as inside, so ring points passing there were pulled onto the corner. Now
 a vertex's own normal (the mean of its two segments') decides there, in
-`TerrainSegments.resolve` and `SlimeBodies._solve_against` (see "Terrain
+`TerrainSegments.resolve` and `SlimeSolverGD.solve_against` (see "Terrain
 contact"). No level tweak was needed. It changed `stress-still`'s settling
 (its reloads rest in 670 to 910 ticks, were under 600) and
 `test_tilt_e2e.gd`'s neutral-tilt comparison (15 s instead of 20: the
@@ -4943,8 +4951,9 @@ by index; the train gained `Train.marked_at_of()`. Tests:
 | `gate2-open` | 1.408 / 1.491 / 2.162 | 1.414 / 1.470 / 1.664 |
 
 **Door passes by bounding box, and the pair loop's end.**
-`src/sim/slime_bodies.gd`. The terrain solve runs one pass per shut door
-(`_solve_terrain`, `_solve_against`). Each slime now has a bounding box
+`src/sim/slime_bodies.gd` (the passes are in `src/sim/slime_solver.gd`
+since the health review's S1). The terrain solve runs one pass per shut door
+(`solve_terrain`, `solve_against`). Each slime now has a bounding box
 (`_box_lo`, `_box_hi`: measured only while a door is shut, grown when a push
 moves the slime), and a door's pass skips the slimes whose box lies outside
 the door's grid. `_build_pairs` stops its loop at the highest index that

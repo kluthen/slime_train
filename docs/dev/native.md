@@ -449,7 +449,11 @@ Godot 4.7.2 debug template:
 
 The GDScript `SlimeBodies` (`src/sim/slime_bodies.gd`) keeps its interface,
 so its callers (the simulation, the train, the renderer, the tests) don't
-change. Behind it:
+change. Its GDScript solver passes, the ones the native solver mirrors, are
+`SlimeSolverGD`'s (`src/sim/slime_solver.gd`, static functions over the
+bodies' arrays, called through `SlimeBodies._integrate`, `_build_pairs`,
+`_solve_contacts`, `_solve_rings` and `_solve_terrain`; the rest pass stays
+in `slime_bodies.gd`). Behind it:
 
 - **The native solver** (`SlimeSolver`) runs the solver part of the tick:
   substeps of integrate, the pair grid (first substep), slime contacts,
