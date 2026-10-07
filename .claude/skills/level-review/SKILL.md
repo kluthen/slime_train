@@ -1,6 +1,6 @@
 ---
 name: level-review
-description: Review a Slime Train level against the level-design rules (specs/level-design.md, rules 1 to 22) - run the level-rules checker and the level report, list every rule as written today with its result, turn each FAIL into what, where and how to fix, flag likely blockers the checker can't see, and turn every by-eye item into a checklist of what to look at in test mode. Use this whenever the user asks to review, audit, check, validate or sign off a level, asks "does my level follow the rules", "is level 01 done", "what's wrong with this level", or just wants the level-design rules listed, even without naming the checker.
+description: Review a Slime Train level against the level-design rules (specs/level-design.md, every rule; the checker knows 1 to 23) - run the level-rules checker and the level report, list every rule as written today with its result, turn each FAIL into what, where and how to fix, flag likely blockers the checker can't see, and turn every by-eye item into a checklist of what to look at in test mode. Use this whenever the user asks to review, audit, check, validate or sign off a level, asks "does my level follow the rules", "is level 01 done", "what's wrong with this level", or just wants the level-design rules listed, even without naming the checker.
 ---
 
 # Level review
@@ -100,7 +100,16 @@ ID: use --at=<x>,<y> in level pixels (x in screens times 1152; y grows
 downward). Section N is reached from --fixture=gate<N-1>-open (section 1:
 no fixture). Rule 16's item: `tools/level.sh bench --level=<id>` (the
 level as new and each fixture with a save; `--fixture=<name>` for one),
-then watch the pile in play.
+then watch the pile in play. Rule 23's item (MANUAL: the checker can't
+play the level): its result is the level's played test, whose rule 23
+line gives the largest awake cluster, the seconds above 20 slimes and the
+longest in a row, and fails over 5 s in a row
+(`tools/test.sh -gdisable_colors -gselect=test_level_<id>`); the bench's
+`RESULT` lines end with the same numbers per case (`largest_cluster`,
+`above_limit_s`, `longest_above_s`), no verdict. Quote the numbers, and
+look by eye for its shapes: a bowl or dip next to a basket, an outlet
+releasing into a crowd, a narrow ledge where the train queues, a sleeper
+shelf's landing spot next to any of these.
 
 ## Numbers worth a look
 From the level report: anything close to a limit.
@@ -116,7 +125,12 @@ and put the by-eye checklist first.
 
 The test level passes every rule the checker runs (since chunk R22, which
 moved `Terrain/Dip2Hollow` off the loop's path to fix rule 22 (b)), and the
-checker exits 0 there. A FAIL on it is news: report it as such.
+checker exits 0 there. A FAIL on it is news: report it as such. Rule 23
+is measured on it, not judged yet: its played test
+(`tests/e2e/test_test_level_playable_e2e.gd`) prints the numbers per
+section and per basket's drain without failing on them until the limit is
+calibrated (section 3 is the stress area); quote them as numbers, not as a
+FAIL.
 
 ## Don'ts
 

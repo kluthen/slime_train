@@ -18,6 +18,16 @@ extends GutTest
 ## touching it (LevelProgress.chain), so one call wakes the whole line. It
 ## also checks that the level-rules checker gives the test level no warning.
 ##
+## Level rule 23's numbers (chunk 24, item 24.7; ClusterWatch): each
+## section's play is watched, from its fixture until its basket fires, then
+## its fire-and-drain on its own (until the basket is empty, at most
+## DRAIN_TICKS), with the camera on the basket. The largest awake cluster,
+## the seconds above the limit and the longest of them in a row are printed
+## for each, measured as-is: the test doesn't fail on them until items 24.3
+## and 24.8 have landed and the user has settled section 3 (O107); the loop
+## start's crowding is set aside meanwhile (D161). They are recorded in
+## docs/dev/README.md ("Level rule 23 on the test level").
+##
 ## Before chunk TL1 section 1 held only two sleepers a called base slime
 ## could reach, so basket 1 (quota 6) could never fill from fresh.
 ##
@@ -52,6 +62,12 @@ const FILL_TICKS := 510 * TICK_RATE
 ## The camera's zoom while calling: wide enough to hold a long line of
 ## sleepers (the bowl's ledge, 0.9 screens) and its take-off point.
 const CALL_ZOOM := 0.7
+## The longest a fired basket's drain is watched: 60 slimes released one
+## every 0.3 s at the clearest, the rest the outlet's waits.
+const DRAIN_TICKS := 120 * TICK_RATE
+
+## Rule 23's measure over the current play (_run_until feeds it).
+var _clusters: ClusterWatch = null
 
 
 func test_section_1_from_fresh_fills_basket_1_and_opens_gate_1() -> void:
@@ -85,6 +101,7 @@ func test_the_rules_checker_gives_the_test_level_no_warning() -> void:
 ## fires (the gate opens; the last basket: the celebration plays).
 func _play(section: int) -> void:
 	var started := Time.get_ticks_msec()
+	_clusters = ClusterWatch.new()
 	var game := _boot(FIXTURES[section])
 	var sim: Simulation = game.simulation
 	if game.test_mode == null:
@@ -123,6 +140,14 @@ func _play(section: int) -> void:
 	else:
 		assert_true(sim.frontier.celebration_done, "the last basket fired: the level's celebration plays")
 	assert_eq(sim.train.stalled, [] as Array[Dictionary], "no train slime stalled")
+	var play := _clusters
+	_clusters = ClusterWatch.new()
+	var drained := _run_until(game, func(): return sim.object_states[basket]["weight"] == 0, DRAIN_TICKS,
+			sim.level.baskets[basket]["box"].get_center(), 1.0)
+	gut.p("rule 23, section %d's play from %s to %s firing: %s" % [section, FIXTURES[section], basket, play.report()])
+	gut.p("rule 23, %s's fire-and-drain (%s): %s" % [basket, "empty after %d ticks" % drained if drained >= 0
+			else "not empty after %d ticks" % DRAIN_TICKS, _clusters.report()])
+	_clusters = null
 
 
 ## The sleepers to call among `asleep`: per line of touching sleepers
@@ -178,7 +203,8 @@ func _wake(game: Node, checker: LevelChecker, section: int, stable_id: String) -
 # --- Helpers ----------------------------------------------------------------
 
 ## Runs a tick at a time, the camera on `aim` at `zoom`, until `done` holds
-## or `limit` ticks pass. Returns the ticks run, or -1.
+## or `limit` ticks pass, rule 23's watch (_clusters) fed each tick.
+## Returns the ticks run, or -1.
 func _run_until(game: Node, done: Callable, limit: int, aim: Vector2, zoom: float) -> int:
 	for i in limit:
 		if done.call():
@@ -186,6 +212,8 @@ func _run_until(game: Node, done: Callable, limit: int, aim: Vector2, zoom: floa
 		game.simulation.camera.place(aim, zoom)
 		game.sync_view()
 		game.test_mode.run_ticks(1)
+		if _clusters != null:
+			_clusters.watch(game.simulation)
 	return limit if done.call() else -1
 
 

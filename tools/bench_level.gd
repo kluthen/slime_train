@@ -57,13 +57,20 @@ extends SceneTree
 ## at the end of the timed ticks, as the debug overlay counts them
 ## (DebugCounts.count_slimes: physics, calm ACTIVE and not a sleeper; on
 ## screen, centre in the view, any state; in range, not parked; parked; the
-## groups overlap; the table shows the last three); the resting slimes
+## groups overlap; the table shows the last three and rule 23's numbers below); the resting slimes
 ## before -> after; the camera's zoom and whether it stayed steady; and, as
 ## means over the timed ticks, the slimes
 ## that cost physics (active: SlimeBodies.crowd_count, the same count as
 ## physics, baskets and slimes asleep at bedtime still settling included) and
 ## the solver's candidate pairs (pairs: SlimeBodies.candidate_pair_count).
+## Level rule 23's measure over the timed ticks (chunk 24, item 24.7:
+## ClusterWatch, tools/level_check/cluster_watch.gd, sampled every 0.1 s
+## outside the timed span): the largest awake cluster (largest_cluster, in
+## slimes), the seconds it was above ClusterWatch.LIMIT (above_limit_s) and
+## the longest of them in a row (longest_above_s); numbers only, no verdict
+## (a case isn't a level's played run: the played test gives the verdict).
 # @spec-link [[req_platform_and_performance_targets]]
+# @spec-link [[req_level_design_rules]]
 
 const USAGE := ("usage: tools/level.sh bench [--level=<id>] [--ticks=N] [--fixture=NAME[,NAME...]] [--lead-in=N]"
 		+ " [--phases]")
@@ -123,8 +130,8 @@ func _init() -> void:
 			return
 	print("")
 	print("| Case | Base slimes | Bodies | Ticks | Lead-in | Median ms/tick | p95 ms/tick | Max ms/tick "
-			+ "| Mean ms/tick | On screen | In range | Parked |")
-	print("|---|---|---|---|---|---|---|---|---|---|---|---|")
+			+ "| Mean ms/tick | On screen | In range | Parked | Largest cluster | Above limit s | Longest above s |")
+	print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
 	for row in rows:
 		print(row)
 	level.free()
@@ -260,12 +267,14 @@ func _case(case_name: String, sim: Simulation, lead_in: int) -> bool:
 	spent.resize(ticks)
 	var active_sum := 0
 	var pairs_sum := 0
+	var clusters := ClusterWatch.new()
 	if time_phases:
 		PhaseTimers.attach(sim)
 	for t in ticks:
 		var start := Time.get_ticks_usec()
 		_step(sim)
 		spent[t] = (Time.get_ticks_usec() - start) / 1000.0
+		clusters.watch(sim)
 		active_sum += sim.slimes.crowd_count()
 		pairs_sum += sim.slimes.candidate_pair_count()
 	var total := 0.0
@@ -284,14 +293,15 @@ func _case(case_name: String, sim: Simulation, lead_in: int) -> bool:
 	var counts := DebugCounts.count_slimes(sim)
 	print(("RESULT case=%s base=%d bodies=%s ticks=%d lead_in=%d rested_at=%s median_ms=%.3f p95_ms=%.3f "
 			+ "max_ms=%.3f mean_ms=%.3f physics=%d on_screen=%d in_range=%d parked=%d resting=%d->%d "
-			+ "zoom=%.3f camera_steady=%s active=%.1f pairs=%.1f") % [case_name, _base_slimes(sim), bodies, ticks,
+			+ "zoom=%.3f camera_steady=%s active=%.1f pairs=%.1f %s") % [case_name, _base_slimes(sim), bodies, ticks,
 			lead_in, rested_at, median, p95, worst, mean, counts[DebugCounts.PHYSICS], counts[DebugCounts.ON_SCREEN],
 			counts[DebugCounts.IN_RANGE], counts[DebugCounts.PARKED], resting_before,
 			_count_calm(sim, SlimeBodies.RESTING), sim.camera.zoom, steady, float(active_sum) / ticks,
-			float(pairs_sum) / ticks])
-	rows.append("| %s | %d | %s | %d | %d | %.3f | %.3f | %.3f | %.3f | %d | %d | %d |" % [case_name,
-			_base_slimes(sim), bodies, ticks, lead_in, median, p95, worst, mean, counts[DebugCounts.ON_SCREEN],
-			counts[DebugCounts.IN_RANGE], counts[DebugCounts.PARKED]])
+			float(pairs_sum) / ticks, clusters.fields()])
+	rows.append("| %s | %d | %s | %d | %d | %.3f | %.3f | %.3f | %.3f | %d | %d | %d | %d | %.1f | %.1f |" % [
+			case_name, _base_slimes(sim), bodies, ticks, lead_in, median, p95, worst, mean,
+			counts[DebugCounts.ON_SCREEN], counts[DebugCounts.IN_RANGE], counts[DebugCounts.PARKED], clusters.largest,
+			clusters.above_limit_s(), clusters.longest_above_s()])
 	if time_phases:
 		_print_phases(case_name, sim)
 	return true

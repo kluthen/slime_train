@@ -14,7 +14,11 @@ extends GutTest
 ##   sleepers it counts on, each tapped when a train slime is at the loop
 ##   point its called hop takes off from (a sleeper no hop reaches wakes
 ##   with the ones it touches), and a tap on the switch sends the train into
-##   the basket until the quota is met (a few simulated minutes);
+##   the basket until the quota is met (a few simulated minutes); then the
+##   basket plays its reward, fires and lets its slimes go until it is
+##   empty, and level rule 23 holds over the whole play (ClusterWatch: the
+##   largest awake cluster never above 20 slimes for more than 5 s in a
+##   row; its numbers printed);
 ## - every fixture in levels/{{LEVEL_ID}}/fixtures/ loads through test mode,
 ##   and none is older than the level (a fixture saved before the level
 ##   changed loads without what it gained since: rerun the fixture maker).
@@ -47,6 +51,12 @@ const CALL_TICKS := 15 * Simulation.TICK_RATE
 const WAKE_TRIES := 3
 const NEAR := 40.0
 const FILL_TICKS := 180 * Simulation.TICK_RATE
+## How long the full basket has to play its reward, fire and let every
+## slime go (one every 0.3 s when its outlet is clear).
+const DRAIN_TICKS := 120 * Simulation.TICK_RATE
+
+## Level rule 23's measure over section 1's play (_run_until feeds it).
+var _clusters: ClusterWatch = null
 
 
 func test_the_level_loads_with_no_errors() -> void:
@@ -83,6 +93,7 @@ func test_two_minutes_with_no_input_lose_no_slime() -> void:
 
 # @test-link [[rule_gate_opens_via_switch_basket_set]]
 func test_section_1_plays_to_its_basket_full() -> void:
+	_clusters = ClusterWatch.new()
 	var game := _boot({})
 	var sim: Simulation = game.simulation
 	if game.test_mode == null:
@@ -114,6 +125,13 @@ func test_section_1_plays_to_its_basket_full() -> void:
 			sim.object_states[basket]["weight"], full])
 	assert_gt(full, 0, "%s fills to its quota (%d) within %d s" % [basket, plan["quota"], FILL_TICKS / 60])
 	assert_eq(sim.train.stalled, [] as Array[Dictionary], "no train slime stalled")
+	var drained := _run_until(game, func(): return sim.object_states[basket]["phase"] == FrontierSets.FIRED \
+			and sim.object_states[basket]["weight"] == 0, DRAIN_TICKS, sim.level.baskets[basket]["box"].get_center())
+	assert_gt(drained, -1, "%s fires and lets every slime go within %d s" % [basket, DRAIN_TICKS / 60])
+	# Level rule 23 over the play, the fire-and-drain included.
+	gut.p("rule 23 over section 1's play: %s" % _clusters.report())
+	assert_true(_clusters.passes(), "rule 23: %s" % _clusters.report())
+	_clusters = null
 
 
 func test_every_fixture_loads() -> void:
@@ -162,7 +180,8 @@ func _wake(game: Node, checker: LevelChecker, stable_id: String) -> bool:
 
 
 ## Runs a tick at a time, the camera on `aim`, until `done` holds or
-## `limit` ticks pass. Returns the ticks run, or -1.
+## `limit` ticks pass, rule 23's watch (_clusters) fed each tick. Returns
+## the ticks run, or -1.
 func _run_until(game: Node, done: Callable, limit: int, aim: Vector2) -> int:
 	for i in limit:
 		if done.call():
@@ -170,6 +189,8 @@ func _run_until(game: Node, done: Callable, limit: int, aim: Vector2) -> int:
 		game.simulation.camera.place(aim, 1.0)
 		game.sync_view()
 		game.test_mode.run_ticks(1)
+		if _clusters != null:
+			_clusters.watch(game.simulation)
 	return limit if done.call() else -1
 
 

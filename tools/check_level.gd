@@ -10,7 +10,7 @@ extends SceneTree
 ##   godot --headless --no-header --path . -s res://tools/check_level.gd -- ...)
 ##
 ##   --level=<id>   the level to check (LevelCatalog; default "test")
-##   --rule=N,M     only these rules (1 to 22; default every rule)
+##   --rule=N,M     only these rules (1 to 23; default every rule)
 ##   --fast         skip the behaviour runs (rules 1, 2 and 7): layout only
 ##   --json         print one JSON object instead of text
 ##
@@ -69,7 +69,7 @@ func _parse() -> int:
 			"--rule":
 				_rules_asked = _rules(parts[1] if parts.size() > 1 else "")
 				if _rules_asked.is_empty():
-					return _fail("--rule wants rule numbers from 1 to 22, comma separated (got '%s')" % arg)
+					return _fail("--rule wants rule numbers from 1 to 23, comma separated (got '%s')" % arg)
 			"--fast":
 				_fast = true
 			"--json":
@@ -123,7 +123,7 @@ func _check() -> int:
 static func _rules(list: String) -> Array:
 	var out := []
 	for part in list.split(","):
-		if not part.strip_edges().is_valid_int() or part.to_int() < 1 or part.to_int() > 22:
+		if not part.strip_edges().is_valid_int() or part.to_int() < 1 or part.to_int() > 23:
 			return []
 		out.append(part.to_int())
 	return out

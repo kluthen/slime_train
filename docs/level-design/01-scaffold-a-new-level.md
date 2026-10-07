@@ -87,8 +87,9 @@ tools/level.sh check --level=zz-tutorial
 
 The test prints `6/6 passed.` (about 15 s: one of its tests plays section
 1 to its basket full, below). The checker ends with
-`check_level: 21 PASS, 0 FAIL, 1 MANUAL, 0 N/A, 0 warnings` (rule 19 is
-MANUAL: no framing zone yet; rule 5 passes on the dips).
+`check_level: 21 PASS, 0 FAIL, 2 MANUAL, 0 N/A, 0 warnings` (rule 19 is
+MANUAL: no framing zone yet; rule 23 is always MANUAL, its result is the
+level's test, [09](09-check-the-rules.md); rule 5 passes on the dips).
 
 ## The skeleton is a start, not a design
 
