@@ -407,7 +407,11 @@ Exit 0; 2 on a bad argument or a level that doesn't load.
 a run: fed the simulation every tick, it samples every 6 ticks (0.1 s) the
 largest awake cluster, the biggest group of touching Physics slimes in
 slimes, counted as the debug overlay and the PERF line count it
-(`DebugCounts.largest_cluster`, chunk 22d), and keeps its maximum
+(`DebugCounts.largest_cluster`, chunk 22d) but with the slimes whose
+centre is inside a basket's box left out (`ClusterWatch.largest_cluster`,
+user 2026-10-07: a basket's own fill doesn't count toward rule 23, the
+pile outside its box still does; the overlay and the PERF line still count
+every Physics slime), and keeps its maximum
 (`largest_cluster`), the seconds above the limit in all (`above_limit_s`)
 and the longest of them in a row (`longest_above_s`). A run keeps the rule
 (`passes()`) when it never stays above `LIMIT` (20 slimes) for more than
@@ -432,6 +436,9 @@ MANUAL and points at both, as rule 12's played test is its proof):
   and its outlet a screen away from the bowl, which passes (largest 20,
   never above). Both counts stay under the limit, so neither the queue nor
   the basket's own pile is a cluster above it alone.
+  `tests/unit/test_cluster_watch.gd` holds the basket's side: a full
+  basket of 25 doesn't fail the rule, a pile of 25 outside its box does,
+  and a pile against the box counts only its own slimes.
 - **The level bench**, numbers only (a bench case isn't a level's played
   run): every `RESULT` line ends with `largest_cluster`, `above_limit_s`
   and `longest_above_s` over its timed ticks, and the table has the three

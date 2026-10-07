@@ -2,7 +2,9 @@ extends GutTest
 ## ClusterWatch (tools/level_check/cluster_watch.gd), level rule 23's measure
 ## (chunk 24, item 24.7): its samples, the largest cluster, the seconds above
 ## the limit in all and in a row, the verdict at the hold's edge, and that
-## watch() samples only every SAMPLE_TICKS ticks, read only.
+## watch() samples only every SAMPLE_TICKS ticks, read only; and that a
+## basket's own fill doesn't count, the pile outside its box does (user,
+## 2026-10-07).
 # @test-link [[req_level_design_rules]]
 # @test-link [[rule_no_spot_where_slimes_gather_awake]]
 
@@ -77,3 +79,82 @@ func test_watch_samples_every_sample_ticks_and_changes_nothing() -> void:
 	assert_eq(watch.samples, 3, "a sample every %d ticks" % ClusterWatch.SAMPLE_TICKS)
 	assert_gt(watch.largest, 0)
 	assert_true(watch.largest >= DebugCounts.largest_cluster(sim.slimes), "the last tick was sampled")
+
+
+const BASKET_BOX := Rect2(-600, -300, 600, 300)
+## A full basket's fill, and a pile outside it: both above the limit.
+const FILL := ClusterWatch.LIMIT + 5
+## The centres' spacing in a pile: touching by distance, as the debug
+## overlay's tests space a row.
+const PILE_STEP := 40.0
+
+
+## A simulation of a level with one basket (box BASKET_BOX, quota FILL) on
+## the floor, before any tick (touching is by distance).
+func _basket_sim() -> Simulation:
+	var data := LevelData.new("watch-basket", 1)
+	data.loop = LoopData.new("w.loop")
+	data.loop.add_segment("w.out", 1, LoopData.OUTGOING, PackedVector2Array([Vector2(-1500, -24), Vector2(1500, -24)]))
+	data.loop.add_segment("w.back", 1, LoopData.RETURN, PackedVector2Array([
+			Vector2(1500, -24), Vector2(1500, 400), Vector2(-1500, 400), Vector2(-1500, -24)]))
+	data.first_slime = {"id": "w.first-slime", "species": "A", "position": Vector2(-1400, -24)}
+	data.add_basket("w.basket", BASKET_BOX, FILL, Vector2(1000, -24))
+	var sim := Simulation.new(4)
+	sim.slimes.terrain = TerrainSegments.new([Support.floor_polygon()])
+	sim.load_level(data)
+	return sim
+
+
+## Piles `count` base slimes in state `state`, 5 a row from x `left` up from
+## the floor, each touching its neighbours.
+func _pile(sim: Simulation, left: float, count: int, state: int) -> void:
+	for i in count:
+		sim.slimes.create(i % Species.COUNT, 1, Vector2(left + (i % 5) * PILE_STEP, -24 - (i / 5) * PILE_STEP),
+				state)
+
+
+## The watch of HOLD_SAMPLES + 1 samples of `sim` as it stands, rule 23's
+## count: more than the hold in a row when above the limit.
+func _held(sim: Simulation) -> ClusterWatch:
+	var watch := ClusterWatch.new()
+	for i in HOLD_SAMPLES + 1:
+		watch.sample(ClusterWatch.largest_cluster(sim))
+	return watch
+
+
+func test_a_full_basket_above_the_limit_does_not_fail_rule_23() -> void:
+	var sim := _basket_sim()
+	_pile(sim, BASKET_BOX.position.x + 100, FILL, SlimeBodies.IN_BASKET)
+	assert_eq(ClusterWatch.basket_boxes(sim.level), [BASKET_BOX] as Array[Rect2])
+	assert_eq(DebugCounts.largest_cluster(sim.slimes), FILL, "the debug overlay's count still sees the fill")
+	assert_eq(ClusterWatch.largest_cluster(sim), 1,
+			"rule 23 leaves out the slimes inside the basket's box: the level's first slime alone")
+	var watch := _held(sim)
+	assert_true(watch.passes(), "a basket's own fill doesn't count: %s" % watch.report())
+
+
+func test_a_pile_above_the_limit_outside_the_basket_fails_rule_23() -> void:
+	var sim := _basket_sim()
+	_pile(sim, BASKET_BOX.end.x + 200, FILL, SlimeBodies.TRAIN)
+	assert_eq(ClusterWatch.largest_cluster(sim), FILL, "the pile outside the box counts")
+	var watch := _held(sim)
+	assert_false(watch.passes(), "rule 23 fails: %s" % watch.report())
+
+
+func test_a_pile_against_a_full_basket_counts_only_its_own_slimes() -> void:
+	var sim := _basket_sim()
+	# The fill's right column and the pile's left one a step apart, across
+	# the box's right edge: one cluster for the overlay.
+	_pile(sim, BASKET_BOX.end.x - 5 * PILE_STEP, FILL, SlimeBodies.IN_BASKET)
+	_pile(sim, BASKET_BOX.end.x, FILL, SlimeBodies.TRAIN)
+	assert_eq(DebugCounts.largest_cluster(sim.slimes), 2 * FILL, "the overlay: one cluster, fill and pile")
+	assert_eq(ClusterWatch.largest_cluster(sim), FILL, "rule 23: the pile outside the box alone")
+
+
+func test_without_a_level_rule_23_counts_as_the_overlay() -> void:
+	assert_true(ClusterWatch.basket_boxes(null).is_empty())
+	var sim := Simulation.new(4)
+	sim.slimes.terrain = TerrainSegments.new([Support.floor_polygon()])
+	_pile(sim, 0, FILL, SlimeBodies.TRAIN)
+	assert_eq(ClusterWatch.largest_cluster(sim), DebugCounts.largest_cluster(sim.slimes))
+	assert_eq(ClusterWatch.largest_cluster(sim), FILL)
