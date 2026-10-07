@@ -4805,7 +4805,8 @@ earlier bench in these notes.
     `mean_ms`, `physics`, `on_screen`, `in_range`, `parked`, `resting`
     (before -> after), `zoom`, `camera_steady`, `active`, `pairs`, and
     since chunk 24 (item 24.7) level rule 23's `largest_cluster` (the
-    slimes inside a basket's box left out), `above_limit_s` and `longest_above_s` over the timed ticks
+    slimes inside a basket's box and the train slimes on the loop's route
+    left out), `above_limit_s` and `longest_above_s` over the timed ticks
     (`ClusterWatch`, `docs/dev/level-tooling.md`; the table's last three
     columns).
     `physics`, `on_screen`, `in_range` and `parked` are the debug overlay's
@@ -7433,9 +7434,74 @@ basket's own fill, woken by the faster releases. With both merged (main
 the table's "after". The other rows are the same.
 
 The `stress-*` fixtures are excepted from the rule (D96); `stress-moving`'s
-dense train reads as one long cluster (O107 (a)'s question: a train queue
-on the loop counts, as measured). It has no basket in play, so it doesn't
-move.
+dense train read as one long cluster (O107 (a)'s question, answered by
+D165 below). It has no basket in play, so the basket exclusion doesn't
+move it.
+
+### A train queue on the loop left out (2026-10-07)
+
+The user's decision, 2026-10-07 (D165): "rule 23 targets piles off the
+route; a queue on the route is rule 24's business (the train's flow)".
+Since branch feat/rule23-queue, `ClusterWatch` also leaves out, before
+clustering, the train slimes on the loop's route
+(`ClusterWatch.on_route_ids`, passed to `DebugCounts.largest_cluster` as
+`left_out_ids`): in state train, followed by the train (`Train.tracks`),
+not due a move to the loop start (`LoopStartQueue.due`: stalled, out of
+bounds, stuck; D165's proposed reading), and with the centre within
+`Train.OFF_ROUTE` (36 px) of the route point at its progress
+(`Train.position_at(Train.distance_of)`). That distance is the train's
+own "knocked off the route" test (`Train.steering_distance`, the class
+doc's definition), chosen over `steer()`'s `progress ==
+record["distance"]`, which also holds for a slime knocked off whose
+nearest point behind is its progress. So a train slime counts when it is
+knocked off the route, stacked more than 36 px above it, high in a hop,
+due a move, or not yet followed (made since the last tick); free slimes
+always count. Released slimes are train slimes: on the route they are
+left out, piled beside it they count. The debug overlay and the PERF line
+are unchanged, and no hash moves.
+
+Before: main `6934e43` (a basket's fill left out); after: this branch,
+same runs, same ticks, the development desktop, native tick.
+
+| Run | Largest cluster, before -> after | Above the limit s, before -> after | Longest in a row s, before -> after |
+|---|---|---|---|
+| Section 1's play, `fresh` to s1.basket firing | 5 -> 5 | 0.0 -> 0.0 | 0.0 -> 0.0 |
+| s1.basket's fire-and-drain (559 ticks) | 2 -> 1 | 0.0 -> 0.0 | 0.0 -> 0.0 |
+| Section 2's play, `gate1-open` to s2.basket firing | 5 -> 4 | 0.0 -> 0.0 | 0.0 -> 0.0 |
+| s2.basket's fire-and-drain (1066 ticks) | 6 -> 1 | 0.0 -> 0.0 | 0.0 -> 0.0 |
+| Section 3's play, `gate2-open` to s3.basket firing | 23 -> 23 | 0.1 -> 0.1 | 0.1 -> 0.1 |
+| s3.basket's fire-and-drain (1062 ticks) | 5 -> 1 | 0.0 -> 0.0 | 0.0 -> 0.0 |
+
+| Bench case | Lead-in | Largest cluster, before -> after | Above the limit s, before -> after | Longest in a row s, before -> after |
+|---|---|---|---|---|
+| `start` | 600 | 1 -> 1 | 0.0 -> 0.0 | 0.0 -> 0.0 |
+| `stress-still` | 420 (rested) | 0 -> 0 | 0.0 -> 0.0 | 0.0 -> 0.0 |
+| `stress-moving` | 60 | 133 -> 44 | 10.0 -> 8.9 | 10.0 -> 8.9 |
+| `s3-basket-59of60` | 60 | 37 -> 14 | 7.3 -> 0.0 | 2.6 -> 0.0 |
+| `s3-basket-59of60` | 700 | 17 -> 3 | 0.0 -> 0.0 | 0.0 -> 0.0 |
+| `stress-dense` | 600 | 48 -> 2 | 8.4 -> 0.0 | 2.2 -> 0.0 |
+
+What each drain leaves out, the most at any sample (a probe over the
+played test's drains, not kept): s1.basket 5 slimes in its box and 5
+train slimes on the route, 1 train slime off it counted; s2.basket 11 in
+its box, 12 on the route, 2 off it; s3.basket 57 in its box, 28 on the
+route (its released slimes and the queue they join), 2 off it. No free
+slime and no slime due a move in any of them. The debug overlay's largest
+cluster over the same drains: 4, 11 and 57.
+
+What it means for a basket's drain: its released slimes riding the route
+no longer count, so rule 23 can no longer catch a pile at an outlet that
+forms on the route (released slimes queuing where they land); that is
+rule 24's, the arrival spot. A pile at an outlet off the route still
+counts: the synthetic level's failing layout, rebuilt with its bowl off
+the route (the route runs over it; `tests/e2e/test_rule_23_e2e.gd`),
+reads largest 26, 40.8 s above the limit, 40.4 s in a row: FAIL; apart,
+largest 18: PASS. With its old bowl on the route it read largest 24, 1.2 s
+in a row, a pass: it failed only because of the train queue.
+`tests/unit/test_cluster_watch.gd` holds the cases: a single-file queue
+of 30 on the route passes, a pile of 25 free or knocked-off slimes beside
+it fails, a pile against the queue counts only its own slimes, two piles
+don't join through it, a queue due a move counts.
 
 ### What it shows (observations, no verdict)
 
@@ -7455,8 +7521,13 @@ move.
   basket's quota (19) and its bowl's queue (18) under the limit, so only
   their gathering, the basket draining into the bowl, goes above it
   (largest 32, 12.1 s in a row: FAIL); a screen apart, never above
-  (largest 20: PASS). Unchanged after: the queue and the slimes released
-  are outside the basket's box. `tests/unit/test_cluster_watch.gd` holds
+  (largest 20: PASS). Unchanged by the basket exclusion: the queue and
+  the slimes released are outside the basket's box. Since the train
+  queue is left out its bowl is off the route (above).
+- With the train queue left out (above), every section and every drain
+  stays far under the limit; the drains read 1. Of the bench cases only
+  `stress-moving` (excepted) still goes above it, with its slimes
+  stacked off the route. `tests/unit/test_cluster_watch.gd` holds
   the basket's side: a full basket of 25 doesn't fail rule 23, a pile of
   25 outside its box does.
 

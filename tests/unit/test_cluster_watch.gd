@@ -4,7 +4,9 @@ extends GutTest
 ## the limit in all and in a row, the verdict at the hold's edge, and that
 ## watch() samples only every SAMPLE_TICKS ticks, read only; and that a
 ## basket's own fill doesn't count, the pile outside its box does (user,
-## 2026-10-07).
+## 2026-10-07); and that a train queue on the loop's route doesn't count,
+## a pile of free or off-route slimes beside it does (user, 2026-10-07,
+## D165).
 # @test-link [[req_level_design_rules]]
 # @test-link [[rule_no_spot_where_slimes_gather_awake]]
 
@@ -68,8 +70,12 @@ func test_watch_samples_every_sample_ticks_and_changes_nothing() -> void:
 	var sim := Simulation.new(4)
 	sim.slimes.terrain = TerrainSegments.new([Support.floor_polygon()])
 	sim.load_level(data)
+	# Three free slimes falling high above the route (on its ground the train
+	# would take them on), which rule 23 counts, and three train slimes on
+	# the route, which it leaves out (read only too).
 	for i in 3:
-		sim.slimes.create(i, 1, Vector2(40.0 * i, -24), SlimeBodies.TRAIN)
+		sim.slimes.create(i, 1, Vector2(40.0 * i, -600), SlimeBodies.FREE)
+		sim.slimes.create(i, 1, Vector2(600.0 + 40.0 * i, -24), SlimeBodies.TRAIN)
 	var watch := ClusterWatch.new()
 	for t in 3 * ClusterWatch.SAMPLE_TICKS:
 		sim.step()
@@ -127,8 +133,8 @@ func test_a_full_basket_above_the_limit_does_not_fail_rule_23() -> void:
 	_pile(sim, BASKET_BOX.position.x + 100, FILL, SlimeBodies.IN_BASKET)
 	assert_eq(ClusterWatch.basket_boxes(sim.level), [BASKET_BOX] as Array[Rect2])
 	assert_eq(DebugCounts.largest_cluster(sim.slimes), FILL, "the debug overlay's count still sees the fill")
-	assert_eq(ClusterWatch.largest_cluster(sim), 1,
-			"rule 23 leaves out the slimes inside the basket's box: the level's first slime alone")
+	assert_eq(ClusterWatch.largest_cluster(sim), 0,
+			"rule 23 leaves out the slimes inside the basket's box (and the level's first slime, on the route)")
 	var watch := _held(sim)
 	assert_true(watch.passes(), "a basket's own fill doesn't count: %s" % watch.report())
 
@@ -172,3 +178,104 @@ func test_without_a_level_rule_23_counts_as_the_overlay() -> void:
 	_pile(sim, 0, FILL, SlimeBodies.TRAIN)
 	assert_eq(ClusterWatch.largest_cluster(sim), DebugCounts.largest_cluster(sim.slimes))
 	assert_eq(ClusterWatch.largest_cluster(sim), FILL)
+
+
+## The loop's outgoing route in _basket_sim(): along y = -24 from x = -1500,
+## so a point on it at x is this far along the loop plus x.
+const ROUTE_START_X := -1500.0
+## A single-file queue on the route, above the limit.
+const QUEUE := ClusterWatch.LIMIT + 10
+## A queue's first slime: clear of the level's first slime (x = -1400).
+const QUEUE_LEFT := 0.0
+
+
+## Lines `count` train slimes up single file along the route from x `left`
+## at height `lift` px above it, each touching its neighbours, followed by
+## the train at the route point below each (as Train.follow would; its stall
+## mark at `marked_at`). Returns their ids.
+func _queue(sim: Simulation, left: float, count: int, lift := 0.0, marked_at := -1) -> PackedInt32Array:
+	var ids := PackedInt32Array()
+	for i in count:
+		var x := left + i * PILE_STEP
+		var slime_id := sim.slimes.create(i % Species.COUNT, 1, Vector2(x, -24 - lift), SlimeBodies.TRAIN)
+		sim.train.restore_record(slime_id, {"distance": x - ROUTE_START_X, "marked_at": marked_at})
+		ids.append(slime_id)
+	return ids
+
+
+## The x just past a queue of `count` from `left`: a slime there touches its
+## last one.
+func _after(left: float, count: int) -> float:
+	return left + count * PILE_STEP
+
+
+func test_a_train_queue_on_the_route_does_not_fail_rule_23() -> void:
+	var sim := _basket_sim()
+	var ids := _queue(sim, QUEUE_LEFT, QUEUE)
+	assert_eq(DebugCounts.largest_cluster(sim.slimes), QUEUE, "the debug overlay's count still sees the queue")
+	var on_route := ClusterWatch.on_route_ids(sim)
+	for slime_id in ids:
+		assert_true(slime_id in on_route, "queued slime %d is on the route" % slime_id)
+	assert_eq(ClusterWatch.largest_cluster(sim), 0,
+			"rule 23 leaves out the train slimes on the route: the queue and the level's first slime")
+	var watch := _held(sim)
+	assert_true(watch.passes(), "a train queue on the route doesn't count: %s" % watch.report())
+
+
+func test_a_pile_of_free_slimes_beside_the_route_fails_rule_23() -> void:
+	var sim := _basket_sim()
+	_pile(sim, QUEUE_LEFT, FILL, SlimeBodies.FREE)
+	assert_eq(ClusterWatch.largest_cluster(sim), FILL, "free slimes count, on the route's ground or not")
+	var watch := _held(sim)
+	assert_false(watch.passes(), "rule 23 fails: %s" % watch.report())
+
+
+func test_a_pile_of_train_slimes_knocked_off_the_route_fails_rule_23() -> void:
+	var sim := _basket_sim()
+	# Rows of train slimes followed at the route point below, every row more
+	# than Train.OFF_ROUTE above it: knocked off the route (a ledge above).
+	var lift := Train.OFF_ROUTE + 64.0
+	for row in FILL / 5:
+		_queue(sim, QUEUE_LEFT, 5, lift + row * PILE_STEP)
+	assert_true(ClusterWatch.on_route_ids(sim).size() == 1, "only the level's first slime is on the route")
+	assert_eq(ClusterWatch.largest_cluster(sim), FILL, "train slimes off the route count")
+	var watch := _held(sim)
+	assert_false(watch.passes(), "rule 23 fails: %s" % watch.report())
+
+
+func test_a_pile_touching_a_queue_counts_only_its_own_slimes() -> void:
+	var sim := _basket_sim()
+	_queue(sim, QUEUE_LEFT, QUEUE)
+	_pile(sim, _after(QUEUE_LEFT, QUEUE), FILL, SlimeBodies.FREE)
+	assert_eq(DebugCounts.largest_cluster(sim.slimes), QUEUE + FILL, "the overlay: one cluster, queue and pile")
+	assert_eq(ClusterWatch.largest_cluster(sim), FILL, "rule 23: the pile alone")
+
+
+func test_two_piles_do_not_join_through_a_queue() -> void:
+	var sim := _basket_sim()
+	# A pile against each end of the queue: one chain for the overlay.
+	_pile(sim, QUEUE_LEFT - 5 * PILE_STEP, FILL, SlimeBodies.FREE)
+	_queue(sim, QUEUE_LEFT, QUEUE)
+	_pile(sim, _after(QUEUE_LEFT, QUEUE), FILL, SlimeBodies.FREE)
+	assert_eq(DebugCounts.largest_cluster(sim.slimes), 2 * FILL + QUEUE, "the overlay: one chain through the queue")
+	assert_eq(ClusterWatch.largest_cluster(sim), FILL, "rule 23: each pile alone, the queue joins nothing")
+
+
+func test_a_queue_due_a_move_to_the_loop_start_counts() -> void:
+	var sim := _basket_sim()
+	# Every queued slime's stall mark STALL_TICKS old: stalled, due a move
+	# to the loop start (LoopStartQueue.due), so off the route (D165).
+	sim.tick = Train.STALL_TICKS
+	var ids := _queue(sim, QUEUE_LEFT, QUEUE, 0.0, 0)
+	assert_eq(LoopStartQueue.due(sim).size(), QUEUE, "the queue is due a move")
+	var on_route := ClusterWatch.on_route_ids(sim)
+	for slime_id in ids:
+		assert_false(slime_id in on_route, "stalled slime %d isn't on the route" % slime_id)
+	assert_eq(ClusterWatch.largest_cluster(sim), QUEUE, "rule 23 counts the slimes due a move")
+
+
+func test_without_a_train_no_slime_is_on_the_route() -> void:
+	var sim := Simulation.new(4)
+	sim.slimes.terrain = TerrainSegments.new([Support.floor_polygon()])
+	_pile(sim, 0, FILL, SlimeBodies.TRAIN)
+	assert_true(ClusterWatch.on_route_ids(sim).is_empty())

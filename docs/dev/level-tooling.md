@@ -182,7 +182,7 @@ What each rule checks by code, and what it leaves to a person:
 | 20 | stable IDs well-formed and unique, version >= 1, sleepers numbered from .01 left to right | once released, compare IDs and migrate |
 | 21 | every switch, basket and gate below the parent zone (7 mm at the reference phone's density, `TapDispatcher.parent_zone_height`, D113) in every rail view of every section's outgoing route whose width holds it, on the reference phone's 1440 × 648 screen; an object framed above the screen fails too (chunk 23E) | |
 | 22 | (a) no return route within 48 px of the loop's first 1.5 screens outside the 80 px join; (b) no sleeper's ledge within a called base slime's reach (133 px) overhangs the loop lower than a size-3 hop (130 px) outside a split zone | ledges holding no sleeper |
-| 23 | nothing: MANUAL, it can't play the level's runs; its line says where the result comes from (the level's played test and the level bench, `ClusterWatch`, below) | the shapes that gather slimes (a bowl or dip next to a basket, an outlet into a crowd, a narrow ledge where the train queues, a sleeper shelf's landing spot next to any of these) |
+| 23 | nothing: MANUAL, it can't play the level's runs; its line says where the result comes from (the level's played test and the level bench, `ClusterWatch`, below) | the shapes that gather slimes off the route (a bowl or dip next to a basket, an outlet into a crowd, a sleeper shelf's landing spot next to any of these; a narrow ledge where the train queues is rule 24's, D165) |
 
 Rule 22 (b)'s numbers come from the simulation: the reach is
 `FreeSlimes.max_rise(1, gravity)`, a size-3 train slime's hop top is
@@ -407,11 +407,27 @@ Exit 0; 2 on a bad argument or a level that doesn't load.
 a run: fed the simulation every tick, it samples every 6 ticks (0.1 s) the
 largest awake cluster, the biggest group of touching Physics slimes in
 slimes, counted as the debug overlay and the PERF line count it
-(`DebugCounts.largest_cluster`, chunk 22d) but with the slimes whose
-centre is inside a basket's box left out (`ClusterWatch.largest_cluster`,
-user 2026-10-07: a basket's own fill doesn't count toward rule 23, the
-pile outside its box still does; the overlay and the PERF line still count
-every Physics slime), and keeps its maximum
+(`DebugCounts.largest_cluster`, chunk 22d) but with two kinds of slime
+left out before clustering (`ClusterWatch.largest_cluster`; the overlay
+and the PERF line still count every Physics slime):
+
+- the slimes whose centre is inside a basket's box (user 2026-10-07, D163:
+  a basket's own fill doesn't count toward rule 23, the pile outside its
+  box still does);
+- the train slimes on the loop's route (`ClusterWatch.on_route_ids`; user
+  2026-10-07, D165: "rule 23 targets piles off the route; a queue on the
+  route is rule 24's business"): in state train, followed by the train,
+  not due a move to the loop start (`LoopStartQueue.due`: stalled, out of
+  bounds, stuck), with the centre within `Train.OFF_ROUTE` (36 px) of the
+  route point at its progress (`Train.position_at(Train.distance_of)`),
+  the train's own "knocked off the route" distance
+  (`Train.steering_distance`). A train slime knocked off the route,
+  stacked more than 36 px above it, or not yet followed (made since the
+  last tick) counts. Released slimes are train slimes: on the route they
+  are left out, piled up beside it they count.
+
+The cluster is counted over the other slimes only, so piles don't join
+through a basket's slimes or a queue. It keeps its maximum
 (`largest_cluster`), the seconds above the limit in all (`above_limit_s`)
 and the longest of them in a row (`longest_above_s`). A run keeps the rule
 (`passes()`) when it never stays above `LIMIT` (20 slimes) for more than
@@ -431,14 +447,20 @@ MANUAL and points at both, as rule 12's played test is its proof):
   without failing on them until items 24.3 and 24.8 have landed (O107; its
   numbers: `docs/dev/README.md`, "Level rule 23 on the test level").
   `tests/e2e/test_rule_23_e2e.gd` plays a synthetic level whose basket
-  (quota 19) drains into a bowl where 18 train slimes queue, which fails
-  (largest 32, 12.1 s above in a row), and the same level with the basket
-  and its outlet a screen away from the bowl, which passes (largest 20,
-  never above). Both counts stay under the limit, so neither the queue nor
-  the basket's own pile is a cluster above it alone.
-  `tests/unit/test_cluster_watch.gd` holds the basket's side: a full
+  (quota 19) drains into a bowl beside the route, off it (the route runs
+  over it), where 18 train slimes lie, which fails (largest 26, 40.4 s
+  above in a row), and the same level with the basket and its outlet a
+  screen away from the bowl, which passes (largest 18, never above). Both
+  counts stay under the limit, so neither the bowl's pile nor the
+  basket's own is a cluster above it alone. (Its bowl was on the route
+  until a train queue there was left out, D165: then it passed.)
+  `tests/unit/test_cluster_watch.gd` holds the basket's side (a full
   basket of 25 doesn't fail the rule, a pile of 25 outside its box does,
-  and a pile against the box counts only its own slimes.
+  and a pile against the box counts only its own slimes) and the route's
+  (a single-file train queue of 30 on the route passes, a pile of 25 free
+  or knocked-off slimes beside it fails, a pile against the queue counts
+  only its own slimes, two piles don't join through it, a queue due a
+  move to the loop start counts).
 - **The level bench**, numbers only (a bench case isn't a level's played
   run): every `RESULT` line ends with `largest_cluster`, `above_limit_s`
   and `longest_above_s` over its timed ticks, and the table has the three

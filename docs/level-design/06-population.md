@@ -62,14 +62,17 @@ species early, so the pair can fuse and reach higher.
 
 A pile that rests costs little; an **awake cluster** (a group of touching
 slimes that all cost physics) keeps waking itself and costs every tick.
-Rule 23: no spot where many slimes gather awake. Keep these apart:
+Rule 23: no spot where many slimes gather awake off the route. Keep these
+apart:
 
-- a bowl or dip next to a basket (the train queues in the dip while the
-  basket fills, and the basket's drain lands on the queue);
-- a basket's outlet releasing into a crowd (a hollow it rolls into, the
-  queue at a climb): each slime released lands on the ones before it;
-- a narrow ledge where the train queues;
+- a bowl or dip next to a basket, off the route (the basket's drain
+  falls in and piles up there);
+- a basket's outlet releasing into a crowd (a hollow it rolls into, off
+  the route): each slime released lands on the ones before it;
 - the landing spot of a sleeper shelf next to any of these.
+
+A narrow ledge where the train queues is rule 24's, the train's flow
+(proposed, D165): a queue on the route isn't rule 23's.
 
 Give a basket's outlet flat, open ground onward, and put dips and climbs a
 screen or more away from baskets and outlets.
@@ -77,18 +80,30 @@ screen or more away from baskets and outlets.
 The measure: the **largest awake cluster** over the level's own scripted
 runs (its played test from fresh, filling every basket, and each basket's
 fire-and-drain; the `stress-*` fixtures are excepted) stays at or under
-**20 slimes**, or goes above it for at most **5 s in a row**. A basket's
-own fill is left out: a slime whose centre is inside a basket's box
-doesn't count, and the cluster is counted over the other slimes only, so
-two piles outside a basket don't join through its slimes; the pile outside
-it still counts. The limit is proposed until it is calibrated. A cluster the player builds with calls is
-accepted. The checker can't play your level, so its rule 23 line is
+**20 slimes**, or goes above it for at most **5 s in a row**. Two kinds
+of slime are left out:
+
+- a basket's own fill: a slime whose centre is inside a basket's box;
+- a train queue on the loop: a train slime whose centre is within 36 px
+  (`Train.OFF_ROUTE`) of the route point at its progress, the train's own
+  "knocked off the route" distance, unless it is due a move to the loop
+  start (stalled, out of bounds or stuck).
+
+The cluster is counted over the other slimes only, so two piles don't
+join through a basket's slimes or a queue. Everything else awake counts:
+free slimes, a train slime knocked off the route, stacked more than 36 px
+above it, or due a move, and the pile outside a basket. A slime a basket
+releases is a train slime: on the route it is left out, in a pit or a
+hollow beside the route it counts. The limit is proposed until it is
+calibrated. A cluster the player builds with calls is accepted. The checker can't play your level, so its rule 23 line is
 MANUAL and says where the result comes from
 ([09](09-check-the-rules.md)):
 
 - your level's test plays section 1 from fresh through its basket's
   fire-and-drain and fails when the rule fails; it prints the numbers (a
-  real run of a freshly scaffolded two-section level's test, 2026-10-07):
+  real run of a freshly scaffolded two-section level's test, 2026-10-07,
+  taken before a train queue on the loop was left out; the line's shape
+  is the same):
   ```
   rule 23 over section 1's play: largest_cluster=5 above_limit_s=0.0 longest_above_s=0.0: rule 23 PASS (above 20 slimes for more than 5 s in a row fails)
   ```
@@ -136,17 +151,18 @@ cases (`tools/level.sh bench --level=test`, on the development desktop,
 numbers; the shape of the lines is the same:
 
 ```
-RESULT case=start base=200 bodies=200 ticks=600 lead_in=600 rested_at=- median_ms=0.767 p95_ms=0.806 max_ms=0.989 mean_ms=0.774 physics=1 on_screen=1 in_range=4 parked=196 resting=0->0 zoom=1.000 camera_steady=true active=1.0 pairs=0.0 largest_cluster=1 above_limit_s=0.0 longest_above_s=0.0
-RESULT case=stress-still base=200 bodies=200 ticks=600 lead_in=420 rested_at=420 median_ms=0.776 p95_ms=0.864 max_ms=1.609 mean_ms=0.788 physics=0 on_screen=139 in_range=140 parked=60 resting=140->140 zoom=0.500 camera_steady=true active=0.0 pairs=0.0 largest_cluster=0 above_limit_s=0.0 longest_above_s=0.0
-RESULT case=stress-moving base=200 bodies=200->139 ticks=600 lead_in=60 rested_at=- median_ms=5.310 p95_ms=6.693 max_ms=11.071 mean_ms=5.619 physics=135 on_screen=129 in_range=135 parked=4 resting=0->0 zoom=0.500 camera_steady=true active=165.4 pairs=313.0 largest_cluster=133 above_limit_s=10.0 longest_above_s=10.0
+RESULT case=start base=200 bodies=200 ticks=600 lead_in=600 rested_at=- median_ms=0.784 p95_ms=0.851 max_ms=2.348 mean_ms=0.798 physics=1 on_screen=1 in_range=4 parked=196 resting=0->0 zoom=1.000 camera_steady=true active=1.0 pairs=0.0 largest_cluster=1 above_limit_s=0.0 longest_above_s=0.0
+RESULT case=stress-still base=200 bodies=200 ticks=600 lead_in=420 rested_at=420 median_ms=0.807 p95_ms=0.916 max_ms=2.414 mean_ms=0.825 physics=0 on_screen=139 in_range=140 parked=60 resting=140->140 zoom=0.500 camera_steady=true active=0.0 pairs=0.0 largest_cluster=0 above_limit_s=0.0 longest_above_s=0.0
+RESULT case=stress-moving base=200 bodies=200->139 ticks=600 lead_in=60 rested_at=- median_ms=5.355 p95_ms=6.773 max_ms=11.308 mean_ms=5.689 physics=135 on_screen=129 in_range=135 parked=4 resting=0->0 zoom=0.500 camera_steady=true active=165.4 pairs=313.0 largest_cluster=44 above_limit_s=8.9 longest_above_s=8.9
 ```
 
 `stress-still` is a pile that stays still: 140 resting, nothing active,
 about 1 ms a tick. `stress-moving` is the worst moving case on purpose:
 all 200 woken as train slimes in section 3's bowl, 165 bodies active on
-average, fusing down to 139 bodies, about seven times the cost, and one
-awake cluster of 133 slimes the whole time (the `stress-*` fixtures are
-excepted from rule 23).
+average, fusing down to 139 bodies, about seven times the cost. Its
+awake cluster is 133 slimes on the debug overlay; rule 23 counts 44, the
+slimes stacked off the route, the train slimes on it left out (the
+`stress-*` fixtures are excepted from rule 23).
 
 A pile that stays still shows as parked or resting slimes,
 few `active`, and a low, flat cost per tick (`p95_ms` near `median_ms`);

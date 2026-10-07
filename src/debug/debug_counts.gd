@@ -157,14 +157,19 @@ static func count_slimes(sim: Simulation) -> Dictionary:
 ## `left_out`: boxes (Rect2) whose slimes don't count: a Physics slime whose
 ## centre is inside one of them joins nothing, as if it weren't a Physics
 ## slime: the cluster is counted over the others only, so two groups don't
-## join through it. Level rule 23's measure (ClusterWatch) leaves out the baskets'
-## boxes this way; the debug overlay and the PERF line leave out none.
+## join through it. `left_out_ids`: slimes left out the same way, by id.
+## Level rule 23's measure (ClusterWatch) leaves out the baskets' boxes and
+## the train slimes on the loop's route this way; the debug overlay and the
+## PERF line leave out none.
 # @spec-link [[req_platform_and_performance_targets]]
 # @spec-link [[rule_no_spot_where_slimes_gather_awake]]
-static func largest_cluster(bodies: SlimeBodies, left_out: Array[Rect2] = []) -> int:
+static func largest_cluster(bodies: SlimeBodies, left_out: Array[Rect2] = [],
+		left_out_ids := PackedInt32Array()) -> int:
 	var physics := physics_slime_ids(bodies)
 	if not left_out.is_empty():
 		physics = _outside(bodies, physics, left_out)
+	if not left_out_ids.is_empty():
+		physics = _without(physics, left_out_ids)
 	if bodies.candidate_pair_count() == 0:
 		return largest_cluster_in(touching_by_distance(bodies, physics), physics)
 	return largest_cluster_in(bodies.touching_pairs(), physics)
@@ -194,6 +199,19 @@ static func _outside(bodies: SlimeBodies, ids: PackedInt32Array, boxes: Array[Re
 				inside = true
 				break
 		if not inside:
+			out.append(slime_id)
+	return out
+
+
+## The ids of `ids` not in `left_out`, in order. Read only.
+# @spec-link [[rule_no_spot_where_slimes_gather_awake]]
+static func _without(ids: PackedInt32Array, left_out: PackedInt32Array) -> PackedInt32Array:
+	var gone := {}
+	for slime_id in left_out:
+		gone[slime_id] = true
+	var out := PackedInt32Array()
+	for slime_id in ids:
+		if not gone.has(slime_id):
 			out.append(slime_id)
 	return out
 

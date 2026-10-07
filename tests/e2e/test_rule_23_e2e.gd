@@ -1,23 +1,28 @@
 extends GutTest
 ## Level rule 23's measure on a synthetic level (chunk 24, item 24.7;
 ## specs/level-design.md rule 23, D143, O107; ClusterWatch): a basket whose
-## outlet drains into a bowl where the train queues fails the rule in its
+## outlet drains into a bowl beside the route, off it, fails the rule in its
 ## played run, and the same level with the basket and its outlet a screen
 ## away from the bowl passes it.
 ##
 ## The world, built in code: a floor whose top is at y = 0 from x = -2000 to
 ## 6000, with a bowl BOWL_DEPTH deep from x = BOWL_X to BOWL_X + BOWL_WIDTH.
-## The loop's outgoing route runs along it at a base slime's centre height
-## from x = -1500 to 5500, down through the bowl, and returns under the
-## floor. The bowl holds QUEUED train slimes, too deep for them to hop out:
-## the train queues there. Basket t.basket (quota QUOTA, its switch flipped)
-## starts full of QUOTA slimes, so its run is its fire-and-drain: it plays
-## its reward, fires and lets its slimes go one at a time at its outlet.
+## The loop's outgoing route runs straight at a base slime's centre height
+## from x = -1500 to 5500, over the bowl, not into it, and returns under the
+## floor. The bowl holds QUEUED train slimes, off the route (its floor is
+## BOWL_DEPTH below it, more than Train.OFF_ROUTE), a pile rule 23 counts.
+## (Until rule 23 left a train queue on the route out (D165, 2026-10-07),
+## the route ran down through the bowl and its queue failed the rule; with
+## that queue on the route, the run reads largest 24, 1.2 s in a row: a
+## pass, so the bowl is now off the route.) Basket t.basket (quota QUOTA,
+## its switch flipped) starts full of QUOTA slimes, so its run is its
+## fire-and-drain: it plays its reward, fires and lets its slimes go one at
+## a time at its outlet.
 ## Both counts stay under the rule's limit (ClusterWatch.LIMIT, 20), so
-## neither the queue nor the basket's own pile is a cluster above it alone:
+## neither the bowl's pile nor the basket's own is a cluster above it alone:
 ## - next to the bowl: the basket's box is beside the bowl and its outlet
-##   over the bowl's middle, so every slime released falls on the queue,
-##   which grows to QUEUED + QUOTA slimes awake;
+##   over the bowl's middle, so every slime released falls on the pile,
+##   off the route, which grows to QUEUED + QUOTA slimes awake;
 ## - apart: the basket's box and its outlet are a screen to the right, on
 ##   flat ground, so the slimes released ride the train on, away from it.
 ## The run is watched from the start until the basket is empty and
@@ -54,9 +59,7 @@ func _floor_top() -> PackedVector2Array:
 
 
 func _level(box: Rect2, outlet: Vector2) -> LevelData:
-	var route := PackedVector2Array()
-	for p in _floor_top():
-		route.append(Vector2(clampf(p.x, -1500, 5500), p.y - 24))
+	var route := PackedVector2Array([Vector2(-1500, -24), Vector2(5500, -24)])
 	var loop := LoopData.new("t.loop")
 	loop.add_segment("t.s1.out", 1, LoopData.OUTGOING, route)
 	loop.add_segment("t.s1.back", 1, LoopData.RETURN, PackedVector2Array([
@@ -71,7 +74,7 @@ func _level(box: Rect2, outlet: Vector2) -> LevelData:
 
 
 ## The simulation of the level with its basket's box at `box` and its outlet
-## at `outlet`: its switch flipped, the basket full, the queue in the bowl.
+## at `outlet`: its switch flipped, the basket full, the pile in the bowl.
 func _sim(box: Rect2, outlet: Vector2) -> Simulation:
 	var terrain := _floor_top()
 	terrain.append(Vector2(6000, 300))
@@ -113,12 +116,12 @@ func _play(label: String, box: Rect2, outlet: Vector2) -> ClusterWatch:
 
 func test_both_counts_stay_under_the_limit_alone() -> void:
 	assert_lt(QUOTA, ClusterWatch.LIMIT, "the basket's own pile is no cluster above the limit alone")
-	assert_lt(QUEUED, ClusterWatch.LIMIT, "the queue in the bowl is no cluster above the limit alone")
+	assert_lt(QUEUED, ClusterWatch.LIMIT, "the pile in the bowl is no cluster above the limit alone")
 
 
 func test_a_basket_draining_into_a_bowl_fails_rule_23() -> void:
 	var watch := _play("next to the bowl", BOX_NEXT, OUTLET_NEXT)
-	assert_gt(watch.largest, ClusterWatch.LIMIT, "the queue and the slimes released gather above the limit")
+	assert_gt(watch.largest, ClusterWatch.LIMIT, "the pile and the slimes released gather above the limit, off the route")
 	assert_gt(watch.longest_above_s(), ClusterWatch.HOLD_SECONDS, "for more than the hold in a row")
 	assert_false(watch.passes(), "rule 23 fails: %s" % watch.report())
 
