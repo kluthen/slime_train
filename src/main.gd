@@ -55,7 +55,9 @@ extends Node2D
 ## Likewise --phase-timers times every tick phase by phase for the perf log
 ## (src/debug/phase_timers.gd; see use_phase_timers()), and
 ## --census-every=S[,--census-until=T] prints a slime census every S seconds
-## of game time (src/debug/slime_census.gd; see use_census()).
+## of game time (src/debug/slime_census.gd; see use_census()), and
+## --debug-labels starts with the debug overlay's slime labels shown, as if
+## its Labels button had been pressed (see use_debug_labels()).
 ##
 ## A build exported with the "spike_soft_slimes" feature tag (the "Android
 ## spike: soft slimes" preset) runs spike 1's phone benchmark instead of the
@@ -124,6 +126,14 @@ const PHASE_TIMERS_IGNORED := "Phase timers: --phase-timers ignored, not a debug
 const CENSUS_SCRIPT := "res://src/debug/slime_census.gd"
 const CENSUS_FLAGS: PackedStringArray = ["--census-every", "--census-until"]
 const CENSUS_IGNORED := "Census: --census-every/--census-until ignored, not a debug build."
+## The debug labels at start (--debug-labels, chunk 22's repeat): the debug
+## overlay's slime labels shown from launch, as if its Labels button had been
+## pressed, so an unattended perf run can measure what they cost. Debug builds
+## only (see use_debug_labels()); off without the flag. A release build
+## ignores the flag, saying so.
+const DEBUG_LABELS_FLAG := "--debug-labels"
+const DEBUG_LABELS_ON := "Debug labels: on at start (--debug-labels)."
+const DEBUG_LABELS_IGNORED := "Debug labels: --debug-labels ignored, not a debug build."
 ## A release build ignores --crowd-detail (it is always `auto`), saying so.
 const CROWD_DETAIL_IGNORED := "Crowd detail: --crowd-detail ignored, not a debug build (auto)."
 
@@ -208,6 +218,9 @@ var crowd_detail := ""
 ## The debug overlay, or null (a release build, or a game a test adds).
 ## Loosely typed: src/debug/ is named by path only.
 var debug_overlay: Node = null
+## Whether --debug-labels asked for the overlay's labels at start (a debug
+## build only): add_debug_overlay() shows them on the overlay it adds.
+var debug_labels := false
 ## The perf log, or null (not asked for, a release build, or a game a test
 ## adds). Loosely typed: src/debug/ is named by path only.
 var perf_log: Node = null
@@ -321,6 +334,9 @@ func _ready() -> void:
 		set_process_unhandled_input(false)
 		get_tree().quit(1)
 		return
+	var labels_line := use_debug_labels(user_args)
+	if labels_line != "":
+		print(labels_line)
 	if get_tree().current_scene == self:
 		add_debug_overlay()
 	var timers_line := use_phase_timers(user_args)
@@ -802,13 +818,34 @@ func _keep_pre_migration(result: Dictionary) -> void:
 
 
 ## Adds the debug overlay (src/debug/debug_overlay.gd) on its own layer, if
-## this build is a debug build (TestModeGuard) and it has none yet. The main
+## this build is a debug build (TestModeGuard) and it has none yet, its
+## slime labels shown when --debug-labels asked (`debug_labels`). The main
 ## scene does in _ready; tests may.
 func add_debug_overlay() -> void:
 	if debug_overlay != null or not test_mode_guard.allows():
 		return
 	debug_overlay = load(DEBUG_OVERLAY_SCRIPT).new()
 	add_child(debug_overlay)
+	if debug_labels:
+		debug_overlay.show_labels(true)
+
+
+## Turns the debug labels at start on when `user_args` hold --debug-labels:
+## in a debug build (TestModeGuard), sets `debug_labels`, and shows the
+## labels of the overlay already there; in a release build the flag is
+## ignored. The labels only draw: the simulation and its hash never change.
+## Returns the line to print: DEBUG_LABELS_ON, DEBUG_LABELS_IGNORED, or ""
+## without the flag. _ready calls it before adding the overlay; tests may.
+# @spec-link [[req_platform_and_performance_targets]]
+func use_debug_labels(user_args: PackedStringArray) -> String:
+	if DEBUG_LABELS_FLAG not in user_args:
+		return ""
+	if not test_mode_guard.allows():
+		return DEBUG_LABELS_IGNORED
+	debug_labels = true
+	if debug_overlay != null:
+		debug_overlay.show_labels(true)
+	return DEBUG_LABELS_ON
 
 
 ## Adds the perf log (src/debug/perf_log.gd) when `user_args` hold
