@@ -509,32 +509,40 @@ earlier hashes recorded with each chunk in `docs/dev/README.md` are each of
 that chunk's commit (the `stress-dense` ones of chunk 22m, for example,
 changed with chunk 22h step A's `marked_at`).
 
+**Re-recorded with chunk 24g part A (2026-10-07):** the hold on a climb and
+the relay (see "Train" in `docs/dev/README.md`) change the train's motion,
+so 11 fixtures changed (at 600 ticks, 2400, or both): `bump`, `fresh`,
+`lost`, `midair`, `old-version`, `s1-basket-5of6`, `s2-cave-return`,
+`s3-basket-59of60`, `stress-dense`, `stress-moving`, `sunrise`; the other 7
+are the same. Native and GDScript gave the same hashes for all 18 at 600
+and 2400 ticks.
+
 **On the phone (unit U8, 2026-10-06):** the S20 FE (arm64, bionic) gave
-these same 600-tick hashes for `stress-dense` and `stress-moving`, on both
-ticks, two runs each. That wasn't expected: bionic's `atan2` happened to
-agree with glibc's on these runs. It says nothing about the other fixtures,
-longer runs or other phones, so hashes are still compared within one build
-and platform.
+the 600-tick hashes then recorded (before chunk 24g) for `stress-dense`
+and `stress-moving`, on both ticks, two runs each. That wasn't expected:
+bionic's `atan2` happened to agree with glibc's on these runs. It says
+nothing about the other fixtures, longer runs or other phones, so hashes
+are still compared within one build and platform.
 
 | Fixture | 600 ticks | 2400 ticks |
 |---|---|---|
 | `bedtime` | `5a94fa65bf8e05b9c45cecfe6ab80e1fa9a745d20f21a9398aba739f840f4cd7` | `b02215f37ca327c09f693160e47945184681c5449b3b1d17d8e61252d2cfb749` |
-| `bump` | `4edc700ab29c8466e25b95f0cf95a926226039952b64a54404dbfe2193b2f0c5` | `5dc42b36d7622ab35798c2c0943dc8de3b6f60de8e953cbdd8a058ddf35b2a02` |
-| `fresh` | `b020ee7e6a00991a4cde595463a6d8c53d5ad3d2d36fd18a6b52038ac49178c0` | `6db234eb915631cc171867a8b7c83c1ddf5a1dc0159a28b0ca41b3cea0494dc5` |
+| `bump` | `1baec7ea0f118303108cb808c319aa071586cc5681eb120b3538c8aaebaf3d74` | `7a927e1a51faeb03b4dfad9ddc03872cf9658858c3af61b80af996716e2bc9f3` |
+| `fresh` | `b020ee7e6a00991a4cde595463a6d8c53d5ad3d2d36fd18a6b52038ac49178c0` | `5089569bbb36d1ab763d08fe4478ea685de8ddc4d6d8bddafa905722e01e9583` |
 | `gate1-open` | `fb471f56be0fc75e99785e9fd0176ec1641eed19b9f2112eab56fbafddad076c` | `87d4a31669d409cbf2d42d006e90f786672a4aed12aba2c8de5d05b7bd53b6b2` |
 | `gate2-open` | `c96c61a34602ac84e4ed97ba4caad51ff31d5e605169366a48cf9fa77fa5cc2d` | `12c9da691f6c5135861cac2b637bff6809a9e4ce5288d8ee3b1504e179eb9f96` |
-| `lost` | `a25bab8eace16098cb07366bc45b3b8fd14593bed08d496580c15394f7df72c3` | `e66724c6fbbf5ff7779ea42d988c11bb8daf76b547eababdc541ea2cb0429029` |
-| `midair` | `9f805dea3a0779384cc95ee884ed01749ab412b953b79cd44f8d1093dc281a82` | `316ce5e8c0c0293dc6d18a43132c438c7e2be9a90c1cff06c5f4b23757db2666` |
-| `old-version` | `4f57cc33341f12262fea6be0bbf13d028d5e749f2f2b693bddc49e5ea0ef949a` | `d9883b052e6895ace9caf80737144046761efa09a39f9fa19f0456c39f6185fc` |
-| `s1-basket-5of6` | `09ce88ba5579baa20c8136623a2aca81363601d31f47adc0b3d83886c2cb09b9` | `4800113e2e0eb583f8ffb9ad3b021754a83d8d9b3bbdffd000e191d4cfb84bf5` |
+| `lost` | `a25bab8eace16098cb07366bc45b3b8fd14593bed08d496580c15394f7df72c3` | `1a58286b52fea5ff4932da49395243ce3e8fce413c38ee62289b4e7c086cc84c` |
+| `midair` | `04734d3f46724b193253dacfd154ae7cefa775a75364b7e8d7afe264f030fc78` | `fc549af11315a0bd59fc8ded2a8880ee49d45479cbb0f0f94fb2ca32a46b45eb` |
+| `old-version` | `14143221b668da80553812f55c02e5818c09f7811b3dccef761f077f540902cc` | `f1b7e4258742b7edf7b5ec2dfd2197d61923d831b0bec2ab23e930a6c507af75` |
+| `s1-basket-5of6` | `09ce88ba5579baa20c8136623a2aca81363601d31f47adc0b3d83886c2cb09b9` | `cb233082d58263857d9631e7e34d7619a51dd780f7d8094a3f7da610cfaf02f7` |
 | `s1-optout` | `0a01989974e37d78a4b12a08e100a376b330a5297192d3c41baaffd4c8f0ca78` | `4e359fbaa0852076731a22db89186acbfccafde5c565a3db4b0812617a53d1ca` |
 | `s2-basket-offscreen` | `df9505ea337f43f30352b7e45a1ecd305344e83062009c5e1e767e83c31e3247` | `fcdb40131c591c9a351e9cc5d90730c87b62da47e65ad5b0e5fc859b1889bcd3` |
-| `s2-cave-return` | `ca1245d013105513dcd94f95aeb7109f780987ef9444e5fdfd849929cb0116ea` | `290f9c9e913772d8d3c92e48ad08ad3e21fea7a9226628b064d93d39e7a93e6c` |
-| `s3-basket-59of60` | `c1b5b0104e6a6c8c5ef22f8726484fe6e0dcf7b432306732b380bf9baa415c2d` | `ff30e8232e4d8adc5782e50331c2a42f8465386d0fb7bdf7ccd9fe725b1bc94b` |
-| `stress-dense` | `e4c54103dfd88cbb9f57f2948c624f5f918d2ac6e987cdeee5ee9f467d8af883` | `2a4bbb5244fe747f0b8cf86fc0059b03e436d5b1d42fd7bb2b46ceb8316c2c1d` |
-| `stress-moving` | `82a46665c05acbecd6c97c4c56b4bbbdd5708dd94348e0e19e9777d98b14be5e` | `ff72e960523f27fd6543e9cfa7c98b1c51d5224bb98b5e246ce83f5d724d471f` |
+| `s2-cave-return` | `ca1245d013105513dcd94f95aeb7109f780987ef9444e5fdfd849929cb0116ea` | `7a48dc0899882e86ab70cf5659195c30454ac793dd1b50d7b51cf4bca1394984` |
+| `s3-basket-59of60` | `94ac716f594a7d98db995a10fcb7cee0ca05c343a60b4f13d1e52785ca79a3b0` | `13fbe3f5592e52bf2c10a00cfac41ab91dcf11b7a13879ad4a9b3d8c4fe7132a` |
+| `stress-dense` | `4ad859b5620d44beeda8721127952e70bc9225ed79928f3c0620066944aa97eb` | `9ced6ce14d8cd4dbd8259fa66616a3411eebae3c889f1b245ddd426c8aa15485` |
+| `stress-moving` | `cee540fc61f6a8d76eba240801fafa610d7a65205b2aec896a2df869495c7dd8` | `b140a930d92ba2255c529810eac35cf46a4eb4b4c3959b366906cf7e3ea4bc7d` |
 | `stress-still` | `4c50a541d5a60dda72d85cfd5941782b28975e8352d1529ed12eedfdb8aa2f27` | `9efbbc6b1f014895180f7e007b574fd3a03309e29dec2798b913cf0260da49e7` |
-| `sunrise` | `8db8d2c83ee28167f22616d7187ab43f8e1bace7d29b88c492a35f7c3429c9eb` | `9a392ffc8257592c3bfc8b4247fd377aef36d5308d54819b26e91133acfb4759` |
+| `sunrise` | `8db8d2c83ee28167f22616d7187ab43f8e1bace7d29b88c492a35f7c3429c9eb` | `eb0221091629c9fc6d09df861653a62b048e1b34f6f77c1de66c1cd002c2b785` |
 | `wind-down` | `1f6ba0b95667450033a0bf6d9fd123d23ea46fc2a6ae664fd731a32bda2a50eb` | `801144a13df0b9c9422e87ae353786d1c6c5e9c3973a61d67e6995c1aa92b851` |
 
 ## On the phone (unit U8)
