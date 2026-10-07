@@ -89,6 +89,7 @@ components"); run it in a window with `godot --path . src/main.tscn`.
 | `tools/perf_slow.sh` | A windowed perf-log run of a fixture on the desktop, slowed or at full speed, and its summary (see "Chunk 22b: drawing", "How to measure the parts"; the counts and the largest awake cluster: "Chunk 22d: debug counters and the largest awake cluster") |
 | `tools/thru.gd` | The train's throughput over a long run (10,000 ticks by default) of a test-level fixture, headless: stalls, stuck moves, hops and the bowl's count per 600 ticks (see "How to measure the parts") |
 | `tools/gobble_probe.gd` | Slimes that can't fuse lodged inside each other over a long run of a test-level fixture, headless: each overlap's start (both slimes, what last moved them: an unpark, a split, a jump), how long it lasts, the stuck moves, the fastest slime (see "Solver", deep overlaps) |
+| `tools/dipjam_probe.gd` | The train's flow over a run of a test-level fixture, headless (chunk 24g): hop shares and advances, the dip nudge's holds, progress speeds, the climbs' speeds and slide back, landings on top of a slime, departures past 240 and 750 px against arrivals, the largest cluster at the loop's start (`--hold-view` pins the camera; see the tool's doc) |
 | `tools/compare_frames.py` | Compares two sets of movie frames pixel by pixel (see "Chunk 22b: drawing", "The look") |
 | `tools/make_fixture.gd` | Writes a level's fixtures (see "Saves and fixtures") |
 | `tools/check_level.gd`, `tools/level_check/` | The level-rules checker, rules 1 to 22, on any level (see [level-tooling.md](level-tooling.md)) |
@@ -945,6 +946,27 @@ speed. Two cases change the target:
 hold it (master spec §5.2), so the train only grips where the route is at
 most 45° steep: a supported slime there is braked by half each tick
 (`GRIP`), so it stays put between hops.
+
+**Hold on a climb (chunk 24g).** Braking by half isn't enough on a climb:
+the slope's pull crept a standing slime back 5 to 17 px/s between hops, so
+a queue climbing out of a basin lost most of what it gained. On the
+outgoing route, where the route rises more than `HOLD_FROM` (0.1, up to
+45°), an active train slime standing between hops also has its motion down
+the slope cancelled and gets `HOLD_LIFT` (half) of a tick's pull along the
+slope up it (`SlimeBodies.hold_on_slope`): alone on a rise it slides about
+1.6 px/s instead of 12.9. The return route's slide is untouched.
+
+**The relay (chunk 24g).** A packed queue moved at its hop timers' pace (a
+slime gains ground only once the one ahead has gone; its own 1.5 to 3 s
+timer mostly fired while still blocked, a micro hop). Now when a train
+slime takes off (`SlimeBodies.train_hopped`, read by the next
+`steer()`), the train slime right behind it along the loop, standing on
+the outgoing route within its `hop_reach` of touching it, has its hop timer
+cut to `RELAY_DELAY` (0.15 s) at most: it follows into the room just made,
+a wave down the queue. Only the one right behind, never across a gap wider
+than its reach. Both are GDScript (`Train.steer`), so the native and the
+GDScript tick run them alike; neither adds state (the hop timers are
+already saved). Measured with `tools/dipjam_probe.gd` (see "Chunk 24g").
 
 **The slide (placeholder, O22).** On a return route a slime doesn't hop
 (it is held) and, while it touches the ground, its velocity along the
