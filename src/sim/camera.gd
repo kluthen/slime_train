@@ -353,10 +353,15 @@ func show_gate(box: Rect2, view: ScreenView, loop: LoopData, open_gates: Array, 
 ## glides back to the rails as after a call, framed by the zone its centre
 ## is in, if any (the zoom eases from `view_zoom` to that zone's). It ends the
 ## idle camera and restarts the idle clock. For tests and debugging, and the
-## hook for later chunks that place the camera; not an input.
+## hook for later chunks that place the camera; not an input. A zoom of 0 or
+## less can only be a caller bug: it is refused loudly and the camera is left
+## as it was.
 func place(centre: Vector2, view_zoom := 1.0) -> void:
+	if view_zoom <= 0.0:
+		push_error("Camera.place: the zoom must be above 0, got %s" % view_zoom)
+		return
 	position = centre
-	zoom = view_zoom if view_zoom > 0.0 else 1.0
+	zoom = view_zoom
 	mode = RETURN
 	return_distance = -1.0
 	rail_left = 0.0

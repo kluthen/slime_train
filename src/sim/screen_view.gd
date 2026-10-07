@@ -81,10 +81,14 @@ func _init(view_centre := DEFAULT_SIZE * 0.5, view_zoom := 1.0, size := DEFAULT_
 	set_to(view_centre, view_zoom, size)
 
 
-## Changes the whole view at once. A zoom of 0 or less is ignored (kept at 1).
+## Changes the whole view at once. A zoom of 0 or less can only be a caller
+## bug: it is refused loudly and the view is left as it was.
 func set_to(view_centre: Vector2, view_zoom: float, size: Vector2) -> void:
+	if view_zoom <= 0.0:
+		push_error("ScreenView.set_to: the zoom must be above 0, got %s" % view_zoom)
+		return
 	centre = view_centre
-	zoom = view_zoom if view_zoom > 0.0 else 1.0
+	zoom = view_zoom
 	screen_size = size
 
 
