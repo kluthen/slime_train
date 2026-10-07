@@ -31,8 +31,8 @@ value to try. When a value is tuned, update it here and log the result in
 | Call radius | about half the screen width | D46 |
 | Call cap (a slime that can't reach the point gives up) | about 8 s | D73 |
 | Train slime hop interval | ~1.5–3 s, random per slime | D74 |
-| The relay (chunk 24g, proposed) | when a train slime takes off, the standing train slime right behind it (within its reach of touching it, on the outgoing route) has its hop timer cut to 0.15 s at most (exp/dip-jam's `RELAY_DELAY`) | D160 |
-| The hold on a climb (chunk 24g, proposed) | a grounded train slime between hops on the outgoing route, on a rise over 0.1 (up to `Train.GRIP_MAX_SLOPE`), has its motion down the slope cancelled after the grip, plus 0.5 of a tick's pull along the slope given up it (exp/dip-jam's `HOLD_FROM`, `HOLD_LIFT`); measured alone on a rise: 1.6 px/s of slide left (12.9 without) | D160 |
+| The relay (chunk 24g, the train's climb, proposed) | when a train slime takes off, the standing train slime right behind it (within its reach of touching it, on the outgoing route) has its hop timer cut to 0.15 s at most (exp/dip-jam's `RELAY_DELAY`) | D160 |
+| The hold on a climb (chunk 24g, the train's climb, proposed) | a grounded train slime between hops on the outgoing route, on a rise over 0.1 (up to `Train.GRIP_MAX_SLOPE`), has its motion down the slope cancelled after the grip, plus 0.5 of a tick's pull along the slope given up it (exp/dip-jam's `HOLD_FROM`, `HOLD_LIFT`); measured alone on a rise: 1.6 px/s of slide left (12.9 without) | D160 |
 | Hop rate when answering a call | a bit faster than on the train | D74 |
 | Size effect on hops | bigger: a little less often, further and higher | D24, D74 |
 | Wind-down hop slowdown | slower in the last minute | D28, D74 |
@@ -198,9 +198,10 @@ random spot. The rest **proposed**.
 | Landing draws per turn | 8, from `loop_start:spot:<tick>`; the first free one (no ring overlapping, parked ones included) is used (proposed) | D150 |
 | No free spot | nobody moves; the head tries again on the next tick that is a multiple of 30 (0.5 s) (proposed) | D150 |
 
-### The geyser (D159, D160, chunk 24g)
+### The geyser (D159, D160; after v1, D161)
 
-The user's: the geyser in v1, the experiment's "high and wide" form
+*After v1 (D161, the user's):* not in v1; these rows wait for the
+geyser's build. The user's: the geyser, the experiment's "high and wide" form
 (exp/geyser's variant C), a level object (D160). The numbers are the
 branch's, **tuned in the build**, and are **each placement's defaults**
 (a placement may set its own); the limits are proposed and apply to

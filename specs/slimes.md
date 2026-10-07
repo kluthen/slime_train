@@ -1,6 +1,6 @@
 # Slimes
 
-Status: draft v25 (the geyser a level object, the user's, D160; the train's jam is the climb: the hold on a climb and the relay, proposed; the dip nudge unchanged, D159 (5) withdrawn, V1s the user's call, O121; earlier, v24: the cause of stuck slimes found and fixed, the net kept as a backstop, D159 (1); the geyser at the loop's start and the dip nudge's jam, D159, proposed; earlier, v23: every wake local: a fusion, a split, a slime taken out of the level, a call, a trapdoor, gate or lid opening or shutting, and a tilt change too, D156 (7); earlier, v22: moves to the loop start one at a time, 0.5 to 2 s apart, to a random free spot, and no stall clock while parked, chunk 22h, D150, the user's, details proposed; the local wake, chunk 22l, D156; the fps session after 0196c25 withdrawn, D155: the lean stays as approved in direction, unbuilt; the train leans away from clusters, D143, approved in direction, D144; its numbers proposed, O107)
+Status: draft v26 (the geyser after v1, D161, the user's; the hold on a climb and the relay stay in v1, chunk 24g, the train's climb, proposed; v25: the geyser a level object, the user's, D160; the train's jam is the climb: the hold on a climb and the relay, proposed; the dip nudge unchanged, D159 (5) withdrawn, V1s the user's call, O121; earlier, v24: the cause of stuck slimes found and fixed, the net kept as a backstop, D159 (1); the geyser at the loop's start and the dip nudge's jam, D159, proposed; earlier, v23: every wake local: a fusion, a split, a slime taken out of the level, a call, a trapdoor, gate or lid opening or shutting, and a tilt change too, D156 (7); earlier, v22: moves to the loop start one at a time, 0.5 to 2 s apart, to a random free spot, and no stall clock while parked, chunk 22h, D150, the user's, details proposed; the local wake, chunk 22l, D156; the fps session after 0196c25 withdrawn, D155: the lean stays as approved in direction, unbuilt; the train leans away from clusters, D143, approved in direction, D144; its numbers proposed, O107)
 
 ## States
 
@@ -96,13 +96,13 @@ and it may roll downhill. Phase names were adopted in D75.
   never onto another slime (replacing the first free spot of 8); with
   none free, nobody moves and the queue tries again 0.5 s later.
 - **The geyser** *(D159, D160: a level object, the user's; details
-  proposed; chunk 24g; `interactive-objects.md`)*: a train slime entering
+  proposed; **after v1**, D161, not in v1; `interactive-objects.md`)*: a train slime entering
   a geyser's catch is lifted above any slimes piled over it and launched
   high, to come down on the emptiest of a few seeded free spots along the
   geyser's landing span, only on the loop's own route, never on the
   waiting queue, never onto a ledge rule 22 (b) guards, never at or past
   a gate. Off screen it is placed on a free spot directly. A move to the
-  loop start is never launched. The test level's geyser sits where its
+  loop start is never launched. The test level's geyser, once built, sits where its
   return routes end (span 150 to 700 px; a fused slime lands only inside
   the split zone).
 - DoD 1's "no slime ever becomes lost" includes stalled train slimes: the
@@ -127,7 +127,7 @@ Slimes move only by hopping.
   most 2 s), so crowds thin out instead of growing. Same-species crowds
   don't delay it: they fuse. *(D155: a replacement for this rule was
   tried and withdrawn; this one stays as written, unbuilt.)*
-- *(D160, proposed; chunk 24g)* **The hold on a climb:** a train slime
+- *(D160, proposed; in v1, chunk 24g, the train's climb, D161; O125)* **The hold on a climb:** a train slime
   standing between hops on a rise of the outgoing route keeps its place
   instead of sliding back down (the return routes' carry is unchanged).
   **The relay:** when a train slime takes off, the train slime standing

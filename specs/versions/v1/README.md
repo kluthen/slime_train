@@ -103,11 +103,14 @@ Items are settled. The decision IDs point to
 
 - Sound of any kind: it begins at v2 (music; effects a candidate; D134, D136).
 - The real first level, chunk L01 (v2, D134).
+- The geyser (a level object, D160) and the review of the test level's
+  start (chunk TL2): after v1, first, with v2's level work (the user's,
+  D161).
 - Any other interactive object (v2).
 - Everything in `../timeline.md`.
 
 ## Open for v1
 
-O14, O65, O101, O119 and O120 to O124 (O118 parked by D160; O91 fixed, D159; O22 and O62 now serve the first real level, v2) (see `../../open-questions.md`). The UX
+O14, O65, O101, O121, O122 and O125 (O118, O119, O120 and O124 after v1, D161; O123 answered by D161; O91 fixed, D159; O22 and O62 now serve the first real level, v2) (see `../../open-questions.md`). The UX
 review's interaction details (O67–O77) are settled (D102), and so are the
 build's points O79–O87 (D103–D107).

@@ -1,10 +1,10 @@
 # Interactive objects
 
-Status: draft v14 (the geyser, a v1 level object, D160, the user's, details proposed; v13: population fork, v2, proposed, D143)
+Status: draft v15 (the geyser after v1, D161, the user's; v14: the geyser, a level object, D160, the user's, details proposed; v13: population fork, v2, proposed, D143)
 
 **Versions (D50, D54):** v1 has only the frontier-gate set (switch, basket,
-gate), the split zone at the start of the loop and the geyser (D160). Every
-other object comes in v2.
+gate) and the split zone at the start of the loop. Every other object comes
+in v2. The geyser (D160) comes after v1, with v2's level work (D161).
 
 Every interactive object is a reusable, programmed component configured
 through its properties in the Godot editor (D6). Its state is part of the
@@ -90,11 +90,14 @@ A walkway that bends under load. Activation: presence.
 A place that instantly splits slimes back into base slimes.
 The start of the loop carries one (D23, D54). Not specified in detail yet.
 
-### Geyser (v1, D159, D160; the object is the user's, its details proposed, O120; chunk 24g)
+### Geyser (after v1, D161; D159, D160; the object is the user's, its details proposed, O120)
+*Scheduled after v1 (D161, the user's):* specified here as D160 wrote it,
+built after v1 is finished; v1's test level places none. The experiment
+is on branch `exp/geyser` (8b116e4).
 Launches the slimes reaching it high and spreads their landings along the
 loop, so a flow of arrivals doesn't pile up on one spot (level rules 24,
 25). A standalone object a level places wherever it needs one; the test
-level places one where its return routes end, at the loop's start.
+level is to place one where its return routes end, at the loop's start.
 Activation: presence: a train slime travelling the loop's way whose centre
 enters its **catch** (a box) is launched; a slime put inside it (a move to
 the loop start, a load) isn't. It isn't tapped (a tap on it is a call).
@@ -115,7 +118,7 @@ the loop start, a load) isn't. It isn't tapped (a tap on it is a call).
   file.
 - **State:** none; nothing saved (a slime in flight is ordinary physics).
   Its draws come from their own seeded stream.
-- **Look:** placeholder art in v1, like the split zone; its look is v3's.
+- **Look:** placeholder art at first, like the split zone; its look is v3's.
 
 ### Signpost (D47)
 Stands at every fork in the loop and shows which way the loop goes. Not

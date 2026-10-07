@@ -4254,3 +4254,75 @@ pending no-jam change is withdrawn (unchanged unless O121);
 objects gain the geyser). Outside `specs/`: the `level-content` skill (a
 new object kind) and the `level-review` skill and `docs/level-design/`
 (rules up to 25).
+
+## D161 — The geyser and the test level's start review come after v1; the climb fix stays in v1 (proposed); v1's fps gate leaves the loop start's crowding aside (2026-10-07)
+Answers O123; withdraws D159's "the geyser is a v1 blocker" (D159 (3), kept by D160 (5)); carries O118, O119, O120 and O124 after v1; opens O125.
+
+The user's words (2026-10-07), answering O123 and D160's questions:
+"nah test level review comes after v1 is finished. same with geyser etc.
+right now, fps gating is mostly ok if we ignore loop's start issue. so v1
+should be okay"
+
+**1. After v1 (decided by the user).** The test level's start review
+(chunk TL2, D160 (3)) and the geyser object (D160 (1) and (2): the
+object, level rule 25 and its check) come **after v1 is finished**: the
+first thing after v1, with v2's level work (`versions/v2/README.md`
+lists them as carried in). No version number beyond the user's "after
+v1". D159's "the geyser, mandatory before the version lock" is withdrawn
+by the user's "same with geyser"; the other D159 blocker, the gobble fix
+(O91, 0061ccf), stays done. The geyser's spec stays as D160 wrote it,
+only scheduled after v1; its experiment stays on branch `exp/geyser`
+(8b116e4), throwaway as before. v1's objects lose the geyser again
+(`interactive-objects.md`, master spec 3 and 5.4): **the test level
+places no geyser in v1**. Rule 24 stays a level rule as written (D157,
+D159 (4)); the test level failing its check is a known gap of the test
+level, settled in TL2 (D160 (3)). **O123 answered:** after v1. **O118,
+O119, O120 and O124 go with them** (parked, after v1). *Reading of
+"etc." (proposed):* the geyser and everything serving the start's
+crowding (rule 25, its check, pacing the return route's end, rule 24's
+rate window); the climb fix below is read as outside it (O125).
+
+**2. The climb fix stays in v1 (proposed; the user may drop it, O125).**
+The hold on a climb and the relay (G and R, D160 (4)) answer the user's
+2026-10-05 `stress-dense` report ("movement wise, it fails grossly"),
+which doesn't depend on the loop's start. **Chunk 24g keeps its id**
+(the branch `feat/24g` already carries it) and becomes **"the train's
+climb"**: G and R, the measures recorded against D159's baseline with
+the experiment's probe kept as a level run tool (without the geyser's
+fields; TL2 reuses it), and the fusion drop explained (O122, stays with
+24g). The geyser's parts (24g's former items 1 and 3, and the geyser's
+own checks in its done-when) move to the build plan's "After v1"
+section, unchanged. **O121 (V1s)** stays the user's, default out.
+
+**3. The fps gate (the user's reading; wording proposed).** "fps gating
+is mostly ok if we ignore loop's start issue": v1's frame-rate targets
+(DoD 30, chunk 22's repeat) are judged **with the loop start's crowding
+set aside**: the windows where slimes coming home crowd the loop's start
+(in `s3-basket-59of60`, its section 1 window once the train comes home;
+on 5N's phone session, 2026-10-06, 28.5 fps, warm 24.1) are measured and
+recorded, not gated. Every other target and number in DoD 30 is
+unchanged; no new number. The start's crowding and its frame rate go to
+TL2 with the geyser.
+
+**4. The build order after 5N (proposed):** chunk 24g (the train's
+climb), 22c, chunk 22 repeated on the real S20 FE, the rest of chunk 24,
+the health review. **After v1:** the geyser object, then TL2 (which
+weighs the geyser's placement).
+
+**Documents:** `open-questions.md` (O123 out; O119, O120, O124 parked
+beside O118; O125 in); `interactive-objects.md` (v1's objects; the
+geyser after v1); `level-design.md` (rule 25 after v1; rule 24's run
+tool, its "when it fails"); `concept.md` Terminology (geyser after v1;
+hold and relay, chunk 24g); `slimes.md` (the geyser after v1);
+`tuning.md` (the geyser's section after v1; G and R rows);
+`versions/v1/master-spec.md` (header, 3, 4, 5.2, 5.4, DoD 30, Known gap 9);
+`versions/v1/build-plan.md` (24g, TL2, the geyser after v1, the order,
+chunk 22's repeat); `versions/v1/README.md`; `versions/v2/README.md`;
+`levels/test/README.md` (rules 24 and 25's rows); `README.md`.
+**Flagged:** for documentalist, `rule_geyser_spreads_arrivals_at_loop_start`
+(DRAFT, not built: after v1, not v1), `req_interactive_objects_general`
+(v1's objects lose the geyser again), rule 25 under
+`req_level_design_rules` (after v1), `req_platform_and_performance_targets`
+(DoD 30's start crowding set aside, proposed). Outside `specs/`: the
+`level-content` skill, the `level-review` skill and `docs/level-design/`
+need no geyser or rule 25 for v1.

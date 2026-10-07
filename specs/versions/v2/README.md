@@ -1,6 +1,6 @@
 # v2 — Content, level design and music
 
-Status: themes only (D134); no spec yet; two cluster aids proposed (D143); the geyser, once a parked idea, moved into v1 as a level object (D159, D160)
+Status: themes only (D134); no spec yet; two cluster aids proposed (D143); carried in from v1: the geyser object and the test level's start review, first after v1 (D161; the geyser was in v1 from D159 to D161)
 
 Themes, set by the user (D134):
 
@@ -60,7 +60,18 @@ gather awake):
   when v2 is scoped: slimes or weight, which stretch it counts, off
   screen (D70), which branch the camera follows.
 
-*Moved to v1 (D159, D160):* the geyser (once O117, an idea parked here,
-D157) is built in v1, chunk 24g, as a level object any level may place
-(the user, D160), already a reusable mechanic; v2's levels use it as
-they need. Pacing the return route's end is O118, parked (D160).
+**Carried in from v1** (the user, 2026-10-07, D161: "nah test level
+review comes after v1 is finished. same with geyser etc."): the first
+thing after v1 is finished, with this version's level work (theme:
+reusable mechanics, level design):
+
+- **The geyser**, a level object any level may place (D160, specified in
+  `../../interactive-objects.md`; its numbers in `../../tuning.md`; level
+  rule 25 and its check in `../../level-design.md`). Once O117, an idea
+  parked here (D157), it was in v1 from D159 to D161. Its experiment is
+  on branch `exp/geyser` (8b116e4). Its build is described in
+  `../v1/build-plan.md`, "After v1". Open: O120, O124.
+- **The test level's start review** (chunk TL2, D160 (3), in the same
+  section): the factors crowding the loop's start, level edits first,
+  the geyser's placement among them. Open: O119; pacing the return
+  route's end (O118) is an option it may pick.

@@ -1,6 +1,6 @@
 # Level design requirements
 
-Status: draft v16 (rule 25, placing a geyser, a level object, D160, the user's object, the rule and its check proposed; rule 24: a geyser gives room, pacing parked (O118), D160; v15: rule 24 strengthened: at the loop's start arrivals never outpace what the train takes off it, a rate check over the scripted runs, what to do when it fails, D159, the user's ask, wording and check proposed; v14: rule 24, arrivals clear faster than they come, D157, the user's, wording and check proposed; v13: rule 23, clusters, D143, approved in direction, D144; its limit proposed, O107)
+Status: draft v17 (rule 25 and the geyser after v1, D161, the user's; rule 24's run tool from chunk 24g, its window after v1; v16: rule 25, placing a geyser, a level object, D160, the user's object, the rule and its check proposed; rule 24: a geyser gives room, pacing parked (O118), D160; v15: rule 24 strengthened: at the loop's start arrivals never outpace what the train takes off it, a rate check over the scripted runs, what to do when it fails, D159, the user's ask, wording and check proposed; v14: rule 24, arrivals clear faster than they come, D157, the user's, wording and check proposed; v13: rule 23, clusters, D143, approved in direction, D144; its limit proposed, O107)
 
 Rules every level must follow, whoever builds it. These rules make up the
 checklist for every level's design (see `levels/`). Levels are
@@ -147,8 +147,8 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     The way onward counts by its pace, not only its room: at the loop's
     start slimes leave by joining the train at its hop pace, so a return
     route that brings them faster than the train carries them off fills
-    the start however wide it is. A geyser (D160, rule 25) spreads the
-    arrivals over the first stretch; it gives them room, not pace. Moves to the
+    the start however wide it is. A geyser (D160, rule 25; after v1,
+    D161) spreads the arrivals over the first stretch; it gives them room, not pace. Moves to the
     loop start (lost, stuck, stalled) are paced by the loop-start queue
     and land on free spots (D150); this rule is about the level's own
     arrivals.
@@ -163,20 +163,23 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     stays within rule 23's limit (O107); and over a 10,000-tick
     `tools/thru.gd` run no slime is stuck again within 10 s of landing
     there (D157). The run tool (chunk 24g) counts the rates and the
-    cluster; the window and the threshold are O119. *By eye, in test mode:*
+    cluster; the window and the threshold are O119 (after v1, D161: the
+    test level's review, TL2, settles them). *By eye, in test mode:*
     each arrival spot clears while slimes keep coming (no pile there
     grows). The scene-only level-rules checker can't see rates, so it
     lists this rule as a run check and a by-eye item.
     *When it fails:* give the first stretch more room (longer, or wider so
     waiting slimes sit apart), make the train faster off it (a gentler
-    first slope), place a geyser (rule 25) to spread the arrivals over
+    first slope), place a geyser (rule 25, after v1) to spread the arrivals over
     the room there is, or pace the return route's end (O118, parked, not
     built).
 
 ## Objects that move slimes
 
 25. *(D160: the geyser as a level object is the user's; this rule and
-    its check are proposed.)* **A geyser lands slimes where they can
+    its check are proposed. **After v1** (D161, the user's): applies once
+    the geyser is built; no v1 level places one, and v1's checker has no
+    rule 25 check.)* **A geyser lands slimes where they can
     carry on.** A geyser (`interactive-objects.md`) launches the train
     slimes entering its catch and lands them along a span of the loop.
     Place it so that: its **span lies on the loop, wholly ahead of its
@@ -190,7 +193,7 @@ Godot scenes built from reusable components, with no per-level scripts (D6).
     catch where the return routes' arrivals enter, before they reach
     the pile (rule 24). A geyser gives arrivals room, not pace: it
     doesn't replace rule 24's rate.
-    *Check (proposed, `tools/check_level.gd`, chunk 24g):* **fails** a
+    *Check (proposed, `tools/check_level.gd`, built with the geyser, after v1):* **fails** a
     span off the loop, behind or over its catch, or holding a gate;
     **warns** when the fused switch is on with no split zone over any of
     the span; **notes** the share of the span under a guarded ledge (a

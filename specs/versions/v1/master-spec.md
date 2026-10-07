@@ -30,16 +30,19 @@ pile is local: only the slimes reached wake, never the whole pile (5.3,
 D156). Definition of done 30 and section 7 carry the two stress targets,
 the abuse case's an abuse target of 15 fps, not 30 (D153, D154; how they
 are measured proposed). A frame-rate experiment run from 2026-09-30 to 2026-10-02
-was withdrawn; only the points above came back from it (D155). Two
-fixes the user made mandatory before v1 closes (D159): the cause of
-slimes of different species ending up inside each other is fixed, the
-stuck net kept as a backstop (5.2, Known gap 6 closed); and the
-**geyser**, a level object the test level places at its loop's start
-(5.4, the user's, D160; its details proposed; chunk 24g). The train's jam
-off the start is the climb, fixed by the hold on a climb and the relay
-(5.2, proposed); the dip nudge is unchanged (D160). The start's crowding
-itself is not a v1 blocker (the user's, D160): it goes to a review of
-the test level's design.
+was withdrawn; only the points above came back from it (D155). Of the
+two fixes the user made mandatory before v1 closes (D159), the first is
+done: the cause of slimes of different species ending up inside each
+other is fixed, the stuck net kept as a backstop (5.2, Known gap 6
+closed). The second, the **geyser** (a level object since D160), no
+longer is: it comes
+**after v1**, with the review of the test level's start (the user's,
+D161; section 3, Not in v1). The train's jam off the start is the climb,
+fixed by the hold on a climb and the relay (5.2, proposed; chunk 24g,
+the train's climb); the dip nudge is unchanged (D160). The start's
+crowding is not a v1 blocker (the user's, D160; Known gap 9), and
+Definition of done 30 is judged with it set aside (the user's reading,
+D161; wording proposed).
 
 ## 1. Concept and objective
 
@@ -116,7 +119,7 @@ would add to P1.G1 and P1.G2) comes in a later version.
   fusion up to size 3, the split zone at the start of the loop, left alone and
   lost.
 - Objects: the frontier-gate set (switch, basket, gate), the split zone at
-  the start of the loop, the geyser (D160), and plain signposts at forks.
+  the start of the loop, and plain signposts at forks.
 - Controls: tap-to-call, tilt for free slimes, edge buttons moving the camera,
   a tap on the parent zone (the top of the screen) for parent access.
 - Camera: rails along the loop, the call dragging the camera, the idle camera,
@@ -142,6 +145,7 @@ would add to P1.G1 and P1.G2) comes in a later version.
 | Proper graphics | v3 |
 | Every other interactive object: bending pathways, other split zones, tilt objects, reveal zones, filters (forks sorting slimes by species or by size), switches and baskets outside the frontier set | v2 |
 | Large signposts that let the child choose which branch the camera follows | v2 |
+| The geyser (a level object that launches the train slimes reaching it and spreads their landings along the loop; `../../interactive-objects.md`) and the review of the test level's start, where slimes coming home crowd | after v1, first, with v2's level work (the user's, D161) |
 | Turning the parent code off | v4 |
 | A parent-chosen session length and cooldown | later, no version yet |
 | A freeform camera (hold and drag, replacing the edge buttons) | later, no version yet |
@@ -167,7 +171,6 @@ One term per concept, used everywhere in the code and documents.
 | switch | redirects the flow at a fork in the loop; operated by tapping |
 | basket | collects slimes until their weight fills it, then fires its target |
 | split zone | a place that splits slimes back into base slimes |
-| geyser | a level object that launches the slimes reaching it high and spreads their landings along the loop |
 | signpost | a sign at a fork showing which way the loop goes |
 | species | a kind of slime; only the same species fuse |
 | size | the number of base slimes a slime is made of |
@@ -278,11 +281,6 @@ One term per concept, used everywhere in the code and documents.
   moved; a slime that recovers before its turn isn't moved (D150, the
   user's; the order, the stretch and what a waiting slime does are
   proposed; the numbers are in `tuning.md`).
-- **The geyser** (D159, D160; the object is the user's, its details
-  proposed; chunk 24g): the test level's geyser (5.4) sits where its
-  return routes end, so a train slime coming home is launched to land
-  spread along the loop's first stretch rather than on the pile at the
-  loop's start. A move to the loop start is never launched.
 
 **Waking**
 
@@ -313,7 +311,8 @@ minute of a session every slime hops more slowly.
 A train slime standing between hops on a rise of the outgoing route keeps
 its place instead of sliding back (the **hold on a climb**), and when a
 train slime takes off, the one standing right behind it hops almost at
-once (the **relay**), so a queue moves as a wave (proposed, D160; the
+once (the **relay**), so a queue moves as a wave (proposed, D160; in v1,
+chunk 24g, the train's climb, D161; the
 numbers in `tuning.md`).
 
 **Size, weight and species**
@@ -418,19 +417,6 @@ where a basket's centre is nearer, since a basket never answers a tap
   removed or turned into a landscape feature.
 - **Split zone.** At the start of the loop; splits every slime that enters it
   into base slimes.
-- **Geyser** (D160; the object is the user's, its details proposed). A
-  level object placed wherever a level needs one: a train slime
-  travelling into its catch is lifted above any slimes piled over it
-  and launched high, to come down on the emptiest of a few seeded free
-  spots along its landing span of the loop. It lands only on the loop's
-  own route, never on the waiting queue, onto or under a ledge level
-  rule 22 guards, or at or past a gate; with no such spot, the slime
-  carries on as if there were no geyser. Each placement sets its catch,
-  its span, its flight's height and draws, and whether fused slimes
-  land only inside a split zone. Off screen a slime reaching it is put
-  on a free spot directly. It isn't tapped and saves nothing. The test
-  level places one where its return routes end (span 150 to 700 px,
-  fused slimes only into the split zone).
 - **Signpost.** Stands at every fork of the loop and shows which
   way the loop goes. Not interactive.
 - **No filters in v1.** The only fork in the loop is the frontier switch, so
@@ -1015,7 +1001,12 @@ never ships: O101.
     30 fps target: no crash, no freeze and at least 15 fps
     *(proposed: the mean over a 62 s run, the 5th percentile reported)*.
     Until the reference phone is measured, the slowed desktop run
-    (`tools/perf_slow.sh --pin=main`) stands in.
+    (`tools/perf_slow.sh --pin=main`) stands in. *(The user's reading,
+    D161; wording proposed:)* these targets are judged with the loop
+    start's crowding set aside: the windows where slimes coming home
+    crowd the loop's start (in the `s3-basket-59of60` fixture, its
+    section 1 window once the train comes home) are measured and
+    recorded, not gated (Known gap 9).
 31. The automated end-to-end suite on the test level passes on the Linux
     build.
 32. *Deferred, not an objective of the full MVP (D135):* a playtest with
@@ -1073,3 +1064,10 @@ Still undecided.
    never published; the release build leaves the test level out. Which build
    the Definition of done is checked on is O101; the first store release,
    probably v4, ships a fully implemented level (D137).
+9. **The loop's start crowds when slimes come home** (D159, D160, D161).
+   On the test level, slimes coming home by the return routes arrive
+   faster than the train takes them off the loop's first stretch, so a
+   pile grows at the start (the level fails `../../level-design.md` rule 24's check). Not a
+   v1 blocker (the user's, D160), and left out of Definition of done 30's
+   frame-rate judgement (D161). The review of the test level's start and
+   the geyser come after v1 (D161).
