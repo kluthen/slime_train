@@ -50,6 +50,19 @@ extends SceneTree
 ##             a slime within NEAR px of the loop's start (exp/geyser's
 ##             probe's rule): max, mean, ticks above LIMIT (rule 23's), the
 ##             longest run of them (s)
+##   DJ_FLOOR  per dip floor (Fusion's, k in loop order): its loop distances
+##             and the route's point at its middle
+##   DJ_FUS    per zone, whole run (part=all) and from --late-from on
+##             (part=late): where same-species slimes meet and fuse. A pair's
+##             zone is its lower id's: start (a train slime on the loop's
+##             start basin, up to the top of its exit climb, CLIMBS[0]'s end),
+##             dip<k> (a train slime within ZONE_MARGIN px of dip floor k
+##             along the loop), route (any other train slime), free.
+##             meets (new counting contacts, Fusion's), fused, bumped (per
+##             minute of the part: fus_min, bump_min),
+##             ended (contacts lost before 3 s), end_s (their mean length, s),
+##             end_1s (their share past 1 s), dwell (train slimes in the zone
+##             on screen, mean per tick; start and dips only)
 ##   STATE     the final tick and state hash
 # @spec-link [[req_platform_and_performance_targets]]
 # @spec-link [[rule_arrivals_clear_faster_than_they_arrive]]
@@ -70,6 +83,17 @@ const CROSS_AT := [240.0, 750.0]
 const CLIMBS := [[460.0, 1150.0], [17580.0, 18180.0]]
 const NEAR := 240.0
 const LIMIT := 20
+## How far off a dip floor (px along the loop) a pair still counts as the
+## dip's (DJ_FUS): about a base slime's hop.
+const ZONE_MARGIN := 150.0
+## DJ_FUS's counters, per zone and part.
+const FUS_MEETS := 0
+const FUS_FUSED := 1
+const FUS_BUMPED := 2
+const FUS_ENDED := 3
+const FUS_END_TICKS := 4
+const FUS_END_1S := 5
+const FUS_DWELL := 6
 
 var fixture := "stress-dense"
 var seed_n := 1
@@ -77,6 +101,8 @@ var ticks := 3600
 var late_from := 0
 var hold_view := Vector2.INF
 var hold_from := 0
+var _floors: Array[Vector2] = []
+var _floors_key := "-"
 
 
 func _initialize() -> void:
@@ -182,6 +208,7 @@ func _run(game: Node) -> void:
 	var clu_over := 0
 	var clu_run := 0
 	var clu_run_max := 0
+	var fus := {}  # "part|zone" -> PackedInt64Array FUS_* counters
 	var start := train.position_at(0.0)
 	print("DJ_LOOP length=%.0f outgoing=%.0f start=%s" % [train.length(), train.outgoing_length(), start])
 	for i in ticks:
@@ -189,7 +216,13 @@ func _run(game: Node) -> void:
 			_window_start(sim, win_start, win_active)
 			front_id = _front(sim)
 			front_from = train.progress_of(front_id) if front_id >= 0 else 0.0
+		var due_soon := {}  # pair -> zone, the pairs that reach CONTACT_TICKS this tick if still touching
+		var contacts_before := _contacts(fusion)
+		for pair: Vector2i in contacts_before:
+			if contacts_before[pair] == Fusion.CONTACT_TICKS - 1:
+				due_soon[pair] = _zone(sim, pair.x)
 		game.step_simulation()
+		_count_fusion(sim, fus, "late" if sim.tick - 1 >= late_from else "early", due_soon, contacts_before)
 		if hold_view != Vector2.INF and sim.tick >= hold_from:
 			sim.camera.position = hold_view
 		var t := sim.tick - 1
@@ -317,7 +350,130 @@ func _run(game: Node) -> void:
 			alone_sum / maxi(alone_n, 1), alone_n, stacks, landings, stall, oob, lost])
 	print("DJ_CLU max=%d mean=%.2f over=%d run_s=%.1f" % [clu_max, clu_sum / maxi(clu_n, 1), clu_over,
 			clu_run_max / 60.0])
+	_print_fusion(sim, fus, ticks, late_from)
 	print("STATE tick=%d hash=%s" % [sim.tick, sim.state_hash()])
+
+
+
+## The zone of the pair whose lower id is `slime_id` (see DJ_FUS).
+func _zone(sim: Simulation, slime_id: int) -> String:
+	var s := sim.slimes.index_of(slime_id)
+	if s < 0:
+		return "gone"
+	if sim.slimes.state[s] != SlimeBodies.TRAIN or not sim.train.tracks(slime_id):
+		return "free"
+	var d := sim.train.distance_of(slime_id)
+	if d < CLIMBS[0][1]:
+		return "start"
+	var floors := _dip_floors(sim)
+	for k in floors.size():
+		if d >= floors[k].x - ZONE_MARGIN and d <= floors[k].y + ZONE_MARGIN:
+			return "dip%d" % k
+	return "route"
+
+
+## Fusion's dip floors for the train's open gates, recomputed when they change.
+func _dip_floors(sim: Simulation) -> Array[Vector2]:
+	var key := str(sim.train.open_gates)
+	if key != _floors_key:
+		_floors_key = key
+		_floors = Fusion.dip_floors(sim.train.loop, sim.train.open_gates)
+	return _floors
+
+
+## Fusion's contact counts (its dump()) as pair Vector2i(lower, higher) -> ticks.
+static func _contacts(fusion: Fusion) -> Dictionary:
+	var out := {}
+	for entry: Array in fusion.dump():
+		out[Vector2i(entry[0], entry[1])] = entry[2]
+	return out
+
+
+static func _fus_entry(fus: Dictionary, key: String) -> PackedInt64Array:
+	if not fus.has(key):
+		var row := PackedInt64Array()
+		row.resize(FUS_DWELL + 1)
+		fus[key] = row
+	return fus[key]
+
+
+static func _fus_add(fus: Dictionary, part: String, zone: String, field: int, by := 1) -> void:
+	var row := _fus_entry(fus, part + "|" + zone)
+	row[field] += by
+	fus[part + "|" + zone] = row
+
+
+## After a tick (see DJ_FUS): the new contacts, the fusions and bumps of the
+## pairs that were one tick short (`due_soon`), the contacts lost
+## (`before`: Fusion's counts before the tick), the dwell on screen.
+func _count_fusion(sim: Simulation, fus: Dictionary, part: String, due_soon: Dictionary,
+		before: Dictionary) -> void:
+	var bodies := sim.slimes
+	var fusion := sim.fusion
+	var now := _contacts(fusion)
+	var touching := {}
+	for pair: Vector2i in bodies.touching_pairs():
+		touching[pair] = true
+	for pair: Vector2i in due_soon:
+		if bodies.index_of(pair.y) < 0 and bodies.index_of(pair.x) >= 0:
+			_fus_add(fus, part, due_soon[pair], FUS_FUSED)
+		elif touching.has(pair) and bodies.index_of(pair.y) >= 0:
+			_fus_add(fus, part, due_soon[pair], FUS_BUMPED)
+	for pair: Vector2i in before:
+		if now.has(pair) or due_soon.has(pair):
+			continue
+		var zone := _zone(sim, pair.x)
+		_fus_add(fus, part, zone, FUS_ENDED)
+		_fus_add(fus, part, zone, FUS_END_TICKS, before[pair])
+		if before[pair] >= 60:
+			_fus_add(fus, part, zone, FUS_END_1S)
+	for pair: Vector2i in now:
+		if now[pair] == 1:
+			_fus_add(fus, part, _zone(sim, pair.x), FUS_MEETS)
+	for id in sim.train.tracked_ids():
+		var s := bodies.index_of(id)
+		if s < 0 or bodies.state[s] != SlimeBodies.TRAIN:
+			continue
+		var zone := _zone(sim, id)
+		if (zone.begins_with("dip") or zone == "start") and Fusion.on_screen(sim.view, bodies.centre_of(id)):
+			_fus_add(fus, part, zone, FUS_DWELL)
+
+
+## Prints DJ_FLOOR and DJ_FUS (see the class doc).
+func _print_fusion(sim: Simulation, fus: Dictionary, ticks: int, from: int) -> void:
+	var floors := _dip_floors(sim)
+	for k in floors.size():
+		print("DJ_FLOOR k=%d from=%.0f to=%.0f at=%s" % [k, floors[k].x, floors[k].y,
+				sim.train.position_at((floors[k].x + floors[k].y) * 0.5).round()])
+	var span := {"early": mini(from, ticks), "late": maxi(ticks - from, 0)}
+	var zones := {}
+	for key: String in fus:
+		zones[key.get_slice("|", 1)] = true
+	var rows := {}
+	for zone: String in zones:
+		var total := PackedInt64Array()
+		total.resize(FUS_DWELL + 1)
+		for part: String in ["early", "late"]:
+			if not fus.has(part + "|" + zone):
+				continue
+			var row: PackedInt64Array = fus[part + "|" + zone]
+			for f in row.size():
+				total[f] += row[f]
+		rows["all|" + zone] = total
+		if fus.has("late|" + zone) and from > 0:
+			rows["late|" + zone] = fus["late|" + zone]
+	var names := rows.keys()
+	names.sort()
+	for key: String in names:
+		var part := key.get_slice("|", 0)
+		var row: PackedInt64Array = rows[key]
+		var n: int = ticks if part == "all" else span["late"]
+		var minutes := maxf(n / 3600.0, 1.0 / 3600.0)
+		print(("DJ_FUS part=%s zone=%s meets=%d fused=%d bumped=%d fus_min=%.2f bump_min=%.2f ended=%d"
+				+ " end_s=%.2f end_1s=%.2f dwell=%.2f") % [part, key.get_slice("|", 1), row[FUS_MEETS],
+				row[FUS_FUSED], row[FUS_BUMPED], row[FUS_FUSED] / minutes, row[FUS_BUMPED] / minutes,
+				row[FUS_ENDED], row[FUS_END_TICKS] / 60.0 / maxi(row[FUS_ENDED], 1),
+				float(row[FUS_END_1S]) / maxi(row[FUS_ENDED], 1), float(row[FUS_DWELL]) / maxi(n, 1)])
 
 
 ## The active train slimes' progress at a window's start.
