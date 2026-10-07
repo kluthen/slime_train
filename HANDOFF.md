@@ -12,7 +12,8 @@ orchestrator's brief-24g-a.md. Worktree `.claude/worktrees/24g`, branch feat/24g
       3600 gives exp/dip-jam g,r's hash exactly (1f9fc954...), native and GDScript.
       TODO in step 4: a "Chunk 24g" section in docs/dev/README.md (the README's Train
       paragraph points at it) with the measures.
-- [ ] 2. Unit tests G and R
+- [x] 2. Unit tests G and R: tests/unit/test_train_climb.gd (10; 6 pass on main's train.gd,
+      the 4 core ones fail there: held, cancel, relayed, wave), both ticks
 - [ ] 3. Full suite, triage, fixture hashes
 - [ ] 4. Measure (probe) vs exp/dip-jam's g,r row
 - [ ] 5. This file rewritten for part B (the geyser object)
