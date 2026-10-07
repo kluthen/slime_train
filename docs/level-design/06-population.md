@@ -84,9 +84,10 @@ MANUAL and says where the result comes from
 ([09](09-check-the-rules.md)):
 
 - your level's test plays section 1 from fresh through its basket's
-  fire-and-drain and fails when the rule fails; it prints the numbers:
+  fire-and-drain and fails when the rule fails; it prints the numbers (a
+  real run of a freshly scaffolded two-section level's test, 2026-10-07):
   ```
-  rule 23 over section 1's play: largest_cluster=6 above_limit_s=0.0 longest_above_s=0.0: rule 23 PASS (above 20 slimes for more than 5 s in a row fails)
+  rule 23 over section 1's play: largest_cluster=5 above_limit_s=0.0 longest_above_s=0.0: rule 23 PASS (above 20 slimes for more than 5 s in a row fails)
   ```
   Add your later sections' plays to it the same way
   ([08](08-fixtures-and-testing.md));
@@ -116,8 +117,10 @@ Rule 16's other half, big piles staying mostly still, is a MANUAL item.
 Measure it with the level benchmark: it times every tick of the level as
 new and of each fixture with a save (make a fixture of the crowded spot
 first, [08](08-fixtures-and-testing.md)), and says per case how many
-slimes are on screen, simulated off screen, parked off screen
-(`off_screen`) or resting, and how many the solver works on (`active`):
+slimes cost physics (`physics`), are on screen, in range (simulated) or
+parked off screen (`parked`), or resting, how many the solver works on
+(`active`), and rule 23's three numbers (`largest_cluster`,
+`above_limit_s`, `longest_above_s`, above):
 
 ```sh
 tools/level.sh bench --level=zz-tutorial
@@ -126,21 +129,23 @@ tools/level.sh bench --level=zz-tutorial --fixture=gate1-open --ticks=300
 
 An example of the output: a real run of the test level's three default
 cases (`tools/level.sh bench --level=test`, on the development desktop,
-2026-09-30). Your level, your fixtures and your computer give other
+2026-10-07). Your level, your fixtures and your computer give other
 numbers; the shape of the lines is the same:
 
 ```
-RESULT case=start base=200 bodies=200 ticks=600 lead_in=600 rested_at=- median_ms=0.960 p95_ms=1.050 max_ms=1.402 mean_ms=0.970 on_screen=1 simulated=3 off_screen=196 resting=0->0 zoom=1.000 camera_steady=true active=1.0 pairs=0.0
-RESULT case=stress-still base=200 bodies=200 ticks=600 lead_in=407 rested_at=407 median_ms=0.983 p95_ms=1.067 max_ms=2.453 mean_ms=0.996 on_screen=139 simulated=1 off_screen=60 resting=140->140 zoom=0.500 camera_steady=true active=0.0 pairs=0.0
-RESULT case=stress-moving base=200 bodies=200->133 ticks=600 lead_in=60 rested_at=- median_ms=10.354 p95_ms=12.654 max_ms=14.343 mean_ms=10.693 on_screen=128 simulated=4 off_screen=1 resting=0->0 zoom=0.500 camera_steady=true active=161.8 pairs=292.8
+RESULT case=start base=200 bodies=200 ticks=600 lead_in=600 rested_at=- median_ms=0.767 p95_ms=0.806 max_ms=0.989 mean_ms=0.774 physics=1 on_screen=1 in_range=4 parked=196 resting=0->0 zoom=1.000 camera_steady=true active=1.0 pairs=0.0 largest_cluster=1 above_limit_s=0.0 longest_above_s=0.0
+RESULT case=stress-still base=200 bodies=200 ticks=600 lead_in=420 rested_at=420 median_ms=0.776 p95_ms=0.864 max_ms=1.609 mean_ms=0.788 physics=0 on_screen=139 in_range=140 parked=60 resting=140->140 zoom=0.500 camera_steady=true active=0.0 pairs=0.0 largest_cluster=0 above_limit_s=0.0 longest_above_s=0.0
+RESULT case=stress-moving base=200 bodies=200->139 ticks=600 lead_in=60 rested_at=- median_ms=5.310 p95_ms=6.693 max_ms=11.071 mean_ms=5.619 physics=135 on_screen=129 in_range=135 parked=4 resting=0->0 zoom=0.500 camera_steady=true active=165.4 pairs=313.0 largest_cluster=133 above_limit_s=10.0 longest_above_s=10.0
 ```
 
 `stress-still` is a pile that stays still: 140 resting, nothing active,
 about 1 ms a tick. `stress-moving` is the worst moving case on purpose:
-all 200 woken as train slimes in section 3's bowl, 162 bodies active on
-average, fusing down to 133 bodies, about ten times the cost.
+all 200 woken as train slimes in section 3's bowl, 165 bodies active on
+average, fusing down to 139 bodies, about seven times the cost, and one
+awake cluster of 133 slimes the whole time (the `stress-*` fixtures are
+excepted from rule 23).
 
-A pile that stays still shows as parked (`off_screen`) or resting slimes,
+A pile that stays still shows as parked or resting slimes,
 few `active`, and a low, flat cost per tick (`p95_ms` near `median_ms`);
 then play the spot in test mode to see it settle (a pile in a basket
 rests).

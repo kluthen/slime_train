@@ -7317,3 +7317,80 @@ The steer phase rises by 50 to 150 µs on every run, above its own spread
   (+8 to 10 % GDScript) on `stress-moving` and `s3-basket-59of60`, of which
   the steer phase explains about 60 to 150 µs; the rest is the train
   moving more (more hops, more bodies awake), at the edge of the noise.
+
+## Level rule 23 on the test level
+
+Build plan chunk 24, item 24.7 (`req_level_design_rules`; level rule 23,
+D143, D144, O107). Rule 23's measure (`ClusterWatch`, see
+`docs/dev/level-tooling.md`, "Level rule 23's measure") taken on the test
+level as it is, on the development desktop, native tick, 2026-10-07
+(branch feat/24-7, from `cfe1dab`). **No verdict**: the test level's
+numbers wait for items 24.3 and 24.8 and for section 3 being settled
+(O107), and the loop start's crowding is set aside meanwhile (D161). The
+limit is the one rule 23 proposes (above 20 slimes for more than 5 s in a
+row fails, `ClusterWatch.LIMIT` and `HOLD_SECONDS`), not yet calibrated.
+
+### The played test
+
+`tests/e2e/test_test_level_playable_e2e.gd` (its `rule 23, ...` lines):
+each section's play from its fixture until its basket fires, then that
+basket's fire-and-drain on its own, until it is empty, the camera on the
+basket.
+
+| Run | Ticks | Largest cluster | Above the limit, s | Longest in a row, s |
+|---|---|---|---|---|
+| Section 1's play, `fresh` to s1.basket firing | 3780 (fill) | 6 | 0.0 | 0.0 |
+| s1.basket's fire-and-drain | 559 | 4 | 0.0 | 0.0 |
+| Section 2's play, `gate1-open` to s2.basket firing | 2896 (fill) | 11 | 0.0 | 0.0 |
+| s2.basket's fire-and-drain | 1066 | 11 | 0.0 | 0.0 |
+| Section 3's play, `gate2-open` to s3.basket firing | 10744 (fill) | 59 | 77.8 | 21.9 |
+| s3.basket's fire-and-drain | 6059 | 55 | 42.8 | 11.3 |
+
+(The fill's ticks are from the tap on the switch; the play's watch starts
+at the fixture, the calls included.)
+
+### The bench
+
+`tools/level.sh bench` (the three default cases) and
+`tools/level.sh bench --fixture=s3-basket-59of60` (its own lead-in, 60
+ticks, and `--lead-in=700`, its basket full and releasing); 600 timed
+ticks each:
+
+| Case | Lead-in | Largest cluster | Above the limit, s | Longest in a row, s |
+|---|---|---|---|---|
+| `start` | 600 | 1 | 0.0 | 0.0 |
+| `stress-still` | 420 (rested) | 0 | 0.0 | 0.0 |
+| `stress-moving` | 60 | 133 | 10.0 | 10.0 |
+| `s3-basket-59of60` | 60 | 59 | 9.4 | 5.9 |
+| `s3-basket-59of60` | 700 | 28 | 6.4 | 3.3 |
+
+The `stress-*` fixtures are excepted from the rule (D96); `stress-moving`'s
+dense train reads as one long cluster (O107 (a)'s question: a train queue
+on the loop counts, as measured).
+
+### What it shows (observations, no verdict)
+
+- Sections 1 and 2 stay far under the limit, in their plays and their
+  drains.
+- Section 3 goes above it in both: its play (59 slimes, 21.9 s in a row)
+  and its basket's drain (55, 11.3 s in a row). Its basket holds 59 to 60
+  slimes, so its own fill, in the box and settling, is one cluster above
+  the limit by itself, wherever the basket stands: as measured, a basket's
+  own fill counts toward rule 23. Whether it should (only the slimes
+  outside a basket's box, or a basket's quota capped under the limit) is a
+  spec question, open (O107), not settled here.
+- The synthetic level (`tests/e2e/test_rule_23_e2e.gd`) keeps both its
+  basket's quota (19) and its bowl's queue (18) under the limit, so only
+  their gathering, the basket draining into the bowl, goes above it
+  (largest 32, 12.1 s in a row: FAIL); a screen apart, never above
+  (largest 20: PASS).
+
+### How to reproduce
+
+```sh
+tools/test.sh -gselect=test_test_level_playable_e2e   # the rule 23 lines, about 90 s
+tools/level.sh bench
+tools/level.sh bench --fixture=s3-basket-59of60
+tools/level.sh bench --fixture=s3-basket-59of60 --lead-in=700
+tools/test.sh -gselect=test_rule_23_e2e
+```
