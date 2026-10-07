@@ -6893,3 +6893,60 @@ performance".
   throttles after ~4.5 minutes: short of 60 fps without native code. The
   blend costs ≤ 5 ms of GPU at full-resolution fields, 2.6 ms at half.
   Reported for spec-writer as the D94 native-contingency trigger.
+
+## Chunk 24g
+
+Build plan chunk 24g, D159 (`req_hopping_behavior`; the measure is level
+rule 24's, `rule_arrivals_clear_faster_than_they_arrive`).
+
+### Part A: the train's climb (the hold and the relay)
+
+The train jammed on climbs, not at the dips: a standing slime slid back
+down between hops, and a packed queue moved only at its hop timers' pace.
+Two changes to `Train.steer()` (GDScript, both ticks alike, no new state;
+see "Train", Hold on a climb and The relay), first tried as variants g and
+r on a throwaway branch, then built as the plain behaviour, plus one guard
+the full suite called for: no hold for a slime knocked off the route.
+
+**The probe.** `tools/dipjam_probe.gd` (its class doc lists every output
+line): `godot --headless --no-header --path . -s res://tools/dipjam_probe.gd
+-- --fixture=s3-basket-59of60 --seed=1 --ticks=14000 --late-from=9000
+--hold-view=720,361 --hold-from=9000`. For `s3-basket-59of60` the camera
+must be held on the loop's start (`--hold-view`): the idle camera chases
+slimes away and parks the queue, which then moves at the off-screen pace.
+`Fusion.fused_count` and `bumped_count` are its debug counters (not state).
+
+**Measured** (2026-10-07, the native tick; per 600 ticks from tick 9000:
+arrivals at the loop's start, departures past 240 and 750 px; the largest
+awake cluster with a slime within 240 px of the start; before = main
+before the change):
+
+| `s3-basket-59of60`, seed 1 / 2, 14,000 ticks | before | after |
+|---|---|---|
+| arrivals | 17.6 / 18.0 | 18.5 / 17.8 |
+| departures past 240 px | 7.2 / 7.2 | 11.9 / 11.0 |
+| departures past 750 px | 2.5 / 3.1 | 7.6 / 7.4 |
+| largest cluster near the start, max / mean | 118 / 117, 80 / 81 | 95 / 89, 61 / 59 |
+| the start basin's exit climb, px/s | 26 / 31 | 48 / 47 |
+| the bowl's exit climb, px/s | 17 / 14 | 41 / 34 |
+| fusions per minute | 17.0 / 16.2 | 8.0 / 6.9 |
+| stalled, stuck, lost | 0 | 0 |
+
+`stress-dense`, seed 1, 3600 ticks: mean progress speed 16.3 -> 24.3 px/s,
+the bowl's climb 20.6 -> 47.9 px/s, fusions per minute 21 -> 22, bumps 15
+-> 13.
+
+- **The flow off the start is 2.5 to 3 times what it was,** but the start
+  still crowds: about 18 arrive per 600 ticks against about 7.5 leaving
+  past 750 px, and the largest cluster near the start stays near 90 (rule
+  23's limit is 20). Rule 24's rate check still fails on the test level.
+- **Fusions per minute fall on `s3-basket-59of60`** (about 17 -> 7.5),
+  not on `stress-dense`: not explained yet (the slimes pass each other
+  faster, fewer meet in a dip?).
+- **The guard** (no hold off the route): found by rule 2's lap run on a
+  fresh 4-section skeleton (`test_new_level_e2e`), where a size 2 was held
+  on a 0.87 climb under a sleeper plate and every hop from there skimmed
+  the slope and was braked away. It moved the numbers above slightly from
+  the throwaway variant's (departures past 750 px 7.8 / 7.6 there).
+- **Tests:** `tests/unit/test_train_climb.gd`. Fixture hashes: 11 of 18
+  re-recorded (`docs/dev/native.md`, "Fixture hashes").
