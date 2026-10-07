@@ -1,7 +1,8 @@
 class_name LevelChecker
 extends RefCounted
 ## The level-rules checker (chunk LD1): checks a level against the level
-## design rules, specs/level-design.md (rules 1 to 22, numbered as there).
+## design rules, specs/level-design.md (rules 1 to 23, numbered as there;
+## rules 24 and 25 have no check in v1).
 ## Generic: it knows nothing of a particular level. Sections come from the
 ## loop's segments, the gates open once the loop reaches section n from the
 ## return routes before it (LevelStates), the things' sections from their
@@ -9,7 +10,7 @@ extends RefCounted
 ##
 ## Give it a level that has built (in the scene tree, or build() called).
 ## check_load() says whether it loads; check(rule) checks one rule;
-## check_all() every rule, 1 to 22, in order. Each result is a Dictionary:
+## check_all() every rule, 1 to 23, in order. Each result is a Dictionary:
 ##   "rule"      the rule's number (0: the load check);
 ##   "title"     the rule's short wording;
 ##   "status"    PASS (checked by code, nothing wrong), FAIL (see the
@@ -67,9 +68,10 @@ const TITLES := {
 	20: "A released level isn't meant to change",
 	21: "At the rails' framing, every interactive object sits below the parent zone",
 	22: "Slimes come home behind the loop's start; no called ledge overhangs the loop",
+	23: "No spot where many slimes gather awake",
 }
 ## The rules that don't need the loop; every other one is N/A without it.
-const LOOP_FREE_RULES := [6, 15, 16, 18, 20]
+const LOOP_FREE_RULES := [6, 15, 16, 18, 20, 23]
 ## The seed of the behaviour runs.
 const DEFAULT_SEED := 909
 const SCREEN := LevelData.SCREEN
@@ -115,12 +117,12 @@ func check_load() -> Dictionary:
 	return result(0, findings)
 
 
-## Rule `rule` (1 to 22). `fast` skips the behaviour runs (rules 1, 2, 7).
+## Rule `rule` (1 to 23). `fast` skips the behaviour runs (rules 1, 2, 7).
 func check(rule: int, fast := false) -> Dictionary:
 	if not TITLES.has(rule) or rule == 0:
-		push_error("LevelChecker: there is no rule %d (the rules are 1 to 22)" % rule)
+		push_error("LevelChecker: there is no rule %d (the rules are 1 to 23)" % rule)
 		return {"rule": rule, "title": "", "status": FAIL, "manual": "", "notes": [], "warnings": [],
-				"findings": [finding("", NAN, "there is no rule %d (the rules are 1 to 22)" % rule)]}
+				"findings": [finding("", NAN, "there is no rule %d (the rules are 1 to 23)" % rule)]}
 	if data == null:
 		return not_applicable(rule, "the level hasn't been built")
 	if data.loop == null and not rule in LOOP_FREE_RULES:
@@ -147,6 +149,7 @@ func check(rule: int, fast := false) -> Dictionary:
 		19: return LevelRulesPlacement.framing_zones(self)
 		20: return LevelRulesPlacement.released_level(self)
 		21: return LevelRulesObjects.below_parent_zone(self)
+		23: return LevelRulesPlacement.awake_clusters(self)
 	return LevelRulesStart.the_start(self)
 
 
@@ -163,7 +166,7 @@ func _with_progress(checked: Dictionary) -> Dictionary:
 ## Every rule of `rules` (all when empty), each once, in ascending order.
 func check_all(fast := false, rules := []) -> Array:
 	var out := []
-	for rule in range(1, 23):
+	for rule in range(1, 24):
 		if rules.is_empty() or rule in rules:
 			out.append(check(rule, fast))
 	return out

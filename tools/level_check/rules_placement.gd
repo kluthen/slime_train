@@ -2,7 +2,8 @@ class_name LevelRulesPlacement
 extends RefCounted
 ## The level rules about what is placed where, for LevelChecker: the
 ## population (rules 16 and 17), onboarding (rule 18), the framing zones
-## (rule 19) and the stable IDs a released level keeps (rule 20).
+## (rule 19), the stable IDs a released level keeps (rule 20) and where
+## slimes gather awake (rule 23).
 
 ## The most base slimes a level holds (D67).
 const MAX_BASE_SLIMES := 200
@@ -160,3 +161,23 @@ static func _numbering(c: LevelChecker, ids: Array) -> Array:
 					"it is left of %s: number the sleepers left to right" % numbered[k - 1][1]))
 			break
 	return findings
+
+
+## Rule 23: no spot where many slimes gather awake. Its measure runs the
+## level's own scripted runs, which the checker can't play, so it is MANUAL:
+## it says where the result comes from (the level's played test and the
+## level bench, ClusterWatch's numbers, as rule 12's played test is its
+## proof) and the shapes to look for. It doesn't need the loop.
+# @spec-link [[req_level_design_rules]]
+static func awake_clusters(c: LevelChecker) -> Dictionary:
+	var manual := ("the result comes from the level's own scripted runs, which this checker can't play: the "
+			+ "level's played test (from fresh, filling every basket, each basket's fire-and-drain; its rule 23 "
+			+ "line, ClusterWatch) and tools/level.sh bench --level=%s (largest_cluster, above_limit_s, "
+			+ "longest_above_s on each RESULT line); the largest awake cluster above %d slimes for more than "
+			+ "%.0f s in a row fails (stress-* fixtures excepted). By eye: keep apart a bowl or dip next to a "
+			+ "basket, an outlet releasing into a crowd, a narrow ledge where the train queues, and a sleeper "
+			+ "shelf's landing spot next to any of these") % [c.data.level_id, ClusterWatch.LIMIT,
+			ClusterWatch.HOLD_SECONDS]
+	var note := "the limit is proposed, to calibrate (O107): ClusterWatch.LIMIT %d slimes, HOLD_SECONDS %.0f s" % [
+			ClusterWatch.LIMIT, ClusterWatch.HOLD_SECONDS]
+	return LevelChecker.result(23, [], manual, [note], LevelChecker.MANUAL)

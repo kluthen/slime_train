@@ -2,7 +2,8 @@
 
 How a level is authored, where its files are, how the game and the tools
 find it, and what each tool does. The level-design rules themselves are in
-`specs/level-design.md` (rules 1 to 22); the test level's design is in
+`specs/level-design.md` (rules 1 to 25; the checker knows 1 to 23); the
+test level's design is in
 `specs/levels/test/README.md`. A tutorial for level designers built on
 these tools is `docs/level-design/` (chunk LD, part 2).
 
@@ -98,8 +99,8 @@ is `godot --headless --no-header --path . -s res://tools/<script>.gd --
 ### The level-rules checker
 
 `tools/check_level.gd` on top of the library `tools/level_check/`
-(`LevelChecker`). For every rule of `specs/level-design.md`, 1 to 22, it
-reports one status:
+(`LevelChecker`). For every rule of `specs/level-design.md`, 1 to 23, it
+reports one status (rules 24 and 25 have no check in v1):
 
 - `PASS`: checked by code, nothing wrong. A `manual:` line under it says
   what part of the rule code can't judge.
@@ -181,6 +182,7 @@ What each rule checks by code, and what it leaves to a person:
 | 20 | stable IDs well-formed and unique, version >= 1, sleepers numbered from .01 left to right | once released, compare IDs and migrate |
 | 21 | every switch, basket and gate below the parent zone (7 mm at the reference phone's density, `TapDispatcher.parent_zone_height`, D113) in every rail view of every section's outgoing route whose width holds it, on the reference phone's 1440 × 648 screen; an object framed above the screen fails too (chunk 23E) | |
 | 22 | (a) no return route within 48 px of the loop's first 1.5 screens outside the 80 px join; (b) no sleeper's ledge within a called base slime's reach (133 px) overhangs the loop lower than a size-3 hop (130 px) outside a split zone | ledges holding no sleeper |
+| 23 | nothing: MANUAL, it can't play the level's runs; its line says where the result comes from (the level's played test and the level bench, `ClusterWatch`, below) | the shapes that gather slimes (a bowl or dip next to a basket, an outlet into a crowd, a narrow ledge where the train queues, a sleeper shelf's landing spot next to any of these) |
 
 Rule 22 (b)'s numbers come from the simulation: the reach is
 `FreeSlimes.max_rise(1, gravity)`, a size-3 train slime's hop top is
@@ -269,7 +271,7 @@ has 3 species and each later one adds one, of the game's 6). It writes:
 
 - `levels/<id>/level.tscn`: a skeleton, through `LevelBuilder`, that
   passes the checker (21 PASS, 0 warnings, rule 19 MANUAL: no framing
-  zone). The start basin is the test level's (chunk 16e: the pocket
+  zone; rule 23 MANUAL: its result is the level's test). The start basin is the test level's (chunk 16e: the pocket
   behind the loop's start, the ramp, the terrace, the first sleeper on
   `FirstLedge` inside the split zone, the lane under the terrace: rules 4,
   18 and 22), then per section, 3.7 screens each: a dip in the loop (0.8
@@ -399,6 +401,39 @@ the first slime's species (`..., first slime A`; `first_slime` in JSON).
 
 Exit 0; 2 on a bad argument or a level that doesn't load.
 
+### Level rule 23's measure (chunk 24, item 24.7)
+
+`ClusterWatch` (`tools/level_check/cluster_watch.gd`) measures rule 23 over
+a run: fed the simulation every tick, it samples every 6 ticks (0.1 s) the
+largest awake cluster, the biggest group of touching Physics slimes in
+slimes, counted as the debug overlay and the PERF line count it
+(`DebugCounts.largest_cluster`, chunk 22d), and keeps its maximum
+(`largest_cluster`), the seconds above the limit in all (`above_limit_s`)
+and the longest of them in a row (`longest_above_s`). A run keeps the rule
+(`passes()`) when it never stays above `LIMIT` (20 slimes) for more than
+`HOLD_SECONDS` (5 s) in a row: the limit rule 23 proposes, kept in
+`ClusterWatch` until chunk 24 calibrates it and `specs/tuning.md` holds it
+(O107). Read only: no hash moves.
+
+Where it runs, since the checker can't play a level (its rule 23 line is
+MANUAL and points at both, as rule 12's played test is its proof):
+
+- **The level's played test**, which gives the verdict: a scaffolded
+  level's test (`test_section_1_plays_to_its_basket_full`, the
+  scaffolder's template) watches section 1's play from fresh through its
+  basket's fire-and-drain and fails when the rule fails. The test level's
+  played test (`tests/e2e/test_test_level_playable_e2e.gd`) watches each
+  section's play and each basket's fire-and-drain and prints the numbers
+  without failing on them until items 24.3 and 24.8 have landed (O107; its
+  numbers: `docs/dev/README.md`, "Level rule 23 on the test level").
+  `tests/e2e/test_rule_23_e2e.gd` plays a synthetic level whose basket
+  drains into a bowl, which fails, and the same level with the bowl apart,
+  which passes.
+- **The level bench**, numbers only (a bench case isn't a level's played
+  run): every `RESULT` line ends with `largest_cluster`, `above_limit_s`
+  and `longest_above_s` over its timed ticks, and the table has the three
+  columns. The `stress-*` fixtures are excepted from the rule (D96).
+
 ### The level benchmark
 
 `tools/level.sh bench [--level=<id>] [--ticks=N] [--fixture=NAME[,NAME...]] [--lead-in=N]`
@@ -409,9 +444,9 @@ no input, and times `ticks` ticks (600 by default) after an untimed
 lead-in; it prints a `RESULT` line per case (median, p95, max and mean ms
 per tick, base slimes, bodies, the lead-in, the slime counts as the debug
 overlay shows them, on screen, simulated and off screen, the resting
-slimes, whether the camera held still, and the mean active bodies and
-candidate pairs; the fields in order: `docs/dev/README.md`, "Chunk 22:
-performance") and a table. On the test level, by default, the three cases
+slimes, whether the camera held still, the mean active bodies and
+candidate pairs, and rule 23's three numbers, above; the fields in order:
+`docs/dev/README.md`, "Chunk 22: performance") and a table. On the test level, by default, the three cases
 the numbers in `docs/dev/README.md` come from (`start`, `stress-still`,
 `stress-moving`); on another level (`--level`, chunk LD3), `start` (the
 level as new) and every fixture of its folder with a save, each after a

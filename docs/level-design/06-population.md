@@ -58,6 +58,43 @@ Order matters: section 1 starts with the first slime alone, so put a
 sleeper a base slime reaches first, and a second of the first slime's
 species early, so the pair can fuse and reach higher.
 
+## Where slimes gather awake (rule 23)
+
+A pile that rests costs little; an **awake cluster** (a group of touching
+slimes that all cost physics) keeps waking itself and costs every tick.
+Rule 23: no spot where many slimes gather awake. Keep these apart:
+
+- a bowl or dip next to a basket (the train queues in the dip while the
+  basket fills, and the basket's drain lands on the queue);
+- a basket's outlet releasing into a crowd (a hollow it rolls into, the
+  queue at a climb): each slime released lands on the ones before it;
+- a narrow ledge where the train queues;
+- the landing spot of a sleeper shelf next to any of these.
+
+Give a basket's outlet flat, open ground onward, and put dips and climbs a
+screen or more away from baskets and outlets.
+
+The measure: the **largest awake cluster** over the level's own scripted
+runs (its played test from fresh, filling every basket, and each basket's
+fire-and-drain; the `stress-*` fixtures are excepted) stays at or under
+**20 slimes**, or goes above it for at most **5 s in a row**. The limit is
+proposed until it is calibrated. A cluster the player builds with calls is
+accepted. The checker can't play your level, so its rule 23 line is
+MANUAL and says where the result comes from
+([09](09-check-the-rules.md)):
+
+- your level's test plays section 1 from fresh through its basket's
+  fire-and-drain and fails when the rule fails; it prints the numbers:
+  ```
+  rule 23 over section 1's play: largest_cluster=6 above_limit_s=0.0 longest_above_s=0.0: rule 23 PASS (above 20 slimes for more than 5 s in a row fails)
+  ```
+  Add your later sections' plays to it the same way
+  ([08](08-fixtures-and-testing.md));
+- the level bench prints the same three numbers at the end of every
+  `RESULT` line, over each case's timed ticks (numbers only, no verdict:
+  a bench case isn't a played run), so a fixture of a crowded spot shows
+  how big its cluster gets.
+
 ## Check it
 
 ```sh

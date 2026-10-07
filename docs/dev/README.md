@@ -4762,7 +4762,11 @@ earlier bench in these notes.
     `ticks`, `lead_in`, `rested_at` (the tick `stress-still`'s pile rested
     at, `-` for the other cases), `median_ms`, `p95_ms`, `max_ms`,
     `mean_ms`, `physics`, `on_screen`, `in_range`, `parked`, `resting`
-    (before -> after), `zoom`, `camera_steady`, `active`, `pairs`.
+    (before -> after), `zoom`, `camera_steady`, `active`, `pairs`, and
+    since chunk 24 (item 24.7) level rule 23's `largest_cluster`,
+    `above_limit_s` and `longest_above_s` over the timed ticks
+    (`ClusterWatch`, `docs/dev/level-tooling.md`; the table's last three
+    columns).
     `physics`, `on_screen`, `in_range` and `parked` are the debug overlay's
     counts (`DebugCounts.count_slimes`, see "Debug overlay") at the end of
     the timed ticks. `active` and `pairs` are means over the timed ticks:

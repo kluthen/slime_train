@@ -1,8 +1,9 @@
 # 09 Check the rules
 
 The level-rules checker goes through every rule of
-[`specs/level-design.md`](../../specs/level-design.md), 1 to 22, on your
-level's scene, and says what it could check and what is left to you.
+[`specs/level-design.md`](../../specs/level-design.md), 1 to 23, on your
+level's scene, and says what it could check and what is left to you
+(rules 24 and 25 have no check yet: read them in the spec).
 
 ```sh
 tools/level.sh check --level=zz-tutorial
@@ -69,10 +70,33 @@ rule 19  MANUAL  A framing zone wherever a wider view is needed
          manual: where a wider view is needed (a branch's hint, a basket and its gate, a big pile) is judged by eye
          note: the level has no framing zone
 ...
-check_level: 21 PASS, 0 FAIL, 1 MANUAL, 0 N/A, 0 warnings, 5.0 s
+rule 23  MANUAL  No spot where many slimes gather awake
+         manual: the result comes from the level's own scripted runs, which this checker can't play: the level's played test (from fresh, filling every basket, each basket's fire-and-drain; its rule 23 line, ClusterWatch) and tools/level.sh bench --level=zz-tutorial (largest_cluster, above_limit_s, longest_above_s on each RESULT line); the largest awake cluster above 20 slimes for more than 5 s in a row fails (stress-* fixtures excepted). By eye: keep apart a bowl or dip next to a basket, an outlet releasing into a crowd, a narrow ledge where the train queues, and a sleeper shelf's landing spot next to any of these
+         note: the limit is proposed, to calibrate (O107): ClusterWatch.LIMIT 20 slimes, HOLD_SECONDS 5 s
+check_level: 21 PASS, 0 FAIL, 2 MANUAL, 0 N/A, 0 warnings, 5.0 s
 ```
 
 (The freshly scaffolded skeleton, before any edit.)
+
+## Rule 23: where its result comes from
+
+Rule 23 (no spot where many slimes gather awake) is measured by playing
+the level, which the checker can't do: its line is always MANUAL and says
+where the result is. Like rule 12, whose proof is the level's played test,
+rule 23's verdict is **your level's test**: it plays section 1 from fresh
+through its basket's fire-and-drain, watches the largest awake cluster
+(`ClusterWatch`), prints its numbers and fails when it stays above 20
+slimes for more than 5 s in a row:
+
+```sh
+tools/test.sh -gdisable_colors -gselect=test_level_zz-tutorial
+```
+
+The level bench prints the same numbers per case, without a verdict
+(`largest_cluster`, `above_limit_s`, `longest_above_s`,
+[06](06-population.md)). When the test fails on it, look at the spot where
+the cluster forms in test mode and move apart what gathers slimes there
+([06](06-population.md), "Where slimes gather awake").
 
 ## A warning: a section that may not progress
 
@@ -111,8 +135,10 @@ front of a sleeper (rule 9, [07](07-decoration.md)).
 
 ## The test level passes
 
-On `test` (the default level), every rule passes (with warnings,
-below):
+On `test` (the default level), every rule the checker checks by code
+passes (with warnings, below; rule 23's numbers are measured, not judged
+yet: its section 3 is the stress area, and the limit waits for its
+calibration):
 
 ```sh
 tools/level.sh check --rule=22

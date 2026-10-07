@@ -27,14 +27,14 @@ const STATUSES := [LevelChecker.PASS, LevelChecker.FAIL, LevelChecker.MANUAL, Le
 const BASE_STATUSES := {
 	1: "PASS", 2: "PASS", 3: "PASS", 4: "PASS", 5: "N/A", 6: "PASS", 7: "PASS", 8: "PASS",
 	9: "PASS", 10: "PASS", 11: "PASS", 12: "PASS", 13: "PASS", 14: "PASS", 15: "PASS",
-	16: "PASS", 17: "PASS", 18: "PASS", 19: "PASS", 20: "PASS", 21: "PASS", 22: "PASS",
+	16: "PASS", 17: "PASS", 18: "PASS", 19: "PASS", 20: "PASS", 21: "PASS", 22: "PASS", 23: "MANUAL",
 }
 ## The test level's status per rule (fast): its fusion dips make rule 5
 ## apply; everything else the code checks passes but KNOWN_BREAKS.
 const TEST_LEVEL_STATUSES := {
 	1: "PASS", 2: "PASS", 3: "PASS", 4: "PASS", 5: "PASS", 6: "PASS", 7: "PASS", 8: "PASS",
 	9: "PASS", 10: "PASS", 11: "PASS", 12: "PASS", 13: "PASS", 14: "PASS", 15: "PASS",
-	16: "PASS", 17: "PASS", 18: "PASS", 19: "PASS", 20: "PASS", 21: "PASS", 22: "PASS",
+	16: "PASS", 17: "PASS", 18: "PASS", 19: "PASS", 20: "PASS", 21: "PASS", 22: "PASS", 23: "MANUAL",
 }
 ## Known breaks of the rules in the test level, reported rather than hidden:
 ## rule -> {"ids": the stable IDs its findings name, "why"}. Each is checked
@@ -191,7 +191,7 @@ func test_the_base_level_loads_and_fails_no_rule() -> void:
 	assert_eq(_statuses(results), BASE_STATUSES)
 
 
-func test_check_all_covers_rules_1_to_22_once_with_valid_results() -> void:
+func test_check_all_covers_rules_1_to_23_once_with_valid_results() -> void:
 	var results := _checker(_base()).check_all(true)
 	var rules := []
 	for result in results:
@@ -204,9 +204,21 @@ func test_check_all_covers_rules_1_to_22_once_with_valid_results() -> void:
 		if result["status"] in [LevelChecker.MANUAL, LevelChecker.NA]:
 			assert_false(str(result["manual"]).is_empty() and result["notes"].is_empty(), "rule %d says why"
 					% result["rule"])
-	assert_eq(rules, range(1, 23))
+	assert_eq(rules, range(1, 24))
 	var some := _checker(_base()).check_all(true, [17, 4])
 	assert_eq(some.map(func(result): return result["rule"]), [4, 17], "a selection, in order")
+
+
+## Rule 23 can't be checked from the scene: MANUAL, its line pointing at
+## the level's played test and the level bench (chunk 24, item 24.7).
+func test_rule_23_is_manual_and_says_where_its_result_comes_from() -> void:
+	var result := _checker(_base()).check(23)
+	assert_eq(result["status"], LevelChecker.MANUAL)
+	assert_eq(result["title"], "No spot where many slimes gather awake")
+	for fragment in ["played test", "tools/level.sh bench --level=synthetic", "largest_cluster", "above 20 slimes",
+			"5 s in a row", "stress-* fixtures excepted", "a bowl or dip next to a basket"]:
+		assert_string_contains(result["manual"], fragment)
+	assert_string_contains(str(result["notes"]), "O107")
 
 
 func test_behaviour_is_skipped_when_fast() -> void:
@@ -225,7 +237,7 @@ func test_a_level_without_a_loop_fails_to_load_and_the_loop_rules_do_not_apply()
 	var one := checker.check(1, true)
 	assert_eq(one["status"], LevelChecker.NA)
 	assert_true(str(one["notes"]).contains("no loop"))
-	assert_eq(checker.check_all(true).size(), 22)
+	assert_eq(checker.check_all(true).size(), 23)
 
 
 # --- One broken variant per rule -------------------------------------------------
@@ -499,8 +511,8 @@ func test_the_text_and_json_forms() -> void:
 	var json := LevelChecker.to_json_data(results)
 	var parsed = JSON.parse_string(JSON.stringify(json))
 	assert_not_null(parsed, "valid JSON (no NAN)")
-	assert_eq(parsed.size(), 23)
-	assert_eq(LevelChecker.counts(results), {"PASS": 20, "FAIL": 1, "MANUAL": 0, "N/A": 1})
+	assert_eq(parsed.size(), 24)
+	assert_eq(LevelChecker.counts(results), {"PASS": 20, "FAIL": 1, "MANUAL": 1, "N/A": 1})
 
 
 # --- The test level --------------------------------------------------------------
@@ -572,7 +584,7 @@ func test_the_command_line_checks_the_test_level() -> void:
 	for line in run["text"].split("\n"):
 		if RegEx.create_from_string("^rule \\d+ +(PASS|FAIL|MANUAL|N/A) ").search(line) != null:
 			rule_lines += 1
-	assert_eq(rule_lines, 22, run["text"])
+	assert_eq(rule_lines, 23, run["text"])
 	assert_true(run["text"].contains("check_level: level test (version 2): 3 sections, 200 base slimes"), run["text"])
 	assert_true(run["text"].contains("load     PASS    The level loads"), run["text"])
 	assert_true(run["text"].contains("rule 1   PASS    "), run["text"])
