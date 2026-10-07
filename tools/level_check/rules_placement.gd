@@ -169,6 +169,7 @@ static func _numbering(c: LevelChecker, ids: Array) -> Array:
 ## level bench, ClusterWatch's numbers, as rule 12's played test is its
 ## proof) and the shapes to look for. It doesn't need the loop.
 # @spec-link [[req_level_design_rules]]
+# @spec-link [[rule_no_spot_where_slimes_gather_awake]]
 static func awake_clusters(c: LevelChecker) -> Dictionary:
 	var manual := ("the result comes from the level's own scripted runs, which this checker can't play: the "
 			+ "level's played test (from fresh, filling every basket, each basket's fire-and-drain; its rule 23 "

@@ -21,6 +21,7 @@ extends RefCounted
 ## levels' played tests and the level-rules checker's rule 23 line, which
 ## points at both.
 # @spec-link [[req_level_design_rules]]
+# @spec-link [[rule_no_spot_where_slimes_gather_awake]]
 
 ## Above this many slimes a cluster counts against the rule (rule 23's
 ## proposed limit; 20 is where crowd detail steps to level 1, D140).

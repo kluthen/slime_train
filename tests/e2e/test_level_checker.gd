@@ -211,6 +211,7 @@ func test_check_all_covers_rules_1_to_23_once_with_valid_results() -> void:
 
 ## Rule 23 can't be checked from the scene: MANUAL, its line pointing at
 ## the level's played test and the level bench (chunk 24, item 24.7).
+# @test-link [[rule_no_spot_where_slimes_gather_awake]]
 func test_rule_23_is_manual_and_says_where_its_result_comes_from() -> void:
 	var result := _checker(_base()).check(23)
 	assert_eq(result["status"], LevelChecker.MANUAL)

@@ -71,6 +71,7 @@ extends SceneTree
 ## (a case isn't a level's played run: the played test gives the verdict).
 # @spec-link [[req_platform_and_performance_targets]]
 # @spec-link [[req_level_design_rules]]
+# @spec-link [[rule_no_spot_where_slimes_gather_awake]]
 
 const USAGE := ("usage: tools/level.sh bench [--level=<id>] [--ticks=N] [--fixture=NAME[,NAME...]] [--lead-in=N]"
 		+ " [--phases]")

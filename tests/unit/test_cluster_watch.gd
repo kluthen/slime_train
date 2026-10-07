@@ -4,6 +4,7 @@ extends GutTest
 ## the limit in all and in a row, the verdict at the hold's edge, and that
 ## watch() samples only every SAMPLE_TICKS ticks, read only.
 # @test-link [[req_level_design_rules]]
+# @test-link [[rule_no_spot_where_slimes_gather_awake]]
 
 const Support := preload("res://tests/unit/slime_test_support.gd")
 const ABOVE := ClusterWatch.LIMIT + 1

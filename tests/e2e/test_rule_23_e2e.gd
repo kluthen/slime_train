@@ -24,6 +24,7 @@ extends GutTest
 ## SETTLE_TICKS more (at most RUN_TICKS), the camera holding the bowl and
 ## the basket in view.
 # @test-link [[req_level_design_rules]]
+# @test-link [[rule_no_spot_where_slimes_gather_awake]]
 
 const BOWL_X := -600.0
 const BOWL_WIDTH := 360.0
