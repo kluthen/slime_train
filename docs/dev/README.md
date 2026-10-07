@@ -8102,3 +8102,63 @@ change the runs where basket 3 releases (rule 23's exclusions don't touch
 the game);
 session 7 measures the phone again on a later main (normal play and
 `loop-start-pile` included).
+
+## DoD 30's floor half on the phone emulation (2026-10-07)
+
+[DoD 30]'s floor half (D167: until a floor phone exists, it is judged on
+the phone emulation, "the weaker" of the two). Measured only, main
+6f6cef4, nothing changed in the game. The floor targets: at least 30 fps
+in the realistic worst case (the level's largest pile on one screen, a
+full basket plus the train, mostly still: `s3-basket-59of60`), 30 fps for
+`stress-dense`, and `stress-moving`'s abuse target (no crash, no freeze,
+at least 15 fps), read as the mean over a 62 s run with the 5th
+percentile reported (DoD 30's proposed reading).
+
+**The method**, the same as the "before" numbers' (chunks 22l and 22m,
+2026-10-03, so the two compare): `tools/perf_slow.sh --pin=main
+--seconds=62 <fixture> --crowd-detail=auto --tick=native` (2 busy loops
+on the last core, the main thread pinned to it after 3 s, uncapped,
+seed 1, windowed 1152 x 648, labels off), the figures over the pinned
+`PERF` lines (t >= 6.9 s, 34 lines each): fps mean, p50, p5 and min
+(nearest rank, as `perf_summary.py`), ms per tick weighted by ticks, the
+max ticks in a frame (the cap is 2) and the lines at the cap (2 ticks a
+frame on the mean, 1.95 or more; before, `stress-dense` and
+`stress-moving` were there on every line, `s3-basket-59of60` on 9 of 34),
+the `PERF_CEILING` steps. The runs
+one after the other under the Godot lock, nothing else running (load
+average 1.0 to 3.1, the runs' own). Before: the GDScript tick, before
+chunk 22c (no detail ceiling, every crowd at D140's level), before items
+24.3, O126 and chunk 24g; after: the native tick, `auto` (the shipping
+mode). `loop-start-pile` had no emulation run before.
+
+| Fixture | Before: fps mean / p50 / p5 / min | tick ms | After: fps mean / p50 / p5 / min | tick ms | max ticks a frame (lines at 2) | Ceiling steps |
+|---|---|---|---|---|---|---|
+| `s3-basket-59of60`, run 1 | 35.0 / 31.0 / 26.9 / 25.8 | 10.54 | 61.0 / 62.5 / 27.6 / 26.6 | 6.27 | 2 (3 of 34) | 5: 0-1-2-1-2-3 by t 13.1, held at 3 |
+| `s3-basket-59of60`, run 2 | - | - | 59.9 / 61.4 / 28.1 / 27.7 | 6.35 | 2 (2 of 34) | 7: 0-1-2-3 by t 13.0, 3-2-1 at t 19-22, 1-2-3 by t 26.1, held |
+| `stress-dense` | 22.9 / 22.8 / 22.2 / 21.6 | 16.29 | 30.5 / 30.2 / 27.9 / 27.6 | 10.97 | 2 (19 of 34) | 3: the climb to 3 by t 6.0, held |
+| `stress-moving` | 16.1 / 16.5 / 13.0 / 12.6 | 25.15 | 28.2 / 27.9 / 23.7 / 20.5 | 12.42 | 2 (23 of 34) | 3: the climb to 3 by t 6.0, held |
+| `loop-start-pile` | - | - | 159.9 / 160.4 / 107.9 / 106.5 | 3.15 | 2 (0 of 34) | 2: 0-1 at t 7.9, back to 0 at t 10.9 |
+
+- **`s3-basket-59of60`** (basket 3 full, then firing and draining, with
+  the train in the bowl): at least 51.9 fps in every line from the pin to
+  t 62 on both runs, the full basket and its drain included. Under 30
+  only at the run's end (t 67 to 73, 3 lines a run, 26.6 to 29.7 fps): a
+  moving crowd passes through the view (largest cluster up to 67, physics
+  87, fusions taking the bodies from 200 to 183), the ticks at 2 a frame
+  (the simulation briefly behind real time). Those lines are the p5. The
+  camera stays on section 3 throughout, so they aren't the loop start's
+  crowding.
+- **`stress-dense`**: the mean and p50 just above 30, 13 of its 34 lines
+  between 27.6 and 30, at the tick cap in 19.
+- **`stress-moving`**: no crash, no freeze (the worst frame 61.4 ms, no
+  error in the log), at least 20.5 fps in every line.
+- **`loop-start-pile`** (camera on section 1): far above 30.
+
+**Verdict: DoD 30's floor half is met on the phone emulation**, on the
+mean over each 62 s run: `s3-basket-59of60` 61.0 and 59.9 (target 30),
+`stress-dense` 30.5 (target 30, by a thin margin: its p5 27.9),
+`stress-moving` 28.2 with a min of 20.5 (abuse target 15),
+`loop-start-pile` 159.9. Reported, not gated: the p5s under 30 of
+`s3-basket-59of60` (27.6, 28.1: the moving crowd at the run's end, not the
+still pile) and of `stress-dense` (27.9). Raw logs:
+`build/perf/desktop-<fixture>-slow-main-20261007-23*.log` (git-ignored).
