@@ -192,8 +192,8 @@ var doors: Array[TerrainSegments] = []
 var rest_enabled := true
 ## The debug phase timers of tick() (chunk 5N, U0a: src/debug/phase_timers.gd,
 ## PhaseTimers.attach), or null: off, as in every normal run (one null check
-## per pass, no clock read). Measurement only: tick() and _solve_terrain()
-## hand it start() and lap(TickPhase), nothing reads it back, so the state
+## per pass, no clock read). Measurement only: tick() and the terrain pass
+## (SlimeSolverGD.solve_terrain) hand it start() and lap(TickPhase), nothing reads it back, so the state
 ## and its hash are the same either way. Not in dump(). Untyped: src/sim
 ## names nothing in src/debug (left out of release).
 var phases = null
@@ -372,11 +372,10 @@ static func _polygon_area(n: int, r: float) -> float:
 	return 0.5 * n * r * r * sin(TAU / n)
 
 
-## (shortest, longest) seconds between two automatic hops.
-# @spec-link [[req_hopping_behavior]]
+## (shortest, longest) seconds between two automatic hops
+## (SlimeHops.interval_range).
 static func hop_interval_range(slime_size: int) -> Vector2:
-	var scale := 1.0 + HOP_INTERVAL_PER_SIZE * (slime_size - 1)
-	return Vector2(HOP_INTERVAL_MIN, HOP_INTERVAL_MAX) * scale
+	return SlimeHops.interval_range(slime_size)
 
 
 ## The take-off velocity (px/s) of a hop along `direction` (any length).
@@ -645,33 +644,29 @@ func brake(slime_id: int, share: float) -> void:
 ## its mean motion down the slope is taken away and `lift` px/s up it added
 ## (the Train gives a share of the tick's pull down the slope, so the tick
 ## ends nearly where it started). Its spin, squish and motion up the slope
-## are left alone. How the Train holds a train slime standing on a climb.
-# @spec-link [[req_hopping_behavior]]
-# @spec-link [[rule_train_climbs_without_sliding_back]]
+## are left alone. How the Train holds a train slime standing on a climb
+## (SlimeHops.hold_on_slope).
 func hold_on_slope(slime_id: int, tangent: Vector2, lift: float) -> void:
 	var s := index_of(slime_id)
-	if s < 0:
-		return
-	var along := _velocity_at(s).dot(tangent)
-	var step := tangent * (maxf(along, 0.0) + lift - along) * _h
-	for i in range(first[s], first[s] + npts[s]):
-		prev[i] -= step
+	if s >= 0:
+		SlimeHops.hold_on_slope(self, s, tangent, lift)
 
 
-## Whether the slime hops on its own: train and free slimes not held still.
+## Whether the slime hops on its own: train and free slimes not held still
+## (SlimeHops.can_hop).
 func can_hop(slime_id: int) -> bool:
 	var s := index_of(slime_id)
-	return s >= 0 and _can_hop_at(s)
+	return s >= 0 and SlimeHops.can_hop(state[s], held[s], calm[s])
 
 
 ## Makes a supported slime hop now along `direction`, `strength` 1 for a
 ## normal hop. False (and nothing happens) for a missing slime, one that
-## doesn't hop in its state, or one not on the ground.
+## doesn't hop in its state, or one not on the ground (SlimeHops.hop_at).
 func hop(slime_id: int, direction: Vector2, strength: float) -> bool:
 	var s := index_of(slime_id)
-	if s < 0 or not _can_hop_at(s) or supported[s] == 0:
+	if s < 0 or not SlimeHops.can_hop(state[s], held[s], calm[s]) or supported[s] == 0:
 		return false
-	_hop_at(s, hop_velocity(size[s], direction, strength))
+	SlimeHops.hop_at(self, s, hop_velocity(size[s], direction, strength))
 	return true
 
 
@@ -745,83 +740,27 @@ func split(slime_id: int) -> PackedInt32Array:
 # --- Saves ------------------------------------------------------------------
 
 ## create() with a given id, for loading a save: `slime_id` must be at least
-## next_id (slimes are created in ascending id order). Returns the id, or -1.
+## next_id (slimes are created in ascending id order). Returns the id, or -1
+## (SlimeBodiesSave.create_with_id).
 func create_with_id(slime_id: int, slime_species: int, slime_size: int, at: Vector2,
 		slime_state := STATE_TRAIN) -> int:
-	if slime_id < next_id:
-		push_error("SlimeBodies: id %d is taken or out of order (next is %d)" % [slime_id, next_id])
-		return -1
-	var kept := next_id
-	next_id = slime_id
-	var made := create(slime_species, slime_size, at, slime_state)
-	if made < 0:
-		next_id = kept
-	return made
+	return SlimeBodiesSave.create_with_id(self, slime_id, slime_species, slime_size, at, slime_state)
 
 
 ## Everything a save needs to put the slime's body back exactly: the points
 ## and their previous positions (so the velocities), the solver's centre, the
-## hop timer, the heading, held and supported, and its stream's state.
-## Empty for a missing slime.
+## hop timer, the heading, held and supported, its stream's state, its calm
+## and detail. Empty for a missing slime (SlimeBodiesSave.body_of).
 func body_of(slime_id: int) -> Dictionary:
-	var s := index_of(slime_id)
-	if s < 0:
-		return {}
-	var f := first[s]
-	var n := npts[s]
-	return {"points": pos.slice(f, f + n), "previous": prev.slice(f, f + n), "centre": centre[s],
-			"hop_timer": hop_timer[s], "heading": heading[s], "held": held[s] != 0,
-			"supported": supported[s] != 0, "rng_state": _streams[s].state,
-			"calm": calm[s], "still": still_ticks[s], "anchor": rest_anchor[s], "pile": pile[s],
-			"detail": detail[s]}
+	return SlimeBodiesSave.body_of(self, slime_id)
 
 
 ## Puts back a body from body_of(). False (and nothing changes) when the
-## slime is missing or the point counts don't match its size (at the body's
-## detail level, "detail", 0 when absent). The body's "calm" and "still" are put
-## back too; a body without them leaves the slime ACTIVE. A body that moves
-## the slime by more than a pixel wakes the resting slimes touching where it
-## was (a slime taken out from under a pile, a basket's release), not the
-## rest of their pile (D156).
-# @spec-link [[req_offscreen_simulation]]
+## slime is missing or the point counts don't match its size at the body's
+## detail level. A body that moves the slime by more than a pixel wakes the
+## resting slimes touching where it was (SlimeBodiesSave.set_body).
 func set_body(slime_id: int, body: Dictionary) -> bool:
-	var s := index_of(slime_id)
-	if s < 0:
-		return false
-	var points: PackedVector2Array = body["points"]
-	var previous: PackedVector2Array = body["previous"]
-	var level: int = body.get("detail", 0)
-	if level < 0 or level > MAX_DETAIL:
-		push_error("SlimeBodies: invalid detail level %d" % level)
-		return false
-	var n := detail_points_for(size[s], level)
-	if points.size() != n or previous.size() != n:
-		return false
-	if detail[s] != level:
-		detail[s] = level
-		_resample(s, n)
-	var was: Vector2 = centre[s]
-	var f := first[s]
-	for k in n:
-		pos[f + k] = points[k]
-		prev[f + k] = previous[k]
-	_centre_ok[s] = 0
-	centre[s] = body["centre"]
-	hop_timer[s] = body["hop_timer"]
-	heading[s] = body["heading"]
-	held[s] = 1 if body["held"] else 0
-	supported[s] = 1 if body["supported"] else 0
-	_streams[s].state = body["rng_state"]
-	if body.has("calm"):
-		calm[s] = int(body["calm"])
-		still_ticks[s] = int(body.get("still", 0))
-		rest_anchor[s] = body.get("anchor", centre[s])
-		pile[s] = int(body.get("pile", 0))
-	else:
-		_wake_at(s)
-	if centre[s].distance_squared_to(was) > 1.0 and calm[s] != PARKED:
-		_wake_around(was, bound_r[s], s)
-	return true
+	return SlimeBodiesSave.set_body(self, slime_id, body)
 
 
 # --- Calm and detail (chunk 15) ---------------------------------------------
@@ -845,41 +784,32 @@ func detail_of(slime_id: int) -> int:
 
 
 ## How many slimes cost physics on a tick: calm ACTIVE and not sleepers
-## (resting and parked slimes, and sleepers, are never integrated).
-# @spec-link [[req_offscreen_simulation]]
+## (SlimeDetail.crowd_count).
 func crowd_count() -> int:
-	var count := 0
-	for s in slime_count:
-		if calm[s] == ACTIVE and state[s] != STATE_SLEEPER:
-			count += 1
-	return count
+	return SlimeDetail.crowd_count(self)
 
 
 ## Parks the slime (off screen): from now on it is neither simulated nor
-## touched, not even as a wall, until unpark(). Its velocity is dropped.
-# @spec-link [[req_offscreen_simulation]]
+## touched, not even as a wall, until unpark() (SlimeDetail.park). Offscreen
+## calls it every tick for every far slime: the parked ones return here.
 func park(slime_id: int) -> void:
 	var s := index_of(slime_id)
-	if s < 0 or calm[s] == PARKED:
-		return
-	calm[s] = PARKED
-	still_ticks[s] = 0
-	_set_velocity_at(s, Vector2.ZERO)
-	_drift[s] = Vector2.ZERO
+	if s >= 0 and calm[s] != PARKED:
+		SlimeDetail.park(self, s)
 
 
-## Simulates a parked slime again, at rest where it was put.
+## Simulates a parked slime again, at rest where it was put
+## (SlimeDetail.unpark). Offscreen calls it every tick for every near slime:
+## the unparked ones return here.
 func unpark(slime_id: int) -> void:
 	var s := index_of(slime_id)
-	if s < 0 or calm[s] != PARKED:
-		return
-	calm[s] = ACTIVE
-	still_ticks[s] = 0
-	_set_velocity_at(s, Vector2.ZERO)
+	if s >= 0 and calm[s] == PARKED:
+		SlimeDetail.unpark(self, s)
 
 
 ## Moves the whole slime by `delta`, its velocity and shape kept (how
-## Offscreen carries a parked slime along).
+## Offscreen carries a parked slime along, every tick: so it stays here, on
+## the bodies' own arrays).
 func translate(slime_id: int, delta: Vector2) -> void:
 	var s := index_of(slime_id)
 	if s < 0:
@@ -900,14 +830,10 @@ func wake(slime_id: int) -> void:
 		_wake_at(s)
 
 
-## Wakes every resting slime whose centre is in `box`. Returns how many.
-# @spec-link [[req_offscreen_simulation]]
+## Wakes every resting slime whose centre is in `box`. Returns how many
+## (SlimeDetail.wake_resting_in).
 func wake_resting_in(box: Rect2) -> int:
-	var woken := 0
-	for s in slime_count:
-		if calm[s] == RESTING and box.has_point(centre[s]):
-			woken += _wake_at(s)
-	return woken
+	return SlimeDetail.wake_resting_in(self, box)
 
 
 ## Wakes every resting slime whose ring may reach within `radius` of `point`.
@@ -918,41 +844,17 @@ func wake_around(point: Vector2, radius: float) -> int:
 
 
 ## Gives the slime's ring the point count of detail `level` (0 to
-## MAX_DETAIL), read off its current shape (_resample), whatever its calm.
-## False when nothing changed.
-# @spec-link [[req_offscreen_simulation]]
+## MAX_DETAIL), read off its current shape, whatever its calm. False when
+## nothing changed (SlimeDetail.set_detail).
 func set_detail(slime_id: int, level: int) -> bool:
-	assert(level >= 0 and level <= MAX_DETAIL, "SlimeBodies: invalid detail level %d" % level)
-	var s := index_of(slime_id)
-	if s < 0 or detail[s] == level:
-		return false
-	detail[s] = level
-	_resample(s, _detail_points(s, size[s]))
-	return true
+	return SlimeDetail.set_detail(self, slime_id, level)
 
 
-## set_detail(`level`) on every calm ACTIVE slime, by index: ascending, like
-## ids(), so the same state as one call per id (Offscreen, every tick); a
-## pile slime takes PILE_MAX_DETAIL at most. Resting and parked slimes keep
-## their rings (a reshape would wake a resting pile); they take the level
-## once ACTIVE again, on the next call. Returns how many rings changed.
-# @spec-link [[req_offscreen_simulation]]
+## set_detail(`level`) on every calm ACTIVE slime, a pile slime at
+## PILE_MAX_DETAIL at most; resting and parked slimes keep their rings.
+## Returns how many rings changed (SlimeDetail.set_active_detail).
 func set_active_detail(level: int) -> int:
-	assert(level >= 0 and level <= MAX_DETAIL, "SlimeBodies: invalid detail level %d" % level)
-	# Often every ring already has it: one native count, no loop.
-	if level <= PILE_MAX_DETAIL and detail.count(level) == slime_count:
-		return 0
-	var pile_level := mini(level, PILE_MAX_DETAIL)
-	var changed := 0
-	for s in slime_count:
-		if calm[s] != ACTIVE:
-			continue
-		var wanted := pile_level if _can_rest(s) else level
-		if detail[s] != wanted:
-			detail[s] = wanted
-			_resample(s, _detail_points(s, size[s]))
-			changed += 1
-	return changed
+	return SlimeDetail.set_active_detail(self, level)
 
 
 # --- Ticking ----------------------------------------------------------------
@@ -1041,127 +943,26 @@ func _solve_iteration(sv, ph) -> void:
 		_solve_terrain()
 
 
-## The resting-pile rule (see the class doc), after the tick. A resting
-## slime touching a slime moving faster than WAKE_SPEED wakes, only it: the
-## rest of its pile rests on (the local wake, D156). Each active pile slime
-## counts its still, supported ticks; a group of touching active pile slimes
-## whose every member has counted REST_TICKS rests together. Piles rest
-## whole (a half-resting group would make its moving half take every
-## overlap against the wall, jolt, and wake it again); they wake locally
-## (D156; D96 woke them whole).
-# @spec-link [[req_offscreen_simulation]]
+## The resting-pile rule (see the class doc), after the tick, in GDScript:
+## SlimeDetail.rest (the native equivalence tests call this).
 func _rest() -> void:
-	if not rest_enabled:
-		for s in slime_count:
-			_wake_at(s)
-		return
-	var drift2 := REST_DRIFT * REST_DRIFT
-	var fast2 := WAKE_SPEED * _h * WAKE_SPEED * _h
-	for k in _pair_touch.size():
-		if _pair_touch[k] == 0:
-			continue
-		var a: int = _pairs[2 * k]
-		var b: int = _pairs[2 * k + 1]
-		if calm[a] == RESTING and calm[b] == ACTIVE and state[b] != STATE_SLEEPER:
-			if _drift[b].length_squared() > fast2:
-				_wake_at(a)
-		elif calm[b] == RESTING and calm[a] == ACTIVE and state[a] != STATE_SLEEPER:
-			if _drift[a].length_squared() > fast2:
-				_wake_at(b)
-	var ready := false
-	for s in slime_count:
-		if calm[s] != ACTIVE or not _can_rest(s):
-			continue
-		if supported[s] == 0 or centre[s].distance_squared_to(rest_anchor[s]) > drift2:
-			still_ticks[s] = 0
-			rest_anchor[s] = centre[s]
-			continue
-		still_ticks[s] = mini(still_ticks[s] + 1, REST_TICKS)
-		ready = ready or still_ticks[s] == REST_TICKS
-	if ready:
-		_rest_piles()
-
-
-## Rests every group of touching active pile slimes whose members have all
-## been still for REST_TICKS (union-find over the touching pairs).
-func _rest_piles() -> void:
-	var root := PackedInt32Array()
-	root.resize(slime_count)
-	for s in slime_count:
-		root[s] = s
-	for k in _pair_touch.size():
-		if _pair_touch[k] == 0:
-			continue
-		var a: int = _pairs[2 * k]
-		var b: int = _pairs[2 * k + 1]
-		if calm[a] != ACTIVE or calm[b] != ACTIVE or not _can_rest(a) or not _can_rest(b):
-			continue
-		var ra := _find(root, a)
-		var rb := _find(root, b)
-		if ra != rb:
-			root[maxi(ra, rb)] = mini(ra, rb)
-	# A group rests when none of its members is short of REST_TICKS.
-	var short := PackedByteArray()
-	short.resize(slime_count)
-	for s in slime_count:
-		if calm[s] == ACTIVE and _can_rest(s) and still_ticks[s] < REST_TICKS:
-			short[_find(root, s)] = 1
-	for s in slime_count:
-		if calm[s] != ACTIVE or not _can_rest(s):
-			continue
-		var r := _find(root, s)
-		if short[r] != 0:
-			continue
-		calm[s] = RESTING
-		still_ticks[s] = 0
-		pile[s] = id[r]
-		_set_velocity_at(s, Vector2.ZERO)
-		_drift[s] = Vector2.ZERO
-
-
-static func _find(root: PackedInt32Array, s: int) -> int:
-	while root[s] != s:
-		root[s] = root[root[s]]
-		s = root[s]
-	return s
+	SlimeDetail.rest(self)
 
 
 ## The whole state of the slimes, as plain data in id order, for
 ## Simulation.dump(). Centres are rounded to 0.01 px and timers to 0.1 ms, so
-## the dump is stable to print; the rng states are strings (64-bit).
+## the dump is stable to print; the rng states are strings (64-bit)
+## (SlimeBodiesSave.dump).
 func dump() -> Array:
-	var out := []
-	for s in slime_count:
-		out.append({
-			"id": id[s],
-			"species": species[s],
-			"size": size[s],
-			"state": STATE_NAMES[state[s]],
-			"centre": _centre_at(s).snapped(Vector2(0.01, 0.01)),
-			"velocity": _velocity_at(s).snapped(Vector2(0.01, 0.01)),
-			"hop_timer": snappedf(hop_timer[s], 0.0001),
-			"heading": heading[s],
-			"held": held[s] != 0,
-			"supported": supported[s] != 0,
-			"rng_state": str(_streams[s].state),
-			"calm": CALM_NAMES[calm[s]],
-			"still": still_ticks[s],
-			"pile": pile[s],
-			"detail": detail[s],
-		})
-	return out
+	return SlimeBodiesSave.dump(self)
 
 
 # --- Internals --------------------------------------------------------------
 
-func _can_hop_at(s: int) -> bool:
-	return (state[s] == STATE_TRAIN or state[s] == STATE_FREE) and held[s] == 0 and calm[s] == ACTIVE
-
-
 ## Whether the slime may rest: the pile states, which never hop (a slime in a
-## basket, or asleep at bedtime).
+## basket, or asleep at bedtime; SlimeDetail.can_rest).
 func _can_rest(s: int) -> bool:
-	return state[s] == STATE_IN_BASKET or state[s] == STATE_BEDTIME_ASLEEP
+	return SlimeDetail.can_rest(state[s])
 
 
 ## Whether the slime is a wall in the contacts: a sleeper, or resting.
@@ -1202,54 +1003,10 @@ func _wake_around(point: Vector2, radius: float, except: int) -> int:
 	return woken
 
 
-## The ring point count of slime index `s` at `slime_size`, at its detail.
-func _detail_points(s: int, slime_size: int) -> int:
-	return POINTS_BY_DETAIL[detail[s]][slime_size]
-
-
-## Gives slime index `s` a ring of `n` points read off its current shape: the
-## new points sit at even angles from its point 0's, each at the radius of
-## the current ring there (its radial profile), all moving at the slime's
-## mean velocity; the rest ring, area and edge are the regular `n`-gon's.
-## Its slice changes size like in _reshape.
+## Gives slime index `s` a ring of `n` points read off its current shape
+## (SlimeDetail.resample).
 func _resample(s: int, n: int) -> void:
-	var f := first[s]
-	var old := npts[s]
-	var c := _centre_at(s)
-	var velocity := _velocity_at(s)
-	var a0 := (pos[f] - c).angle()
-	# Not ring_radius[s] (32-bit): the radius _reshape uses, so the rest ring
-	# and area are bit for bit a fresh ring's (a reloaded save resamples).
-	var r := ring_radius_for(size[s])
-	var ring := PackedVector2Array()
-	var back := PackedVector2Array()
-	var offs := PackedVector2Array()
-	ring.resize(n)
-	back.resize(n)
-	offs.resize(n)
-	var step := velocity * _h
-	for k in n:
-		var t := float(k) * old / n
-		var i := int(t)
-		var fr := t - i
-		var r0 := (pos[f + i] - c).length()
-		var r1 := (pos[f + (i + 1) % old] - c).length()
-		var a := a0 + TAU * k / n
-		ring[k] = c + Vector2.from_angle(a) * (r0 + (r1 - r0) * fr)
-		back[k] = ring[k] - step
-		offs[k] = _rest_offset(k, n, r)
-	pos = pos.slice(0, f) + ring + pos.slice(f + old)
-	prev = prev.slice(0, f) + back + prev.slice(f + old)
-	rest_off = rest_off.slice(0, f) + offs + rest_off.slice(f + old)
-	_centre_ok[s] = 0
-	for t in range(s + 1, slime_count):
-		first[t] += n - old
-	npts[s] = n
-	rest_area[s] = _polygon_area(n, r)
-	rest_edge[s] = 2.0 * r * sin(PI / n)
-	centre[s] = c
-	_wake_at(s)
-	topology_version += 1
+	SlimeDetail.resample(self, s, n)
 
 
 ## The mean of slime index `s`'s points: _centre_at() from the cache when its
@@ -1286,93 +1043,16 @@ func _set_velocity_at(s: int, velocity: Vector2) -> void:
 		prev[i] = pos[i] - step
 
 
-func _hop_at(s: int, velocity: Vector2) -> void:
-	var step := velocity * _h
-	for i in range(first[s], first[s] + npts[s]):
-		prev[i] -= step
-	supported[s] = 0
-	hopped.append(id[s])
-
-
-## Automatic hops: each able slime counts its timer down; at zero, if it
-## stands on something, it hops (heading-slanted, strength jittered by its
-## stream, or at its hop_aim when steered) and draws its next interval; if
-## not, it hops on landing. Every hop_aim is then cleared. A train slime's
-## hop goes in train_hopped.
-# @spec-link [[req_hopping_behavior]]
+## Automatic hops, `dt` seconds of them (SlimeHops.auto_hops: the timers,
+## the take-offs, train_hopped; the native equivalence tests call this).
 func _auto_hops(dt: float) -> void:
-	for s in slime_count:
-		if not _can_hop_at(s):
-			continue
-		var t := hop_timer[s] - dt * hop_rate
-		if t > 0.0:
-			hop_timer[s] = t
-			continue
-		hop_timer[s] = 0.0
-		if supported[s] == 0:
-			continue
-		var stream: Rng = _streams[s]
-		var strength := 1.0 + stream.randf_range(-HOP_STRENGTH_JITTER, HOP_STRENGTH_JITTER)
-		var direction := Vector2(heading[s] * HOP_FORWARD, -1.0)
-		if hop_aim[s] != Vector2.ZERO:
-			_hop_at(s, hop_aim[s])
-		else:
-			_hop_at(s, hop_velocity(size[s], direction, strength))
-		if state[s] == STATE_TRAIN:
-			train_hopped.append(id[s])
-		var interval := hop_interval_range(size[s])
-		hop_timer[s] = stream.randf_range(interval.x, interval.y)
-	hop_aim.fill(Vector2.ZERO)
-
-
-## Point `k`'s offset on a rest ring of `n` points and radius `r`: point 0
-## at the bottom. _reshape and _resample share it, so a ring resampled on
-## loading a save (SlimeBodies.set_body) is bit for bit the one made fresh.
-static func _rest_offset(k: int, n: int, r: float) -> Vector2:
-	var a := TAU * k / n + PI * 0.5
-	return Vector2(cos(a), sin(a)) * r
+	SlimeHops.auto_hops(self, dt)
 
 
 ## Gives slime index `s` a fresh rest ring of `slime_size` centred at `at`,
-## moving at `velocity`, replacing its point slice (the later slimes' slices
-## move to stay back to back).
+## moving at `velocity`, replacing its point slice (SlimeDetail.reshape).
 func _reshape(s: int, slime_size: int, at: Vector2, velocity: Vector2) -> void:
-	var n := _detail_points(s, slime_size)
-	var r := ring_radius_for(slime_size)
-	_wake_at(s)
-	var ring := PackedVector2Array()
-	var offs := PackedVector2Array()
-	ring.resize(n)
-	offs.resize(n)
-	for k in n:
-		# Point 0 at the bottom: the ring is mirror-symmetric about the
-		# vertical and stands on a point (its stable resting pose), whatever
-		# the point count, so a resting slime doesn't roll.
-		var off := _rest_offset(k, n, r)
-		offs[k] = off
-		ring[k] = at + off
-	var step := velocity * _h
-	var back := PackedVector2Array()
-	back.resize(n)
-	for k in n:
-		back[k] = ring[k] - step
-	var f := first[s]
-	var old := npts[s]
-	pos = pos.slice(0, f) + ring + pos.slice(f + old)
-	prev = prev.slice(0, f) + back + prev.slice(f + old)
-	rest_off = rest_off.slice(0, f) + offs + rest_off.slice(f + old)
-	_centre_ok[s] = 0
-	for t in range(s + 1, slime_count):
-		first[t] += n - old
-	npts[s] = n
-	size[s] = slime_size
-	ring_radius[s] = r
-	rest_area[s] = _polygon_area(n, r)
-	rest_edge[s] = 2.0 * r * sin(PI / n)
-	bound_r[s] = r * 1.3
-	centre[s] = at
-	angle0[s] = 0.0
-	topology_version += 1
+	SlimeDetail.reshape(self, s, slime_size, at, velocity)
 
 
 func _remove_at(s: int) -> void:
@@ -1440,443 +1120,32 @@ func gravity_for(slime_state: int) -> Vector2:
 	return free_down * gravity.length()
 
 
-## Verlet step: gravity (gravity_for the slime's state), air drag, and
-## internal damping (each point's velocity pulled toward its slime's mean).
-## Also refreshes each slime's centre and point-0 angle.
+# The GDScript solver passes, each run whole by SlimeSolverGD
+# (src/sim/slime_solver.gd) over these bodies' arrays: tick() falls back to
+# them pass by pass (_solve), and the native equivalence tests call them.
+
+## Verlet step: gravity, air drag and internal damping, then each slime's
+## centre and point-0 angle (SlimeSolverGD.integrate).
 func _integrate(h: float) -> void:
-	var p := pos
-	var o := prev
-	var g := gravity * h * h
-	var g_free := gravity_for(STATE_FREE) * h * h
-	var ms := max_speed * h
-	var idamp := internal_damping
-	var damp := 1.0 - air_drag * h
-	for s in slime_count:
-		var f: int = first[s]
-		var cnt: int = npts[s]
-		var end: int = f + cnt
-		if state[s] == STATE_SLEEPER or calm[s] != ACTIVE:
-			# Asleep, resting or parked: it doesn't simulate (its points stay
-			# put), but its point-0 angle is kept right for the contacts.
-			var r_sleep: Vector2 = p[f] - centre[s]
-			angle0[s] = atan2(r_sleep.y, r_sleep.x)
-			_drift[s] = Vector2.ZERO
-			continue
-		var gs: Vector2 = g_free if state[s] == STATE_FREE else g
-		var mean := Vector2.ZERO
-		for i in range(f, end):
-			mean += p[i] - o[i]
-		mean /= cnt
-		var c := Vector2.ZERO
-		for i in range(f, end):
-			var cur: Vector2 = p[i]
-			var v: Vector2 = cur - o[i]
-			v = ((v + (mean - v) * idamp) * damp).limit_length(ms) + gs
-			o[i] = cur
-			var nxt := cur + v
-			p[i] = nxt
-			c += nxt
-		c /= cnt
-		_drift[s] = c - centre[s]
-		centre[s] = c
-		var r0: Vector2 = p[f] - c
-		angle0[s] = atan2(r0.y, r0.x)
+	SlimeSolverGD.integrate(self, h)
 
 
-## Counting sort of the slimes into a uniform grid on their centres, then the
-## list of candidate pairs (index a < index b). Cells are at least as wide as
-## the widest possible pair distance, so neighbouring cells are enough.
+## The slime-pair grid and the candidate pairs (SlimeSolverGD.build_pairs).
 func _build_pairs() -> void:
-	_pairs.clear()
-	# Parked slimes are left out of the grid (they touch nothing).
-	var placed := 0
-	var low := Vector2.INF
-	var high := -Vector2.INF
-	# The highest index of a slime in the grid that isn't a wall (-1: none).
-	var last_mover := -1
-	for s in slime_count:
-		if calm[s] == PARKED:
-			continue
-		placed += 1
-		low = low.min(centre[s])
-		high = high.max(centre[s])
-		# Not _is_wall(s), inlined (calm is ACTIVE or RESTING here).
-		if state[s] != STATE_SLEEPER and calm[s] == ACTIVE:
-			last_mover = s
-	if placed < 2:
-		_pair_touch.resize(0)
-		return
-	var extent := high - low
-	_cell_size = maxf(104.0, maxf(extent.x, extent.y) / 256.0)
-	_grid_origin = low
-	_grid_w = int(extent.x / _cell_size) + 1
-	_grid_h = int(extent.y / _cell_size) + 1
-	var cells := _grid_w * _grid_h
-	_cell_start.resize(cells + 1)
-	_cell_start.fill(0)
-	_cell_items.resize(placed)
-	var inv := 1.0 / _cell_size
-	for s in slime_count:
-		if calm[s] == PARKED:
-			_slime_cell[s] = -1
-			continue
-		var c: Vector2 = centre[s] - low
-		var cell := mini(int(c.y * inv), _grid_h - 1) * _grid_w + mini(int(c.x * inv), _grid_w - 1)
-		_slime_cell[s] = cell
-		_cell_start[cell + 1] += 1
-	for k in cells:
-		_cell_start[k + 1] += _cell_start[k]
-	var fill := _cell_start.slice(0, cells)
-	for s in slime_count:
-		var cell: int = _slime_cell[s]
-		if cell < 0:
-			continue
-		_cell_items[fill[cell]] = s
-		fill[cell] += 1
-	# A pair (s, t) has s < t and at most one wall. A slime after the last
-	# mover is a wall with only walls after it: it pairs with nothing, so
-	# the scan stops at the last mover (none: no pairs).
-	for s in last_mover + 1:
-		var cell: int = _slime_cell[s]
-		if cell < 0:
-			continue
-		var wall_s := _is_wall(s)
-		var cx := cell % _grid_w
-		var cy := cell / _grid_w
-		var cs: Vector2 = centre[s]
-		var rs: float = bound_r[s]
-		for gy in range(maxi(cy - 1, 0), mini(cy + 2, _grid_h)):
-			for gx in range(maxi(cx - 1, 0), mini(cx + 2, _grid_w)):
-				var gc := gy * _grid_w + gx
-				for q in range(_cell_start[gc], _cell_start[gc + 1]):
-					var t: int = _cell_items[q]
-					# Two walls (sleepers, resting slimes) are never paired.
-					if t <= s or (wall_s and _is_wall(t)):
-						continue
-					# Margin: slimes may close in during the tick's substeps.
-					var rr: float = rs + bound_r[t] + 8.0
-					if (centre[t] - cs).length_squared() < rr * rr:
-						_pairs.append(s)
-						_pairs.append(t)
-	_pair_touch.resize(_pairs.size() / 2)
-	_pair_touch.fill(0)
+	SlimeSolverGD.build_pairs(self)
 
 
-## Ring against ring. For each side of a pair, the points of ring a facing b
-## that are inside b's radial profile (read off b's points, ordered by angle
-## around its centre) move out by half the overlap, and the whole of ring b
-## moves back by the same total, so momentum is kept. Also records touching
-## pairs and support (a point resting on the upper half of another ring).
-##
-## Out of b means out on a's side of b's centre. A point of a that has gone
-## past b's centre (seen from a's centre: the rings are deeper in each other
-## than a's radius) moves out along its offset from b's centre mirrored
-## across the line through b's centre square to the centres' line, so the
-## push still parts the rings (same size, away from b's centre). Pushed
-## straight out from b's centre, it moved on away from a's centre: a was
-## drawn into b, the deeper the stronger, until the two centres met and no
-## point was inside the other any more (a slime gobbled by another, O91).
-# @spec-link [[rule_contact_pushes_slimes_apart]]
+## Ring against ring, with touching and support (SlimeSolverGD.solve_contacts).
 func _solve_contacts() -> void:
-	var p := pos
-	var o := prev
-	var mu := slime_friction
-	var np := _pairs.size()
-	var inv_tau := 1.0 / TAU
-	var skin := TOUCH_SKIN
-	var i := 0
-	while i < np:
-		var s0: int = _pairs[i]
-		var s1: int = _pairs[i + 1]
-		var pair := i / 2
-		i += 2
-		var rr: float = bound_r[s0] + bound_r[s1]
-		if (centre[s1] - centre[s0]).length_squared() >= rr * rr:
-			continue
-		for side in 2:
-			var a := s0 if side == 0 else s1
-			var b := s1 if side == 0 else s0
-			var ca: Vector2 = centre[a]
-			var cb: Vector2 = centre[b]
-			var rb: float = bound_r[b] + skin
-			var rb2 := rb * rb
-			var nb: int = npts[b]
-			var fb: int = first[b]
-			var b0: float = angle0[b]
-			var na: int = npts[a]
-			var fa: int = first[a]
-			var dir := cb - ca
-			var ta := (atan2(dir.y, dir.x) - angle0[a]) * inv_tau
-			if ta < 0.0:
-				ta += 1.0
-			var mid := int(ta * na + 0.5)
-			var half := na / 4 + 1
-			var kb := nb * inv_tau
-			var react := Vector2.ZERO
-			var drag := Vector2.ZERO
-			var vb: Vector2 = _drift[b]
-			var touched := false
-			var rests := false
-			# A sleeper (or a resting slime) is a wall: its points only feel
-			# the touch, and a slime
-			# against it takes the whole overlap.
-			var still: bool = _is_wall(a)
-			var against_still: bool = _is_wall(b)
-			var share := 1.0 if against_still else 0.5
-			for m in range(mid - half, mid + half + 1):
-				var j := fa + (m % na + na) % na
-				var rel: Vector2 = p[j] - cb
-				var d2 := rel.length_squared()
-				if d2 >= rb2 or d2 < 1e-6:
-					continue
-				var t := (atan2(rel.y, rel.x) - b0) * kb
-				if t < 0.0:
-					t += nb
-				var k := int(t)
-				if k >= nb:
-					k -= nb
-				var fr := t - k
-				var k2 := k + 1 if k + 1 < nb else 0
-				var r0: float = (p[fb + k] - cb).length()
-				var r := r0 + ((p[fb + k2] - cb).length() - r0) * fr
-				var rs := r + skin
-				if d2 >= rs * rs:
-					continue
-				touched = true
-				var d := sqrt(d2)
-				if rel.y < -SUPPORT_NORMAL_Y * d:
-					rests = true
-				if d < r and not still:
-					# Past b's centre: mirrored back to a's side (see the doc).
-					var out := rel
-					var along := rel.dot(dir)
-					if along > 0.0:
-						out = rel - dir * (2.0 * along / dir.length_squared())
-					var push := out * ((r - d) * share / d)
-					var moved: Vector2 = p[j] + push
-					p[j] = moved
-					react -= push
-					# Friction: slow the point's sliding along b's surface.
-					var nrm := out / d
-					var slide: Vector2 = moved - o[j] - vb
-					slide = (slide - nrm * slide.dot(nrm)) * mu
-					o[j] += slide
-					drag += slide
-			if touched:
-				_pair_touch[pair] = 1
-			if rests and not still:
-				supported[a] = 1
-			if react != Vector2.ZERO and not against_still:
-				react /= nb
-				drag /= nb
-				for q in range(fb, fb + nb):
-					p[q] += react
-					o[q] -= drag
+	SlimeSolverGD.solve_contacts(self)
 
 
-## Edge springs, area (pressure) and shape matching, per ring (the spike's
-## solver, with Jacobi edge springs).
+## Edge springs, area and shape matching, per ring (SlimeSolverGD.solve_rings).
 func _solve_rings() -> void:
-	var p := pos
-	var ks := edge_stiffness * 0.5
-	var ka := area_stiffness
-	var kshape := shape_stiffness
-	for s in slime_count:
-		if state[s] == STATE_SLEEPER or calm[s] != ACTIVE:
-			continue
-		var f: int = first[s]
-		var cnt: int = npts[s]
-		var last := f + cnt - 1
-		var rest: float = rest_edge[s]
-		# Edge springs (position-based distance constraints), Jacobi style:
-		# every correction comes from the positions before the pass, so the
-		# ring has no preferred direction (a sequential pass makes a squashed
-		# ring creep sideways).
-		var pp: Vector2 = p[last]
-		var cur: Vector2 = p[f]
-		var first_p := cur
-		var d_prev := cur - pp
-		var l_prev := d_prev.length()
-		var e_prev := (l_prev - rest) / l_prev if l_prev > 1e-5 else 0.0
-		for j in range(f, last + 1):
-			var nx: Vector2 = p[j + 1] if j < last else first_p
-			var d_next := nx - cur
-			var l_next := d_next.length()
-			var e_next := (l_next - rest) / l_next if l_next > 1e-5 else 0.0
-			p[j] = cur + (d_next * e_next - d_prev * e_prev) * ks
-			d_prev = d_next
-			e_prev = e_next
-			cur = nx
-		# One read pass: area, area-gradient norm, centre, and the rotation
-		# that best fits the rest circle.
-		var area := 0.0
-		var grad_sq := 0.0
-		var c := Vector2.ZERO
-		var sd := 0.0
-		var sc := 0.0
-		pp = p[last]
-		cur = p[f]
-		for j in range(f, last + 1):
-			var nx: Vector2 = p[j + 1] if j < last else p[f]
-			area += pp.cross(cur)
-			grad_sq += (nx - pp).length_squared()
-			c += cur
-			var q: Vector2 = rest_off[j]
-			sd += q.dot(cur)
-			sc += q.cross(cur)
-			pp = cur
-			cur = nx
-		area *= 0.5
-		grad_sq *= 0.25
-		c /= cnt
-		var lam := 0.0
-		if grad_sq > 1e-6:
-			lam = (rest_area[s] - area) / grad_sq * ka
-		var rot := Vector2(sd, sc).normalized()
-		# Apply pass: area gradient, then the shape-matching pull, from the
-		# neighbours' positions before the pass.
-		pp = p[last]
-		cur = p[f]
-		first_p = cur
-		for j in range(f, last + 1):
-			var nx: Vector2 = p[j + 1] if j < last else first_p
-			var moved := cur + Vector2(nx.y - pp.y, pp.x - nx.x) * (0.5 * lam)
-			var q: Vector2 = rest_off[j]
-			var goal := c + Vector2(q.x * rot.x - q.y * rot.y, q.x * rot.y + q.y * rot.x)
-			p[j] = moved + (goal - moved) * kshape
-			pp = cur
-			cur = nx
+	SlimeSolverGD.solve_rings(self)
 
 
-## Ring points against the terrain segments (O78): a point inside the terrain,
-## or closer than `terrain_skin` to it, goes to `terrain_skin` off the nearest
-## surface point; its velocity loses the part going into the surface and
-## `terrain_friction` of the part along it. A point pushed out by a surface
-## facing up supports its slime. The shut doors are solved the same way,
-## after the terrain. The first pass (the terrain's, else the first door's)
-## also measures a box around each slime's points, and the door passes after
-## it skip a slime whose box lies outside the door's grid, where every one of
-## its points would have been skipped anyway.
+## Ring points against the terrain, then the shut doors
+## (SlimeSolverGD.solve_terrain).
 func _solve_terrain() -> void:
-	var door_shut := false
-	for door in doors:
-		if door != null and not door.is_empty():
-			door_shut = true
-			break
-	var measured := false
-	if terrain != null and not terrain.is_empty():
-		_solve_against(terrain, door_shut, false)
-		measured = door_shut
-	if phases != null:
-		phases.lap(TickPhase.TERRAIN)
-	for door in doors:
-		if door != null and not door.is_empty():
-			_solve_against(door, not measured, measured)
-			measured = true
-	if phases != null:
-		phases.lap(TickPhase.DOORS)
-
-
-## One pass of ring points against `tf` (see _solve_terrain). `measure`:
-## sets each simulated slime's box (_box_lo, _box_hi) to hold its points
-## before and after the pass. `by_box`: skips the slimes whose box (set by an
-## earlier pass) is outside tf's grid, and grows the box by every point it
-## moves, so it still holds all the slime's points for the next door.
-func _solve_against(tf: TerrainSegments, measure: bool, by_box: bool) -> void:
-	var p := pos
-	var o := prev
-	var sa := tf.seg_a
-	var sdir := tf.seg_d
-	var sil := tf.seg_inv_len2
-	var sn := tf.seg_n
-	var sna := tf.seg_na
-	var snb := tf.seg_nb
-	var starts := tf.cell_start
-	var items := tf.cell_items
-	var ox := tf.origin.x
-	var oy := tf.origin.y
-	var inv := tf.inv_cell
-	var gw := tf.grid_w
-	var gh := tf.grid_h
-	var keep := 1.0 - terrain_friction
-	var skin := terrain_skin
-	var skin2 := skin * skin
-	var track := measure or by_box
-	if measure and _box_lo.size() != slime_count:
-		_box_lo.resize(slime_count)
-		_box_hi.resize(slime_count)
-	for s in slime_count:
-		if state[s] == STATE_SLEEPER or calm[s] != ACTIVE:
-			continue
-		var lo := Vector2.INF
-		var hi := -Vector2.INF
-		if by_box:
-			lo = _box_lo[s]
-			hi = _box_hi[s]
-			# The per-point grid test below is monotonic in x and y: when the
-			# box's far corner is off one side of the grid, so is every point.
-			if (int(floor((hi.x - ox) * inv)) < 0 or int(floor((hi.y - oy) * inv)) < 0
-					or int(floor((lo.x - ox) * inv)) >= gw or int(floor((lo.y - oy) * inv)) >= gh):
-				continue
-		var f: int = first[s]
-		var carried := false
-		for i in range(f, f + npts[s]):
-			var c: Vector2 = p[i]
-			if measure:
-				lo = lo.min(c)
-				hi = hi.max(c)
-			var cx := int(floor((c.x - ox) * inv))
-			var cy := int(floor((c.y - oy) * inv))
-			if cx < 0 or cy < 0 or cx >= gw or cy >= gh:
-				continue
-			var cell := cy * gw + cx
-			var best := -1
-			var best_d2 := INF
-			var best_q := Vector2.ZERO
-			var best_t := 0.0
-			for qi in range(starts[cell], starts[cell + 1]):
-				var k: int = items[qi]
-				var a: Vector2 = sa[k]
-				var d: Vector2 = sdir[k]
-				var t := clampf((c - a).dot(d) * sil[k], 0.0, 1.0)
-				var q := a + d * t
-				var d2 := c.distance_squared_to(q)
-				if d2 < best_d2:
-					best_d2 = d2
-					best = k
-					best_q = q
-					best_t = t
-			if best < 0:
-				continue
-			var n: Vector2 = sn[best]
-			var off := c - best_q
-			# Inside or out: at a segment's end, by the vertex's normal
-			# (TerrainSegments.side_normal, inlined).
-			var side := n
-			if best_t <= 0.0:
-				side = sna[best]
-			elif best_t >= 1.0:
-				side = snb[best]
-			if off.dot(side) >= 0.0:
-				# Outside: only within the skin, pushed away from the nearest
-				# surface point (round around convex corners).
-				if best_d2 >= skin2:
-					continue
-				if best_d2 > 1e-8:
-					n = off / sqrt(best_d2)
-			var target := best_q + n * skin
-			p[i] = target
-			if track:
-				lo = lo.min(target)
-				hi = hi.max(target)
-			var v: Vector2 = target - o[i]
-			var vn := v.dot(n)
-			var vt := v - n * vn
-			o[i] = target - (vt * keep + n * maxf(vn, 0.0))
-			if n.y < -SUPPORT_NORMAL_Y:
-				carried = true
-		if carried:
-			supported[s] = 1
-		if track:
-			_box_lo[s] = lo
-			_box_hi[s] = hi
+	SlimeSolverGD.solve_terrain(self)

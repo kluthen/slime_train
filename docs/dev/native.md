@@ -406,7 +406,8 @@ equality would also need our own `atan2`, `sin` and `cos`.
 `s3-basket-59of60` gave `4c5d03d2…` (desktop `a0223398…`), the same on
 both ticks. The cause is `atan2f` (bionic and glibc differ in the last
 bit on about 10 % of inputs), reached through `Vector2.angle()` in
-`SlimeBodies._resample` (`a0`, the resampled ring's first angle), which runs
+`SlimeDetail.resample` (`a0`, the resampled ring's first angle; called
+through `SlimeBodies._resample`), which runs
 when crowd detail changes a ring's point count; the double `atan2` of the
 contact pass differs too but has so far vanished in the float32 store. Not
 the view: test mode fixes it at 1152x648. To reproduce a phone hash on the
@@ -449,7 +450,15 @@ Godot 4.7.2 debug template:
 
 The GDScript `SlimeBodies` (`src/sim/slime_bodies.gd`) keeps its interface,
 so its callers (the simulation, the train, the renderer, the tests) don't
-change. Behind it:
+change. Its GDScript solver passes, the ones the native solver mirrors, are
+`SlimeSolverGD`'s (`src/sim/slime_solver.gd`, static functions over the
+bodies' arrays, called through `SlimeBodies._integrate`, `_build_pairs`,
+`_solve_contacts`, `_solve_rings` and `_solve_terrain`). Its GDScript rest
+pass is `SlimeDetail.rest` (`src/sim/slime_detail.gd`, with the other calm,
+rest and detail code), called through `SlimeBodies._rest`. Its hops are
+`SlimeHops`' (`src/sim/slime_hops.gd`) and its saves and dump
+`SlimeBodiesSave`'s (`src/sim/slime_bodies_save.gd`), both called through
+`SlimeBodies` too. Behind it:
 
 - **The native solver** (`SlimeSolver`) runs the solver part of the tick:
   substeps of integrate, the pair grid (first substep), slime contacts,
@@ -460,12 +469,13 @@ change. Behind it:
   union-find).
 - **The terrain:** `TerrainSegments` still bakes its segment arrays and grid
   in GDScript at level load; the solver reads them, read only (D97).
-- **What stays in GDScript:** the hop clears and the automatic hops (each
-  slime's random stream: all randomness stays in the one seeded generator),
-  the support reset, the topology changes (`create`, `remove`, `merge`,
-  `split`, `_reshape`, `_resample`), the saves (`body_of`, `set_body`),
-  `dump()`, the public wakes, and all the behaviour code (the train, the
-  calls, fusion, Offscreen, the loop-start queue).
+- **What stays in GDScript:** the hop clears and the automatic hops
+  (`SlimeHops`; each slime's random stream: all randomness stays in the one
+  seeded generator), the support reset, the topology changes (`create`,
+  `remove`, `merge`, `split`, `_reshape`, `_resample`), the saves
+  (`body_of`, `set_body`) and `dump()` (`SlimeBodiesSave`), the public
+  wakes, and all the behaviour code (the train, the calls, fusion,
+  Offscreen, the loop-start queue).
 - **Pass by pass.** Each pass is ported and tested on its own against the
   GDScript one (units U1 to U5); `step` then runs them all in one call
   (U6). The fixtures' state hashes didn't change: on the desktop the native

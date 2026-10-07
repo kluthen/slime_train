@@ -741,6 +741,14 @@ contacts. The pair list comes from a uniform grid on the slime centres,
 built on the first substep only (cells at least as big as the largest pair
 reach, so each slime checks its own cell and its neighbours).
 
+The GDScript passes live in `SlimeSolverGD` (`src/sim/slime_solver.gd`, the
+health review's S1 seam 1): static functions over the `SlimeBodies` arrays
+(`integrate`, `build_pairs`, `solve_contacts`, `solve_rings`,
+`solve_terrain`, `solve_against`). `SlimeBodies` keeps the arrays and the
+tick's order, and calls them through its own pass functions (`_integrate`,
+`_build_pairs`, `_solve_contacts`, `_solve_rings`, `_solve_terrain`)
+whenever the native solver doesn't run a pass (see `docs/dev/native.md`).
+
 - **Ring constraints:** edge springs (stiffness 0.8), area (0.6) and shape
   matching toward the rest circle (0.3). The edge springs are solved
   Jacobi-style (all corrections computed, then applied): a sequential pass
@@ -831,6 +839,14 @@ strength is still drawn, so the stream doesn't shift). It is cleared by
 every tick, so it isn't state. `brake(id, share)` removes that share of a
 slime's mean velocity and spin, keeping its squish: how the train makes a
 slime grip the ground between hops.
+
+The hop code is `SlimeHops` (`src/sim/slime_hops.gd`, the health review's
+S1): static functions over the `SlimeBodies` arrays (`auto_hops`, the
+take-off `hop_at`, `can_hop`, `interval_range`, and `hold_on_slope`, see
+"Hold on a climb"). `SlimeBodies` keeps the arrays, the `HOP_*` tuning and
+its interface (`hop`, `can_hop`, `hop_interval_range`, `hold_on_slope`,
+and `_auto_hops`, which `tick()` and the native equivalence tests call),
+and calls them.
 
 ### Merge and split
 
@@ -2080,7 +2096,7 @@ longer simulate.
   y −184).
   - After the fix, one slime still stuck there on 9 of 10 seeds.
   - A fix (the vertex's summed normal on a tie, in both `resolve` and
-    `SlimeBodies._solve_terrain`) changes contact physics everywhere, so
+    `SlimeSolverGD.solve_against`) changes contact physics everywhere, so
     it is left open.
 - **Lost by stalling.** Crowds were lost by the 60 s stall rule:
   - at the start basin's lip, around (716 to 723, 370 to 381), on seed 4
@@ -2318,7 +2334,16 @@ Master spec §5.3, D10, D69, D70, D96, DoD 5 and 10
 `req_switch_basket_gate_set` for the off-screen filling). `Offscreen`
 (`src/sim/offscreen.gd`, pure logic) is `simulation.offscreen`; its class
 doc is the reference. `SlimeBodies` gained a per-slime `calm` (ACTIVE,
-RESTING, PARKED) and a low-detail flag.
+RESTING, PARKED) and a low-detail flag. The calm, rest and detail code is
+`SlimeDetail` (`src/sim/slime_detail.gd`, the health review's S1 seam 2):
+static functions over the `SlimeBodies` arrays (`crowd_count`, `park`,
+`unpark`, `wake_resting_in`, `set_detail`,
+`set_active_detail`, the GDScript rest pass `rest` and `rest_piles`, the
+ring rebuilds `resample` and `reshape`). `SlimeBodies` keeps the arrays and
+its interface and calls them; the one wake every path goes through,
+`SlimeBodies._wake_at`, stays in `SlimeBodies`, and so do the per-tick
+paths Offscreen calls for every slime (`translate`, and `park` and `unpark`
+on a slime already so), which read the bodies' own arrays faster.
 
 **Physics only on or near the screen.** `offscreen.step(sim)` runs at the
 start of every tick, before the train steers. A slime whose centre leaves
@@ -2634,7 +2659,7 @@ at a sharp convex corner both segments are equally near, and when the
 other face's segment was listed first a wedge outside the corner counted
 as inside, so ring points passing there were pulled onto the corner. Now
 a vertex's own normal (the mean of its two segments') decides there, in
-`TerrainSegments.resolve` and `SlimeBodies._solve_against` (see "Terrain
+`TerrainSegments.resolve` and `SlimeSolverGD.solve_against` (see "Terrain
 contact"). No level tweak was needed. It changed `stress-still`'s settling
 (its reloads rest in 670 to 910 ticks, were under 600) and
 `test_tilt_e2e.gd`'s neutral-tilt comparison (15 s instead of 20: the
@@ -3585,7 +3610,11 @@ Master spec §6.4 and D72 (`req_persistence_and_saves`,
 `Simulation.from_save(save, level_data, terrain, fallback_seed)` wrap it. A
 reloaded save has the saved state hash and stays equal to the run that
 never stopped, tick for tick (`tests/unit/test_save_data.gd`), when no
-slime was saved in mid-air.
+slime was saved in mid-air. A slime's body goes out and back through
+`SlimeBodies.body_of` and `set_body` (and `create_with_id` makes it with
+its saved id); their code, and the bodies' `dump()`, is `SlimeBodiesSave`
+(`src/sim/slime_bodies_save.gd`, the health review's S1 seam 3), static
+functions over the `SlimeBodies` arrays.
 
 **The save format before the first store release** (D149). Keeping a
 player's save across a save-format change, with a migration, is owed only
@@ -5014,8 +5043,9 @@ by index; the train gained `Train.marked_at_of()`. Tests:
 | `gate2-open` | 1.408 / 1.491 / 2.162 | 1.414 / 1.470 / 1.664 |
 
 **Door passes by bounding box, and the pair loop's end.**
-`src/sim/slime_bodies.gd`. The terrain solve runs one pass per shut door
-(`_solve_terrain`, `_solve_against`). Each slime now has a bounding box
+`src/sim/slime_bodies.gd` (the passes are in `src/sim/slime_solver.gd`
+since the health review's S1). The terrain solve runs one pass per shut door
+(`solve_terrain`, `solve_against`). Each slime now has a bounding box
 (`_box_lo`, `_box_hi`: measured only while a door is shut, grown when a push
 moves the slime), and a door's pass skips the slimes whose box lies outside
 the door's grid. `_build_pairs` stops its loop at the highest index that
@@ -5602,8 +5632,9 @@ Each ring has a detail level 0 (full) to 3, `SlimeBodies.POINTS_BY_DETAIL`:
 The level used is the higher of the zoom's (zoomed out: at least 2) and the
 crowd's. Only ACTIVE rings are resampled; pile slimes (in a basket, asleep
 at bedtime) stop at level 2, since a pile of 6-point rings takes about 1300
-ticks to rest instead of about 410. `_resample` builds the rest ring
-exactly as a new slime's (`_rest_offset`, the double-precision radius), so
+ticks to rest instead of about 410. `_resample` (`SlimeDetail.resample`
+since the health review's S1) builds the rest ring exactly as a new slime's
+(`SlimeDetail.rest_offset`, the double-precision radius), so
 a reloaded save is bit for bit the same.
 
 **Measured gain** (headless bench, same machine, before / after, median /
@@ -6083,7 +6114,7 @@ from the same build. What changed:
 
 Code: `src/sim/train_hop_log.gd` (`hops_taken`, `short_hops_taken`, fed by
 `Train.follow()`), `src/sim/slime_bodies.gd` (`train_hopped`, filled by the
-automatic hops), `src/debug/perf_log.gd` (`train_hops()`, the window's
+automatic hops, `src/sim/slime_hops.gd`), `src/debug/perf_log.gd` (`train_hops()`, the window's
 deltas), `tools/android/perf_summary.py`. Tests:
 `tests/unit/test_train_progress.gd` ("Hop counters"),
 `tests/unit/test_perf_log.gd`, `perf_summary.py --self-test`. The local
@@ -6437,7 +6468,8 @@ and what stays GDScript (the behaviour), before any porting.
   - `SlimeBodies.tick` times each pass of `SlimeBodies.TickPhase`:
     auto_hops (the hop clears too), integrate, pairs, contacts, rings,
     terrain, doors (the passes in `_solve_terrain`), rest (the touching list
-    and `_rest`, `_rest_piles`, the local wake), tick_other (the support
+    and `_rest`, which runs `SlimeDetail.rest` and `rest_piles`, the local
+    wake), tick_other (the support
     reset, the centre cache cleared), native.
   - On the native tick (chunk 5N U6) one call, `SlimeSolver.step`, runs
     every solver pass (and the centre cache's clearing and the touching
