@@ -3668,14 +3668,15 @@ One JSON object, keys sorted, tab-indented:
 |---|---|
 | `format` | 1. Any other format, newer or older, is refused, never read half-way (D149) |
 | `level` | `{"id", "version"}`. Another id, or a newer version, is refused; an older version is migrated on load (chunk 19, below) |
-| `sim` | `tick`, `seed` and `rng_state` (strings: 64-bit), `next_slime_id`. Optional |
+| `sim` | `tick`, `seed` and `rng_state` (strings: 64-bit), `next_slime_id`. Optional: none is the run's seed and its generator's start, tick 0, the next slime id after the slimes' |
 | `slimes` | Every slime, in runtime id order (at least one): `id` (its stable ID, below), `members`, `runtime_id`, `species` (a letter), `size`, `state` (`train`, `free`, `sleeper`, `bedtime_asleep`, `in_basket`), `centre`, `velocity`, then `train` (distance, laps, slide, stall mark; a `lost` flag from before chunk 23A is ignored) or `free` (phase, since, point, route back, stream state), and `body` (points, previous points, the solver's centre, hop timer, heading, held, supported, stream state; optional `rest` and `detail`, the ring's detail level 1 to 3, absent 0, an older `"low": true` read as 2: see "Saves and hash" in the off-screen section) |
-| `offscreen` | The off-screen state (chunk 15): `zoomed_out`, `crowd_level` (0 to 3, absent 0), `away`, `proxies`, `lost`. Optional |
-| `train` | The open gates and the stalled log (`stalled`: `{"id", "tick", "reason"}`, chunk 23A; the key was `lost` before and is ignored now) |
+| `offscreen` | The off-screen state (chunk 15): `zoomed_out`, `crowd_level` (0 to 3, absent 0), `away`, `proxies`, `lost`. Optional: none is a fresh level's off-screen state |
+| `train` | The open gates and the stalled log (`stalled`: `{"id", "tick", "reason"}`, chunk 23A; the key was `lost` before and is ignored now, and a `train` without `stalled` has an empty log) |
 | `call` | The last call (point, tick), or null |
 | `objects`, `gates` | Stable ID to state (chunk 14): a switch `{"flipped", "trapdoor_shut"}`, a basket `{"phase", "weight", "since", "next_release"}`, a gate `{"open", "entrance_closed"}` (see "Frontier sets (chunk 14)") |
+| `hint_done` | `true` once the first call happened (Hint). Optional: none is false, the hint is due |
 | `celebration_done` | `true` once the level's celebration has played; left out (false) before. Optional |
-| `transient` | The view, the camera, the ripples, the last taps, the facings, the input log, the tilt (reading, neutral, flat), the fusion contact counts and the celebration's start tick and double hops still due (`frontier`: `celebration_since`, `celebration_hops` `[[slime id, hops left]]`, optional, chunk 23D). Optional |
+| `transient` | The view, the camera, the ripples, the last taps, the facings, the input log, the tilt (reading, neutral, flat), the fusion contact counts and the celebration's start tick and double hops still due (`frontier`: `celebration_since`, `celebration_hops` `[[slime id, hops left]]`, optional: none is no hop due, chunk 23D). Optional |
 | `session` | The session (chunk 17): `phase`, `elapsed_ms`, `anchor` and `clock` (the clock readings it counts from; see "Sessions (chunk 17)"), `sunrise_tick`. Optional: none is screensaver mode |
 | `stuck_slimes` | The stuck safety net (chunk 23A): `counts` (`[lower id, higher id, checks]`) and the `stuck` log (`{"id", "other", "tick", "reason", "moved"}`). Optional: none is no count, no case |
 
@@ -3692,11 +3693,42 @@ the loader turns whole numbers back into ints where the state has ints.
 
 **Hand-made saves** (fixtures) may leave out `sim`, `runtime_id`, `body`,
 `train`, `free.rng_state` and `transient`: the run's seed and tick 0, ids 1,
-2, ... in list order, a rest ring at the centre, the loop's closest point,
+2, ... in list order (`runtime_id`: every slime or none), a rest ring at the centre, the loop's closest point,
 a fresh stream, an empty view. `SaveData.readable()` cuts a save down to
 that form; it keeps a running session (its last clock reading moved to tick
 0, where the readable save starts) and drops one in screensaver mode. `SaveData.problems(save, level)` lists what makes a save
 unusable, without pushing errors.
+
+**Defaults on load** (health review S4, 2026-10-07). `SaveData.restore`
+reads directly what `problems()` guarantees (`session.phase`, besides the
+format, level, slimes and their species, size, state and centre, a free
+record's phase, a body's points and a rest's calm and anchor). Its other
+defaults are the optional keys above, read with their absent meaning:
+`sim` and its keys, `runtime_id`, a slime's `train`, `body.detail` (and
+the older `low`), `body.rest`, `hint_done`, `celebration_done`,
+`offscreen.crowd_level`, `train.stalled`, `transient.frontier.celebration_hops`.
+The rest are still contract gaps, neither documented as optional nor
+checked; a save without one loads with the default the code picks, and
+settling each (a check or a line here) is a format-contract change that
+waits for the user (CODING_RULE.md rule 4):
+
+- relied on by hand-made saves and tests, so a doc line: a slime's
+  `members` (absent: no stable ID, as a spawned slime), a `sim` holding
+  only some of its keys (each absent key as above), and, outside the
+  defaults, `velocity` (absent: still), a top-level `train` or `call` left
+  out (none), a slime's `train` with only `distance`;
+- always written by `capture()` and `readable()`, so a check: `objects`
+  and `gates` (absent: every object and gate at its start state),
+  `train.open_gates` (none open), `session.elapsed_ms` (0),
+  `session.sunrise_tick` (-1), `session.anchor` and `session.clock` (`{}`),
+  `offscreen.zoomed_out` (false), `away`, `proxies` and `lost` (empty), a
+  proxy's `route` (`""`), `from` and `to` (`[0, 0]`), a lost entry's
+  `reason` (`lost`), a free record's `since` (0), `point` (`[0, 0]`) and
+  `route` (`""`), `body.rest.still` and `pile` (0), and, once `transient`
+  is there, its `tilt` (`degrees` and `neutral` 0, `flat` false), `hint`
+  (`since` the save's tick, `bedtime` false),
+  `frontier.celebration_since` (-1), `ripples`, `taps`, `facing` and
+  `input_log` (empty).
 
 ### Stable identity (D72)
 
