@@ -196,3 +196,37 @@ V1s's known, by-design break from phase 1).
   holds 20-32); not explained yet (slimes past each other faster, fewer meet in a
   dip?). r's relay makes a wave: more hops (landings x2) and more stacking on s3
   (stack share about 0.5 of landings, as base's 0.6).
+
+### g,r combined with the geyser (throwaway commit 05e9d15; revert it to drop)
+
+Geyser C copied from exp/geyser 8b116e4 (`git diff main...8b116e4`, code only:
+docs/perf/exp-dipjam-p2/geyser.patch is that diff); the dip-jam probe prints the
+Geyser's counters (DJ_GEYSER). SLIME_GEYSER=off gives g,r's own hash (d73e7181...,
+seed 1), so "off" is the table above. Base + geyser reproduces exp/geyser's report
+exactly (launched/refused 75/96 ; 62/110, rejects route 1036/457 ...): the copy is
+faithful. s3-basket-59of60, seed 1 / seed 2, same measure (outputs `out/gy_*`):
+
+| run | arr | x240 | x750 | clu max | clu mean | >20 run s | fus/min | launched / refused | rejects route / ledge / room / flight |
+|---|---|---|---|---|---|---|---|---|---|
+| base, off | 17.6 / 18.0 | 7.2 / 7.2 | 2.5 / 3.1 | 118 / 117 | 80 / 81 | 79 / 80 | 17.0 / 16.2 | - | - |
+| base, geyser | 17.8 / 17.8 | 7.4 / 7.8 | 3.4 / 2.9 | 119 / 121 | 76 / 77 | 74 / 72 | 14.4 / 13.9 | 75/96 ; 62/110 | 1036/457/18/5 ; 1037/458/14/2 |
+| g,r, off | 18.1 / 18.2 | 11.4 / 11.9 | 7.8 / 7.6 | 98 / 95 | 60 / 61 | 74 / 76 | 7.7 / 7.2 | - | - |
+| g,r, geyser | 18.2 / 18.2 | 12.2 / 11.8 | 9.0 / 8.6 | 90 / 85 | 51 / 50 | 65 / 56 | 5.1 / 5.4 | 72/116 ; 69/122 | 1118/549/26/6 ; 1141/495/49/23 |
+
+- The geyser adds a little on top of g,r (x750 +1.1, cluster mean 60 -> 50) but does
+  **not** find more free spots: it still launches only 37 to 38 % of the arrivals
+  (base 36 to 44 %). Its rejects are the spots' geometry (off the route, under
+  FirstLedge), which the flow doesn't change; "room" (a spot taken) even rises
+  (18 -> 26 / 49). The start still crowds (cluster 85 to 90 against 20; arrivals
+  18 vs 8.8 past 750 px).
+- Fusions per minute drop further (7.7 -> 5.1).
+- Tests with g,r + geyser: test_geyser 19/19, test_train 41/41.
+
+### Next
+
+- The start's crowd is not a climb-pace problem any more: with g,r the start's climb
+  runs 36 px/s and the queue leaves at ~8 per 600 ticks, but ~18 arrive. Only fewer
+  or slower arrivals at the return route's end (O118's pacing, rule 24's rate check)
+  or more room/exits off the start can match it.
+- If g,r is kept: explain the fusion drop on s3 first (fusion census at the dips with
+  and without the relay), then production versions (no env token), docs and atoms.
