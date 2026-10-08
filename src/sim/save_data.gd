@@ -120,9 +120,18 @@ const SHIPPED := false
 const EXACT_PREFIX := "f64:"
 const PHASES := [FreeSlimes.ANSWERING, FreeSlimes.UNSURE, FreeSlimes.HEADING_BACK]
 ## The kinds of value _needed() checks a key for, and how a problem names them.
-enum Kind { WHOLE, REAL, VECTOR, TEXT, FLAG, DICT, LIST }
+enum Kind { WHOLE, REAL, VECTOR, TEXT, FLAG, DICT, LIST, WHOLE_TEXT }
 const KIND_NAMES := ["a whole number", "a number", "[x, y]", "a string", "true or false", "a dictionary",
-		"a list"]
+		"a list", "a whole number as a string"]
+## The keys of the camera's state (Camera.dump), all needed in a save's
+## "transient.camera".
+const CAMERA_KEYS := {"mode": Kind.TEXT, "zoom": Kind.REAL, "position": Kind.VECTOR, "distance": Kind.REAL,
+		"rail_left": Kind.REAL, "rail_gap": Kind.VECTOR, "rail_length": Kind.REAL, "hold_finger": Kind.WHOLE,
+		"hold_side": Kind.WHOLE, "drag_point": Kind.VECTOR, "drag_tick": Kind.WHOLE,
+		"return_distance": Kind.REAL, "edge_buttons_visible": Kind.FLAG, "frame_zone": Kind.TEXT,
+		"frame_shift": Kind.VECTOR, "zone_hold": Kind.WHOLE, "quiet": Kind.WHOLE, "cue_from": Kind.REAL,
+		"follow_id": Kind.WHOLE, "follow_species": Kind.WHOLE, "follow_point": Kind.VECTOR,
+		"screensaver": Kind.FLAG, "show_distance": Kind.REAL, "show_tick": Kind.WHOLE}
 
 
 # --- Saving --------------------------------------------------------------------
@@ -338,11 +347,13 @@ static func problems(save: Variant, level_data: LevelData) -> PackedStringArray:
 		if part != null and typeof(part) != TYPE_DICTIONARY:
 			out.append("'%s' must be a dictionary or null" % key)
 	if save.get("train") is Dictionary:
-		out.append_array(_needed(save["train"], "train.", {"open_gates": Kind.LIST}))
+		out.append_array(_train_problems(save["train"]))
+	if save.get("call") is Dictionary:
+		out.append_array(_needed(save["call"], "call.", {"point": Kind.VECTOR, "tick": Kind.WHOLE}))
 	if save.get("offscreen") is Dictionary:
 		out.append_array(_offscreen_problems(save["offscreen"]))
 	if save.get("stuck_slimes") is Dictionary:
-		out.append_array(_needed(save["stuck_slimes"], "stuck_slimes.", {"counts": Kind.LIST, "stuck": Kind.LIST}))
+		out.append_array(_stuck_problems(save["stuck_slimes"]))
 	if save.get("transient") is Dictionary:
 		out.append_array(_transient_problems(save["transient"]))
 	if save.has("hint_done") and typeof(save["hint_done"]) != TYPE_BOOL:
@@ -384,6 +395,34 @@ static func _session_problems(session: Variant) -> PackedStringArray:
 	return out
 
 
+## What is wrong with a save's top-level "train": its open gates (names)
+## needed, its stalled log optional, each entry {"id", "tick", "reason"}.
+static func _train_problems(train: Dictionary) -> PackedStringArray:
+	var out := _needed(train, "train.", {"open_gates": Kind.LIST})
+	out.append_array(_needed(train, "train.", {"stalled": Kind.LIST}, true))
+	if train.get("open_gates") is Array:
+		var gates: Array = train["open_gates"]
+		for k in gates.size():
+			if typeof(gates[k]) != TYPE_STRING:
+				out.append("'train.open_gates[%d]' must be a string" % k)
+	if train.get("stalled") is Array:
+		out.append_array(_entry_problems(train["stalled"], "train.stalled",
+				{"id": Kind.WHOLE, "tick": Kind.WHOLE, "reason": Kind.TEXT}))
+	return out
+
+
+## What is wrong with a save's "stuck_slimes" (StuckSlimes.dump): its counts
+## [lower id, higher id, checks] and its log's entries.
+static func _stuck_problems(stuck: Dictionary) -> PackedStringArray:
+	var out := _needed(stuck, "stuck_slimes.", {"counts": Kind.LIST, "stuck": Kind.LIST})
+	if stuck.get("counts") is Array:
+		out.append_array(_tuple_problems(stuck["counts"], "stuck_slimes.counts", 3))
+	if stuck.get("stuck") is Array:
+		out.append_array(_entry_problems(stuck["stuck"], "stuck_slimes.stuck", {"id": Kind.WHOLE,
+				"other": Kind.WHOLE, "tick": Kind.WHOLE, "reason": Kind.TEXT, "moved": Kind.FLAG}))
+	return out
+
+
 ## What is wrong with a save's "offscreen" (see the file doc).
 # @spec-link [[req_offscreen_simulation]]
 static func _offscreen_problems(offscreen: Dictionary) -> PackedStringArray:
@@ -404,7 +443,9 @@ static func _offscreen_problems(offscreen: Dictionary) -> PackedStringArray:
 
 
 ## What is wrong with a save's "transient" (see the file doc): every part
-## capture() writes, "frontier.celebration_hops" the one optional key.
+## capture() writes and their entries' keys; optional, "frontier.celebration_hops"
+## and an input event's "finger", "at" (or null), "degrees" and "flat", which
+## only some kinds of event have.
 static func _transient_problems(transient: Dictionary) -> PackedStringArray:
 	var out := _needed(transient, "transient.", {"view": Kind.DICT, "camera": Kind.DICT, "ripples": Kind.LIST,
 			"taps": Kind.LIST, "facing": Kind.LIST, "input_log": Kind.LIST, "fusion": Kind.LIST,
@@ -413,9 +454,59 @@ static func _transient_problems(transient: Dictionary) -> PackedStringArray:
 			"tilt": {"degrees": Kind.REAL, "neutral": Kind.REAL, "flat": Kind.FLAG},
 			"hint": {"since": Kind.WHOLE, "bedtime": Kind.FLAG},
 			"frontier": {"celebration_since": Kind.WHOLE}}
+	parts["camera"] = CAMERA_KEYS
 	for part in parts:
 		if transient.get(part) is Dictionary:
 			out.append_array(_needed(transient[part], "transient.%s." % part, parts[part]))
+	var frontier: Variant = transient.get("frontier")
+	if frontier is Dictionary:
+		out.append_array(_needed(frontier, "transient.frontier.", {"celebration_hops": Kind.LIST}, true))
+		if frontier.get("celebration_hops") is Array:
+			out.append_array(_tuple_problems(frontier["celebration_hops"], "transient.frontier.celebration_hops", 2))
+	if transient.get("fusion") is Array:
+		out.append_array(_tuple_problems(transient["fusion"], "transient.fusion", 3))
+	var entries := {"ripples": {"at": Kind.VECTOR, "tick": Kind.WHOLE},
+			"taps": {"tick": Kind.WHOLE, "finger": Kind.WHOLE, "screen": Kind.VECTOR, "world": Kind.VECTOR,
+					"zone": Kind.TEXT, "side": Kind.WHOLE, "object": Kind.TEXT, "kind": Kind.TEXT,
+					"call": Kind.FLAG, "answered": Kind.LIST},
+			"facing": {"id": Kind.WHOLE, "facing": Kind.VECTOR},
+			"input_log": {"kind": Kind.TEXT, "tick": Kind.WHOLE}}
+	for part in entries:
+		if transient.get(part) is Array:
+			out.append_array(_entry_problems(transient[part], "transient.%s" % part, entries[part]))
+	if transient.get("taps") is Array:
+		var taps: Array = transient["taps"]
+		for k in taps.size():
+			if taps[k] is Dictionary and taps[k].get("answered") is Array:
+				for slime_id in taps[k]["answered"]:
+					if _whole(slime_id) == null:
+						out.append("'transient.taps[%d].answered' must hold whole numbers" % k)
+						break
+	if transient.get("input_log") is Array:
+		var log: Array = transient["input_log"]
+		for k in log.size():
+			if not log[k] is Dictionary:
+				continue
+			var event: Dictionary = log[k]
+			var at := "transient.input_log[%d]." % k
+			out.append_array(_needed(event, at, {"finger": Kind.WHOLE, "degrees": Kind.REAL, "flat": Kind.FLAG},
+					true))
+			if event.has("at") and event["at"] != null and not _is_vector(event["at"]):
+				out.append("'%sat' must be [x, y] or null" % at)
+	return out
+
+
+## The problems of a list's entries: each a list of `length` whole numbers.
+static func _tuple_problems(list: Array, at: String, length: int) -> PackedStringArray:
+	var out := PackedStringArray()
+	for k in list.size():
+		var entry: Variant = list[k]
+		var good: bool = typeof(entry) == TYPE_ARRAY and entry.size() == length
+		if good:
+			for value in entry:
+				good = good and _whole(value) != null
+		if not good:
+			out.append("'%s[%d]' must be a list of %d whole numbers" % [at, k, length])
 	return out
 
 
@@ -431,13 +522,15 @@ static func _entry_problems(list: Array, at: String, keys: Dictionary) -> Packed
 	return out
 
 
-## The problems of `holder`'s `keys` (key -> Kind): each must be there, of
-## its kind. A problem names the key as `at` + key.
-static func _needed(holder: Dictionary, at: String, keys: Dictionary) -> PackedStringArray:
+## The problems of `holder`'s `keys` (key -> Kind): each must be there (or,
+## when `optional`, may be left out), of its kind. A problem names the key
+## as `at` + key.
+static func _needed(holder: Dictionary, at: String, keys: Dictionary, optional := false) -> PackedStringArray:
 	var out := PackedStringArray()
 	for key in keys:
 		if not holder.has(key):
-			out.append("'%s%s' is missing" % [at, key])
+			if not optional:
+				out.append("'%s%s' is missing" % [at, key])
 		elif not _is_kind(holder[key], keys[key]):
 			out.append("'%s%s' must be %s" % [at, key, KIND_NAMES[keys[key]]])
 	return out
@@ -459,6 +552,8 @@ static func _is_kind(value: Variant, kind: Kind) -> bool:
 			return typeof(value) == TYPE_BOOL
 		Kind.DICT:
 			return typeof(value) == TYPE_DICTIONARY
+		Kind.WHOLE_TEXT:
+			return typeof(value) == TYPE_STRING and value.is_valid_int()
 		_:
 			return typeof(value) == TYPE_ARRAY
 
@@ -500,6 +595,7 @@ static func _slime_problems(slimes: Array) -> PackedStringArray:
 		elif free != null:
 			out.append_array(_prefixed(at, _needed(free, "free.", {"since": Kind.WHOLE, "point": Kind.VECTOR,
 					"route": Kind.TEXT})))
+			out.append_array(_prefixed(at, _needed(free, "free.", {"rng_state": Kind.WHOLE_TEXT}, true)))
 		var train: Variant = slime.get("train")
 		if train != null and typeof(train) != TYPE_DICTIONARY:
 			out.append(at + "'train' must be a dictionary")
@@ -513,7 +609,11 @@ static func _slime_problems(slimes: Array) -> PackedStringArray:
 			if (typeof(body) != TYPE_DICTIONARY or unpack_vectors(str(body.get("points", ""))).size() != n
 					or unpack_vectors(str(body.get("previous", ""))).size() != n):
 				out.append(at + "'body' must hold %d points and previous points" % n)
-			elif body.has("rest") and (typeof(body["rest"]) != TYPE_DICTIONARY
+				continue
+			out.append_array(_prefixed(at, _needed(body, "body.", {"centre": Kind.VECTOR, "hop_timer": Kind.REAL,
+					"heading": Kind.REAL, "held": Kind.FLAG, "supported": Kind.FLAG,
+					"rng_state": Kind.WHOLE_TEXT})))
+			if body.has("rest") and (typeof(body["rest"]) != TYPE_DICTIONARY
 					or str(body["rest"].get("calm", "")) not in SlimeBodies.CALM_NAMES
 					or not _is_vector(body["rest"].get("anchor"))):
 				out.append(at + "'body.rest' needs a calm (%s) and an anchor [x, y]"
