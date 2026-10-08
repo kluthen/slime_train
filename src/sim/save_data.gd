@@ -88,13 +88,19 @@ extends RefCounted
 ## integers (seeds, generator states) are strings. JSON reads every number
 ## as a float, so whole numbers are turned back into ints on load.
 ##
-## Optional parts, for hand-made saves (fixtures): without "sim" the run's
-## seed is used, its generator as that seed starts it, the tick is 0 and the
-## next slime id follows the slimes'; without "runtime_id" (all or none)
-## slimes are numbered 1, 2, ... in list order; without "body" a slime is a rest ring at its
-## centre with a fresh stream; a train slime without "train" is placed where
-## the loop is closest; without "transient" the view and the input start
-## empty.
+## Optional parts, for hand-made saves (fixtures): without "sim" (or one of
+## its keys) the run's seed is used, its generator as that seed starts it,
+## the tick is 0 and the next slime id follows the slimes'; without
+## "runtime_id" (all or none) slimes are numbered 1, 2, ... in list order;
+## without "members" a slime has no stable ID (as a spawned one); without
+## "velocity" and "body" it is still; without "body" it is a rest ring at
+## its centre with a fresh stream; a train slime without "train" is placed
+## where the loop is closest, and a "train" record's keys left out are a
+## fresh record's (TrainRecord); without the top-level "train" no gate is
+## open, without "call" there was no call; without "transient" the view and
+## the input start empty. Every other key capture() writes is needed:
+## problems() refuses a save without it (see docs/dev/README.md, "Defaults
+## on load").
 ##
 ## Not saved: the fingers on the screen (a restarted game has none: saving
 ## them would leave a finger stuck down), input not yet consumed, and what
@@ -113,6 +119,10 @@ const FORMAT := 1
 const SHIPPED := false
 const EXACT_PREFIX := "f64:"
 const PHASES := [FreeSlimes.ANSWERING, FreeSlimes.UNSURE, FreeSlimes.HEADING_BACK]
+## The kinds of value _needed() checks a key for, and how a problem names them.
+enum Kind { WHOLE, REAL, VECTOR, TEXT, FLAG, DICT, LIST }
+const KIND_NAMES := ["a whole number", "a number", "[x, y]", "a string", "true or false", "a dictionary",
+		"a list"]
 
 
 # --- Saving --------------------------------------------------------------------
@@ -321,18 +331,20 @@ static func problems(save: Variant, level_data: LevelData) -> PackedStringArray:
 		out.append("no slimes (a level always has at least its first slime)")
 	else:
 		out.append_array(_slime_problems(slimes))
-	for key in ["objects", "gates"]:
-		if typeof(save.get(key, {})) != TYPE_DICTIONARY:
-			out.append("'%s' must be a dictionary (stable ID -> state)" % key)
+	# Stable ID -> state.
+	out.append_array(_needed(save, "", {"objects": Kind.DICT, "gates": Kind.DICT}))
 	for key in ["train", "call", "transient", "offscreen", "stuck_slimes"]:
 		var part: Variant = save.get(key)
 		if part != null and typeof(part) != TYPE_DICTIONARY:
 			out.append("'%s' must be a dictionary or null" % key)
-	var offscreen: Variant = save.get("offscreen")
-	if offscreen is Dictionary and offscreen.has("crowd_level"):
-		var crowd: Variant = _whole(offscreen["crowd_level"])
-		if crowd == null or crowd < 0 or crowd > Offscreen.CROWD_STEPS.size():
-			out.append("'offscreen.crowd_level' must be a whole number from 0 to %d" % Offscreen.CROWD_STEPS.size())
+	if save.get("train") is Dictionary:
+		out.append_array(_needed(save["train"], "train.", {"open_gates": Kind.LIST}))
+	if save.get("offscreen") is Dictionary:
+		out.append_array(_offscreen_problems(save["offscreen"]))
+	if save.get("stuck_slimes") is Dictionary:
+		out.append_array(_needed(save["stuck_slimes"], "stuck_slimes.", {"counts": Kind.LIST, "stuck": Kind.LIST}))
+	if save.get("transient") is Dictionary:
+		out.append_array(_transient_problems(save["transient"]))
 	if save.has("hint_done") and typeof(save["hint_done"]) != TYPE_BOOL:
 		out.append("'hint_done' must be true or false")
 	if save.has("celebration_done") and typeof(save["celebration_done"]) != TYPE_BOOL:
@@ -350,17 +362,15 @@ static func _session_problems(session: Variant) -> PackedStringArray:
 		return PackedStringArray(["'session' must be a dictionary"])
 	if str(session.get("phase", "")) not in Session.PHASES:
 		out.append("'session.phase' must be one of %s" % ", ".join(Session.PHASES))
-	var elapsed: Variant = _whole(session.get("elapsed_ms", 0))
-	if elapsed == null or elapsed < 0:
+	out.append_array(_needed(session, "session.", {"elapsed_ms": Kind.WHOLE, "sunrise_tick": Kind.WHOLE,
+			"anchor": Kind.DICT, "clock": Kind.DICT}))
+	if not out.is_empty():
+		return out
+	if _whole(session["elapsed_ms"]) < 0:
 		out.append("'session.elapsed_ms' must be a whole number >= 0")
-	if _whole(session.get("sunrise_tick", -1)) == null:
-		out.append("'session.sunrise_tick' must be a whole number")
 	var parts := {"anchor": ["wall_ms", "mono_ms", "elapsed_ms"], "clock": ["wall_ms", "mono_ms", "tick"]}
 	for part in parts:
-		var value: Variant = session.get(part, {})
-		if typeof(value) != TYPE_DICTIONARY:
-			out.append("'session.%s' must be a dictionary" % part)
-			continue
+		var value: Dictionary = session[part]
 		if value.is_empty():
 			continue
 		for key in parts[part]:
@@ -368,10 +378,89 @@ static func _session_problems(session: Variant) -> PackedStringArray:
 				out.append("'session.%s.%s' must be a whole number" % [part, key])
 		if part == "clock" and typeof(value.get("epoch")) != TYPE_STRING:
 			out.append("'session.clock.epoch' must be a string")
-	var timed := str(session.get("phase", "")) != Session.SCREENSAVER
-	if timed and out.is_empty() and (session.get("anchor", {}).is_empty() != session.get("clock", {}).is_empty()):
+	var timed := str(session["phase"]) != Session.SCREENSAVER
+	if timed and out.is_empty() and (session["anchor"].is_empty() != session["clock"].is_empty()):
 		out.append("'session.anchor' and 'session.clock' come together")
 	return out
+
+
+## What is wrong with a save's "offscreen" (see the file doc).
+# @spec-link [[req_offscreen_simulation]]
+static func _offscreen_problems(offscreen: Dictionary) -> PackedStringArray:
+	var out := _needed(offscreen, "offscreen.", {"zoomed_out": Kind.FLAG, "away": Kind.LIST,
+			"proxies": Kind.LIST, "lost": Kind.LIST})
+	if offscreen.has("crowd_level"):
+		var crowd: Variant = _whole(offscreen["crowd_level"])
+		if crowd == null or crowd < 0 or crowd > Offscreen.CROWD_STEPS.size():
+			out.append("'offscreen.crowd_level' must be a whole number from 0 to %d" % Offscreen.CROWD_STEPS.size())
+	var entries := {"away": {"id": Kind.WHOLE, "since": Kind.WHOLE},
+			"proxies": {"id": Kind.WHOLE, "route": Kind.TEXT, "along": Kind.REAL, "from": Kind.VECTOR,
+					"to": Kind.VECTOR},
+			"lost": {"id": Kind.WHOLE, "tick": Kind.WHOLE, "reason": Kind.TEXT}}
+	for part in entries:
+		if offscreen.get(part) is Array:
+			out.append_array(_entry_problems(offscreen[part], "offscreen.%s" % part, entries[part]))
+	return out
+
+
+## What is wrong with a save's "transient" (see the file doc): every part
+## capture() writes, "frontier.celebration_hops" the one optional key.
+static func _transient_problems(transient: Dictionary) -> PackedStringArray:
+	var out := _needed(transient, "transient.", {"view": Kind.DICT, "camera": Kind.DICT, "ripples": Kind.LIST,
+			"taps": Kind.LIST, "facing": Kind.LIST, "input_log": Kind.LIST, "fusion": Kind.LIST,
+			"tilt": Kind.DICT, "hint": Kind.DICT, "frontier": Kind.DICT})
+	var parts := {"view": {"centre": Kind.VECTOR, "zoom": Kind.REAL, "screen_size": Kind.VECTOR},
+			"tilt": {"degrees": Kind.REAL, "neutral": Kind.REAL, "flat": Kind.FLAG},
+			"hint": {"since": Kind.WHOLE, "bedtime": Kind.FLAG},
+			"frontier": {"celebration_since": Kind.WHOLE}}
+	for part in parts:
+		if transient.get(part) is Dictionary:
+			out.append_array(_needed(transient[part], "transient.%s." % part, parts[part]))
+	return out
+
+
+## The problems of a list's entries: each a dictionary with `keys`.
+static func _entry_problems(list: Array, at: String, keys: Dictionary) -> PackedStringArray:
+	var out := PackedStringArray()
+	for k in list.size():
+		var entry: Variant = list[k]
+		if typeof(entry) != TYPE_DICTIONARY:
+			out.append("'%s[%d]' must be a dictionary" % [at, k])
+		else:
+			out.append_array(_needed(entry, "%s[%d]." % [at, k], keys))
+	return out
+
+
+## The problems of `holder`'s `keys` (key -> Kind): each must be there, of
+## its kind. A problem names the key as `at` + key.
+static func _needed(holder: Dictionary, at: String, keys: Dictionary) -> PackedStringArray:
+	var out := PackedStringArray()
+	for key in keys:
+		if not holder.has(key):
+			out.append("'%s%s' is missing" % [at, key])
+		elif not _is_kind(holder[key], keys[key]):
+			out.append("'%s%s' must be %s" % [at, key, KIND_NAMES[keys[key]]])
+	return out
+
+
+## Whether `value` is of `kind` (whole numbers may be whole floats, as JSON
+## reads them).
+static func _is_kind(value: Variant, kind: Kind) -> bool:
+	match kind:
+		Kind.WHOLE:
+			return _whole(value) != null
+		Kind.REAL:
+			return _is_real(value)
+		Kind.VECTOR:
+			return _is_vector(value)
+		Kind.TEXT:
+			return typeof(value) == TYPE_STRING
+		Kind.FLAG:
+			return typeof(value) == TYPE_BOOL
+		Kind.DICT:
+			return typeof(value) == TYPE_DICTIONARY
+		_:
+			return typeof(value) == TYPE_ARRAY
 
 
 static func _slime_problems(slimes: Array) -> PackedStringArray:
@@ -408,6 +497,9 @@ static func _slime_problems(slimes: Array) -> PackedStringArray:
 		var free: Variant = slime.get("free")
 		if free != null and (typeof(free) != TYPE_DICTIONARY or str(free.get("phase", "")) not in PHASES):
 			out.append(at + "'free' needs a phase: %s" % ", ".join(PHASES))
+		elif free != null:
+			out.append_array(_prefixed(at, _needed(free, "free.", {"since": Kind.WHOLE, "point": Kind.VECTOR,
+					"route": Kind.TEXT})))
 		var train: Variant = slime.get("train")
 		if train != null and typeof(train) != TYPE_DICTIONARY:
 			out.append(at + "'train' must be a dictionary")
@@ -426,6 +518,9 @@ static func _slime_problems(slimes: Array) -> PackedStringArray:
 					or not _is_vector(body["rest"].get("anchor"))):
 				out.append(at + "'body.rest' needs a calm (%s) and an anchor [x, y]"
 						% ", ".join(SlimeBodies.CALM_NAMES))
+			elif body.has("rest"):
+				out.append_array(_prefixed(at, _needed(body["rest"], "body.rest.", {"still": Kind.WHOLE,
+						"pile": Kind.WHOLE})))
 	if with_ids != 0 and with_ids != slimes.size():
 		out.append("either every slime has a runtime_id or none does")
 	return out
@@ -440,8 +535,8 @@ static func _slime_problems(slimes: Array) -> PackedStringArray:
 ## the rest is restored. Last, no slime is left in mid-air (MidairLanding:
 ## put on the ground below, or lost), so a slime saved in the air doesn't
 ## reload exactly. What problems() guarantees is read directly; a default
-## here is either a key the format calls optional (the file doc) or one of
-## the open gaps docs/dev/README.md lists ("Defaults on load").
+## here is always a key the format calls optional (the file doc and
+## docs/dev/README.md, "Defaults on load").
 # @spec-link [[req_persistence_and_saves]]
 # @spec-link [[rule_released_level_stable_with_migration]]
 # @spec-link [[rule_saves_never_wiped]]
@@ -481,9 +576,9 @@ static func restore(save: Dictionary, level_data: LevelData, terrain: TerrainSeg
 			if body.has("rest"):
 				var rest: Dictionary = body["rest"]
 				restored["calm"] = SlimeBodies.CALM_NAMES.find(str(rest["calm"]))
-				restored["still"] = _whole(rest.get("still", 0))
+				restored["still"] = _whole(rest["still"])
 				restored["anchor"] = vector_from(rest["anchor"])
-				restored["pile"] = _whole(rest.get("pile", 0))
+				restored["pile"] = _whole(rest["pile"])
 			sim.slimes.set_body(slime_id, restored)
 		elif slime.has("velocity"):
 			sim.slimes.set_velocity(slime_id, vector_from(slime["velocity"]))
@@ -493,7 +588,7 @@ static func restore(save: Dictionary, level_data: LevelData, terrain: TerrainSeg
 	sim.hint.done = save.get("hint_done", false)
 	var saved_train: Variant = save.get("train")
 	if sim.train != null and saved_train is Dictionary:
-		sim.train.set_open_gates(saved_train.get("open_gates", []))
+		sim.train.set_open_gates(saved_train["open_gates"])
 		for entry in saved_train.get("stalled", []):
 			sim.train.stalled.append({"id": _whole(entry["id"]), "tick": _whole(entry["tick"]),
 					"reason": str(entry["reason"])})
@@ -503,8 +598,8 @@ static func restore(save: Dictionary, level_data: LevelData, terrain: TerrainSeg
 	if last_call is Dictionary:
 		sim.free_slimes.call_point = vector_from(last_call["point"])
 		sim.free_slimes.call_tick = _whole(last_call["tick"])
-	sim.object_states = save.get("objects", {}).duplicate(true)
-	sim.gate_states = save.get("gates", {}).duplicate(true)
+	sim.object_states = save["objects"].duplicate(true)
+	sim.gate_states = save["gates"].duplicate(true)
 	sim.frontier.celebration_done = save.get("celebration_done", false)
 	sim.frontier.start(sim)
 	var transient: Variant = save.get("transient")
@@ -534,11 +629,10 @@ static func restore(save: Dictionary, level_data: LevelData, terrain: TerrainSeg
 ## The session, its whole numbers back to ints (Session.restore).
 # @spec-link [[req_session_lifecycle]]
 static func _restore_session(sim: Simulation, session: Dictionary) -> void:
-	var data := {"phase": str(session["phase"]),
-			"elapsed_ms": _whole(session.get("elapsed_ms", 0)),
-			"sunrise_tick": _whole(session.get("sunrise_tick", -1)), "anchor": {}, "clock": {}}
+	var data := {"phase": str(session["phase"]), "elapsed_ms": _whole(session["elapsed_ms"]),
+			"sunrise_tick": _whole(session["sunrise_tick"]), "anchor": {}, "clock": {}}
 	for part in ["anchor", "clock"]:
-		var saved: Dictionary = session.get(part, {})
+		var saved: Dictionary = session[part]
 		var out := {}
 		for key in saved:
 			out[key] = str(saved[key]) if key == "epoch" else _whole(saved[key])
@@ -549,17 +643,16 @@ static func _restore_session(sim: Simulation, session: Dictionary) -> void:
 ## The Offscreen state, its reals and vectors back (Offscreen.restore).
 # @spec-link [[req_offscreen_simulation]]
 static func _restore_offscreen(sim: Simulation, saved: Dictionary) -> void:
-	var data := {"zoomed_out": saved.get("zoomed_out", false) == true,
+	var data := {"zoomed_out": saved["zoomed_out"],
 			"crowd_level": _whole(saved.get("crowd_level", 0)), "away": [], "proxies": [], "lost": []}
-	for entry in saved.get("away", []):
+	for entry in saved["away"]:
 		data["away"].append({"id": _whole(entry["id"]), "since": _whole(entry["since"])})
-	for entry in saved.get("proxies", []):
-		data["proxies"].append({"id": _whole(entry["id"]), "route": str(entry.get("route", "")),
-				"along": real(entry["along"]), "from": vector_from(entry.get("from", [0, 0])),
-				"to": vector_from(entry.get("to", [0, 0]))})
-	for entry in saved.get("lost", []):
+	for entry in saved["proxies"]:
+		data["proxies"].append({"id": _whole(entry["id"]), "route": str(entry["route"]),
+				"along": real(entry["along"]), "from": vector_from(entry["from"]), "to": vector_from(entry["to"])})
+	for entry in saved["lost"]:
 		data["lost"].append({"id": _whole(entry["id"]), "tick": _whole(entry["tick"]),
-				"reason": str(entry.get("reason", Offscreen.LOST))})
+				"reason": str(entry["reason"])})
 	sim.offscreen.restore(data)
 
 
@@ -581,8 +674,8 @@ static func _restore_progress(sim: Simulation, slime_id: int, slime: Dictionary)
 		sim.train.track(slime_id, sim.level.loop.closest(at, sim.train.open_gates)["distance"])
 	var free: Variant = slime.get("free")
 	if free is Dictionary:
-		var record := {"phase": str(free["phase"]), "since": _whole(free.get("since", 0)),
-				"point": vector_from(free.get("point", [0, 0])), "route": str(free.get("route", ""))}
+		var record := {"phase": str(free["phase"]), "since": _whole(free["since"]),
+				"point": vector_from(free["point"]), "route": str(free["route"])}
 		if free.has("rng_state"):
 			record["rng_state"] = str(free["rng_state"]).to_int()
 		sim.free_slimes.restore_record(slime_id, record)
@@ -591,28 +684,23 @@ static func _restore_progress(sim: Simulation, slime_id: int, slime: Dictionary)
 static func _restore_transient(sim: Simulation, transient: Dictionary) -> void:
 	# The saved neutral, so the reloaded state is the saved one. Taking a new
 	# neutral when a session resumes is the session's job (Session, D95).
-	if transient.get("tilt") is Dictionary:
-		var tilt: Dictionary = transient["tilt"]
-		sim.phone_tilt.restore({"degrees": real(tilt.get("degrees", 0.0)),
-				"neutral": real(tilt.get("neutral", 0.0)), "flat": bool(tilt.get("flat", false))})
+	var tilt: Dictionary = transient["tilt"]
+	sim.phone_tilt.restore({"degrees": real(tilt["degrees"]), "neutral": real(tilt["neutral"]),
+			"flat": tilt["flat"]})
 	# The camera after load_level too, which puts it on the rails near the
 	# first slime. A save keeps no fingers, so no edge button stays held.
-	if transient.get("camera") is Dictionary:
-		sim.camera.restore(_typed_values(transient["camera"]))
-		sim.camera.release(sim.camera.hold_finger)
-	if transient.get("hint") is Dictionary:
-		sim.hint.since = _whole(transient["hint"].get("since", sim.tick))
-		sim.hint.bedtime = bool(transient["hint"].get("bedtime", false))
-	if transient.get("frontier") is Dictionary:
-		sim.frontier.celebration_since = _whole(transient["frontier"].get("celebration_since", -1))
-		# The double hops still due (item 23.11): [[slime id, hops left]].
-		sim.frontier.hops.restore(transient["frontier"].get("celebration_hops", []))
-	if transient.get("view") is Dictionary:
-		var view: Dictionary = transient["view"]
-		sim.view.set_to(vector_from(view["centre"]), real(view["zoom"]), vector_from(view["screen_size"]))
-	for ripple in transient.get("ripples", []):
+	sim.camera.restore(_typed_values(transient["camera"]))
+	sim.camera.release(sim.camera.hold_finger)
+	sim.hint.since = _whole(transient["hint"]["since"])
+	sim.hint.bedtime = transient["hint"]["bedtime"]
+	sim.frontier.celebration_since = _whole(transient["frontier"]["celebration_since"])
+	# The double hops still due (item 23.11): [[slime id, hops left]], optional.
+	sim.frontier.hops.restore(transient["frontier"].get("celebration_hops", []))
+	var view: Dictionary = transient["view"]
+	sim.view.set_to(vector_from(view["centre"]), real(view["zoom"]), vector_from(view["screen_size"]))
+	for ripple in transient["ripples"]:
 		sim.ripples.append({"at": vector_from(ripple["at"]), "tick": _whole(ripple["tick"])})
-	for tap in transient.get("taps", []):
+	for tap in transient["taps"]:
 		var answered := []
 		for slime_id in tap["answered"]:
 			answered.append(_whole(slime_id))
@@ -620,12 +708,11 @@ static func _restore_transient(sim: Simulation, transient: Dictionary) -> void:
 				"screen": vector_from(tap["screen"]), "world": vector_from(tap["world"]),
 				"zone": str(tap["zone"]), "side": _whole(tap["side"]), "object": str(tap["object"]),
 				"kind": str(tap["kind"]), "call": bool(tap["call"]), "answered": answered})
-	for entry in transient.get("facing", []):
+	for entry in transient["facing"]:
 		sim.facing[_whole(entry["id"])] = vector_from(entry["facing"])
 	# The contact counts (Fusion): [[a, b, ticks]], whole numbers.
-	if transient.get("fusion") is Array:
-		sim.fusion.restore(transient["fusion"])
-	for event in transient.get("input_log", []):
+	sim.fusion.restore(transient["fusion"])
+	for event in transient["input_log"]:
 		var entry := {"kind": str(event["kind"]), "tick": _whole(event["tick"])}
 		if event.has("finger"):
 			entry["finger"] = _whole(event["finger"])
@@ -711,8 +798,7 @@ static func readable(save: Dictionary) -> Dictionary:
 					"point": _rounded(vector_from(slime["free"]["point"])), "route": slime["free"]["route"]}
 		slimes.append(out)
 	var out := {"format": save["format"], "level": save["level"], "slimes": slimes,
-			"objects": save.get("objects", {}), "gates": save.get("gates", {}),
-			"hint_done": save.get("hint_done", false)}
+			"objects": save["objects"], "gates": save["gates"], "hint_done": save.get("hint_done", false)}
 	# The celebration's mark only once it played (absent: false).
 	if save.get("celebration_done", false):
 		out["celebration_done"] = true
@@ -750,6 +836,23 @@ static func _whole(value: Variant) -> Variant:
 	if typeof(value) == TYPE_FLOAT and is_finite(value) and value == floorf(value):
 		return int(value)
 	return null
+
+
+## `problems`, each with `at` in front.
+static func _prefixed(at: String, problems: PackedStringArray) -> PackedStringArray:
+	var out := PackedStringArray()
+	for problem in problems:
+		out.append(at + problem)
+	return out
+
+
+## A real as exact() writes it: a number, or "f64:" and 16 hex digits.
+static func _is_real(value: Variant) -> bool:
+	if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
+		return true
+	return (typeof(value) == TYPE_STRING and value.begins_with(EXACT_PREFIX)
+			and value.length() == EXACT_PREFIX.length() + 16
+			and value.substr(EXACT_PREFIX.length()).is_valid_hex_number())
 
 
 static func _is_vector(value: Variant) -> bool:
