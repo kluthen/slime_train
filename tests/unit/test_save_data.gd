@@ -4,8 +4,9 @@ extends GutTest
 ## reloaded simulation has the same state hash, and still has it N ticks
 ## later. Also: the format's header (format, level ID and version), the
 ## slimes' fields, the empty object and gate states, exact reals, hand-made
-## saves (no bodies, no generator state), and the problems that make a save
-## unusable.
+## saves (no bodies, no generator state), the problems that make a save
+## unusable, and the keys capture() always writes, which a save must have
+## (health review S4).
 ##
 ## The synthetic world is test_call.gd's (a floor at y = 0, a loop along it,
 ## a platform in an exploration branch with its route back) plus a split
@@ -330,3 +331,103 @@ func test_runtime_ids_must_be_given_for_all_slimes_or_none() -> void:
 	assert_ne(SaveData.problems(save, _level()), PackedStringArray(), "ascending, no repeats")
 	save["slimes"][1]["runtime_id"] = 2
 	assert_eq(SaveData.problems(save, _level()), PackedStringArray())
+
+
+# --- Keys capture() always writes (health review S4) --------------------------------
+
+## The played story's save through JSON, with what it may lack added by hand
+## (a rest on a body, an away count, an off-screen proxy, a lost entry), so
+## it has every part capture() writes.
+func _full_save() -> Dictionary:
+	var save := _through_json(_played_on_the_ground().to_save())
+	save["slimes"][0]["body"]["rest"] = {"calm": "resting", "still": 3, "anchor": [0, -24], "pile": 0}
+	save["offscreen"]["away"].append({"id": 97, "since": 5})
+	save["offscreen"]["proxies"].append({"id": 99, "route": "", "along": 0.5, "from": [0, 0], "to": [10, 0]})
+	save["offscreen"]["lost"].append({"id": 98, "tick": 10, "reason": "lost"})
+	return save
+
+
+## The index of the save's first free slime.
+func _free_index(save: Dictionary) -> int:
+	for k in save["slimes"].size():
+		if save["slimes"][k].has("free"):
+			return k
+	return -1
+
+
+## Each case is [path, wrong value]: the path's keys from the save's top
+## (list indices as ints). The full save without that key, or with it set
+## to the wrong value, has a problem naming the key and doesn't load.
+func _assert_needed(cases: Array) -> void:
+	var good := _full_save()
+	assert_eq(SaveData.problems(good, _level()), PackedStringArray(), "the full save is good")
+	for case in cases:
+		var path: Array = case[0]
+		var key: Variant = path[-1]
+		var label := ".".join(path.map(func(part: Variant) -> String: return str(part)))
+		for missing in [true, false]:
+			var save := good.duplicate(true)
+			var holder: Variant = save
+			for part in path.slice(0, -1):
+				holder = holder[part]
+			if missing:
+				holder.erase(key)
+			else:
+				holder[key] = case[1]
+			var what := label + (" missing" if missing else " of the wrong type")
+			var problems := SaveData.problems(save, _level())
+			assert_string_contains("\n".join(problems), "%s'" % key, what + ": named")
+			assert_null(Simulation.from_save(save, _level(), _terrain(), 1), what + ": not loaded")
+
+
+func test_objects_and_gates_are_needed() -> void:
+	_assert_needed([[["objects"], []], [["gates"], 3]])
+
+
+func test_the_trains_open_gates_are_needed() -> void:
+	_assert_needed([[["train", "open_gates"], {}]])
+
+
+func test_the_sessions_keys_are_needed() -> void:
+	_assert_needed([[["session", "elapsed_ms"], 1.5], [["session", "sunrise_tick"], "x"],
+			[["session", "anchor"], []], [["session", "clock"], 0]])
+
+
+func test_the_offscreen_keys_are_needed() -> void:
+	_assert_needed([[["offscreen", "zoomed_out"], 1], [["offscreen", "away"], {}],
+			[["offscreen", "proxies"], {}], [["offscreen", "lost"], "x"],
+			[["offscreen", "away", -1, "id"], "x"], [["offscreen", "away", -1, "since"], 0.5]])
+
+
+func test_the_proxies_and_lost_keys_are_needed() -> void:
+	_assert_needed([[["offscreen", "proxies", -1, "id"], 1.5], [["offscreen", "proxies", -1, "route"], 7],
+			[["offscreen", "proxies", -1, "along"], "x"], [["offscreen", "proxies", -1, "from"], [0]],
+			[["offscreen", "proxies", -1, "to"], 0], [["offscreen", "lost", -1, "id"], "x"],
+			[["offscreen", "lost", -1, "tick"], [1]], [["offscreen", "lost", -1, "reason"], 3]])
+
+
+func test_a_free_records_keys_are_needed() -> void:
+	var k := _free_index(_full_save())
+	assert_gt(k, -1, "the played story has a free slime")
+	_assert_needed([[["slimes", k, "free", "since"], "x"], [["slimes", k, "free", "point"], [1, 2, 3]],
+			[["slimes", k, "free", "route"], 0]])
+
+
+func test_a_rests_still_and_pile_are_needed() -> void:
+	_assert_needed([[["slimes", 0, "body", "rest", "still"], 1.5], [["slimes", 0, "body", "rest", "pile"], "x"]])
+
+
+func test_the_transients_keys_are_needed() -> void:
+	_assert_needed([[["transient", "view"], []], [["transient", "view", "centre"], 0],
+			[["transient", "view", "zoom"], "x"], [["transient", "view", "screen_size"], [1]],
+			[["transient", "camera"], []], [["transient", "fusion"], {}],
+			[["transient", "tilt"], 0], [["transient", "tilt", "degrees"], "x"],
+			[["transient", "tilt", "neutral"], true], [["transient", "tilt", "flat"], 0],
+			[["transient", "hint"], []], [["transient", "hint", "since"], "x"],
+			[["transient", "hint", "bedtime"], 1], [["transient", "frontier"], 0],
+			[["transient", "frontier", "celebration_since"], 0.5], [["transient", "ripples"], {}],
+			[["transient", "taps"], 0], [["transient", "facing"], "x"], [["transient", "input_log"], {}]])
+
+
+func test_the_stuck_logs_keys_are_needed() -> void:
+	_assert_needed([[["stuck_slimes", "counts"], {}], [["stuck_slimes", "stuck"], 0]])

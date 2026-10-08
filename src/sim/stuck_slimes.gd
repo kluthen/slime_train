@@ -142,10 +142,10 @@ func dump() -> Dictionary:
 # @spec-link [[req_persistence_and_saves]]
 func restore(data: Dictionary) -> void:
 	counts = {}
-	for entry in data.get("counts", []):
+	for entry in data["counts"]:
 		counts[Vector2i(int(entry[0]), int(entry[1]))] = int(entry[2])
 	stuck = []
-	for entry in data.get("stuck", []):
+	for entry in data["stuck"]:
 		stuck.append({"id": int(entry["id"]), "other": int(entry["other"]), "tick": int(entry["tick"]),
 				"reason": str(entry["reason"]), "moved": bool(entry["moved"])})
 
