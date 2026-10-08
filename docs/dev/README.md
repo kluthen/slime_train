@@ -3738,7 +3738,7 @@ unusable, without pushing errors.
 
 **Defaults on load** (health review S4, 2026-10-07; settled 2026-10-08,
 approved by the user). `SaveData.restore` reads directly every key
-`problems()` checks: the format, the level and the slimes' species, size,
+`problems()` checks (`SaveChecks`, `src/sim/save_checks.gd`): the format, the level and the slimes' species, size,
 state and centre, a free record's phase, `since`, `point` and `route`, a
 body's points, previous points, `centre`, `hop_timer`, `heading`, `held`,
 `supported` and `rng_state` (a whole number as a string) and a rest's
