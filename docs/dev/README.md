@@ -3700,9 +3700,9 @@ One JSON object, keys sorted, tab-indented:
 | `sim` | `tick`, `seed` and `rng_state` (strings: 64-bit), `next_slime_id`. Optional, and each of its keys by itself: none is the run's seed and its generator's start, tick 0, the next slime id after the slimes' |
 | `slimes` | Every slime, in runtime id order (at least one): `id` (its stable ID, below), `members`, `runtime_id`, `species` (a letter), `size`, `state` (`train`, `free`, `sleeper`, `bedtime_asleep`, `in_basket`), `centre`, `velocity`, then `train` (distance, laps, slide, stall mark; a `lost` flag from before chunk 23A is ignored) or `free` (phase, since, point, route back, all four needed, and an optional stream state), and `body` (points, previous points, the solver's centre, hop timer, heading, held, supported, stream state; optional `rest` (calm, still count, anchor, pile, all four needed) and `detail`, the ring's detail level 1 to 3, absent 0, an older `"low": true` read as 2: see "Saves and hash" in the off-screen section) |
 | `offscreen` | The off-screen state (chunk 15): `zoomed_out`, `crowd_level` (0 to 3, absent 0), `away` (`{"id", "since"}`), `proxies` (`{"id", "route", "along", "from", "to"}`), `lost` (`{"id", "tick", "reason"}`); every key but `crowd_level` needed. Optional: none is a fresh level's off-screen state |
-| `train` | The open gates (`open_gates`, needed) and the stalled log (`stalled`: `{"id", "tick", "reason"}`, chunk 23A; the key was `lost` before and is ignored now, and a `train` without `stalled` has an empty log). Optional: none (or null) is no gate open and an empty log |
-| `call` | The last call (point, tick), or null. Optional: none is null, no call yet |
-| `objects`, `gates` | Stable ID to state (chunk 14): a switch `{"flipped", "trapdoor_shut"}`, a basket `{"phase", "weight", "since", "next_release"}`, a gate `{"open", "entrance_closed"}` (see "Frontier sets (chunk 14)"). Needed, `{}` when nothing has a state yet |
+| `train` | The open gates (`open_gates`, needed) and the stalled log (`stalled`: `{"id", "tick", "reason"}`, every key needed, chunk 23A; the key was `lost` before and is ignored now, and a `train` without `stalled` has an empty log). Optional: none (or null) is no gate open and an empty log |
+| `call` | The last call (`point`, `tick`, both needed), or null. Optional: none is null, no call yet |
+| `objects`, `gates` | Stable ID to state (chunk 14): a switch `{"flipped", "trapdoor_shut"}`, a basket `{"phase", "weight", "since", "next_release"}`, a gate `{"open", "entrance_closed"}` (see "Frontier sets (chunk 14)"); a state's keys optional, absent the initial state's. Needed, `{}` when nothing has a state yet |
 | `hint_done` | `true` once the first call happened (Hint). Optional: none is false, the hint is due |
 | `celebration_done` | `true` once the level's celebration has played; left out (false) before. Optional |
 | `transient` | The view (`centre`, `zoom`, `screen_size`), the camera, the ripples, the last taps, the facings, the input log, the tilt (`degrees`, `neutral`, `flat`), the fusion contact counts, the hint's count (`hint`: `since`, `bedtime`) and the celebration's start tick and double hops still due (`frontier`: `celebration_since`, `celebration_hops` `[[slime id, hops left]]`, optional: none is no hop due, chunk 23D). Optional: none is an empty view and input; when there, every part and key named here is needed but `celebration_hops` |
@@ -3738,28 +3738,42 @@ unusable, without pushing errors.
 
 **Defaults on load** (health review S4, 2026-10-07; settled 2026-10-08,
 approved by the user). `SaveData.restore` reads directly every key
-`problems()` checks: the format, the level and the slimes' species, size,
+`problems()` checks (`SaveChecks`, `src/sim/save_checks.gd`): the format, the level and the slimes' species, size,
 state and centre, a free record's phase, `since`, `point` and `route`, a
-body's points and a rest's `calm`, `still`, `anchor` and `pile`, `objects`
-and `gates`, `train.open_gates`, the session's five keys, `offscreen`'s
-`zoomed_out`, `away`, `proxies` and `lost` and their entries' keys,
-`stuck_slimes`' `counts` and `stuck`, and, once `transient` is there, each
-of its parts (`view`, `camera`, `ripples`, `taps`, `facing`, `input_log`,
-`fusion`, `tilt`, `hint`, `frontier`) and the keys of `view`, `tilt`, `hint`
-and `frontier` but `celebration_hops`. A save without one of them, or with
-one of the wrong type, is unreadable (`problems()` refuses it) and the
-level starts fresh, as for any unreadable save (before the app ships its
-file is set aside: `SaveData.SHIPPED`). capture() always writes them all.
-Every other default is an optional key of the table and of "Hand-made
-saves" above, read with its absent meaning: `sim` and its keys,
-`runtime_id`, `members`, `velocity`, `body`, a slime's `train` and its
-keys, `free.rng_state`, `body.detail` (and the older `low`), `body.rest`,
-a top-level `train` or `call`, `train.stalled`, `hint_done`,
-`celebration_done`, `session`, `offscreen` and its `crowd_level`,
-`stuck_slimes`, `transient` and `transient.frontier.celebration_hops`. No
-default is left that is neither checked nor documented optional. Tests:
-the "Keys capture() always writes" part of `tests/unit/test_save_data.gd`,
-one test per group.
+body's points, previous points, `centre`, `hop_timer`, `heading`, `held`,
+`supported` and `rng_state` (a whole number as a string) and a rest's
+`calm`, `still`, `anchor` and `pile`, `objects` and `gates`,
+`train.open_gates` (gate names), a `call`'s `point` and `tick`, the
+session's five keys, `offscreen`'s `zoomed_out`, `away`, `proxies` and
+`lost` and their entries' keys, `stuck_slimes`' `counts` (three whole
+numbers each) and `stuck` and its entries' `id`, `other`, `tick`, `reason`
+and `moved`, and, once `transient` is there, each of its parts (`view`,
+`camera`, `ripples`, `taps`, `facing`, `input_log`, `fusion`, `tilt`,
+`hint`, `frontier`), the keys of `view`, `camera` (every key of
+`Camera.dump`), `tilt`, `hint` and `frontier` but `celebration_hops`, and
+their entries' keys: a ripple's `at` and `tick`, a tap's ten (`answered`
+whole numbers), a facing's `id` and `facing`, an input event's `kind` and
+`tick`, a fusion count's three whole numbers. A save without one of them,
+or with one of the wrong type, is unreadable (`problems()` refuses it) and
+the level starts fresh, as for any unreadable save (before the app ships
+its file is set aside: `SaveData.SHIPPED`). capture() always writes them
+all. Every other default is an optional key of the table and of "Hand-made
+saves" above, read with its absent meaning, and `problems()` checks its
+type when it is there: `sim` and its keys, `runtime_id`, `members`, a
+slime's `id` (absent or null: no stable ID, so a migration takes such a
+sleeper as displaced), `velocity`, `body`, a slime's `train` and its keys,
+`free.rng_state`, `body.detail` (and the older `low`), `body.rest`, a
+top-level `train` or `call`, `train.stalled` and its entries' `id`,
+`tick` and `reason`, `hint_done`, `celebration_done`, `session`,
+`offscreen` and its `crowd_level`, `stuck_slimes`, `transient`,
+`transient.frontier.celebration_hops` (pairs of whole numbers), an input
+event's `finger`, `at` ([x, y] or null), `degrees` and `flat` (only some
+kinds of event have them), and each key of a level switch's, basket's or
+gate's state (absent: the initial state's, `FrontierSets.start`; a
+basket's `phase` one of `FrontierSets.PHASES`; a state that isn't a
+dictionary is refused). No default is left that is neither checked nor
+documented optional. Tests: the "Keys capture() always writes" part of
+`tests/unit/test_save_data.gd`, one test per group.
 
 ### Stable identity (D72)
 

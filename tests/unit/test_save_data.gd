@@ -336,14 +336,22 @@ func test_runtime_ids_must_be_given_for_all_slimes_or_none() -> void:
 # --- Keys capture() always writes (health review S4) --------------------------------
 
 ## The played story's save through JSON, with what it may lack added by hand
-## (a rest on a body, an away count, an off-screen proxy, a lost entry), so
-## it has every part capture() writes.
+## (a rest on a body, an away count, an off-screen proxy, a lost entry, a
+## stalled entry, a facing, an open gate, fusion and stuck counts, a stuck
+## case, a double hop due), so it has every part capture() writes.
 func _full_save() -> Dictionary:
 	var save := _through_json(_played_on_the_ground().to_save())
 	save["slimes"][0]["body"]["rest"] = {"calm": "resting", "still": 3, "anchor": [0, -24], "pile": 0}
 	save["offscreen"]["away"].append({"id": 97, "since": 5})
 	save["offscreen"]["proxies"].append({"id": 99, "route": "", "along": 0.5, "from": [0, 0], "to": [10, 0]})
 	save["offscreen"]["lost"].append({"id": 98, "tick": 10, "reason": "lost"})
+	save["train"]["open_gates"].append("t.gate")
+	save["train"]["stalled"].append({"id": 96, "tick": 7, "reason": "out_of_bounds"})
+	save["transient"]["facing"].append({"id": 95, "facing": [1, 0]})
+	save["transient"]["fusion"].append([1, 2, 3])
+	save["transient"]["frontier"]["celebration_hops"].append([1, 2])
+	save["stuck_slimes"]["counts"].append([1, 2, 3])
+	save["stuck_slimes"]["stuck"].append({"id": 1, "other": 2, "tick": 9, "reason": "stuck", "moved": true})
 	return save
 
 
@@ -355,17 +363,32 @@ func _free_index(save: Dictionary) -> int:
 	return -1
 
 
+## The index of the save's first input log event with `key`.
+func _log_index(save: Dictionary, key: String) -> int:
+	var log: Array = save["transient"]["input_log"]
+	for k in log.size():
+		if log[k].has(key):
+			return k
+	return -1
+
+
 ## Each case is [path, wrong value]: the path's keys from the save's top
-## (list indices as ints). The full save without that key, or with it set
-## to the wrong value, has a problem naming the key and doesn't load.
-func _assert_needed(cases: Array) -> void:
+## (list indices as ints). The full save with it set to the wrong value has
+## a problem naming it (the key, or for a list item the last key before it)
+## and doesn't load. Without the key (a dictionary's), it is the same, or,
+## with `optional`, the save has no problem.
+func _assert_needed(cases: Array, optional := false) -> void:
 	var good := _full_save()
 	assert_eq(SaveData.problems(good, _level()), PackedStringArray(), "the full save is good")
 	for case in cases:
 		var path: Array = case[0]
 		var key: Variant = path[-1]
 		var label := ".".join(path.map(func(part: Variant) -> String: return str(part)))
-		for missing in [true, false]:
+		var named := "%s'" % key
+		if key is int:
+			var keys := path.filter(func(part: Variant) -> bool: return part is String)
+			named = "%s[" % keys[-1]
+		for missing in ([true, false] if key is String else [false]):
 			var save := good.duplicate(true)
 			var holder: Variant = save
 			for part in path.slice(0, -1):
@@ -376,7 +399,10 @@ func _assert_needed(cases: Array) -> void:
 				holder[key] = case[1]
 			var what := label + (" missing" if missing else " of the wrong type")
 			var problems := SaveData.problems(save, _level())
-			assert_string_contains("\n".join(problems), "%s'" % key, what + ": named")
+			if missing and optional:
+				assert_eq(problems, PackedStringArray(), what + ": optional")
+				continue
+			assert_string_contains("\n".join(problems), named, what + ": named")
 			assert_null(Simulation.from_save(save, _level(), _terrain(), 1), what + ": not loaded")
 
 
@@ -431,3 +457,115 @@ func test_the_transients_keys_are_needed() -> void:
 
 func test_the_stuck_logs_keys_are_needed() -> void:
 	_assert_needed([[["stuck_slimes", "counts"], {}], [["stuck_slimes", "stuck"], 0]])
+
+
+func test_the_calls_point_and_tick_are_needed() -> void:
+	_assert_needed([[["call", "point"], [1]], [["call", "tick"], "x"]])
+
+
+func test_the_stalled_logs_entries_are_needed() -> void:
+	_assert_needed([[["train", "stalled"], {}]], true)
+	_assert_needed([[["train", "stalled", -1], 3], [["train", "stalled", -1, "id"], "x"],
+			[["train", "stalled", -1, "tick"], 0.5], [["train", "stalled", -1, "reason"], 3]])
+
+
+func test_a_bodys_keys_are_needed() -> void:
+	_assert_needed([[["slimes", 0, "body", "centre"], 0], [["slimes", 0, "body", "hop_timer"], "x"],
+			[["slimes", 0, "body", "heading"], [1, 2]], [["slimes", 0, "body", "held"], 1],
+			[["slimes", 0, "body", "supported"], "x"], [["slimes", 0, "body", "rng_state"], 12],
+			[["slimes", 0, "body", "rng_state"], "x"]])
+
+
+func test_a_free_records_stream_is_typed_when_there() -> void:
+	var k := _free_index(_full_save())
+	_assert_needed([[["slimes", k, "free", "rng_state"], 3]], true)
+
+
+func test_the_ripples_and_facings_keys_are_needed() -> void:
+	_assert_needed([[["transient", "ripples", -1], 3], [["transient", "ripples", -1, "at"], [1]],
+			[["transient", "ripples", -1, "tick"], "x"], [["transient", "facing", -1], "x"],
+			[["transient", "facing", -1, "id"], 0.5], [["transient", "facing", -1, "facing"], 0]])
+
+
+func test_a_taps_keys_are_needed() -> void:
+	var cases := [[["transient", "taps", -1], 3]]
+	var wrong := {"tick": "x", "finger": 0.5, "screen": [1], "world": 0, "zone": 3, "side": "x", "object": 1,
+			"kind": 2, "call": 1, "answered": {}}
+	for key in wrong:
+		cases.append([["transient", "taps", -1, key], wrong[key]])
+	_assert_needed(cases)
+	var good := _full_save()
+	good["transient"]["taps"][-1]["answered"] = [1, "x"]
+	assert_ne(SaveData.problems(good, _level()), PackedStringArray(), "an answered id must be a whole number")
+
+
+func test_the_input_logs_keys_are_needed() -> void:
+	var save := _full_save()
+	var touch := _log_index(save, "finger")
+	var tilt := _log_index(save, "degrees")
+	assert_gt(touch, -1, "the played story has a touch in its input log")
+	assert_gt(tilt, -1, "the played story has a tilt in its input log")
+	_assert_needed([[["transient", "input_log", -1], 3], [["transient", "input_log", touch, "kind"], 3],
+			[["transient", "input_log", touch, "tick"], "x"]])
+	_assert_needed([[["transient", "input_log", touch, "finger"], "x"],
+			[["transient", "input_log", touch, "at"], 0], [["transient", "input_log", tilt, "degrees"], "x"],
+			[["transient", "input_log", tilt, "flat"], 0]], true)
+	save["transient"]["input_log"][touch]["at"] = null
+	assert_eq(SaveData.problems(save, _level()), PackedStringArray(), "a touch may be at no point (null)")
+
+
+func test_the_cameras_keys_are_needed() -> void:
+	var cases := []
+	var wrong := {"mode": 1, "zoom": "x", "position": 0, "distance": "x", "rail_left": [1], "rail_gap": 0,
+			"rail_length": "x", "hold_finger": 0.5, "hold_side": "x", "drag_point": [1], "drag_tick": "x",
+			"return_distance": true, "edge_buttons_visible": 1, "frame_zone": 1, "frame_shift": "x",
+			"zone_hold": 0.5, "quiet": "x", "cue_from": "x", "follow_id": 0.5, "follow_species": "x",
+			"follow_point": 0, "screensaver": 0, "show_distance": "x", "show_tick": 0.5}
+	assert_eq(wrong.size(), Camera.new().dump().size(), "every key dump() writes")
+	for key in wrong:
+		cases.append([["transient", "camera", key], wrong[key]])
+	_assert_needed(cases)
+
+
+func test_the_count_lists_entries_are_needed() -> void:
+	_assert_needed([[["transient", "fusion", -1], [1, 2]], [["transient", "fusion", -1], ["x", 2, 3]],
+			[["stuck_slimes", "counts", -1], 3], [["stuck_slimes", "counts", -1], [1, 2, 0.5]],
+			[["stuck_slimes", "stuck", -1], "x"], [["stuck_slimes", "stuck", -1, "id"], "x"],
+			[["stuck_slimes", "stuck", -1, "other"], 0.5], [["stuck_slimes", "stuck", -1, "tick"], [1]],
+			[["stuck_slimes", "stuck", -1, "reason"], 3], [["stuck_slimes", "stuck", -1, "moved"], 1],
+			[["transient", "frontier", "celebration_hops", -1], [1]],
+			[["transient", "frontier", "celebration_hops", -1], [1, "x"]]])
+	_assert_needed([[["transient", "frontier", "celebration_hops"], {}]], true)
+
+
+func test_the_open_gates_are_names() -> void:
+	_assert_needed([[["train", "open_gates", -1], 3]])
+
+
+## A level's switch, basket and gate states: each key optional (absent: the
+## initial state's), of its kind when there; an entry is a dictionary.
+func test_object_and_gate_states_are_typed_when_there() -> void:
+	var level := _level()
+	level.add_switch("t.switch", Rect2(-1150, -100, 50, 50), "t.basket")
+	level.add_basket("t.basket", Rect2(-1000, -100, 100, 76), 3, Vector2(-900, -24))
+	level.add_gate("t.gate", Rect2(1400, -100, 50, 76))
+	var good := _hand_made()
+	good["objects"] = {"t.switch": {"flipped": false, "trapdoor_shut": true},
+			"t.basket": {"phase": "filling", "weight": 0, "since": -1, "next_release": 0}}
+	good["gates"] = {"t.gate": {"open": false, "entrance_closed": false}}
+	assert_eq(SaveData.problems(good, level), PackedStringArray(), "the states are good")
+	var wrong := {"objects": {"t.switch": {"flipped": 1, "trapdoor_shut": "x"},
+			"t.basket": {"phase": "lost", "weight": "x", "since": 0.5, "next_release": [1]}},
+			"gates": {"t.gate": {"open": "x", "entrance_closed": 0}}}
+	for part in wrong:
+		for id in wrong[part]:
+			var save := good.duplicate(true)
+			save[part][id] = 3
+			assert_string_contains("\n".join(SaveData.problems(save, level)), "%s'" % id, id + " not a dictionary")
+			for key in wrong[part][id]:
+				save = good.duplicate(true)
+				save[part][id].erase(key)
+				assert_eq(SaveData.problems(save, level), PackedStringArray(), "%s.%s optional" % [id, key])
+				save[part][id][key] = wrong[part][id][key]
+				assert_string_contains("\n".join(SaveData.problems(save, level)), "%s'" % key,
+						"%s.%s of the wrong type" % [id, key])

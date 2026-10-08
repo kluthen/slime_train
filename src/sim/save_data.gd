@@ -98,7 +98,11 @@ extends RefCounted
 ## where the loop is closest, and a "train" record's keys left out are a
 ## fresh record's (TrainRecord); without the top-level "train" no gate is
 ## open, without "call" there was no call; without "transient" the view and
-## the input start empty. Every other key capture() writes is needed:
+## the input start empty; without "id" (or with null) a slime has no stable
+## ID for a migration; a key left out of a level switch's, basket's or
+## gate's state takes the initial state's (FrontierSets.start). An input
+## event's "finger", "at", "degrees" and "flat" are there only for the
+## kinds of event that have them. Every other key capture() writes is needed:
 ## problems() refuses a save without it (see docs/dev/README.md, "Defaults
 ## on load").
 ##
@@ -118,13 +122,6 @@ const FORMAT := 1
 # @spec-link [[req_persistence_and_saves]]
 const SHIPPED := false
 const EXACT_PREFIX := "f64:"
-const PHASES := [FreeSlimes.ANSWERING, FreeSlimes.UNSURE, FreeSlimes.HEADING_BACK]
-## The kinds of value _needed() checks a key for, and how a problem names them.
-enum Kind { WHOLE, REAL, VECTOR, TEXT, FLAG, DICT, LIST }
-const KIND_NAMES := ["a whole number", "a number", "[x, y]", "a string", "true or false", "a dictionary",
-		"a list"]
-
-
 # --- Saving --------------------------------------------------------------------
 
 ## The save of `sim`, as plain JSON data.
@@ -292,238 +289,7 @@ static func _typed_values(data: Dictionary) -> Dictionary:
 # @spec-link [[rule_released_level_stable_with_migration]]
 # @spec-link [[rule_saves_never_wiped]]
 static func problems(save: Variant, level_data: LevelData) -> PackedStringArray:
-	var out := PackedStringArray()
-	if typeof(save) != TYPE_DICTIONARY:
-		return PackedStringArray(["not a save (expected a dictionary)"])
-	var format: Variant = _whole(save.get("format"))
-	if format == null:
-		out.append("no format number")
-	elif format > FORMAT:
-		out.append("format %d is newer than this game's (%d)" % [format, FORMAT])
-	elif format < FORMAT:
-		out.append("format %d is older than this game's (%d), and no older format is migrated" % [format, FORMAT])
-	var header: Variant = save.get("level")
-	if typeof(header) != TYPE_DICTIONARY:
-		out.append("no level header")
-	elif level_data == null:
-		out.append("no level loaded to put the save in")
-	else:
-		if str(header.get("id", "")) != level_data.level_id:
-			out.append("saved for level '%s', not '%s'" % [header.get("id", ""), level_data.level_id])
-		var version: Variant = _whole(header.get("version"))
-		if version == null:
-			out.append("no level version (a whole number)")
-		elif version > level_data.level_version:
-			out.append("saved by a newer version of level '%s' (%d), which is at version %d in this game"
-					% [level_data.level_id, version, level_data.level_version])
-	var sim: Variant = save.get("sim", {})
-	if typeof(sim) != TYPE_DICTIONARY:
-		out.append("'sim' must be a dictionary")
-	else:
-		for key in ["seed", "rng_state"]:
-			if sim.has(key) and not str(sim[key]).is_valid_int():
-				out.append("'sim.%s' must be a whole number as a string" % key)
-		for key in ["tick", "next_slime_id"]:
-			if sim.has(key) and (_whole(sim[key]) == null or _whole(sim[key]) < 0):
-				out.append("'sim.%s' must be a whole number >= 0" % key)
-	var slimes: Variant = save.get("slimes")
-	if typeof(slimes) != TYPE_ARRAY or slimes.is_empty():
-		out.append("no slimes (a level always has at least its first slime)")
-	else:
-		out.append_array(_slime_problems(slimes))
-	# Stable ID -> state.
-	out.append_array(_needed(save, "", {"objects": Kind.DICT, "gates": Kind.DICT}))
-	for key in ["train", "call", "transient", "offscreen", "stuck_slimes"]:
-		var part: Variant = save.get(key)
-		if part != null and typeof(part) != TYPE_DICTIONARY:
-			out.append("'%s' must be a dictionary or null" % key)
-	if save.get("train") is Dictionary:
-		out.append_array(_needed(save["train"], "train.", {"open_gates": Kind.LIST}))
-	if save.get("offscreen") is Dictionary:
-		out.append_array(_offscreen_problems(save["offscreen"]))
-	if save.get("stuck_slimes") is Dictionary:
-		out.append_array(_needed(save["stuck_slimes"], "stuck_slimes.", {"counts": Kind.LIST, "stuck": Kind.LIST}))
-	if save.get("transient") is Dictionary:
-		out.append_array(_transient_problems(save["transient"]))
-	if save.has("hint_done") and typeof(save["hint_done"]) != TYPE_BOOL:
-		out.append("'hint_done' must be true or false")
-	if save.has("celebration_done") and typeof(save["celebration_done"]) != TYPE_BOOL:
-		out.append("'celebration_done' must be true or false")
-	if save.has("session"):
-		out.append_array(_session_problems(save["session"]))
-	return out
-
-
-## What is wrong with a save's "session" (see the class doc).
-# @spec-link [[req_session_lifecycle]]
-static func _session_problems(session: Variant) -> PackedStringArray:
-	var out := PackedStringArray()
-	if typeof(session) != TYPE_DICTIONARY:
-		return PackedStringArray(["'session' must be a dictionary"])
-	if str(session.get("phase", "")) not in Session.PHASES:
-		out.append("'session.phase' must be one of %s" % ", ".join(Session.PHASES))
-	out.append_array(_needed(session, "session.", {"elapsed_ms": Kind.WHOLE, "sunrise_tick": Kind.WHOLE,
-			"anchor": Kind.DICT, "clock": Kind.DICT}))
-	if not out.is_empty():
-		return out
-	if _whole(session["elapsed_ms"]) < 0:
-		out.append("'session.elapsed_ms' must be a whole number >= 0")
-	var parts := {"anchor": ["wall_ms", "mono_ms", "elapsed_ms"], "clock": ["wall_ms", "mono_ms", "tick"]}
-	for part in parts:
-		var value: Dictionary = session[part]
-		if value.is_empty():
-			continue
-		for key in parts[part]:
-			if _whole(value.get(key)) == null:
-				out.append("'session.%s.%s' must be a whole number" % [part, key])
-		if part == "clock" and typeof(value.get("epoch")) != TYPE_STRING:
-			out.append("'session.clock.epoch' must be a string")
-	var timed := str(session["phase"]) != Session.SCREENSAVER
-	if timed and out.is_empty() and (session["anchor"].is_empty() != session["clock"].is_empty()):
-		out.append("'session.anchor' and 'session.clock' come together")
-	return out
-
-
-## What is wrong with a save's "offscreen" (see the file doc).
-# @spec-link [[req_offscreen_simulation]]
-static func _offscreen_problems(offscreen: Dictionary) -> PackedStringArray:
-	var out := _needed(offscreen, "offscreen.", {"zoomed_out": Kind.FLAG, "away": Kind.LIST,
-			"proxies": Kind.LIST, "lost": Kind.LIST})
-	if offscreen.has("crowd_level"):
-		var crowd: Variant = _whole(offscreen["crowd_level"])
-		if crowd == null or crowd < 0 or crowd > Offscreen.CROWD_STEPS.size():
-			out.append("'offscreen.crowd_level' must be a whole number from 0 to %d" % Offscreen.CROWD_STEPS.size())
-	var entries := {"away": {"id": Kind.WHOLE, "since": Kind.WHOLE},
-			"proxies": {"id": Kind.WHOLE, "route": Kind.TEXT, "along": Kind.REAL, "from": Kind.VECTOR,
-					"to": Kind.VECTOR},
-			"lost": {"id": Kind.WHOLE, "tick": Kind.WHOLE, "reason": Kind.TEXT}}
-	for part in entries:
-		if offscreen.get(part) is Array:
-			out.append_array(_entry_problems(offscreen[part], "offscreen.%s" % part, entries[part]))
-	return out
-
-
-## What is wrong with a save's "transient" (see the file doc): every part
-## capture() writes, "frontier.celebration_hops" the one optional key.
-static func _transient_problems(transient: Dictionary) -> PackedStringArray:
-	var out := _needed(transient, "transient.", {"view": Kind.DICT, "camera": Kind.DICT, "ripples": Kind.LIST,
-			"taps": Kind.LIST, "facing": Kind.LIST, "input_log": Kind.LIST, "fusion": Kind.LIST,
-			"tilt": Kind.DICT, "hint": Kind.DICT, "frontier": Kind.DICT})
-	var parts := {"view": {"centre": Kind.VECTOR, "zoom": Kind.REAL, "screen_size": Kind.VECTOR},
-			"tilt": {"degrees": Kind.REAL, "neutral": Kind.REAL, "flat": Kind.FLAG},
-			"hint": {"since": Kind.WHOLE, "bedtime": Kind.FLAG},
-			"frontier": {"celebration_since": Kind.WHOLE}}
-	for part in parts:
-		if transient.get(part) is Dictionary:
-			out.append_array(_needed(transient[part], "transient.%s." % part, parts[part]))
-	return out
-
-
-## The problems of a list's entries: each a dictionary with `keys`.
-static func _entry_problems(list: Array, at: String, keys: Dictionary) -> PackedStringArray:
-	var out := PackedStringArray()
-	for k in list.size():
-		var entry: Variant = list[k]
-		if typeof(entry) != TYPE_DICTIONARY:
-			out.append("'%s[%d]' must be a dictionary" % [at, k])
-		else:
-			out.append_array(_needed(entry, "%s[%d]." % [at, k], keys))
-	return out
-
-
-## The problems of `holder`'s `keys` (key -> Kind): each must be there, of
-## its kind. A problem names the key as `at` + key.
-static func _needed(holder: Dictionary, at: String, keys: Dictionary) -> PackedStringArray:
-	var out := PackedStringArray()
-	for key in keys:
-		if not holder.has(key):
-			out.append("'%s%s' is missing" % [at, key])
-		elif not _is_kind(holder[key], keys[key]):
-			out.append("'%s%s' must be %s" % [at, key, KIND_NAMES[keys[key]]])
-	return out
-
-
-## Whether `value` is of `kind` (whole numbers may be whole floats, as JSON
-## reads them).
-static func _is_kind(value: Variant, kind: Kind) -> bool:
-	match kind:
-		Kind.WHOLE:
-			return _whole(value) != null
-		Kind.REAL:
-			return _is_real(value)
-		Kind.VECTOR:
-			return _is_vector(value)
-		Kind.TEXT:
-			return typeof(value) == TYPE_STRING
-		Kind.FLAG:
-			return typeof(value) == TYPE_BOOL
-		Kind.DICT:
-			return typeof(value) == TYPE_DICTIONARY
-		_:
-			return typeof(value) == TYPE_ARRAY
-
-
-static func _slime_problems(slimes: Array) -> PackedStringArray:
-	var out := PackedStringArray()
-	var with_ids := 0
-	var last_id := 0
-	for k in slimes.size():
-		var slime: Variant = slimes[k]
-		var at := "slime %d: " % k
-		if typeof(slime) != TYPE_DICTIONARY:
-			out.append(at + "not a dictionary")
-			continue
-		var letter := str(slime.get("species", ""))
-		if letter.length() != 1 or Species.from_letter(letter) < 0:
-			out.append(at + "unknown species '%s'" % letter)
-		var size: Variant = _whole(slime.get("size"))
-		if size == null or size < 1 or size > SlimeBodies.MAX_SIZE:
-			out.append(at + "size must be 1 to %d" % SlimeBodies.MAX_SIZE)
-		if str(slime.get("state", "")) not in SlimeBodies.STATE_NAMES:
-			out.append(at + "unknown state '%s'" % slime.get("state", ""))
-		if not _is_vector(slime.get("centre")):
-			out.append(at + "'centre' must be [x, y]")
-		if slime.has("velocity") and not _is_vector(slime["velocity"]):
-			out.append(at + "'velocity' must be [x, y]")
-		if typeof(slime.get("members", [])) != TYPE_ARRAY:
-			out.append(at + "'members' must be a list of stable IDs")
-		if slime.has("runtime_id"):
-			with_ids += 1
-			var runtime: Variant = _whole(slime["runtime_id"])
-			if runtime == null or runtime <= last_id:
-				out.append(at + "runtime ids must be whole numbers, ascending, without repeats")
-			else:
-				last_id = runtime
-		var free: Variant = slime.get("free")
-		if free != null and (typeof(free) != TYPE_DICTIONARY or str(free.get("phase", "")) not in PHASES):
-			out.append(at + "'free' needs a phase: %s" % ", ".join(PHASES))
-		elif free != null:
-			out.append_array(_prefixed(at, _needed(free, "free.", {"since": Kind.WHOLE, "point": Kind.VECTOR,
-					"route": Kind.TEXT})))
-		var train: Variant = slime.get("train")
-		if train != null and typeof(train) != TYPE_DICTIONARY:
-			out.append(at + "'train' must be a dictionary")
-		var body: Variant = slime.get("body")
-		if body != null and size != null and size >= 1 and size <= SlimeBodies.MAX_SIZE:
-			var level: Variant = _detail_level(body) if typeof(body) == TYPE_DICTIONARY else 0
-			if level == null:
-				out.append(at + "'body.detail' must be a whole number from 0 to %d" % SlimeBodies.MAX_DETAIL)
-				continue
-			var n := SlimeBodies.detail_points_for(size, level)
-			if (typeof(body) != TYPE_DICTIONARY or unpack_vectors(str(body.get("points", ""))).size() != n
-					or unpack_vectors(str(body.get("previous", ""))).size() != n):
-				out.append(at + "'body' must hold %d points and previous points" % n)
-			elif body.has("rest") and (typeof(body["rest"]) != TYPE_DICTIONARY
-					or str(body["rest"].get("calm", "")) not in SlimeBodies.CALM_NAMES
-					or not _is_vector(body["rest"].get("anchor"))):
-				out.append(at + "'body.rest' needs a calm (%s) and an anchor [x, y]"
-						% ", ".join(SlimeBodies.CALM_NAMES))
-			elif body.has("rest"):
-				out.append_array(_prefixed(at, _needed(body["rest"], "body.rest.", {"still": Kind.WHOLE,
-						"pile": Kind.WHOLE})))
-	if with_ids != 0 and with_ids != slimes.size():
-		out.append("either every slime has a runtime_id or none does")
-	return out
+	return SaveChecks.problems(save, level_data)
 
 
 # --- Loading -------------------------------------------------------------------
@@ -836,26 +602,3 @@ static func _whole(value: Variant) -> Variant:
 	if typeof(value) == TYPE_FLOAT and is_finite(value) and value == floorf(value):
 		return int(value)
 	return null
-
-
-## `problems`, each with `at` in front.
-static func _prefixed(at: String, problems: PackedStringArray) -> PackedStringArray:
-	var out := PackedStringArray()
-	for problem in problems:
-		out.append(at + problem)
-	return out
-
-
-## A real as exact() writes it: a number, or "f64:" and 16 hex digits.
-static func _is_real(value: Variant) -> bool:
-	if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
-		return true
-	return (typeof(value) == TYPE_STRING and value.begins_with(EXACT_PREFIX)
-			and value.length() == EXACT_PREFIX.length() + 16
-			and value.substr(EXACT_PREFIX.length()).is_valid_hex_number())
-
-
-static func _is_vector(value: Variant) -> bool:
-	return (typeof(value) == TYPE_ARRAY and value.size() == 2
-			and typeof(value[0]) in [TYPE_INT, TYPE_FLOAT, TYPE_STRING]
-			and typeof(value[1]) in [TYPE_INT, TYPE_FLOAT, TYPE_STRING])
