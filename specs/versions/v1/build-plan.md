@@ -1,6 +1,6 @@
 # Slime Train v1 — Build plan
 
-Status: draft v31 (D167, the user's: every proposed decision approved; session 7 closes chunk 22's repeat but for the floor emulation measure, 24.5 passes, 24.6 closed; DoD 30's floor half on the phone emulation; the climb atoms to STABLE; next: the health review's phase 2, the floor emulation measure, chunk 20's checks by hand, v1's lock; v30: D166: chunk 24 done but for 24.5's and 24.6's phone numbers: 24.1 met, 0d0935c; 24.2 done, f1861e1, a placeholder look; rule 23's train-queue exclusion done, c0924d9; the release hop done, 75040ed; next: session 7, which closes chunk 22's repeat, then the health review (its read-only phase running); the climb atoms at REVIEW, STABLE the user's to confirm; v29: D165, the user's: 24.8 withdrawn from v1; rule 23 doesn't count a train queue on the loop, item 24.7's follow-up; a released slime hops at once, item 24.3's follow-up, O126 closed; 24g's climb fix kept in v1, O125 closed; running: the two follow-ups and 24.2, then 24.1's record, session 7, the health review; v28: D164: 24.3 done, 18d1a86, basket 3's outlet over slide 3's drop, proposed; rule 23's basket exclusion built, b14f0d5, the test level passing in every section; next 24.8 (running), 24.2, 24.1's record, session 7, the health review; v27: D163: 24g closed, the relay's save and reload fix 5d7409f, merged 578ccff; 24.4 done, 61b8d5f, settled by the user, with 24.5's fixture `loop-start-pile`; 24.7 done, 5509f71, rule 23 now leaving a basket's own fill out, the user's; the tick cap settled and the phone frame budget a headroom target, the user's, so 24.1 gates on the frame rate and records the ticks; chunk 22 repeated on the S20 FE, session 6: DoD 30 met on three fixtures, the repeat open until session 7; the order: the fill's exclusion, 24.3, 24.8, 24.2, 24.1, session 7 and chunk 20's checks by hand, the health review; v26: 5N done, 0f3d027; 24g part A done, a0ffdde, its closure measured, 7595762, the relay across a save and reload being fixed; 22c done, 57d38e7, the hold after a bounce, proposed, D162; O122 answered, its acceptance proposed, D162; next: chunk 22 repeated on the S20 FE; v25: the geyser object and TL2 after v1, the user's, D161: their sections moved under "After v1"; chunk 24g kept as the train's climb (the hold on a climb and the relay, rule 24's run tool without the geyser), proposed, O125; the order after 5N: 24g, 22c, 22 repeated, the rest of 24, the health review; chunk 22's repeat judges DoD 30 with the loop start's crowding set aside, proposed; earlier, v24: chunk 24g restated: the geyser as a level object, the hold on a climb and the relay, the dip nudge unchanged, the start's measures recorded not gated; chunk TL2, the test level's start review, proposed, not a lock gate, its place the user's, O123; D160; earlier, v23: chunk 24g, the geyser and the train's flow off the start, before v1 closes, proposed next after 5N, D159; O91 fixed, 0061ccf; earlier, v22: 22h done, fccbb8e, 96725f1, as-built note under D150; 19w's as-built note under D149; 5N next, D158; earlier, v21: 5N next, after 22h, for headroom, D158; 19w done, fdae364; 22h step A done, fccbb8e; 22m part 2 done, 3b765f3; the real S20 FE of 2026-10-03; earlier, v20: 22l done, 600de6b, 5f6a6b0; 22m's fixture done, 4aac65a, its run tool being built; DoD 30's status on the phone emulation; earlier, v19: 22l: every wake local, D156 (7); `stress-moving`'s abuse target in chunk 22 and 24.1, D153; earlier, v18: the fps session after 0196c25 reverted, D155: chunks 22e, 22f, 22g, 22i, 22j and 22k withdrawn, kept on branch `archive/fps-session-2026-10`; chunk 22d done, 1a539db; new chunks 22l, the local wake, D156, and 22m, the `stress-dense` fixture and the 10,000-tick run tool, D153, D154, both being built with the revert; chunk 19w, the save wipe and the save format before the first store release, D148, D149, and chunk 22h, the loop-start queue, D150, re-entered; the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE, the rest of 24, the health review, D155; approved by the user, 2026-09-29, D108; chunk 23 moved
+Status: draft v32 (D168: every chunk and the closing health review done; DoD 30's floor half met on the phone emulation, its p5 dips reported, not gated, the user's; rule 23 gates the played test; the save-format gaps closed, the user's; left before the lock: chunk 20's five checks by hand, the user's; v31: D167, the user's: every proposed decision approved; session 7 closes chunk 22's repeat but for the floor emulation measure, 24.5 passes, 24.6 closed; DoD 30's floor half on the phone emulation; the climb atoms to STABLE; next: the health review's phase 2, the floor emulation measure, chunk 20's checks by hand, v1's lock; v30: D166: chunk 24 done but for 24.5's and 24.6's phone numbers: 24.1 met, 0d0935c; 24.2 done, f1861e1, a placeholder look; rule 23's train-queue exclusion done, c0924d9; the release hop done, 75040ed; next: session 7, which closes chunk 22's repeat, then the health review (its read-only phase running); the climb atoms at REVIEW, STABLE the user's to confirm; v29: D165, the user's: 24.8 withdrawn from v1; rule 23 doesn't count a train queue on the loop, item 24.7's follow-up; a released slime hops at once, item 24.3's follow-up, O126 closed; 24g's climb fix kept in v1, O125 closed; running: the two follow-ups and 24.2, then 24.1's record, session 7, the health review; v28: D164: 24.3 done, 18d1a86, basket 3's outlet over slide 3's drop, proposed; rule 23's basket exclusion built, b14f0d5, the test level passing in every section; next 24.8 (running), 24.2, 24.1's record, session 7, the health review; v27: D163: 24g closed, the relay's save and reload fix 5d7409f, merged 578ccff; 24.4 done, 61b8d5f, settled by the user, with 24.5's fixture `loop-start-pile`; 24.7 done, 5509f71, rule 23 now leaving a basket's own fill out, the user's; the tick cap settled and the phone frame budget a headroom target, the user's, so 24.1 gates on the frame rate and records the ticks; chunk 22 repeated on the S20 FE, session 6: DoD 30 met on three fixtures, the repeat open until session 7; the order: the fill's exclusion, 24.3, 24.8, 24.2, 24.1, session 7 and chunk 20's checks by hand, the health review; v26: 5N done, 0f3d027; 24g part A done, a0ffdde, its closure measured, 7595762, the relay across a save and reload being fixed; 22c done, 57d38e7, the hold after a bounce, proposed, D162; O122 answered, its acceptance proposed, D162; next: chunk 22 repeated on the S20 FE; v25: the geyser object and TL2 after v1, the user's, D161: their sections moved under "After v1"; chunk 24g kept as the train's climb (the hold on a climb and the relay, rule 24's run tool without the geyser), proposed, O125; the order after 5N: 24g, 22c, 22 repeated, the rest of 24, the health review; chunk 22's repeat judges DoD 30 with the loop start's crowding set aside, proposed; earlier, v24: chunk 24g restated: the geyser as a level object, the hold on a climb and the relay, the dip nudge unchanged, the start's measures recorded not gated; chunk TL2, the test level's start review, proposed, not a lock gate, its place the user's, O123; D160; earlier, v23: chunk 24g, the geyser and the train's flow off the start, before v1 closes, proposed next after 5N, D159; O91 fixed, 0061ccf; earlier, v22: 22h done, fccbb8e, 96725f1, as-built note under D150; 19w's as-built note under D149; 5N next, D158; earlier, v21: 5N next, after 22h, for headroom, D158; 19w done, fdae364; 22h step A done, fccbb8e; 22m part 2 done, 3b765f3; the real S20 FE of 2026-10-03; earlier, v20: 22l done, 600de6b, 5f6a6b0; 22m's fixture done, 4aac65a, its run tool being built; DoD 30's status on the phone emulation; earlier, v19: 22l: every wake local, D156 (7); `stress-moving`'s abuse target in chunk 22 and 24.1, D153; earlier, v18: the fps session after 0196c25 reverted, D155: chunks 22e, 22f, 22g, 22i, 22j and 22k withdrawn, kept on branch `archive/fps-session-2026-10`; chunk 22d done, 1a539db; new chunks 22l, the local wake, D156, and 22m, the `stress-dense` fixture and the 10,000-tick run tool, D153, D154, both being built with the revert; chunk 19w, the save wipe and the save format before the first store release, D148, D149, and chunk 22h, the loop-start queue, D150, re-entered; the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE, the rest of 24, the health review, D155; approved by the user, 2026-09-29, D108; chunk 23 moved
 before 18 and chunk LD added, D123; LD split into LD1 and LD2, and a
 test-level fix for rule 22 (b) before 18, D126; R22 and LD3 done, chunk
 TL1 before 18, proposed, D127; chunk 24, the user's second round of
@@ -293,43 +293,41 @@ technology, not business behaviour:
   the floor emulation measure. **Chunk 24 done.**
 - **DoD 30's floor phone** (D167, the user's): judged on the phone
   emulation (`tools/perf_slow.sh --pin=main`, D142's method) until a
-  floor phone exists; a new measure on current main after the health
-  review's splits (the desktop must be quiet).
+  floor phone exists. **Measured, met** (D168; main 6f6cef4, 29e849c,
+  `docs/dev/README.md`, "DoD 30's floor half on the phone emulation
+  (2026-10-07)"), on the mean over each 62 s run: `s3-basket-59of60`
+  61.0 and 59.9 fps, `stress-dense` 30.5, `stress-moving` 28.2 (min
+  20.5, abuse target 15), `loop-start-pile` 159.9. Reported, not gated
+  (the user's, D168): the p5s under 30 of `s3-basket-59of60` (27.6,
+  28.1, a moving crowd at the run's end) and `stress-dense` (27.9).
+- **Rule 23 gates the played test** (6f6cef4, D168): each section's play
+  and each basket's fire-and-drain asserts `ClusterWatch.passes()`;
+  every section passes.
+- **The health review** (the closing step, D122) **done** (D168): phase
+  1 da9b95b (`docs/dev/health-review-2026-10-07.md`,
+  `tools/code_health_check.py`); quick wins 51a7752; S2 ee8fd6b; S3
+  ee8c0a9; S4 4f230f4; S1 1ff881e; Q5's tag moves 5146409, b49d299,
+  df02e6a; the save checks 6fdbbf7, 6bc8d3b (a save missing a key a
+  load reads, or of the wrong type, is refused and the level loads
+  fresh, the user's, D168). Checker: `src/` 0 ERROR, 139 WARN. Suite
+  1628/1628 native, 126/126 GDScript; the 38 hashes unchanged. Q9 (the
+  relay's measure) and the "Not yet reviewed" list after v1 (proposed).
+- **ATD** (3029280, the user's, D168): the STABLE atom edits (the climb
+  atoms name `TrainClimb` and `SlimeHops.hold_on_slope`; the pending
+  notes dropped; `req_tech_debt_backlog` in the contract, `contract_atd`
+  1.4).
 - **Branches** (D167): kept `main`, `exp/dip-jam`, `exp/geyser`,
   `exp/pacing`, `archive/fps-session-2026-10`; the merged feature
   branches deleted.
-- **Now (D167):** the health review's phase 2 is running (S1, the
-  `slime_bodies` split, seam 1; S2, the train split). Next: Q5's tag
-  moves, S3, S4, then the floor emulation measure. Chunk 20's checks by
-  hand wait on the user. Then v1's lock.
-- **Planned in D166 (since done but the health review):** 1. the phone's **session 7**, which closes chunk 22's
-  repeat: the labels off against on (24.6), normal play,
-  `loop-start-pile` (24.5), the second native basket run, chunk 20's
-  checks by hand, on a build with 24.3 and the release hop; 2. the
-  closing **health review**: its read-only phase is running now, its
-  clean-ups come after the phone run.
-- **The order as planned in D165 (since done but session 7 and the
-  health review):** rule 23's train-queue exclusion, the release hop and
-  item 24.2; then item 24.1's record, session 7 with chunk 20's checks by
-  hand, the closing health review.
-- **Next as planned in D164 (superseded by D165):** 1. item **24.8** (running); 2. item **24.2**, the
-  quota pies (a placeholder look until ux-writer's); 3. item **24.1**,
-  recording the numbers; 4. the phone's **session 7** (the runs above
-  not yet run) and chunk 20's checks by hand; 5. the closing health
-  review.
-- **The order as planned in D163 (its first two steps since done):** 1.
-  `ClusterWatch` leaves a basket's own fill out; 2. item 24.3; 3. 24.8;
-  4. 24.2; 5. 24.1; 6. session 7 and chunk 20's checks by hand; 7. the
-  health review.
-- **The order as planned before D163 (D158; 24g placed by D159, restated by D161, proposed; 5N, 24g and 22c since done):** chunk **5N** (the native tick, now, for headroom, not a missed target:
-  the user, "go native"; it ports the local wake), chunk **24g** (the
-  train's climb: the hold on a climb and the relay, D160, D161,
-  proposed, O125), chunk **22c** (crowd detail only under load,
-  proposed, D141), chunk **22 repeated** on the real S20 FE with the
-  perf log (DoD 30 judged with the loop start's crowding set aside, the
-  user's reading, D161), the rest of chunk **24**, then the closing
-  health review. **After v1** (the user's, D161): the geyser object,
-  then TL2 (the test level's start review).
+- **Now (D168):** every chunk and the closing health review are done.
+  **What's left before the lock: chunk 20's five checks by hand**, the
+  user's, on the reference phone when it is free (Back with pinning
+  declined, the tilt's feel, the French labels, "Forgot the code?" while
+  pinned, the punch-hole over the edge arrow). *Proposed:* v1 locks when
+  the user reports them passed; a failing check becomes a fix inside v1.
+  After v1 (D161): the geyser object, TL2, O118 to O120, O124.
+- **Earlier orders** (D158 to D167; every step since done): their
+  history is in `../../decisions.md`.
 - **Two v1 blockers** (the user, 2026-10-06, "mandatory fixes prior
   version lock"; D159): **O91 fixed** (3a27d86, merged 0061ccf; hashes
   re-recorded d48c519): slimes of different species no longer end up
@@ -355,7 +353,8 @@ technology, not business behaviour:
 - **Closing step, last of all:** the coding-rule health review
   (`CODING_RULE.md`'s health and clean-up list), after every other chunk,
   chunk 24 included (D122, kept by D123 and D128). It also looks at
-  `Train._behind`'s linear scan (24g's tick cost, D163).
+  `Train._behind`'s linear scan (24g's tick cost, D163; Q9, the
+  measure first, after v1, proposed). **Done** (D168, above).
 
 ## Overview
 
@@ -385,7 +384,7 @@ technology, not business behaviour:
 | 19w | Save wipe flag for development builds, for automated testing (D148, approved in direction, D149), and a save a build can't use set aside before the first store release (proposed, D149) | S | 19; done, fdae364 | unit tests: the flag wipes, no flag keeps, a release build ignores it, refused with a save to load; before shipping a refused save is set aside and the level saves again, after shipping it is kept and writes blocked; perf.sh's option checked by hand; same hashes |
 | 20 | Android build and platform integration | L | 18 | [DoD 25, 26, 27]; emulator |
 | 21 | End-to-end suite | M | 19 | [DoD 31] |
-| 22 | Performance pass on phones (repeated after 5N and 22c, D140, D141) | M | 20, 23 (repeat: 5N, 22c) | [DoD 30] |
+| 22 | Performance pass on phones (repeated after 5N and 22c, D140, D141; closed, D167, D168) | M | 20, 23 (repeat: 5N, 22c) | [DoD 30] |
 | 22b | Drawing pass (done, D142) | M | 22 | the frame's cost outside the tick measured per part and cut; same hash |
 | 22d | Debug counters and the largest awake cluster (done, 1a539db, D143) | S | 22b | unit tests of the four counts and the cluster; the PERF line and its summary carry them; same hashes |
 | 22h | Moves to the loop start one at a time, to a random free spot; no stall clock while parked (the user's, details proposed, D150; done, fccbb8e, 96725f1) | S | 19w; 22m's run tool | first the same runs on main (the bug likely there too); `s3-basket-59of60` over 10,000 ticks: no stall move of a parked slime, no stuck move within 10 s of a landing, moves at least 30 ticks apart; unit tests of the queue, the pause, the landing spot; same hash across a save and reload mid-queue; changed hashes listed |
@@ -397,7 +396,7 @@ technology, not business behaviour:
 | — | The geyser object (after v1, D161; once 24g's first part; see "After v1") | M | 24g | not in v1's order |
 | TL2 | The test level's start review (after v1, D161; see "After v1") | S–M | 24g, the geyser object | not in v1's order |
 | 23 | Small issues (open list) | S per issue | 17, 16 | each issue's own done-when |
-| 24 | Playtest issues, round 2 (open list; proposed; done but 24.5's and 24.6's phone numbers, session 7, D166) | S per issue (24.1 may be M) | 22 repeated (after 22b, 22d, 19w, 22h, 22l, 22m and 5N, D140, D143, D155; its session 6 done, session 7 after 24.1, D163) | each issue's own done-when |
+| 24 | Playtest issues, round 2 (open list; done, D166, D167) | S per issue (24.1 may be M) | 22 repeated (after 22b, 22d, 19w, 22h, 22l, 22m and 5N, D140, D143, D155; its session 6 done, session 7 after 24.1, D163) | each issue's own done-when |
 | LD | Level-design toolkit (technical) | L | 16 | the checker agrees with the level-rule tests on the test level; a scaffolded level loads, passes its generated tests and appears in test mode |
 | TL1 | Test level finishable from fresh (done, D129) | S | LD, R22 | the checker gives 0 warnings on the test level; a scripted play from `fresh` fills basket 1 |
 
@@ -822,9 +821,12 @@ device (the user's).
 - **Done when:** [DoD 25, 26, 27] pass on the emulator, including a swipe
   from a strip with pinning declined staying in the app, and tilt feels
   right on the reference phone.
-- **Built** (D132): done on the emulator; the phone checks (D132, 3) wait
-  for the user's S20 FE, and the choices marked proposed there wait for
-  the user.
+- **Built** (D132): done on the emulator; the choices marked proposed
+  there settled (D167). **The five phone checks by hand are the user's**
+  (D168), on the S20 FE when it is free: Back with pinning declined, the
+  tilt's feel, the French labels, "Forgot the code?" while pinned (a
+  phone PIN or fingerprint needed), the punch-hole over the edge arrow.
+  They are the last step before v1's lock.
 
 ### 21. End-to-end suite (M)
 
@@ -928,8 +930,14 @@ device (the user's).
   verdict (D142) closes on the frame rate, and no O108 lever is called
   for. **This chunk's repeat is closed**, but for the floor phone's half:
   judged on the phone emulation until a floor phone exists (the user's,
-  D167), measured again on current main after the health review's
-  splits. Chunk 20's checks by hand wait on the user.
+  D167). Chunk 20's checks by hand wait on the user.
+- **The floor half on the phone emulation** (D168; main 6f6cef4,
+  29e849c): met on the mean over each 62 s run: `s3-basket-59of60` 61.0
+  and 59.9 fps, `stress-dense` 30.5, `stress-moving` 28.2 (min 20.5),
+  `loop-start-pile` 159.9; the p5s under 30 (`s3-basket-59of60` 27.6
+  and 28.1, a moving crowd at the run's end; `stress-dense` 27.9)
+  reported, not gated (the user's). **This chunk's repeat is closed in
+  full**; [DoD 30] met on every case measured.
 - **DoD 30's status after 22l and 22m** (phone emulation only, not the
   phone; still not met then): `s3-basket-59of60`, the basket scene, reaches
   35.0 fps, past 30 (the floor phone unmeasured, O14); `stress-dense`

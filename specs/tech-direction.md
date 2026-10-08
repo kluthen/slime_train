@@ -1,6 +1,6 @@
 # Technical direction
 
-Status: draft v31 (session 7: chunk 22's repeat closed but for the floor emulation measure; DoD 30's floor phone judged on the phone emulation until one exists; every proposed mark settled, D167; v30: item 24.1 met: a steady 60 fps through section 3 on the desktop; rule 23's train-queue exclusion built; D166; v29: the lean withdrawn and rule 23 not counting a train queue on the loop, D165, the user's; v28: the tick cap settled, the phone frame budget a headroom target, a displaced sleeper stays asleep, hashes within one platform (the phone's `atan2f`), chunk 22's repeat on the S20 FE, session 6, D163; v27: chunk 22c as built, the hold after a bounce, exact repeat outside `auto`, proposed, D162; 5N and 24g part A done; v26: chunks 22l and 22m's fixture built on main, their phone-emulation readings; v25: every wake local, D156 (7); `stress-moving`'s abuse target of 15 fps, not a 30 fps target, D153; earlier, v24: the fps session after 0196c25 reverted, D155: the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE; the local wake, D156, chunk 22l; `stress-moving` an abuse test and `stress-dense`'s target, D153, D154; the save format before the first store release and a save a build can't use set aside, proposed, D149; the save wipe for automated testing only, chunk 19w, D148, approved in direction, D149)
+Status: draft v32 (DoD 30's floor half met on the phone emulation, the mean the gate, the p5 reported, chunk 22's repeat closed in full; a save missing a key a load reads, or of the wrong type, refused; D168; v31: session 7: chunk 22's repeat closed but for the floor emulation measure; DoD 30's floor phone judged on the phone emulation until one exists; every proposed mark settled, D167; v30: item 24.1 met: a steady 60 fps through section 3 on the desktop; rule 23's train-queue exclusion built; D166; v29: the lean withdrawn and rule 23 not counting a train queue on the loop, D165, the user's; v28: the tick cap settled, the phone frame budget a headroom target, a displaced sleeper stays asleep, hashes within one platform (the phone's `atan2f`), chunk 22's repeat on the S20 FE, session 6, D163; v27: chunk 22c as built, the hold after a bounce, exact repeat outside `auto`, proposed, D162; 5N and 24g part A done; v26: chunks 22l and 22m's fixture built on main, their phone-emulation readings; v25: every wake local, D156 (7); `stress-moving`'s abuse target of 15 fps, not a 30 fps target, D153; earlier, v24: the fps session after 0196c25 reverted, D155: the order 19w, 22h, 22l, 22m, 5N, 22c, 22 repeated on the real S20 FE; the local wake, D156, chunk 22l; `stress-moving` an abuse test and `stress-dense`'s target, D153, D154; the save format before the first store release and a save a build can't use set aside, proposed, D149; the save wipe for automated testing only, chunk 19w, D148, approved in direction, D149)
 
 Research: `docs/research/tech-stack.md`, `docs/research/level-authoring-and-kid-lock.md`.
 Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
@@ -307,8 +307,8 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   debug labels off 59.1 / 58.8, on 49.2 / 40.6, their part 4.2 ms a frame
   (accepted: debug builds only). The hashes match on both ticks; the
   pile's equals the desktop's, the basket's differs by `atan2f`.
-  **Chunk 22's repeat is closed**, but for the floor emulation measure.
-  Chunk 20's checks by hand wait on the user.
+  **Chunk 22's repeat is closed** (the floor emulation measure since
+  done, below, D168). Chunk 20's checks by hand are the user's (D168).
 - **Item 24.1 met on the desktop** (0d0935c, D166; measured only): a
   steady 60 fps through section 3 (native p50 / p5 60.0 / 60.0, GDScript
   p5 59.9, the detail ceiling at 0). The ticks, recorded against the
@@ -333,10 +333,17 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   and will serve as floor phone for now"):** until a floor phone exists,
   DoD 30's floor-phone half is judged on the phone emulation (the slowed
   desktop CPU, `tools/perf_slow.sh --pin=main`, D142's method). Its last
-  reading, chunk 22l (before 5N): `s3-basket-59of60` 35.0 fps. A new
-  measure on current main comes after the health review's splits (the
-  desktop must be quiet). A real floor phone stays O14; the floor
-  decision (D71) would rest on it. The 200-slime cap stays (D67).
+  reading before 5N (chunk 22l): `s3-basket-59of60` 35.0 fps. **Met on
+  current main** (D168; main 6f6cef4, 29e849c, the native tick, `auto`;
+  the table in `docs/dev/README.md`): on the mean over each 62 s run,
+  `s3-basket-59of60` 61.0 and 59.9 fps, `stress-dense` 30.5 (a thin
+  margin), `stress-moving` 28.2 (min 20.5, the abuse target 15),
+  `loop-start-pile` 159.9. The mean is the gate and the 5th percentile
+  is reported (the user's, D168): the p5s under 30 (`s3-basket-59of60`
+  27.6 and 28.1, a moving crowd at the run's end, not the still pile;
+  `stress-dense` 27.9) are recorded, not gated. A real floor phone stays
+  O14; the floor decision (D71) would rest on it. The 200-slime cap
+  stays (D67).
 - Not covered by the spike: game logic, the camera and the UI, which share
   the same frame budget (chunk 22 measures the whole game).
 
@@ -388,7 +395,12 @@ Spike write-ups: `docs/dev/spike-vector-look.md` (chunk 2, desktop),
   the format number; before shipping, a save a build refuses (another
   format, or any other reason `SaveData` gives) is set aside with its
   backup as `.unreadable`, the level starts fresh with autosave on, and
-  one log line says so. After shipping, such a save is left untouched and
+  one log line says so. *(D168, the user's:)* a save missing a key a
+  load reads, or holding one of the wrong type, is refused the same way
+  (set aside, the level loads fresh) instead of crashing the load; the
+  checks are `SaveChecks` (`src/sim/save_checks.gd`), and
+  `docs/dev/README.md`, "Defaults on load", lists every check and every
+  optional key with its meaning when absent. After shipping, such a save is left untouched and
   that level's writes are blocked, as today. Whether the app has shipped
   is one switch in the code, turned on at the first store release. An
   older level version is still migrated (above). Fixture and test-mode

@@ -5057,3 +5057,108 @@ and `rule_left_alone_and_lost` (the loop-start queue's details),
 `rule_geyser_spreads_arrivals_at_loop_start` (after v1, still proposed)
 nor `rule_dip_may_nudge_fusion` (O121 open). For ux-writer: O128 closed
 for v1; the pies' look stays ux D4 Q10's for later versions.
+
+## D168 — v1's build finished: the health review closed, DoD 30's floor half met on the phone emulation, rule 23 gates the played test; the user's answers of 2026-10-08 (the save-format gaps closed, the STABLE atom edits, the floor half's p5 dips reported, chunk 20's checks by hand the user's); what's left before the lock (2026-10-08)
+Closes the plan's closing step (D122) and the floor emulation measure
+(D167 (5)). Settles DoD 30's reading of a run (the mean, the 5th
+percentile reported). Notes on O14.
+
+The user's words (2026-10-08): "agreed on the items you've been waiting
+for me." The items the orchestrator had put to the user: (a) close the
+save-format gaps the health review's S4 left; (b) the STABLE atom edits
+and housekeeping; (c) DoD 30's floor half: accept the p5 dips under 30 as
+reported, not gated; (d) chunk 20's five checks by hand are the user's,
+done on the phone when it is free.
+
+**1. The health review closed (the plan's closing step, D122).** Phase 1
+da9b95b (`docs/dev/health-review-2026-10-07.md`, the checker
+`tools/code_health_check.py`); the quick wins 51a7752 (Q1–Q4, Q6–Q8,
+Q11, Q12); S2 ee8fd6b (`train.gd` under 400 lines, its record typed, the
+climb in `src/sim/train_climb.gd`); S3 ee8c0a9 (`main.gd`'s debug wiring
+out, the hub files' atoms thinned); S4 4f230f4 (the restore defaults
+sorted); S1 1ff881e (`slime_bodies.gd` under 600); Q5's tag moves
+5146409, b49d299, df02e6a; the save checks 6fdbbf7 and 6bc8d3b (part 4,
+(a)). The checker now: `src/` 0 ERROR, 139 WARN (35 ERROR, 192 WARN at
+phase 1). Suite 1628/1628 native, 126/126 the GDScript pass; the 38
+fixture hashes unchanged. *Left, proposed:* the review's optional
+measure Q9 (the relay's cost at `stress-dense`; the `_behind` index only
+if it asks for one) and its "Not yet reviewed" list go after v1, not a
+lock gate.
+
+**2. DoD 30's floor half met on the phone emulation** (D167 (5)'s
+stand-in floor phone; measured only, main 6f6cef4, nothing changed in
+the game; the table in `docs/dev/README.md`, "DoD 30's floor half on the
+phone emulation (2026-10-07)", 29e849c). The method is D142's
+(`tools/perf_slow.sh --pin=main --seconds=62 --crowd-detail=auto
+--tick=native`), the same as the 22l and 22m "before" numbers. On the
+mean over each 62 s run: `s3-basket-59of60` 61.0 and 59.9 fps (target
+30; before, on the GDScript tick, 35.0), `stress-dense` 30.5 (target 30,
+a thin margin; before 22.9), `stress-moving` 28.2 with a min of 20.5 (the
+abuse target 15, no crash, no freeze; before 16.1), `loop-start-pile`
+159.9. **(c), the user's: reported, not gated:** the p5s under 30 of
+`s3-basket-59of60` (27.6, 28.1: a moving crowd passing through the view
+at the run's end, t 67 to 73, not the still pile; the camera on section
+3, so not the loop start's crowding) and of `stress-dense` (27.9). This
+settles DoD 30's reading of a run, tagged proposed until now: the mean
+over a 62 s run is the gate, the 5th percentile is reported. With it,
+**chunk 22's repeat is closed in full** and DoD 30 is met on every case
+measured: the reference phone (sessions 6 and 7) and the floor half on
+the emulation. O14 stays open for a real floor phone (the tick's cost on
+it, the Mali GPU, Compatibility vs Mobile there), tilt input and, from
+v2, audio latency.
+
+**3. Rule 23 gates the test level's played test** (6f6cef4, merging
+40f83c9). Each section's play and each basket's fire-and-drain asserts
+`ClusterWatch.passes()` (above 20 slimes for more than 5 s in a row
+fails; a basket's own fill and train queues on the loop left out); the
+numbers still print; every section passes (section 3's play 23 slimes,
+0.1 s in a row). The new-level template already gated. Rule 23 is no
+longer only measured on the test level: a level breaking it fails its
+played test.
+
+**4. The user's answers (2026-10-08).**
+- **(a) The save-format gaps closed** (6fdbbf7, 6bc8d3b): a save missing
+  a key a load reads, or holding one of the wrong type, is refused (it
+  is set aside and the level loads fresh, the D149 contract before the
+  first store release) instead of crashing the load. The checks live in
+  `src/sim/save_checks.gd` (`SaveChecks`); `docs/dev/README.md`,
+  "Defaults on load", lists every check and every optional key with its
+  meaning when absent. Valid saves are unchanged (the 38 hashes stay).
+- **(b) The STABLE atom edits and housekeeping** (3029280, documentalist):
+  the relay and climb atoms point to `TrainClimb`
+  (`src/sim/train_climb.gd`) and `SlimeHops.hold_on_slope`; the "pending
+  confirmation" notes dropped on `rule_no_network_connection`,
+  `rule_no_in_app_purchases` and `rule_saves_never_wiped`;
+  `req_tech_debt_backlog` added to the contract as a guarantee about the
+  intent record, not the app; `contract_atd` 1.3 to 1.4.
+- **(c)** DoD 30's floor half's p5 dips, reported not gated (part 2).
+- **(d) Chunk 20's five checks by hand are the user's**, done on the
+  reference phone when it is free: Back with pinning declined (a tap
+  sliding off an edge strip doesn't go back); the tilt's feel; the
+  French parent labels fit; "Forgot the code?" while pinned (needs a
+  phone PIN or fingerprint set); the punch-hole camera over an edge
+  strip's arrow.
+
+**5. v1's state.** Every chunk of the build plan is done, and so is the
+closing health review. **What's left before the lock: chunk 20's five
+checks by hand (the user's, (d)).** *Proposed:* v1 locks when the user
+reports them passed; a check that fails becomes a fix inside v1 (with
+its own done-when, as chunk 23's and 24's items), and v1 locks once it
+passes. After v1 (D161): the geyser object, TL2 (the test level's start
+review), O118, O119, O120 and O124; then v2's own work.
+
+**Documents:** `versions/v1/build-plan.md` (status, Progress: the "Now"
+bullet replaced, the older "planned" bullets folded; chunk 20, chunk 22,
+the overview's 22 and 24 rows, the closing step); `versions/v1/master-spec.md`
+(header, 5.10 the refused save, 6/7's floor measure, DoD 30's reading
+settled); `versions/v1/README.md`; `tech-direction.md` (status, session
+7, the floor phone, persistence); `level-design.md` (rule 23 gates the
+played test); `levels/test/README.md` (rule 23's row);
+`open-questions.md` (O14's note); `README.md`.
+**Flagged:** for documentalist, the save checks' post-task sync (the
+save atoms, `req_persistence_and_saves`, `domain_saves_per_level` and
+`rule_saves_never_wiped`: a
+save missing a read key or of the wrong type is refused, set aside, and
+the level loads fresh); `req_platform_and_performance_targets` (the
+floor half met on the emulation, the mean the gate, the p5 reported);
+`rule_no_spot_where_slimes_gather_awake` (gated by the played test).

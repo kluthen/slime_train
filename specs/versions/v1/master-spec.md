@@ -62,7 +62,12 @@ phone: normal play, a big awake pile at the loop's start and the debug
 labels' cost; Definition of done 30 is met there on every case measured.
 Until a floor phone exists, the floor phone's half of Definition of done
 30 is judged on the phone emulation, the slowed desktop processor (the
-user's, D167; 7).
+user's, D167; 7); measured on the current build, it is met there on the
+mean of every run, its 5th percentile reported, not gated (the user's,
+D168). A save missing a value a load reads, or holding one of the
+wrong type, is refused and the level starts fresh (5.10, D168). The
+build is finished; v1 locks once the user's checks by hand on the
+reference phone pass (D168, proposed).
 
 ## 1. Concept and objective
 
@@ -701,7 +706,10 @@ reopening the app → the state the stored timers give
   in a store, so in v1 the save format may change from one build to the
   next without a migration. A save a build can't use is set aside with
   its backup, that level starts fresh and saves again, and one log line
-  says so. Migrations for every format change are owed from
+  says so. A save missing a value a load reads, or holding one of the
+  wrong type, is such a save: refused, never a crash (the user's, D168);
+  a value a save may leave out has a stated meaning when absent.
+  Migrations for every format change are owed from
   the first store release on. Level-version migration (above) is
   unchanged.
 
@@ -872,8 +880,13 @@ tests, and the technical choices made while building are in the project's
   a steady 60 fps, and its ticks are recorded against the phone frame
   budget's simulation share (D166). **No floor phone is bought for v1:**
   until one exists, the floor phone's targets are judged on the phone
-  emulation, the slowed desktop processor (the user's, D167); it is
-  measured again on the current build once the code health work is done.
+  emulation, the slowed desktop processor (the user's, D167). Measured
+  on the current build (D168): the basket scene 61 and 60 fps, the dense
+  bowl 30.5, the abuse case 28 (at least 20.5), the big awake pile at
+  the loop's start 160, each the mean over a 62 s run; the dips under 30
+  in the 5th percentile (the basket scene 27.6 and 28.1, a moving crowd
+  at the run's end; the dense bowl 27.9) are reported, not gated (the
+  user's, D168).
 - Test environments:
 
 | Environment | Used for | Not used for |
@@ -1050,8 +1063,9 @@ never ships: O101.
     the loop line, the bowl's bottom at 4, filled from the bowl outward)
     holds at least 30 fps, and its abuse case (`stress-moving`: 200
     moving slimes, all piled in the bowl) meets an abuse target, not a
-    30 fps target: no crash, no freeze and at least 15 fps
-    *(proposed: the mean over a 62 s run, the 5th percentile reported)*.
+    30 fps target: no crash, no freeze and at least 15 fps. Each
+    target is judged on the mean over a 62 s run; the 5th percentile is
+    reported, not gated (the user's, D168).
     Until a floor phone exists, the floor phone's half is judged on the
     phone emulation, the slowed desktop run (`tools/perf_slow.sh
     --pin=main`), the weaker of the two so far (the user's, D167). *(The
