@@ -7,9 +7,9 @@ priority: 4
 human_name: Saves are never wiped
 parents:
   - [[req_persistence_and_saves]]
-version: 1.2
+version: 1.3
 type: RULE
-tags: [persistence,contract-candidate]
+tags: [persistence]
 ---
 
 # Saves are never wiped

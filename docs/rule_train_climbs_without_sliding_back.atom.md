@@ -1,7 +1,7 @@
 ---
 id: rule_train_climbs_without_sliding_back
 status: STABLE
-version: 1.1
+version: 1.2
 priority: 3
 tags: [slimes,movement,train,climb]
 parents:
@@ -21,7 +21,7 @@ Keep the train from losing on a climb, between hops, the ground its hops gained.
 A train slime standing between hops on a rise of the outgoing route keeps its place instead of sliding back down the slope. A slime on a return route's slide is carried as before, and a slime knocked off the route is not held.
 
 ## TECHNICAL INTERFACE
-Parented to req_hopping_behavior (slimes move only by hopping, never sliding). Implemented in Train.steer (src/sim/train.gd) with SlimeBodies.hold_on_slope (src/sim/slime_bodies.gd): a supported, active train slime whose next hop is more than one and a half ticks away, on the outgoing route at its own progress (not steering from a point behind), on a stretch rising more than HOLD_FROM (0.1, rise over run) and no steeper than GRIP_MAX_SLOPE, has its motion down the slope cancelled after the grip and is given HOLD_LIFT (0.5) of one tick's pull along the slope, up it. No new state, nothing saved; the same on both simulation ticks. Measured alone on a rise: about 1.6 px/s of slide left, against 12.9 px/s with the grip only.
+Parented to req_hopping_behavior (slimes move only by hopping, never sliding). Implemented in TrainClimb.hold (src/sim/train_climb.gd), called from Train.steer (src/sim/train.gd), together with SlimeHops.hold_on_slope (src/sim/slime_hops.gd, reached through SlimeBodies.hold_on_slope): a supported, active train slime whose next hop is more than one and a half ticks away, on the outgoing route at its own progress (not steering from a point behind), on a stretch rising more than TrainClimb.HOLD_FROM (0.1, rise over run) and no steeper than Train.GRIP_MAX_SLOPE, has its motion down the slope cancelled after the grip and is given TrainClimb.HOLD_LIFT (0.5) of one tick's pull along the slope, up it. No new state, nothing saved; the same on both simulation ticks. Measured alone on a rise: about 1.6 px/s of slide left, against 12.9 px/s with the grip only.
 
 Decided by the user (2026-10-07): this rule is kept in v1 as built in chunk 24g, the fix for the train's jam on climbs, with the built values.
 
