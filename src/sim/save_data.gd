@@ -98,7 +98,11 @@ extends RefCounted
 ## where the loop is closest, and a "train" record's keys left out are a
 ## fresh record's (TrainRecord); without the top-level "train" no gate is
 ## open, without "call" there was no call; without "transient" the view and
-## the input start empty. Every other key capture() writes is needed:
+## the input start empty; without "id" (or with null) a slime has no stable
+## ID for a migration; a key left out of a level switch's, basket's or
+## gate's state takes the initial state's (FrontierSets.start). An input
+## event's "finger", "at", "degrees" and "flat" are there only for the
+## kinds of event that have them. Every other key capture() writes is needed:
 ## problems() refuses a save without it (see docs/dev/README.md, "Defaults
 ## on load").
 ##
@@ -342,6 +346,8 @@ static func problems(save: Variant, level_data: LevelData) -> PackedStringArray:
 		out.append_array(_slime_problems(slimes))
 	# Stable ID -> state.
 	out.append_array(_needed(save, "", {"objects": Kind.DICT, "gates": Kind.DICT}))
+	if level_data != null and save.get("objects") is Dictionary and save.get("gates") is Dictionary:
+		out.append_array(_frontier_problems(save["objects"], save["gates"], level_data))
 	for key in ["train", "call", "transient", "offscreen", "stuck_slimes"]:
 		var part: Variant = save.get(key)
 		if part != null and typeof(part) != TYPE_DICTIONARY:
@@ -392,6 +398,34 @@ static func _session_problems(session: Variant) -> PackedStringArray:
 	var timed := str(session["phase"]) != Session.SCREENSAVER
 	if timed and out.is_empty() and (session["anchor"].is_empty() != session["clock"].is_empty()):
 		out.append("'session.anchor' and 'session.clock' come together")
+	return out
+
+
+## What is wrong with the states of `level_data`'s switches, baskets and
+## gates in a save's "objects" and "gates" (FrontierSets): each a
+## dictionary, each key optional (absent: the initial state's), of its kind
+## when there, a basket's phase one of FrontierSets.PHASES. The states of
+## stable IDs the level doesn't have are not read (a migration drops them).
+# @spec-link [[req_interactive_objects_general]]
+static func _frontier_problems(objects: Dictionary, gates: Dictionary, level_data: LevelData) -> PackedStringArray:
+	var out := PackedStringArray()
+	var groups := [[objects, "objects", level_data.switches, {"flipped": Kind.FLAG, "trapdoor_shut": Kind.FLAG}],
+			[objects, "objects", level_data.baskets, {"phase": Kind.TEXT, "weight": Kind.WHOLE, "since": Kind.WHOLE,
+					"next_release": Kind.WHOLE}],
+			[gates, "gates", level_data.gates, {"open": Kind.FLAG, "entrance_closed": Kind.FLAG}]]
+	for group in groups:
+		var states: Dictionary = group[0]
+		for id in group[2]:
+			if not states.has(id):
+				continue
+			var at := "%s.%s" % [group[1], id]
+			if typeof(states[id]) != TYPE_DICTIONARY:
+				out.append("'%s' must be a dictionary" % at)
+				continue
+			var state: Dictionary = states[id]
+			out.append_array(_needed(state, at + ".", group[3], true))
+			if state.get("phase") is String and state["phase"] not in FrontierSets.PHASES:
+				out.append("'%s.phase' must be one of %s" % [at, ", ".join(FrontierSets.PHASES)])
 	return out
 
 

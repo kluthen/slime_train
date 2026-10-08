@@ -540,3 +540,32 @@ func test_the_count_lists_entries_are_needed() -> void:
 
 func test_the_open_gates_are_names() -> void:
 	_assert_needed([[["train", "open_gates", -1], 3]])
+
+
+## A level's switch, basket and gate states: each key optional (absent: the
+## initial state's), of its kind when there; an entry is a dictionary.
+func test_object_and_gate_states_are_typed_when_there() -> void:
+	var level := _level()
+	level.add_switch("t.switch", Rect2(-1150, -100, 50, 50), "t.basket")
+	level.add_basket("t.basket", Rect2(-1000, -100, 100, 76), 3, Vector2(-900, -24))
+	level.add_gate("t.gate", Rect2(1400, -100, 50, 76))
+	var good := _hand_made()
+	good["objects"] = {"t.switch": {"flipped": false, "trapdoor_shut": true},
+			"t.basket": {"phase": "filling", "weight": 0, "since": -1, "next_release": 0}}
+	good["gates"] = {"t.gate": {"open": false, "entrance_closed": false}}
+	assert_eq(SaveData.problems(good, level), PackedStringArray(), "the states are good")
+	var wrong := {"objects": {"t.switch": {"flipped": 1, "trapdoor_shut": "x"},
+			"t.basket": {"phase": "lost", "weight": "x", "since": 0.5, "next_release": [1]}},
+			"gates": {"t.gate": {"open": "x", "entrance_closed": 0}}}
+	for part in wrong:
+		for id in wrong[part]:
+			var save := good.duplicate(true)
+			save[part][id] = 3
+			assert_string_contains("\n".join(SaveData.problems(save, level)), "%s'" % id, id + " not a dictionary")
+			for key in wrong[part][id]:
+				save = good.duplicate(true)
+				save[part][id].erase(key)
+				assert_eq(SaveData.problems(save, level), PackedStringArray(), "%s.%s optional" % [id, key])
+				save[part][id][key] = wrong[part][id][key]
+				assert_string_contains("\n".join(SaveData.problems(save, level)), "%s'" % key,
+						"%s.%s of the wrong type" % [id, key])
