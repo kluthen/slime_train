@@ -41,6 +41,7 @@ extends GutTest
 # @test-link [[req_switch_basket_gate_set]]
 # @test-link [[req_waking_sleepers]]
 # @test-link [[req_level_design_rules]]
+# @test-link [[rule_no_spot_where_slimes_gather_awake]]
 # @test-link [[req_call_mechanic]]
 # @test-link [[req_level_completion_celebration]]
 

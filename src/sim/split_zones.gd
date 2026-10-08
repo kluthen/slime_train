@@ -20,7 +20,7 @@ func _init(split_zones: Dictionary = {}) -> void:
 
 
 ## Whether `point` is inside a split zone.
-# @spec-link [[rule_start_carries_split_zone]]
+# @spec-link [[rule_split_zone_only_splitter]]
 func covers(point: Vector2) -> bool:
 	for box in _boxes:
 		if box.has_point(point):

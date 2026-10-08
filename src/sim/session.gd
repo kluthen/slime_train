@@ -131,7 +131,7 @@ func is_timed() -> bool:
 
 
 ## Whether a tap that reaches the world starts a session now.
-# @spec-link [[req_actor_roles_and_permissions]]
+# @spec-link [[req_session_lifecycle]]
 func can_start() -> bool:
 	return enabled and phase == SCREENSAVER
 

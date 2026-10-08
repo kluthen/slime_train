@@ -72,7 +72,6 @@ var stuck: Array[Dictionary] = []
 ## One tick, after the train follows: on a check tick, counts the close
 ## pairs and logs the stuck ones neither of which may move (see the class
 ## doc); the others wait in the loop-start queue.
-# @spec-link [[req_slime_states]]
 # @spec-link [[rule_stuck_slimes_moved_to_start]]
 func step(sim: Simulation) -> void:
 	if sim.tick % CHECK_TICKS != 0:
