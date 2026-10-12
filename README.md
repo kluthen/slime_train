@@ -124,3 +124,11 @@ is the reference.
 The build follows `specs/versions/v1/build-plan.md`, chunk by chunk. Each
 chunk lands with its tests. The real first level, the interface design and
 playtests with children come after the test level has been built and played.
+
+## Open Issues
+
+| Name | Date | Status | Severity | Oneliner |
+|---|---|---|---|---|
+| [Parked free slimes are lifted onto the tree's route back](issues/20261012_parked_free_slimes_lifted_onto_route_back.md) | 2026-10-12 | Open | High | Free slimes on the loop under the tree that go off screen are moved **up** on... |
+| [The call frees every awake slime in range, not the 10 nearest](issues/20261012_call_frees_every_slime_in_range.md) | 2026-10-12 | Open | Medium | The user expects a call to free at most about 10 slimes: the free slimes in r... |
+

@@ -6,6 +6,8 @@
 - `ui_ux/`: the UX design tree, maintained by ux-writer (no design yet).
 - `docs/research/`: verbatim research reports with their sources.
 - `docs/*.atom.md`: ATD declared intent, maintained by documentalist.
+- `issues/`: tracked problems (playtest reports, bugs, risks); skill
+  `issue_management`, listed with the `issues` command.
 
 ## Level design
 
